@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CelesteNet.Server": {
+      "commandName": "Project",
+      "commandLineArgs": "--loglevel=-1"
+    }
+  }
+}

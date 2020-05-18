@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net452</TargetFrameworks>
+    <AssemblyName>CelesteNet.Client</AssemblyName>
+    <RootNamespace>Celeste.Mod.CelesteNet.Client</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="..\CelesteNet.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
+  </ItemGroup>
+  
+</Project>

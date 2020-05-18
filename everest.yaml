@@ -1,0 +1,6 @@
+- Name: CelesteNet
+  Version: 1.0.0
+  DLL: CelesteNet.Client/bin/Debug/net452/CelesteNet.Client.dll
+  Dependencies:
+    - Name: Everest
+      Version: 1.1446.0

@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Shared", "CelesteNet.Shared\CelesteNet.Shared.csproj", "{DF8E8764-60D1-4EC8-9997-4208551B4EC1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Client", "CelesteNet.Client\CelesteNet.Client.csproj", "{807F0060-5335-4453-8C5A-55D82600BC2B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Server", "CelesteNet.Server\CelesteNet.Server.csproj", "{B4DFB785-926A-4DF3-8555-F114AFD70102}"
+EndProject
+Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "Celeste", "..\..\Celeste.exe", "{87AC742C-B0C1-4E7D-90A3-CADE72EB867C}"
+	ProjectSection(DebuggerProjectSystem) = preProject
+		PortSupplier = 00000000-0000-0000-0000-000000000000
+		Executable = D:\Program Files (x86)\Steam\steamapps\common\Celeste\Celeste.exe
+		RemoteMachine = MAIK-MEDIONPC-W
+		StartingDirectory = D:\Program Files (x86)\Steam\steamapps\common\Celeste
+		Environment = Default
+		LaunchingEngine = 00000000-0000-0000-0000-000000000000
+		UseLegacyDebugEngines = No
+		LaunchSQLEngine = No
+		AttachLaunchAction = No
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A2A695E6-AD24-4BF9-AE44-3B3FC4F0A0B3}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		CelesteNet.props = CelesteNet.props
+		everest.yaml = everest.yaml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DF8E8764-60D1-4EC8-9997-4208551B4EC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF8E8764-60D1-4EC8-9997-4208551B4EC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF8E8764-60D1-4EC8-9997-4208551B4EC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF8E8764-60D1-4EC8-9997-4208551B4EC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{807F0060-5335-4453-8C5A-55D82600BC2B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{807F0060-5335-4453-8C5A-55D82600BC2B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{807F0060-5335-4453-8C5A-55D82600BC2B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{807F0060-5335-4453-8C5A-55D82600BC2B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4DFB785-926A-4DF3-8555-F114AFD70102}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4DFB785-926A-4DF3-8555-F114AFD70102}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4DFB785-926A-4DF3-8555-F114AFD70102}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4DFB785-926A-4DF3-8555-F114AFD70102}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87AC742C-B0C1-4E7D-90A3-CADE72EB867C}.Debug|Any CPU.ActiveCfg = Release|x86
+		{87AC742C-B0C1-4E7D-90A3-CADE72EB867C}.Release|Any CPU.ActiveCfg = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7FDFC39A-82B7-4B23-8208-F246E9B3A7A2}
+	EndGlobalSection
+EndGlobal

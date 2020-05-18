@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net452</TargetFrameworks>
+    <AssemblyName>CelesteNet.Server</AssemblyName>
+    <RootNamespace>Celeste.Mod.CelesteNet.Server</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <Import Project="..\CelesteNet.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mono.Options" Version="6.6.0.161" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="WebSocketSharp" Version="1.0.3-rc11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Web" />
+  </ItemGroup>
+  
+</Project>

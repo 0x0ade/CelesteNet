@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Start() {
-            Logger.Log(LogLevel.CRI, "main", "Startup");
+            Logger.Log(LogLevel.CRI, "main", $"Startup on port {Settings.MainPort}");
             IsAlive = true;
 
             Control.Start();

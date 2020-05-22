@@ -8,6 +8,7 @@
             "name": "Launch Server",
             "type": "mono",
             "request": "launch",
+            "preLaunchTask": "build",
             "program": "${workspaceRoot}/CelesteNet.Server/bin/Debug/net452/CelesteNet.Server.exe",
             "cwd": "${workspaceRoot}/CelesteNet.Server/bin/Debug/net452"
         },

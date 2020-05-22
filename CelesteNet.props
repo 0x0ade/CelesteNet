@@ -5,38 +5,72 @@
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
   </PropertyGroup>
 
+  <Choose>
+    <When Condition="Exists('..\..\..\Celeste.exe')">
+      <PropertyGroup>
+        <CelesteDir>..\..\..</CelesteDir>
+        <InCelesteModDir>true</InCelesteModDir>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="Exists('..\..\Celeste\Celeste.exe')">
+      <PropertyGroup>
+        <CelesteDir>..\..\Celeste</CelesteDir>
+        <InCelesteModDir>false</InCelesteModDir>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(CelesteDir)' == ''">
+      <!-- Whoops. -->
+      <PropertyGroup>
+        <CelesteDir></CelesteDir>
+        <InCelesteModDir></InCelesteModDir>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
+  <Target Name="CheckCelesteDir" BeforeTargets="PreBuildEvent">
+    <Error Condition="'$(CelesteDir)' == ''" Text="Cannot find Celeste." />
+  </Target>
+
   <ItemGroup>
-    <PackageReference Include="MonoMod.RuntimeDetour" Version="20.5.7.1" PrivateAssets="all" ExcludeAssets="runtime" />
-    <PackageReference Include="MonoMod.Utils" Version="20.5.7.1" PrivateAssets="all" ExcludeAssets="runtime" />
-    <PackageReference Include="YamlDotNet" Version="8.1.1" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="MonoMod.RuntimeDetour" Version="20.5.7.1">
+      <PrivateAssets Condition="$(InCelesteModDir)">all</PrivateAssets>
+      <ExcludeAssets Condition="$(InCelesteModDir)">runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="MonoMod.Utils" Version="20.5.7.1">
+      <PrivateAssets Condition="$(InCelesteModDir)">all</PrivateAssets>
+      <ExcludeAssets Condition="$(InCelesteModDir)">runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="YamlDotNet" Version="8.1.1">
+      <PrivateAssets Condition="$(InCelesteModDir)">all</PrivateAssets>
+      <ExcludeAssets Condition="$(InCelesteModDir)">runtime</ExcludeAssets>
+    </PackageReference>
+    <!-- .NET Framework 4.0+ reference assemblies aren't always available system-wide. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Celeste" HintPath="$(CelesteDir)\Celeste.exe" Private="$(!InCelesteModDir Or !CopyCeleste)" />
+    <Reference Include="MMHOOK_Celeste" HintPath="$(CelesteDir)\MMHOOK_Celeste.dll" Private="$(!InCelesteModDir Or !CopyCeleste)" />
   </ItemGroup>
 
   <Choose>
-    <When Condition="Exists('..\..\..\Celeste.exe')">
+    <When Condition="'$(OS)' != 'Windows_NT' Or Exists('$(CelesteDir)\FNA.dll')">
       <ItemGroup>
-        <Reference Include="Celeste" HintPath="..\..\..\Celeste.exe" Private="!$(CopyCeleste)" />
-        <Reference Include="MMHOOK_Celeste" HintPath="..\..\..\MMHOOK_Celeste.dll" Private="!$(CopyCeleste)" />
+        <Reference Include="FNA" HintPath="$(CelesteDir)\FNA.dll" Private="$(!InCelesteModDir Or !CopyCeleste)" />
       </ItemGroup>
-
-      <Choose>
-        <When Condition="'$(OS)' != 'Windows_NT' Or Exists('..\..\..\FNA.dll')">
-          <ItemGroup>
-            <Reference Include="FNA" HintPath="..\..\..\FNA.dll" Private="!$(CopyCeleste)" />
-          </ItemGroup>
-        </When>
-
-        <Otherwise>
-          <ItemGroup>
-            <Reference Include="Microsoft.Xna.Framework" HintPath="$(WINDIR)\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.dll" Private="false" />
-            <Reference Include="Microsoft.Xna.Framework.Game" HintPath="$(WINDIR)\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework.Game\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.Game.dll" Private="false" />
-            <Reference Include="Microsoft.Xna.Framework.Graphics" HintPath="$(WINDIR)\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework.Graphics\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.Graphics.dll" Private="false" />
-          </ItemGroup>
-        </Otherwise>
-      </Choose>
     </When>
 
     <Otherwise>
-      <!-- Whoops. -->
+      <ItemGroup>
+        <Reference Include="Microsoft.Xna.Framework" HintPath="$(WINDIR)\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.dll" Private="false" />
+        <Reference Include="Microsoft.Xna.Framework.Game" HintPath="$(WINDIR)\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework.Game\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.Game.dll" Private="false" />
+        <Reference Include="Microsoft.Xna.Framework.Graphics" HintPath="$(WINDIR)\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework.Graphics\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.Graphics.dll" Private="false" />
+      </ItemGroup>
     </Otherwise>
   </Choose>
   

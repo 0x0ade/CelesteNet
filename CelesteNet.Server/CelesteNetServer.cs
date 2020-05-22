@@ -51,7 +51,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Control.Dispose();
         }
 
-        
+
         public Stream OpenContent(string path) {
             try {
                 string dir = Path.GetFullPath(Settings.ContentRoot);
@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             } catch {
             }
 
-#if INMODDIR
+#if DEBUG
             try {
                 string dir = Path.GetFullPath(Path.Combine("..", "..", "..", "Content"));
                 string pathFS = Path.GetFullPath(Path.Combine(dir, path));

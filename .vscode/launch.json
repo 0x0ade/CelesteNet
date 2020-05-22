@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Server",
+            "type": "mono",
+            "request": "launch",
+            "program": "${workspaceRoot}/CelesteNet.Server/bin/Debug/net452/CelesteNet.Server.exe",
+            "cwd": "${workspaceRoot}/CelesteNet.Server/bin/Debug/net452"
+        },
+        {
+            "name": "Attach",
+            "type": "mono",
+            "request": "attach",
+            "address": "localhost",
+            "port": 55555
+        }
+    ]
+}

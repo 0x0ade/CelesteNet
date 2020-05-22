@@ -18,8 +18,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetServerSettings Settings;
 
         public readonly Frontend Control;
+        public readonly ChatServer Chat;
 
-        public bool IsAlive { get; private set; }
+        public bool IsAlive;
 
         public CelesteNetServer()
             : this(new CelesteNetServerSettings()) {
@@ -29,6 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Settings = settings;
 
             Control = new Frontend(this);
+            Chat = new ChatServer(this);
         }
 
         public void Start() {
@@ -36,15 +38,11 @@ namespace Celeste.Mod.CelesteNet.Server {
             IsAlive = true;
 
             Control.Start();
-
+            Chat.Start();
 
             // TODO: WAIT.
             while (IsAlive)
                 Thread.Yield();
-        }
-
-        public void Shutdown() {
-            IsAlive = false;
         }
 
         public void Dispose() {
@@ -95,7 +93,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 celestePath = null;
             } else {
                 AppDomain.CurrentDomain.AssemblyResolve += (asmSender, asmArgs) => {
-                    string path = Path.Combine(celestePath, new AssemblyName(asmArgs.Name).Name + ".dll");
+                    string name = new AssemblyName(asmArgs.Name).Name;
+                    string path = Path.Combine(celestePath, name + ".dll");
+                    if (!File.Exists(path))
+                        path = Path.Combine(celestePath, name + ".exe");
                     return File.Exists(path) ? Assembly.LoadFrom(path) : null;
                 };
             }

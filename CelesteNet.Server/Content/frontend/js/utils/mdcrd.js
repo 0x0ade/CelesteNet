@@ -134,14 +134,20 @@ var mdcrd = {
     /**
      * @param {HTMLElement} el
      */
-    el => rd$(el)`
-    <li class="mdc-list-item"
-      onclick=${callback} tabindex=${enabled ? 0 : -1} aria-disabled=${!enabled}
-      ${rd.toggleClass("disabled", "mdc-list-item--disabled")}=${!enabled}
-    >
-      <span class="mdc-list-item__text">${label}</span>
-    </li>
-    ${el => el.MDCRipple = new mdc.ripple.MDCRipple(el)}`,
+    el => {
+      el = rd$(el)`
+      <li class="mdc-list-item"
+        onclick=${callback} tabindex=${enabled ? 0 : -1} aria-disabled=${!enabled}
+        ${rd.toggleClass("disabled", "mdc-list-item--disabled")}=${!enabled}
+      >
+        <span class="mdc-list-item__text">${label}</span>
+      </li>
+      ${el => el.MDCRipple = new mdc.ripple.MDCRipple(el)}`;
+
+      el.style.cursor = callback ? undefined : "default";
+
+      return el;
+    },
 
     /**
      * @param {Items} items

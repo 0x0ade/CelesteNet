@@ -36,6 +36,7 @@ export class Frontend {
     for (let id of [
       "status",
       "cmd",
+      "chat",
       "assemblies",
       "endpoints"
     ]) {

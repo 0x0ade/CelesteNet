@@ -26,6 +26,8 @@ export class FrontendDOM {
     this.container = document.getElementsByTagName("app-container")[0];
     /** @type {Panel[]} */
     this.panels = [];
+    /** @type {{[any]: Panel}} */
+    this.panelmap = {};
     this.started = false;
   }
 

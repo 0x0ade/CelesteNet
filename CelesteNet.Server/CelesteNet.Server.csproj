@@ -5,6 +5,7 @@
     <AssemblyName>CelesteNet.Server</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Server</RootNamespace>
     <OutputType>Exe</OutputType>
+    <CopyCeleste>true</CopyCeleste>
   </PropertyGroup>
 
   <Import Project="..\CelesteNet.props" />

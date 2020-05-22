@@ -64,9 +64,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             };
 
             HTTPServer.AddWebSocketService("/ws", () => new FrontendWebSocket(this));
-            HTTPServer.WebSocketServices.TryGetServiceHost("/ws", out WSHost);
 
             HTTPServer.Start();
+
+            HTTPServer.WebSocketServices.TryGetServiceHost("/ws", out WSHost);
         }
 
         private void HandleRequest(HttpRequestEventArgs c) {
@@ -92,6 +93,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         public void Dispose() {
+            Logger.Log(LogLevel.INF, "frontend", "Shutdown");
+
             HTTPServer?.Stop();
             HTTPServer = null;
         }

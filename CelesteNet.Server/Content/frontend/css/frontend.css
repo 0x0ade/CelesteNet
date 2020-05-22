@@ -1,5 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@500&display=swap");
+
 @font-face {
-    font-family: Renogare;
+    font-family: "Renogare";
     src:
     url("https://everestapi.github.io/fonts/Renogare-Regular.woff") format("woff"),
     url("https://everestapi.github.io/fonts/Renogare-Regular.otf") format("opentype");
@@ -196,7 +198,7 @@ main {
 .panel > h1 {
     position: relative;
 }
-.panel > h1 > .mdc-icon-button {
+.panel > h1 > .actions {
     position: absolute;
     top: -4px;
     right: 0;
@@ -218,21 +220,28 @@ main {
     width: 300px;
 }
 
-.panel-cmd {
+.panel-cmd,
+.panel-chat {
     width: 400px;
 }
-.panel-cmd > .panel-list {
+.panel-cmd > .panel-list,
+.panel-chat > .panel-list {
     flex-grow: 1;
 }
-.panel-cmd li.mdc-list-item {
+.panel-cmd li.mdc-list-item,
+.panel-chat li.mdc-list-item {
     -webkit-user-select: text;
     -khtml-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
     user-select: text;
     cursor: text !important;
-    font-family: monospace;
 }
-.panel-cmd > .panel-input > .mdc-text-field {
+.panel-cmd li.mdc-list-item {
+    font-family: "Fira Code", monospace;
+    font-size: 11px;
+}
+.panel-cmd > .panel-input > .mdc-text-field,
+.panel-chat > .panel-input > .mdc-text-field {
     width: 100%;
 }

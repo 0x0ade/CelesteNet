@@ -9,13 +9,13 @@ import { FrontendBasicPanel } from "./basic.js";
 /** @type {import("material-components-web")} */
 const mdc = window["mdc"]; // mdc
 
-export class FrontendCMDPanel extends FrontendBasicPanel {
+export class FrontendChatPanel extends FrontendBasicPanel {
   /**
    * @param {import("../frontend.js").Frontend} frontend
    */
   constructor(frontend) {
     super(frontend);
-    this.header = "WebSocket CMD";
+    this.header = "Chat";
 
     /** @type {[string, string, () => void][]} */
     this.actions = [
@@ -29,12 +29,7 @@ export class FrontendCMDPanel extends FrontendBasicPanel {
     ];
 
     /** @type {[string | ((el: HTMLElement) => HTMLElement), () => void][] | [string | ((el: HTMLElement) => HTMLElement)][]} */
-    // @ts-ignore
-    this.list = [
-      ["// RAW WebSocket command shell."],
-      ["// Emphasis on RAW - use this for debugging only!"],
-      ["// Send `help` for a list of all cmds."]
-    ];
+    this.list = [];
   }
 
   render(el) {
@@ -56,36 +51,23 @@ export class FrontendCMDPanel extends FrontendBasicPanel {
     <div class="panel-input">
       ${mdcrd.textField("", "", null, e => {
         if (e.keyCode === 13) {
-          this.run();
+          this.send();
         }
       })}
     </div>`
   }
 
-  run(cmd) {
+  send(text) {
     /** @type {HTMLInputElement} */
     const input = this.elInput.getElementsByTagName("input")[0];
-    cmd = cmd || input.value.trim();
-    if (!cmd)
+    text = text || input.value.trim();
+    if (!text)
       return;
 
     this.progress += 2;
-    this.log("> " + cmd, (cmd => () => {
-      if (input.value === cmd) {
-        this.run();
-      } else {
-        input.value = cmd;
-      }
-    })(cmd));
+    this.render();
 
-    let data = "";
-    const indexOfSplit = cmd.indexOf(" ");
-    if (indexOfSplit !== -1) {
-      data = cmd.slice(indexOfSplit + 1);
-      cmd = cmd.slice(0, indexOfSplit);
-    }
-
-    this.frontend.sync.run(cmd, data).then(
+    this.frontend.sync.run("chat", JSON.stringify(text)).then(
       data => {
         this.progress -= 2;
         this.log(data);

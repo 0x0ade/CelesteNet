@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <LangVersion>7.3</LangVersion>
+    <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,14 +14,14 @@
   <Choose>
     <When Condition="Exists('..\..\..\Celeste.exe')">
       <ItemGroup>
-        <Reference Include="Celeste" HintPath="..\..\..\Celeste.exe" Private="false" />
-        <Reference Include="MMHOOK_Celeste" HintPath="..\..\..\MMHOOK_Celeste.dll" Private="false" />
+        <Reference Include="Celeste" HintPath="..\..\..\Celeste.exe" Private="!$(CopyCeleste)" />
+        <Reference Include="MMHOOK_Celeste" HintPath="..\..\..\MMHOOK_Celeste.dll" Private="!$(CopyCeleste)" />
       </ItemGroup>
 
       <Choose>
         <When Condition="'$(OS)' != 'Windows_NT' Or Exists('..\..\..\FNA.dll')">
           <ItemGroup>
-            <Reference Include="FNA" HintPath="..\..\..\FNA.dll" Private="false" />
+            <Reference Include="FNA" HintPath="..\..\..\FNA.dll" Private="!$(CopyCeleste)" />
           </ItemGroup>
         </When>
 

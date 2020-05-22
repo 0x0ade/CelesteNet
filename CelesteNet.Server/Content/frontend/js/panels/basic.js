@@ -27,7 +27,10 @@ export class FrontendBasicPanel {
     /** @type {[string | ((el: HTMLElement) => HTMLElement), () => void][] | [string | ((el: HTMLElement) => HTMLElement)][]} */
     this.list = null;
 
-    this.refreshable = true;
+    /** @type {[string, string, () => void][]} */
+    this.actions = [
+      ["Refresh", "refresh", () => this.refresh()]
+    ];
   }
 
   async start() {
@@ -50,13 +53,29 @@ export class FrontendBasicPanel {
   render(el) {
     return this.el = rd$(el || this.el)`
     <div class="panel" ${rd.toggleClass("panelType", "panel-" + this.id)}=${true}>
-      <h1>
-        ${this.header}
-        ${el => !this.refreshable ? null : mdcrd.iconButton("Refresh", "refresh", () => this.refresh())(el)}
-      </h1>
+      ${el => this.renderHeader(el)}
       ${mdcrd.progress(this.progress)}
       ${el => this.renderBody(el)}
     </div>`;
+  }
+
+  renderHeader(el) {
+    return this.elHeader = rd$(el || this.elHeader)`
+    <h1>
+      ${this.header}
+      ${el => {
+        el = rd$(el)`<div class="actions"></div>`;
+
+        let list = new RDOMListHelper(el);
+        for (let i in this.actions) {
+          let action = this.actions[i];
+          // @ts-ignore
+          list.add(i, mdcrd.iconButton(...action));
+        }
+
+        return el;
+      }}
+    </h1>`;
   }
 
   renderBody(el) {

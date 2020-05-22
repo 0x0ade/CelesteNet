@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         [RCEndpoint("/shutdown", null, null, "Shutdown", "Shut the server down.")]
         public static void Shutdown(Frontend f, HttpRequestEventArgs c) {
             f.RespondJSON(c, "OK");
-            f.Server.Shutdown();
+            f.Server.IsAlive = false;
         }
 
     }

@@ -1,0 +1,4 @@
+MainPort: 3802
+ControlPort: 3800
+ContentRoot: Content
+LogLevel: INF

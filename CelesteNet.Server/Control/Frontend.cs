@@ -1,4 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿#if NETCORE
+using Microsoft.AspNetCore.StaticFiles;
+#endif
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -20,6 +23,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         private HttpServer HTTPServer;
         private WebSocketServiceHost WSHost;
+
+#if NETCORE
+        private FileExtensionContentTypeProvider ContentTypeProvider = new FileExtensionContentTypeProvider();
+#endif
 
         public JsonSerializer Serializer = new JsonSerializer() {
             Formatting = Formatting.Indented
@@ -156,7 +163,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
                 ms.Seek(0, SeekOrigin.Begin);
 
+#if NETCORE
+                if (ContentTypeProvider.TryGetContentType(id, out string contentType))
+                    c.Response.ContentType = contentType;
+#else
                 c.Response.ContentType = MimeMapping.GetMimeMapping(id);
+#endif
+
                 Respond(c, ms.ToArray());
             }
         }

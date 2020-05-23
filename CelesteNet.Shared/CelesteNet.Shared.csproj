@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net452</TargetFrameworks>
+    <TargetFrameworks>net452;netcoreapp3.1</TargetFrameworks>
     <AssemblyName>CelesteNet.Shared</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet</RootNamespace>
   </PropertyGroup>
 
   <Import Project="..\CelesteNet.props" />
-  
+
 </Project>

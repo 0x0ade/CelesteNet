@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly CelesteNetServer Server;
 
-        public List<DataChat> ChatLog = new List<DataChat>();
+        public LinkedList<DataChat> ChatLog = new LinkedList<DataChat>();
 
         public ChatServer(CelesteNetServer server) {
             Server = server;
@@ -30,7 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "chat", "Shutdown");
         }
 
-        
+
         public void Broadcast(string text) {
 
         }

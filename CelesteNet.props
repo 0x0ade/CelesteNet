@@ -59,6 +59,12 @@
   </ItemGroup>
 
   <Choose>
+    <When Condition="$(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp'))">
+      <ItemGroup>
+        <Reference Include="FNA" HintPath="$(CelesteDir)\Core\FNA.dll" Private="true" />
+      </ItemGroup>
+    </When>
+
     <When Condition="'$(OS)' != 'Windows_NT' Or Exists('$(CelesteDir)\FNA.dll')">
       <ItemGroup>
         <Reference Include="FNA" HintPath="$(CelesteDir)\FNA.dll" Private="$(!InCelesteModDir Or !CopyCeleste)" />
@@ -73,5 +79,5 @@
       </ItemGroup>
     </Otherwise>
   </Choose>
-  
+
 </Project>

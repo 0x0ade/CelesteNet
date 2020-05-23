@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net452</TargetFrameworks>
+    <TargetFrameworks>net452;netcoreapp3.1</TargetFrameworks>
     <AssemblyName>CelesteNet.Server</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Server</RootNamespace>
     <OutputType>Exe</OutputType>
@@ -20,8 +20,27 @@
     <PackageReference Include="WebSocketSharp" Version="1.0.3-rc11" />
   </ItemGroup>
 
+  <Choose>
+    <When Condition="$(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp'))">
+      <PropertyGroup>
+        <DefineConstants>NETCORE;$(DefineConstants)</DefineConstants>
+      </PropertyGroup>
+      <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+      </ItemGroup>
+    </When>
+
+    <Otherwise>
+      <PropertyGroup>
+        <DefineConstants>NETFRAMEWORK;$(DefineConstants)</DefineConstants>
+      </PropertyGroup>
+      <ItemGroup>
+        <Reference Include="System.Web" />
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+
   <ItemGroup>
-    <Reference Include="System.Web" />
   </ItemGroup>
-  
+
 </Project>

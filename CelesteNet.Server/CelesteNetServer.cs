@@ -20,7 +20,22 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly Frontend Control;
         public readonly ChatServer Chat;
 
-        public bool IsAlive;
+        private ManualResetEvent ShutdownEvent = new ManualResetEvent(false);
+
+        private bool _IsAlive;
+        public bool IsAlive {
+            get => _IsAlive;
+            set {
+                if (_IsAlive == value)
+                    return;
+
+                _IsAlive = value;
+                if (value)
+                    ShutdownEvent.Reset();
+                else
+                    ShutdownEvent.Set();
+            }
+        }
 
         public CelesteNetServer()
             : this(new CelesteNetServerSettings()) {
@@ -40,9 +55,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Control.Start();
             Chat.Start();
 
-            // TODO: WAIT.
-            while (IsAlive)
-                Thread.Yield();
+            WaitHandle.WaitAny(new WaitHandle[] { ShutdownEvent });
         }
 
         public void Dispose() {
@@ -107,7 +120,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private static void MainMain(string[] args) {
             LogHeader(Console.Out);
-            
+            Thread.CurrentThread.Name = "Main Thread";
+
             CelesteNetServerSettings settings = new CelesteNetServerSettings();
             string settingsPath = Path.GetFullPath("celestenet-config.yaml");
 

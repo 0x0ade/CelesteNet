@@ -5,7 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Server",
+            "name": "Launch Server (dotnet, netcoreapp3.1)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/CelesteNet.Server/bin/Debug/netcoreapp3.1/CelesteNet.Server.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/CelesteNet.Server/bin/Debug/netcoreapp3.1",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
+            "name": "Launch Server (mono, net452)",
             "type": "mono",
             "request": "launch",
             "preLaunchTask": "build",

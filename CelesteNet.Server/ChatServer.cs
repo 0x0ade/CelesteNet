@@ -45,6 +45,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 msg.Color = Color.White;
             }
 
+            if (msg.Text.Length == 0)
+                return;
+
             lock (ChatLog) {
                 ChatLog[msg.ID = NextID++] = msg;
             }
@@ -56,7 +59,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Text = msg.ToString()
             });
 
-            // TODO: Parse commands!
+            if (msg.Text.StartsWith(Server.Settings.CommandPrefix)) {
+                // TODO: Handle commands separately!
+                return;
+            }
 
             // TODO: BROADCAST!
         }

@@ -128,7 +128,8 @@ var mdcrd = {
 
     /**
      * @param {Label} label
-     * @param {(e: Event) => void} callback
+     * @param {(e: Event) => void} [callback]
+     * @param {boolean} [enabled]
      */
     item: (label, callback, enabled = true) =>
     /**

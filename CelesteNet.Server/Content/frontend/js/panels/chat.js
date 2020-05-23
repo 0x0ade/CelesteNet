@@ -31,7 +31,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     /** @type {[string | ((el: HTMLElement) => HTMLElement), () => void][] | [string | ((el: HTMLElement) => HTMLElement)][]} */
     this.list = [];
 
-    frontend.sync.register("chat", data => this.log(data.Text));
+    frontend.sync.register("chat", data => this.log(data.Text, data.Color));
   }
 
   render(el) {
@@ -84,15 +84,17 @@ export class FrontendChatPanel extends FrontendBasicPanel {
   }
 
   /**
-   * @param {string} data
-   * @param {() => void} [cb]
+   * @param {string} text
+   * @param {string} [color]
    */
-  log(data, cb) {
-    if (typeof(data) == "object")
-      return this.log(JSON.stringify(data, null, 2));
-
+  log(text, color) {
     // @ts-ignore
-    this.list.push([data, cb]);
+    this.list.push(el => {
+      el = mdcrd.list.item(text)(el);
+      if (color)
+        el.style.color = color;
+      return el;
+    });
     this.render(null);
     this.elBody.scrollTop = this.elBody.scrollHeight;
   }

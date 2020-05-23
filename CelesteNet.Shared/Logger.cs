@@ -85,19 +85,24 @@ namespace Celeste.Mod.CelesteNet {
             for (Exception e_ = e; e_ != null; e_ = e_.InnerException) {
                 w.WriteLine("--------------------------------");
                 w.WriteLine(e_.GetType().FullName + ": " + e_.Message + "\n" + e_.StackTrace);
-                if (e_ is ReflectionTypeLoadException rtle) {
-                    for (int i = 0; i < rtle.Types.Length; i++) {
-                        w.WriteLine("ReflectionTypeLoadException.Types[" + i + "]: " + rtle.Types[i]);
-                    }
-                    for (int i = 0; i < rtle.LoaderExceptions.Length; i++) {
-                        LogDetailedException(rtle.LoaderExceptions[i], tag + (tag == null ? "" : ", ") + "rtle:" + i);
-                    }
-                }
-                if (e_ is TypeLoadException) {
-                    w.WriteLine("TypeLoadException.TypeName: " + ((TypeLoadException) e_).TypeName);
-                }
-                if (e_ is BadImageFormatException) {
-                    w.WriteLine("BadImageFormatException.FileName: " + ((BadImageFormatException) e_).FileName);
+
+                switch (e_) {
+                    case ReflectionTypeLoadException rtle:
+                        for (int i = 0; i < rtle.Types.Length; i++) {
+                            w.WriteLine("ReflectionTypeLoadException.Types[" + i + "]: " + rtle.Types[i]);
+                        }
+                        for (int i = 0; i < rtle.LoaderExceptions.Length; i++) {
+                            LogDetailedException(rtle.LoaderExceptions[i], tag + (tag == null ? "" : ", ") + "rtle:" + i);
+                        }
+                        break;
+
+                    case TypeLoadException tle:
+                        w.WriteLine("TypeLoadException.TypeName: " + tle.TypeName);
+                        break;
+
+                    case BadImageFormatException bife:
+                        w.WriteLine("BadImageFormatException.FileName: " + bife.FileName);
+                        break;
                 }
             }
         }

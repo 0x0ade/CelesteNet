@@ -10,6 +10,7 @@
       <PropertyGroup>
         <CelesteDir>..\..\..</CelesteDir>
         <InCelesteModDir>true</InCelesteModDir>
+        <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
       </PropertyGroup>
     </When>
 
@@ -17,6 +18,7 @@
       <PropertyGroup>
         <CelesteDir>..\..\Celeste</CelesteDir>
         <InCelesteModDir>false</InCelesteModDir>
+        <CopyCeleste Condition="'$(CopyCeleste)' == ''">true</CopyCeleste>
       </PropertyGroup>
     </When>
 
@@ -24,7 +26,8 @@
       <!-- Whoops. -->
       <PropertyGroup>
         <CelesteDir></CelesteDir>
-        <InCelesteModDir></InCelesteModDir>
+        <InCelesteModDir>false</InCelesteModDir>
+        <CopyCeleste Condition="'$(CopyCeleste)' == ''">true</CopyCeleste>
       </PropertyGroup>
     </When>
   </Choose>
@@ -54,8 +57,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Celeste" HintPath="$(CelesteDir)\Celeste.exe" Private="$(!InCelesteModDir Or !CopyCeleste)" />
-    <Reference Include="MMHOOK_Celeste" HintPath="$(CelesteDir)\MMHOOK_Celeste.dll" Private="$(!InCelesteModDir Or !CopyCeleste)" />
+    <Reference Include="Celeste" HintPath="$(CelesteDir)\Celeste.exe" Private="$(CopyCeleste)" />
+    <Reference Include="MMHOOK_Celeste" HintPath="$(CelesteDir)\MMHOOK_Celeste.dll" Private="$(CopyCeleste)" />
   </ItemGroup>
 
   <Choose>
@@ -67,7 +70,7 @@
 
     <When Condition="'$(OS)' != 'Windows_NT' Or Exists('$(CelesteDir)\FNA.dll')">
       <ItemGroup>
-        <Reference Include="FNA" HintPath="$(CelesteDir)\FNA.dll" Private="$(!InCelesteModDir Or !CopyCeleste)" />
+        <Reference Include="FNA" HintPath="$(CelesteDir)\FNA.dll" Private="$(CopyCeleste)" />
       </ItemGroup>
     </When>
 

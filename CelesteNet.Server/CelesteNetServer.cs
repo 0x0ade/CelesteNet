@@ -61,6 +61,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             Chat.Start();
 
             Logger.Log(LogLevel.CRI, "main", "Ready");
+        }
+
+        public void Wait() {
             WaitHandle.WaitAny(new WaitHandle[] { ShutdownEvent });
         }
 
@@ -68,6 +71,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.CRI, "main", "Shutdown");
 
             Control.Dispose();
+            Chat.Dispose();
         }
 
 
@@ -222,6 +226,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
             using (CelesteNetServer server = new CelesteNetServer(settings)) {
                 server.Start();
+                server.Wait();
             }
         }
 

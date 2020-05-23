@@ -24,6 +24,9 @@ export class FrontendSync {
     this.awaiting = [];
 
     this.logAllData = false;
+
+    /** @type {Map<string, (data: any) => void>} */
+    this.cmds = new Map();
   }
 
   /** @type {string} */
@@ -46,6 +49,18 @@ export class FrontendSync {
       this.sp.render(null);
     if (this.cmdp)
       this.cmdp.log(`// Status: ${value}`);
+  }
+
+  register(id, handler) {
+    const existing = this.cmds.get(id);
+    if (existing) {
+      this.cmds.set(id, (...args) => {
+        existing(...args);
+        handler(...args);
+      });
+    } else {
+      this.cmds.set(id, handler);
+    }
   }
 
   run(cmd, data) {
@@ -96,7 +111,7 @@ export class FrontendSync {
   close(reason) {
     this.status = "closing";
     this.state = "invalid";
-    this.ws.close(10000, reason);
+    this.ws.close(1000, reason);
     this.resync();
   }
 
@@ -136,6 +151,7 @@ export class FrontendSync {
    * @param {MessageEvent} e
    */
   onmessage(e) {
+      let data;
       console.log("sync msg", e);
 
       switch (this.state) {
@@ -158,28 +174,51 @@ export class FrontendSync {
 
         case "waitForCMDID":
           console.log("sync cmd", e.data);
-          // TODO: AAAAAAAAAAAAAAAAAA
-          this.state = "waitForCMDID";
+          const cmd = this.cmds.get(e.data);
+          if (!cmd) {
+              this.close("unknown cmd");
+              break;
+          }
+
+          this.currentCMD = cmd;
+          this.state = "waitForCMDPayload";
           break;
 
 
         case "waitForCMDPayload":
-          console.log("sync payload", e.data);
-          // TODO: AAAAAAAAAAAAAAAAAA
+          try {
+            data = JSON.parse(e.data);
+          } catch (e) {
+            this.close("error on cmd data parse");
+            break;
+          }
+          console.log("sync payload", data);
+
+          try {
+            this.currentCMD(data);
+          } catch (e) {
+            this.close("error on cmd run");
+            break;
+          }
           this.state = "waitForType";
           break;
 
 
         case "waitForData":
-          const data = JSON.parse(e.data);
+          try {
+            data = JSON.parse(e.data);
+          } catch (e) {
+            this.close("error on data parse");
+            break;
+          }
           console.log("sync data", data);
 
           const a = this.awaiting.splice(0, 1)[0];
           if (a) {
-            a.resolve(data);
             if (this.logAllData) {
               this.cmdp.log(data);
             }
+            a.resolve(data);
           } else {
             this.cmdp.log(data);
           }

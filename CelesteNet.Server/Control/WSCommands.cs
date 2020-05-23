@@ -4,19 +4,20 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Celeste.Mod.Helpers;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public partial class WSCommands {
-        public readonly List<Type> AllTypes = typeof(WSCMD).Assembly.GetTypes().ToList();
         public readonly Dictionary<string, WSCMD> All = new Dictionary<string, WSCMD>();
 
         public WSCommands(FrontendWebSocket ws) {
-            foreach (Type type in AllTypes) {
+            foreach (Type type in CelesteNetUtils.GetTypes()) {
                 if (!typeof(WSCMD).IsAssignableFrom(type) || type.IsAbstract)
                     continue;
 
                 WSCMD cmd = (WSCMD) Activator.CreateInstance(type);
                 cmd.WS = ws;
+                Logger.Log(LogLevel.VVV, "wscmds", $"Found command: {cmd.ID.ToLowerInvariant()} ({type.FullName})");
                 All[cmd.ID.ToLowerInvariant()] = cmd;
             }
         }

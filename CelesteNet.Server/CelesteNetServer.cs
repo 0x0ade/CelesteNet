@@ -1,5 +1,6 @@
 ﻿#define INMODDIR
 
+using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Control;
 using Mono.Options;
 using System;
@@ -17,6 +18,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly CelesteNetServerSettings Settings;
 
+        public readonly DataManager Data;
         public readonly Frontend Control;
         public readonly ChatServer Chat;
 
@@ -44,6 +46,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public CelesteNetServer(CelesteNetServerSettings settings) {
             Settings = settings;
 
+            Data = new DataManager();
             Control = new Frontend(this);
             Chat = new ChatServer(this);
         }
@@ -55,6 +58,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Control.Start();
             Chat.Start();
 
+            Logger.Log(LogLevel.CRI, "main", "Ready");
             WaitHandle.WaitAny(new WaitHandle[] { ShutdownEvent });
         }
 
@@ -214,13 +218,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private static void MainRun(CelesteNetServerSettings settings) {
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
-            try {
-                using (CelesteNetServer server = new CelesteNetServer(settings)) {
-                    server.Start();
-                }
-            } catch (Exception e) {
-                CriticalFailureHandler(e);
-                return;
+            using (CelesteNetServer server = new CelesteNetServer(settings)) {
+                server.Start();
             }
         }
 

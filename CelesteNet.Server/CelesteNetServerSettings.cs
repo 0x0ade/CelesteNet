@@ -1,4 +1,6 @@
-﻿using Mono.Options;
+﻿using Microsoft.Xna.Framework;
+using Mono.Options;
+using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +17,13 @@ namespace Celeste.Mod.CelesteNet.Server {
         public string ContentRoot { get; set; } = "Content";
 
         public LogLevel LogLevel { get; set; } = Logger.Level;
+
+        public int MaxNameLength { get; set; } = 16;
+        public int MaxEmoteValueLength { get; set; } = 2048;
+        public int MaxChatTextLength { get; set; } = 256;
+        public string CommandPrefix { get; set; } = "/";
+
+        public Color ColorBroadcast { get; set; } = Calc.HexToColor("#00adee");
 
     }
 }

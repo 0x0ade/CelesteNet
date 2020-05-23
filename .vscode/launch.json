@@ -10,9 +10,10 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/CelesteNet.Server/bin/Debug/netcoreapp3.1/CelesteNet.Server.dll",
-            "args": [],
+            "args": [ "--loglevel=-1" ],
             "cwd": "${workspaceFolder}/CelesteNet.Server/bin/Debug/netcoreapp3.1",
             "stopAtEntry": false,
+            "justMyCode": false,
             "console": "internalConsole"
         },
         {
@@ -21,6 +22,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceRoot}/CelesteNet.Server/bin/Debug/net452/CelesteNet.Server.exe",
+            "args": [ "--loglevel=-1" ],
             "cwd": "${workspaceRoot}/CelesteNet.Server/bin/Debug/net452"
         },
         {

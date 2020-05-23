@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using WebSocketSharp.Server;
+using Celeste.Mod.Helpers;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : IDisposable {
@@ -36,7 +37,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             Server = server;
 
             Logger.Log(LogLevel.VVV, "frontend", "Scanning for endpoints");
-            foreach (Type t in typeof(Frontend).Assembly.GetTypes()) {
+            foreach (Type t in CelesteNetUtils.GetTypes()) {
                 foreach (MethodInfo m in t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)) {
                     foreach (RCEndpointAttribute epa in m.GetCustomAttributes(typeof(RCEndpointAttribute), false)) {
                         RCEndpoint ep = epa.Data;
@@ -106,11 +107,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             HTTPServer = null;
         }
 
-        public void BroadcastRaw(string data) {
+        public void BroadcastRawString(string data) {
             WSHost.Sessions.Broadcast(data);
         }
 
-        public void Broadcast(object obj) {
+        public void BroadcastRawObject(object obj) {
             using (MemoryStream ms = new MemoryStream()) {
                 using (StreamWriter sw = new StreamWriter(ms, Encoding.UTF8, 1024, true))
                 using (JsonTextWriter jtw = new JsonTextWriter(sw))
@@ -121,6 +122,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 using (StreamReader sr = new StreamReader(ms, Encoding.UTF8, false, 1024, true))
                     WSHost.Sessions.Broadcast(sr.ReadToEnd());
             }
+        }
+
+        public void BroadcastCMD(string id, object obj) {
+            BroadcastRawString("cmd");
+            BroadcastRawString(id);
+            BroadcastRawObject(obj);
         }
 
         #region Read / Parse Helpers

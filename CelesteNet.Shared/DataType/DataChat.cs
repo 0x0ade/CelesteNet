@@ -10,11 +10,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Shared.DataTypes {
+namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataChat : DataType<DataChat> {
 
         static DataChat() {
-            ChunkID = "chat";
+            DataID = "chat";
+            DataFlags = DataFlags.None;
         }
 
         public override bool IsValid => !string.IsNullOrWhiteSpace(Text);
@@ -22,11 +23,10 @@ namespace Celeste.Mod.CelesteNet.Shared.DataTypes {
         /// <summary>
         /// Server-internal field.
         /// </summary>
-        public bool CreatedByServer;
-        /// <summary>
-        /// Server-internal field.
-        /// </summary>
-        public bool Logged;
+        public bool CreatedByServer = true;
+
+        [DataReference]
+        public DataPlayer Player;
 
         public uint ID;
         public string Tag;
@@ -35,6 +35,7 @@ namespace Celeste.Mod.CelesteNet.Shared.DataTypes {
         public DateTime Date;
 
         public override void Read(BinaryReader reader) {
+            CreatedByServer = false;
             ID = reader.ReadUInt32();
             Tag = reader.ReadNullTerminatedString();
             Text = reader.ReadNullTerminatedString();
@@ -52,10 +53,11 @@ namespace Celeste.Mod.CelesteNet.Shared.DataTypes {
             writer.Write(Date.ToBinary());
         }
 
-        public override object Clone()
+        public override DataChat CloneT()
             => new DataChat {
                 CreatedByServer = CreatedByServer,
-                Logged = Logged,
+
+                Player = Player,
 
                 ID = ID,
                 Tag = Tag,
@@ -63,6 +65,9 @@ namespace Celeste.Mod.CelesteNet.Shared.DataTypes {
                 Color = Color,
                 Date = Date
             };
+
+        public override string ToString()
+            => $"[{Date.ToLocalTime().ToLongTimeString()}]{(string.IsNullOrEmpty(Tag) ? "" : $"[{Tag}]")} {Player?.FullName ?? "**SERVER**"}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
 
     }
 }

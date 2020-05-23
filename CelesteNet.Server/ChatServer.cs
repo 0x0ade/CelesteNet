@@ -1,5 +1,6 @@
-﻿using Celeste.Mod.CelesteNet.Server.Control;
-using Celeste.Mod.CelesteNet.Shared.DataTypes;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.Server.Control;
+using Microsoft.Xna.Framework;
 using Mono.Options;
 using System;
 using System.Collections.Generic;
@@ -16,10 +17,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly CelesteNetServer Server;
 
-        public LinkedList<DataChat> ChatLog = new LinkedList<DataChat>();
+        public readonly Dictionary<uint, DataChat> ChatLog = new Dictionary<uint, DataChat>();
+        public uint NextID;
 
         public ChatServer(CelesteNetServer server) {
             Server = server;
+
+            Server.Data.RegisterHandler<DataChat>(Receive);
         }
 
         public void Start() {
@@ -31,8 +35,41 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
 
-        public void Broadcast(string text) {
+        public void Receive(DataChat msg) {
+            if (!msg.CreatedByServer) {
+                msg.Text.Replace("\r", "").Replace("\n", "");
+                if (msg.Text.Length > Server.Settings.MaxChatTextLength)
+                    msg.Text = msg.Text.Substring(0, Server.Settings.MaxChatTextLength);
 
+                msg.Tag = "";
+                msg.Color = Color.White;
+            }
+
+            lock (ChatLog) {
+                ChatLog[msg.ID = NextID++] = msg;
+            }
+
+            msg.Date = DateTime.UtcNow;
+
+            Server.Control.BroadcastCMD("chat", new {
+                Color = msg.Color.ToHex(),
+                Text = msg.ToString()
+            });
+
+            // TODO: Parse commands!
+
+            // TODO: BROADCAST!
+        }
+
+
+        public void Broadcast(string text) {
+            Logger.Log(LogLevel.INF, "chat", $"Broadcasting: {text}");
+            lock (ChatLog) {
+                Receive(new DataChat() {
+                    Text = text,
+                    Color = Server.Settings.ColorBroadcast
+                });
+            }
         }
 
     }

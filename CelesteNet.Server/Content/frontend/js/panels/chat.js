@@ -30,6 +30,8 @@ export class FrontendChatPanel extends FrontendBasicPanel {
 
     /** @type {[string | ((el: HTMLElement) => HTMLElement), () => void][] | [string | ((el: HTMLElement) => HTMLElement)][]} */
     this.list = [];
+
+    frontend.sync.register("chat", data => this.log(data.Text));
   }
 
   render(el) {
@@ -70,7 +72,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     this.frontend.sync.run("chat", JSON.stringify(text)).then(
       data => {
         this.progress -= 2;
-        this.log(data);
+        this.render();
       },
       () => {
         this.progress -= 2;

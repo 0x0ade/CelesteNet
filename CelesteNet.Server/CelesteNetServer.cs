@@ -18,9 +18,11 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly CelesteNetServerSettings Settings;
 
-        public readonly DataManager Data;
+        public readonly DataContext Data;
         public readonly Frontend Control;
         public readonly ChatServer Chat;
+
+        public readonly Dictionary<uint, CelesteNetConnection> ConnectionMap = new Dictionary<uint, CelesteNetConnection>();
 
         private ManualResetEvent ShutdownEvent = new ManualResetEvent(false);
 
@@ -46,7 +48,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public CelesteNetServer(CelesteNetServerSettings settings) {
             Settings = settings;
 
-            Data = new DataManager();
+            Data = new DataContext();
             Control = new Frontend(this);
             Chat = new ChatServer(this);
         }

@@ -15,7 +15,7 @@ using Monocle;
 namespace Celeste.Mod.CelesteNet {
     public delegate void DataHandler(DataType data);
     public delegate void DataHandler<T>(T data) where T : DataType<T>;
-    public class DataManager {
+    public class DataContext {
 
         public readonly Dictionary<string, Type> IDToTypeMap = new Dictionary<string, Type>();
         public readonly Dictionary<Type, string> TypeToIDMap = new Dictionary<Type, string>();
@@ -23,7 +23,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly Dictionary<string, DataHandler> Handlers = new Dictionary<string, DataHandler>();
 
-        public DataManager() {
+        public DataContext() {
             foreach (Type type in CelesteNetUtils.GetTypes()) {
                 if (!typeof(DataType).IsAssignableFrom(type) || type.IsAbstract)
                     continue;

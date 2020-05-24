@@ -14,14 +14,14 @@ using WebSocketSharp.Server;
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public static partial class RCEndpoints {
 
-        [RCEndpoint("/", null, null, "Root", "Main page.")]
+        [RCEndpoint(false, "/", null, null, "Root", "Main page.")]
         public static void Root(Frontend f, HttpRequestEventArgs c) {
             f.RespondContent(c, "frontend/main.html");
         }
 
-        [RCEndpoint("/auth", null, null, "Authenticate", "Basic POST authentication endpoint.")]
+        [RCEndpoint(false, "/auth", null, null, "Authenticate", "Basic POST authentication endpoint.")]
         public static void Auth(Frontend f, HttpRequestEventArgs c) {
-            string key = c.Request.Cookies["celestenet-session"]?.Value;
+            string key = c.Request.Cookies[Frontend.COOKIE_SESSION]?.Value;
             string pass;
 
             try {
@@ -59,7 +59,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (pass == f.Server.Settings.ControlPassword) {
                 key = Guid.NewGuid().ToString();
                 f.CurrentSessionKeys.Add(key);
-                c.Response.SetCookie(new Cookie("celestenet-session", key));
+                c.Response.SetCookie(new Cookie(Frontend.COOKIE_SESSION, key));
                 f.RespondJSON(c, new {
                     Key = key
                 });
@@ -71,14 +71,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             });
         }
 
-        [RCEndpoint("/ws", null, null, "WebSocket Connection", "Establish a WebSocket control panel connection.")]
+        [RCEndpoint(false, "/ws", null, null, "WebSocket Connection", "Establish a WebSocket control panel connection.")]
         public static void WSPseudo(Frontend f, HttpRequestEventArgs c) {
             f.RespondJSON(c, new {
                 Error = "Connect to this endpoint using WebSockets, not plain HTTP."
             });
         }
 
-        [RCEndpoint("/res", "?id={id}", "?id=frontend/css/frontend.css", "Resource", "Obtain a resource.")]
+        [RCEndpoint(false, "/res", "?id={id}", "?id=frontend/css/frontend.css", "Resource", "Obtain a resource.")]
         public static void Resource(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection data = f.ParseQueryString(c.Request.RawUrl);
 
@@ -94,18 +94,18 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             f.RespondContent(c, id);
         }
 
-        [RCEndpoint("/shutdown", null, null, "Shutdown", "Shut the server down.")]
+        [RCEndpoint(true, "/shutdown", null, null, "Shutdown", "Shut the server down.")]
         public static void Shutdown(Frontend f, HttpRequestEventArgs c) {
             f.RespondJSON(c, "OK");
             f.Server.IsAlive = false;
         }
 
-        [RCEndpoint("/eps", null, null, "Endpoint List", "List of all registered endpoints.")]
+        [RCEndpoint(false, "/eps", null, null, "Endpoint List", "List of all registered endpoints.")]
         public static void EPs(Frontend f, HttpRequestEventArgs c) {
             f.RespondJSON(c, f.EndPoints);
         }
 
-        [RCEndpoint("/asms", null, null, "Assembly List", "List of all loaded assemblies.")]
+        [RCEndpoint(true, "/asms", null, null, "Assembly List", "List of all loaded assemblies.")]
         public static void ASMs(Frontend f, HttpRequestEventArgs c) {
             f.RespondJSON(c, AppDomain.CurrentDomain.GetAssemblies().Select(asm => new {
                 asm.GetName().Name,
@@ -113,7 +113,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }).ToList());
         }
 
-        [RCEndpoint("/status", null, null, "Server Status", "Basic server status information.")]
+        [RCEndpoint(false, "/status", null, null, "Server Status", "Basic server status information.")]
         public static void Status(Frontend f, HttpRequestEventArgs c) {
             f.RespondJSON(c, new {
                 Registered = 32,

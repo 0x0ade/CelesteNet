@@ -19,7 +19,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         // Each connection creates one instance of this.
 
-        public readonly Frontend Frontend;
+        public Frontend Frontend;
 
         public string SessionKey;
 
@@ -29,6 +29,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         private new EState State = EState.Invalid;
         private WSCMD CurrentCommand;
+
+        public FrontendWebSocket() {
+        }
 
         public FrontendWebSocket(Frontend frontend) {
             Frontend = frontend;
@@ -105,6 +108,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     WSCMD cmd = Commands.Get(c.Data);
                     if (cmd == null) {
                         Close("unknown cmd");
+                        break;
+                    }
+
+                    if (cmd.Auth && !Frontend.CurrentSessionKeys.Contains(SessionKey)) {
+                        Close("unauthorized");
                         break;
                     }
 

@@ -12,6 +12,7 @@ using WebSocketSharp.Server;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class RCEndpoint {
+        public bool Auth;
         public string Path;
         public string PathHelp;
         public string PathExample;
@@ -26,6 +27,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class RCEndpointAttribute : Attribute {
 
         public RCEndpoint Data { get; set; } = new RCEndpoint();
+
+        public bool Auth {
+            get => Data.Auth;
+            set => Data.Auth = value;
+        }
 
         public string Path {
             get => Data.Path;
@@ -55,7 +61,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public RCEndpointAttribute() {
         }
 
-        public RCEndpointAttribute(string path, string pathHelp, string pathExample, string name, string info) {
+        public RCEndpointAttribute(bool auth, string path, string pathHelp, string pathExample, string name, string info) {
+            Auth = auth;
             Path = path;
             PathHelp = pathHelp;
             PathExample = pathExample;

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDCount : WSCMD {
+        public override bool Auth => false;
         public int Counter;
         public override object Run(object input) {
             return ++Counter;

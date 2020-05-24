@@ -19,6 +19,8 @@ using Celeste.Mod.Helpers;
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : IDisposable {
 
+        public static readonly string COOKIE_SESSION = "celestenet-session";
+
         public readonly CelesteNetServer Server;
         public readonly List<RCEndpoint> EndPoints = new List<RCEndpoint>();
         public readonly HashSet<string> CurrentSessionKeys = new HashSet<string>();
@@ -58,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             HTTPServer.OnGet += HandleRequestRaw;
             HTTPServer.OnPost += HandleRequestRaw;
 
-            HTTPServer.AddWebSocketService("/ws", () => new FrontendWebSocket(this));
+            HTTPServer.WebSocketServices.AddService<FrontendWebSocket>("/ws", ws => ws.Frontend = this);
 
             HTTPServer.Start();
 
@@ -99,6 +101,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (endpoint == null) {
                 RespondContent(c, "frontend/" + url.Substring(1));
                 return;
+            }
+
+            if (endpoint.Auth && !CurrentSessionKeys.Contains(c.Request.Cookies[Frontend.COOKIE_SESSION]?.Value)) {
+                RespondJSON(c, new {
+                    Error = "Unauthorized."
+                });
             }
 
             endpoint.Handle(this, c);

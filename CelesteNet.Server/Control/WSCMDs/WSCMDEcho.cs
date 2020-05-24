@@ -9,8 +9,9 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
-    public class WSCMDEcho : WSCMD<string> {
-        public override object Run(string data) {
+    public class WSCMDEcho : WSCMD {
+        public override bool Auth => false;
+        public override object Run(object data) {
             return data;
         }
     }

@@ -56,6 +56,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 #if !DEBUG
         [SettingIgnore]
 #endif
+        [SettingSubText("modoptions_celestenet_loglevel_info")]
         public LogLevel LogLevel {
             get => Logger.Level;
             set => Logger.Level = value;
@@ -73,7 +74,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateServerEntry(TextMenu menu, bool inGame) {
             menu.Add(
-                (ServerEntry = new TextMenu.Button(("modoptions_celestenet_server".DialogClean()) + ": " + Server))
+                (ServerEntry = new TextMenu.Button(("modoptions_celestenet_server".DialogClean()).Replace("(server)", Server)))
                 .Pressed(() => {
                     Audio.Play("event:/ui/main/savefile_rename_start");
                     menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(

@@ -26,8 +26,8 @@ export class FrontendDOM {
     this.container = document.getElementsByTagName("app-container")[0];
     /** @type {Panel[]} */
     this.panels = [];
-    /** @type {{[any]: Panel}} */
-    this.panelmap = {};
+    /** @type {Map<string, Panel>} */
+    this.panelmap = new Map();
     this.started = false;
   }
 
@@ -54,6 +54,7 @@ export class FrontendDOM {
       return;
 
     this.panels.push(panel);
+    this.panelmap.set(panel.id, panel);
     if (this.started && panel.start)
       await panel.start();
     this.frontend.render();

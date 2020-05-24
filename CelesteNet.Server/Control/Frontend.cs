@@ -21,6 +21,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public readonly CelesteNetServer Server;
         public readonly List<RCEndpoint> EndPoints = new List<RCEndpoint>();
+        public readonly HashSet<string> CurrentSessionKeys = new HashSet<string>();
 
         private HttpServer HTTPServer;
         private WebSocketServiceHost WSHost;
@@ -54,28 +55,31 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             HTTPServer = new HttpServer(Server.Settings.ControlPort);
 
-            HTTPServer.OnGet += (sender, c) => {
-                try {
-                    using (c.Request.InputStream)
-                    using (c.Response) {
-                        HandleRequest(c);
-                    }
-
-                } catch (ThreadAbortException) {
-                    throw;
-                } catch (ThreadInterruptedException) {
-                    throw;
-
-                } catch (Exception e) {
-                    Logger.Log(LogLevel.ERR, "frontend", $"Frontend failed responding: {e}");
-                }
-            };
+            HTTPServer.OnGet += HandleRequestRaw;
+            HTTPServer.OnPost += HandleRequestRaw;
 
             HTTPServer.AddWebSocketService("/ws", () => new FrontendWebSocket(this));
 
             HTTPServer.Start();
 
             HTTPServer.WebSocketServices.TryGetServiceHost("/ws", out WSHost);
+        }
+
+        private void HandleRequestRaw(object sender, HttpRequestEventArgs c) {
+            try {
+                using (c.Request.InputStream)
+                using (c.Response) {
+                    HandleRequest(c);
+                }
+
+            } catch (ThreadAbortException) {
+                throw;
+            } catch (ThreadInterruptedException) {
+                throw;
+
+            } catch (Exception e) {
+                Logger.Log(LogLevel.ERR, "frontend", $"Frontend failed responding: {e}");
+            }
         }
 
         private void HandleRequest(HttpRequestEventArgs c) {

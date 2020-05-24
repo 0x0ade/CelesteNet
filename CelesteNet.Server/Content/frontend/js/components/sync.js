@@ -20,7 +20,7 @@ export class FrontendSync {
     this.state = "invalid";
     this.status = "init";
 
-    /** @type {{resolve: (value?: any) => void; reject: (reason?: any) => void;}[]} */
+    /** @type {{resolve: (value?: any) => void; reject: (reason?: any) => void; info: string;}[]} */
     this.awaiting = [];
 
     this.logAllData = false;
@@ -35,8 +35,11 @@ export class FrontendSync {
   }
   set state(value) {
     this._state = value;
-    if (this.sp)
-      this.sp.render(null);
+
+    /** @type {FrontendStatusPanel} */
+    const sp = FrontendStatusPanel["instance"];
+    if (sp)
+      sp.render(null);
   }
 
   /** @type {string} */
@@ -45,10 +48,16 @@ export class FrontendSync {
   }
   set status(value) {
     this._status = value;
-    if (this.sp)
-      this.sp.render(null);
-    if (this.cmdp)
-      this.cmdp.log(`// Status: ${value}`);
+
+    /** @type {FrontendStatusPanel} */
+    const sp = FrontendStatusPanel["instance"];
+    if (sp)
+      sp.render(null);
+
+    /** @type {FrontendCMDPanel} */
+    const cmdp = FrontendCMDPanel["instance"];
+    if (cmdp)
+      cmdp.log(`// Status: ${value}`);
   }
 
   register(id, handler) {
@@ -64,10 +73,12 @@ export class FrontendSync {
   }
 
   run(cmd, data) {
+    const stack = new Error().stack;
     return new Promise((resolve, reject) => {
       this.awaiting.push({
         resolve: resolve,
-        reject: reject
+        reject: reject,
+        info: stack
       });
 
       try {
@@ -75,9 +86,8 @@ export class FrontendSync {
         ws.send("cmd");
         ws.send(cmd);
         ws.send(
-          typeof(data) == "object" ? JSON.stringify(data) :
           typeof(data) == "undefined" ? "" :
-          data
+          JSON.stringify(data)
         );
       } catch (e) {
         reject(e);
@@ -86,15 +96,12 @@ export class FrontendSync {
   }
 
   resync() {
-    /** @type {FrontendCMDPanel} */
-    this.cmdp = FrontendCMDPanel["instance"];
-    /** @type {FrontendStatusPanel} */
-    this.sp = FrontendStatusPanel["instance"];
-
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
+      this.frontend.snackbar({ text: "Connecting..." });
       this.status = "connecting";
       let ws = this.ws = new WebSocket(`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`);
-      this.resyncPromise = new Promise(resolve => this.resyncPromiseResolve = resolve);
+      if (!this.resyncPromiseResolve)
+        this.resyncPromise = new Promise(resolve => this.resyncPromiseResolve = resolve);
       ws.onopen = this.onopen;
       ws.onclose = this.onclose;
       ws.onerror = this.onerror;
@@ -119,21 +126,31 @@ export class FrontendSync {
    * @param {Event} e
    */
   onopen(e) {
+    this.frontend.snackbar({ text: "Connected." });
     this.status = "open";
     console.log("sync open", e);
-    this.resyncPromiseResolve();
-
     this.state = "waitForType";
+
+    this.run("reauth", this.frontend.auth.key).then(valid => {
+      if (!valid) {
+        return this.frontend.auth.reauth();
+      }
+    }).then(() => {
+      this.resyncPromiseResolve();
+      this.resyncPromiseResolve = null;
+    });
   }
 
   /**
    * @param {CloseEvent} e
    */
   onclose(e) {
+    this.frontend.snackbar({ text: e.reason ? `Connection closed: ${e.reason}` : "Connection closed." });
     this.status = e.reason ? `closed: ${e.reason}` : "closed";
     console.log("sync closed", e);
 
     for (let p of this.awaiting) {
+      console.log("sync dead", p.info);
       p.reject(new Error("Connection closed."));
     }
     this.awaiting = [];
@@ -151,6 +168,9 @@ export class FrontendSync {
    * @param {MessageEvent} e
    */
   onmessage(e) {
+      /** @type {FrontendCMDPanel} */
+      const cmdp = FrontendCMDPanel["instance"];
+
       let data;
       console.log("sync msg", e);
 
@@ -215,12 +235,12 @@ export class FrontendSync {
 
           const a = this.awaiting.splice(0, 1)[0];
           if (a) {
-            if (this.logAllData) {
-              this.cmdp.log(data);
+            if (this.logAllData && cmdp) {
+              cmdp.log(data);
             }
             a.resolve(data);
-          } else {
-            this.cmdp.log(data);
+          } else if (cmdp) {
+            cmdp.log(data);
           }
 
           this.state = "waitForType";

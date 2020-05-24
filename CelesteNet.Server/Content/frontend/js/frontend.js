@@ -5,6 +5,7 @@ const mdc = window["mdc"];
 import { FrontendDOM } from "./components/dom.js";
 import { FrontendUtils } from "./components/utils.js";
 import { FrontendSync } from "./components/sync.js";
+import { FrontendAuth } from "./components/auth.js";
 import { FrontendDialog } from "./components/dialog.js";
 
 export class Frontend {
@@ -27,10 +28,18 @@ export class Frontend {
 
     // Set up all remaining components.
     this.utils = new FrontendUtils(this);
-
     this.sync = new FrontendSync(this);
-
+    this.auth = new FrontendAuth(this);
     this.dom = new FrontendDOM(this);
+
+    await this.dom.start();
+
+    this.renderable = true;
+    this.render();
+
+    await this.auth.reauth();
+
+    await this.sync.resync();
 
     // TODO: AAAAAAAAAAAAA
     for (let id of [
@@ -51,13 +60,6 @@ export class Frontend {
         } catch (e) {}
       }
     }
-
-    await this.dom.start();
-
-    this.renderable = true;
-    this.render();
-
-    this.sync.resync();
 
     document.getElementById("splash-progress-bar").style.transform = "scaleX(1)";
 
@@ -87,7 +89,6 @@ export class Frontend {
     this.alerts.set(key, el);
     document.body.appendChild(el);
 
-    
     /** @type {import("@material/dialog").MDCDialog} */
     let dialog = el["MDCDialog"];
 
@@ -117,6 +118,8 @@ export class Frontend {
     text = "",
     action = ""
   }) {
+    // console.log("snackbar", text);
+
     if (this.snackbarLast) {
       // @ts-ignore Outdated .d.ts
       if (this.snackbarLast.isOpen && this.snackbarLastText === text)
@@ -131,8 +134,8 @@ export class Frontend {
     this.snackbarLastText = text;
     let el = mdcrd.snackbar(text, action, null)(null);
     document.body.appendChild(el);
-    
-    /** @type {import("@material/snackbar").MDCSnackbar} */
+
+    /** @type {import("@material/snackbar").MDCSnackbar & Promise<boolean>} */
     let snackbar = el["MDCSnackbar"];
 
     // @ts-ignore Outdated .d.ts

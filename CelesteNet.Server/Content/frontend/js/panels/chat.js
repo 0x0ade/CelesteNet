@@ -69,7 +69,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     this.progress += 2;
     this.render();
 
-    this.frontend.sync.run("chat", JSON.stringify(text)).then(
+    this.frontend.sync.run("chat", text).then(
       data => {
         this.progress -= 2;
         this.render();

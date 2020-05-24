@@ -59,12 +59,13 @@
   <ItemGroup>
     <Reference Include="Celeste" HintPath="$(CelesteDir)\Celeste.exe" Private="$(CopyCeleste)" />
     <Reference Include="MMHOOK_Celeste" HintPath="$(CelesteDir)\MMHOOK_Celeste.dll" Private="$(CopyCeleste)" />
+    <Reference Include="Stearmworks.NET.dll" HintPath="..\lib\Steamworks.NET.dll" Private="$(CopyCeleste)" />
   </ItemGroup>
 
   <Choose>
     <When Condition="$(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp'))">
       <ItemGroup>
-        <Reference Include="FNA" HintPath="$(CelesteDir)\Core\FNA.dll" Private="true" />
+        <Reference Include="FNA" HintPath="..\lib\netcoreapp3.1\FNA.dll" Private="true" />
       </ItemGroup>
     </When>
 

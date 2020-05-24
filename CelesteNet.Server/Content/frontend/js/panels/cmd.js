@@ -85,6 +85,14 @@ export class FrontendCMDPanel extends FrontendBasicPanel {
       cmd = cmd.slice(0, indexOfSplit);
     }
 
+    try {
+      data = JSON.parse(data);
+    } catch (e) {
+      this.progress -= 2;
+      this.log("// Failed parsing data.");
+      return;
+    }
+
     this.frontend.sync.run(cmd, data).then(
       data => {
         this.progress -= 2;

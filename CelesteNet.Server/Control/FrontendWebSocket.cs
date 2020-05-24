@@ -21,6 +21,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public readonly Frontend Frontend;
 
+        public string SessionKey;
+
         public WSCommands Commands;
 
         private IPEndPoint CurrentEndPoint;

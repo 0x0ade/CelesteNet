@@ -13,6 +13,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int MainPort { get; set; } = 3802;
 
         public int ControlPort { get; set; } = 3800;
+        public string ControlPassword { get; set; } = "actuallyHosts";
 
         public string ContentRoot { get; set; } = "Content";
 

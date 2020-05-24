@@ -408,7 +408,7 @@ var mdcrd = {
     let list;
     list = new RDOMListHelper(rdom.get(el, "buttons"));
     for (let i in buttons)
-      list.add(i, el => rd$(el)`<button type="button" class="mdc-button mdc-dialog__button" data-mdc-dialog-action=${i} ${rd.toggleClass(`default-${i}`, "mdc-dialog__button--default")}=${defaultButton === i}>${buttons[i]}</button>`);
+      list.add(i, el => rd$(el)`<button type="button" class="mdc-button mdc-dialog__button" data-mdc-dialog-action=${i} ${rd.toggleClass(`default-${i}`, "mdc-dialog__button--default")}=${defaultButton === i}>${buttons[i]}</button>${el => el.MDCRipple = new mdc.ripple.MDCRipple(el)}`);
     list.end();
 
     return el;

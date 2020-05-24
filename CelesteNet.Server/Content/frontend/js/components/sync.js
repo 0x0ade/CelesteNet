@@ -93,7 +93,7 @@ export class FrontendSync {
 
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
       this.status = "connecting";
-      let ws = this.ws = new WebSocket(`ws://${window.location.host}/ws`);
+      let ws = this.ws = new WebSocket(`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`);
       this.resyncPromise = new Promise(resolve => this.resyncPromiseResolve = resolve);
       ws.onopen = this.onopen;
       ws.onclose = this.onclose;

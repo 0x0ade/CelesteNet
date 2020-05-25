@@ -82,7 +82,7 @@ export class FrontendAuth {
             return el;
           }),
 
-          row("Cookies are being used to remember who you are."),
+          row("Cookies are being used to keep you logged in."),
         )}
       </div>`,
       defaultButton: "yes",

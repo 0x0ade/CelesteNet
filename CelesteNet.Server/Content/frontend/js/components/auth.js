@@ -76,7 +76,9 @@ export class FrontendAuth {
                 this.elPopup["MDCDialog"].close();
               }
             })(el);
-            el.querySelector("input").type = "password";
+            const input = el.querySelector("input");
+            input.id = "password";
+            input.type = "password";
             return el;
           }),
 

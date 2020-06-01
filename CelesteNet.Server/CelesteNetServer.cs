@@ -60,6 +60,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Start() {
+            if (IsAlive)
+                return;
+
             Logger.Log(LogLevel.CRI, "main", $"Startup");
             IsAlive = true;
 
@@ -76,6 +79,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Dispose() {
+            if (!IsAlive)
+                return;
+
             Logger.Log(LogLevel.CRI, "main", "Shutdown");
             IsAlive = false;
 

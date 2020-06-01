@@ -74,11 +74,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     HandleRequest(c);
                 }
 
-            } catch (ThreadAbortException) {
-                throw;
-            } catch (ThreadInterruptedException) {
-                throw;
-
             } catch (Exception e) {
                 Logger.Log(LogLevel.ERR, "frontend", $"Frontend failed responding: {e}");
             }

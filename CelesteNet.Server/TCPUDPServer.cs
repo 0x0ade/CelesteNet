@@ -44,7 +44,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "tcpudp", "Shutdown");
 
             Listener.Stop();
-            ListenerThread.Abort();
         }
 
         protected virtual void ListenerThreadLoop() {
@@ -58,10 +57,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     }
                 }
 
-            } catch (ThreadAbortException) {
-                // Just a normal abort.
-
-            } catch {
+            } catch (Exception e) {
+                Logger.Log(LogLevel.CRI, "tcpudp", $"Failed listening:\n{e}");
                 Server.Dispose();
             }
         }

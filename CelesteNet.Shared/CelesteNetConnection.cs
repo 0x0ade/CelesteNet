@@ -19,14 +19,25 @@ namespace Celeste.Mod.CelesteNet {
         public readonly string Creator;
         public readonly DataContext Data;
 
-        public event Action<CelesteNetConnection> OnDisconnect;
+        private Action<CelesteNetConnection> _OnDisconnect;
+        public event Action<CelesteNetConnection> OnDisconnect {
+            add {
+                _OnDisconnect += value;
+                if (!IsAlive)
+                    value?.Invoke(this);
+            }
+            remove {
+                _OnDisconnect -= value;
+            }
+        }
 
         private readonly Queue<DataType> SendQueue = new Queue<DataType>();
         private readonly ManualResetEvent SendQueueEvent;
         private readonly WaitHandle[] SendQueueEventHandles;
         private readonly Thread SendQueueThread;
 
-        public virtual bool IsConnected { get; protected set; } = true;
+        public virtual bool IsAlive { get; protected set; } = true;
+        public abstract bool IsConnected { get; }
 
         public CelesteNetConnection(DataContext data) {
             Data = data;
@@ -71,7 +82,7 @@ namespace Celeste.Mod.CelesteNet {
 
         protected virtual void SendQueueThreadLoop() {
             try {
-                while (IsConnected) {
+                while (IsAlive) {
                     if (SendQueue.Count == 0)
                         WaitHandle.WaitAny(SendQueueEventHandles);
 
@@ -87,12 +98,11 @@ namespace Celeste.Mod.CelesteNet {
                             SendQueueEvent.Reset();
                 }
 
-            } catch (ThreadAbortException) {
-                // Just a normal abort.
+            } catch (ThreadInterruptedException) {
 
             } catch (Exception e) {
                 if (!(e is IOException))
-                    Logger.Log(LogLevel.CRI, "connection", $"Failed sending data:\n{e}");
+                    Logger.Log(LogLevel.CRI, "con", $"Failed sending data:\n{e}");
 
                 Dispose();
 
@@ -102,9 +112,12 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         protected virtual void Dispose(bool disposing) {
-            IsConnected = false;
-            OnDisconnect?.Invoke(this);
-            SendQueueThread?.Abort();
+            IsAlive = false;
+            _OnDisconnect?.Invoke(this);
+            try {
+                SendQueueEvent.Set();
+            } catch (ObjectDisposedException) {
+            }
         }
 
         public void Dispose() {

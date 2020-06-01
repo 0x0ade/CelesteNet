@@ -52,8 +52,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                         ClientComponent.Start();
                         ClientComponent.SetStatus(null);
 
-                    } catch (ThreadAbortException) {
-
                     } catch (Exception e) {
                         Logger.Log(LogLevel.CRI, "clientmod", "Failed connecting:\n" + e);
                         _StartThread = null;
@@ -73,7 +71,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public void Stop() {
             lock (ClientLock) {
                 if (_StartThread?.IsAlive ?? false)
-                    _StartThread.Abort();
+                    _StartThread.Interrupt();
 
                 if (ClientComponent == null)
                     return;

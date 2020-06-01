@@ -49,6 +49,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Start() {
+            if (IsAlive)
+                return;
+
             Logger.Log(LogLevel.CRI, "main", $"Startup");
             IsAlive = true;
 
@@ -57,6 +60,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 case ConnectionType.TCPUDP:
                     Logger.Log(LogLevel.INF, "main", "Connecting via TCP + UDP.");
                     CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Data, Settings.Host, Settings.Port);
+                    con.OnDisconnect += _ => Dispose();
                     Con = con;
                     Logger.Log(LogLevel.INF, "main", $"Local endpoints: {con.TCP.Client.LocalEndPoint} / {con.UDP.Client.LocalEndPoint}");
                     con.Send(new DataHandshakeTCPUDPClient {
@@ -76,6 +80,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Dispose() {
+            if (!IsAlive)
+                return;
+
             Logger.Log(LogLevel.CRI, "main", "Shutdown");
             IsAlive = false;
             IsReady = false;

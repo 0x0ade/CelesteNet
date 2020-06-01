@@ -109,7 +109,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         protected virtual void ReadTCPLoop() {
-            while (TCP?.Connected ?? false) {
+            while ((TCP?.Connected ?? false) && IsAlive) {
                 if (!Data.Handle(this, Data.Read(TCPReader))) {
                     ReadTCPThread = null;
                     Dispose();
@@ -122,11 +122,11 @@ namespace Celeste.Mod.CelesteNet {
             IPEndPoint remote = (IPEndPoint) UDP.Client.RemoteEndPoint;
             using (MemoryStream stream = new MemoryStream())
             using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
-                while (UDP != null && IsConnected) {
+                while (UDP != null && IsAlive) {
                     byte[] raw;
                     try {
                         raw = UDP.Receive(ref remote);
-                    } catch (IOException) {
+                    } catch (SocketException) {
                         ReadUDPThread = null;
                         Dispose();
                         return;
@@ -155,9 +155,6 @@ namespace Celeste.Mod.CelesteNet {
             UDP?.Close();
             BufferWriter.Dispose();
             BufferStream.Dispose();
-
-            ReadTCPThread?.Abort();
-            ReadUDPThread?.Abort();
         }
 
         public override string ToString() {

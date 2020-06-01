@@ -70,6 +70,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Server.Data, client, null);
                     con.Send(new DataTCPHTTPTeapot());
+                    con.StartReadTCP();
                     Server.HandleConnect(con);
                 }
 

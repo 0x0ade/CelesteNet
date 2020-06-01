@@ -70,9 +70,6 @@ namespace Celeste.Mod.CelesteNet {
 
             BufferStream = new MemoryStream();
             BufferWriter = new BinaryWriter(BufferStream, Encoding.UTF8);
-
-            StartReadTCP();
-            StartReadUDP();
         }
 
         public void StartReadTCP() {

@@ -72,6 +72,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                         con.ReadTeapot();
 
                         con.SendKeepAlive = true;
+                        con.StartReadTCP();
+                        con.StartReadUDP();
+
                         con.Send(new DataHandshakeTCPUDPClient {
                             Name = Settings.Name,
                             UDPPort = ((IPEndPoint) con.UDP.Client.LocalEndPoint).Port

@@ -55,6 +55,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     Server.HandleConnect(new CelesteNetTCPUDPConnection(Server.Data, client, null));
                 }
 
+            } catch (ThreadAbortException) {
+
             } catch (Exception e) {
                 Logger.Log(LogLevel.CRI, "tcpudp", $"Failed listening:\n{e}");
                 Server.Dispose();

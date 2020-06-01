@@ -109,39 +109,43 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         protected virtual void ReadTCPLoop() {
-            while ((TCP?.Connected ?? false) && IsAlive) {
-                if (!Data.Handle(this, Data.Read(TCPReader))) {
-                    ReadTCPThread = null;
-                    Dispose();
-                    return;
+            try {
+                while ((TCP?.Connected ?? false) && IsAlive) {
+                    Data.Handle(this, Data.Read(TCPReader));
                 }
+
+            } catch (ThreadAbortException) {
+
+            } catch (Exception e) {
+                Logger.Log(LogLevel.CRI, "tcpudpcon", $"TCP loop error:\n{this}\n{(e is IOException ? e.Message : e.ToString())}");
+                ReadTCPThread = null;
+                Dispose();
+                return;
             }
         }
 
         protected virtual void ReadUDPLoop() {
-            IPEndPoint remote = (IPEndPoint) UDP.Client.RemoteEndPoint;
-            using (MemoryStream stream = new MemoryStream())
-            using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
-                while (UDP != null && IsAlive) {
-                    byte[] raw;
-                    try {
-                        raw = UDP.Receive(ref remote);
-                    } catch (SocketException) {
-                        ReadUDPThread = null;
-                        Dispose();
-                        return;
-                    }
+            try {
+                IPEndPoint remote = (IPEndPoint) UDP.Client.RemoteEndPoint;
+                using (MemoryStream stream = new MemoryStream())
+                using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
+                    while (UDP != null && IsAlive) {
+                        byte[] raw = UDP.Receive(ref remote);
+                        BufferStream.Seek(0, SeekOrigin.Begin);
+                        stream.Write(raw, 0, raw.Length);
 
-                    BufferStream.Seek(0, SeekOrigin.Begin);
-                    stream.Write(raw, 0, raw.Length);
-
-                    BufferStream.Seek(0, SeekOrigin.Begin);
-                    if (!Data.Handle(this, Data.Read(reader))) {
-                        ReadUDPThread = null;
-                        Dispose();
-                        return;
+                        BufferStream.Seek(0, SeekOrigin.Begin);
+                        Data.Handle(this, Data.Read(reader));
                     }
                 }
+
+            } catch (ThreadAbortException) {
+
+            } catch (Exception e) {
+                Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP loop error:\n{this}\n{(e is IOException ? e.Message : e.ToString())}");
+                ReadUDPThread = null;
+                Dispose();
+                return;
             }
         }
 

@@ -100,6 +100,8 @@ namespace Celeste.Mod.CelesteNet {
 
             } catch (ThreadInterruptedException) {
 
+            } catch (ThreadAbortException) {
+
             } catch (Exception e) {
                 if (!(e is IOException))
                     Logger.Log(LogLevel.CRI, "con", $"Failed sending data:\n{e}");

@@ -11,9 +11,6 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public abstract class DataType {
 
-        public static string DataID;
-        public static string Source;
-
         public virtual DataFlags DataFlags => DataFlags.None;
         public virtual bool IsSendable => true;
         public abstract bool IsValid { get; }
@@ -26,6 +23,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     }
 
     public abstract class DataType<T> : DataType where T : DataType<T> {
+        public static string DataID;
+        public static string Source;
+
         static DataType() {
             DataID = typeof(T).Name;
             Source = typeof(T).Assembly.GetName().Name;

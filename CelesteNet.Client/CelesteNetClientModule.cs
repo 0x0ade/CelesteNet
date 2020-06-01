@@ -52,8 +52,17 @@ namespace Celeste.Mod.CelesteNet.Client {
                         ClientComponent.Start();
                         ClientComponent.SetStatus(null);
 
+                    } catch (ThreadInterruptedException) {
+                        Logger.Log(LogLevel.CRI, "clientmod", "Startup interrupted.");
+                        _StartThread = null;
+                        Stop();
+
+                    } catch (ThreadAbortException) {
+                        _StartThread = null;
+                        Stop();
+
                     } catch (Exception e) {
-                        Logger.Log(LogLevel.CRI, "clientmod", "Failed connecting:\n" + e);
+                        Logger.Log(LogLevel.CRI, "clientmod", $"Failed connecting:\n{e}");
                         _StartThread = null;
                         Stop();
 

@@ -30,10 +30,10 @@ namespace Celeste.Mod.CelesteNet {
 
                 RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 
-                string id = (
-                    type.GetField(nameof(DataType.DataID), BindingFlags.Public | BindingFlags.Static) ??
-                    typeof(DataType).GetField(nameof(DataType.DataID), BindingFlags.Public | BindingFlags.Static)
-                ).GetValue(null) as string;
+                string id = null;
+                for (Type parent = type; parent != typeof(DataType) && string.IsNullOrEmpty(id); parent = parent.BaseType) {
+                    id = parent.GetField("DataID", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string;
+                }
 
                 if (string.IsNullOrEmpty(id)) {
                     Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but no DataID");
@@ -79,26 +79,21 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public DataType Read(BinaryReader reader) {
-            try {
-                string id = Calc.ReadNullTerminatedString(reader);
-                DataFlags flags = (DataFlags) reader.ReadUInt16();
-                ushort length = reader.ReadUInt16();
+            string id = Calc.ReadNullTerminatedString(reader);
+            DataFlags flags = (DataFlags) reader.ReadUInt16();
+            ushort length = reader.ReadUInt16();
 
-                if (!IDToTypeMap.TryGetValue(id, out Type type)) {
-                    return new DataUnparsed() {
-                        InnerID = id,
-                        InnerFlags = flags,
-                        InnerData = reader.ReadBytes(length)
-                    };
-                }
-
-                DataType data = (DataType) Activator.CreateInstance(type);
-                data.Read(reader);
-                return data;
-
-            } catch (IOException) {
-                return null;
+            if (!IDToTypeMap.TryGetValue(id, out Type type)) {
+                return new DataUnparsed() {
+                    InnerID = id,
+                    InnerFlags = flags,
+                    InnerData = reader.ReadBytes(length)
+                };
             }
+
+            DataType data = (DataType) Activator.CreateInstance(type);
+            data.Read(reader);
+            return data;
         }
 
         public int Write(BinaryWriter writer, DataType data)
@@ -151,23 +146,21 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public bool Handle(CelesteNetConnection con, DataType data)
+        public void Handle(CelesteNetConnection con, DataType data)
             => Handle(con, data?.GetType(), data);
 
-        public bool Handle<T>(CelesteNetConnection con, T data) where T : DataType<T>
+        public void Handle<T>(CelesteNetConnection con, T data) where T : DataType<T>
             => Handle(con, typeof(T), data);
 
-        protected bool Handle(CelesteNetConnection con, Type type, DataType data) {
+        protected void Handle(CelesteNetConnection con, Type type, DataType data) {
             if (type == null || data == null)
-                return false;
+                return;
 
             for (; type != typeof(DataType); type = type.BaseType) {
                 if (Handlers.TryGetValue(type, out DataHandler handler)) {
                     handler(con, data);
                 }
             }
-
-            return true;
         }
 
     }

@@ -90,6 +90,21 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
 
+        public void HandleConnect(CelesteNetConnection con) {
+            Logger.Log(LogLevel.INF, "main", $"New connection: {con}");
+            lock (Connections)
+                Connections.Add(con);
+            con.OnDisconnect += HandleDisconnect;
+        }
+
+        public void HandleDisconnect(CelesteNetConnection con) {
+            Logger.Log(LogLevel.INF, "main", $"Disconnecting: {con}");
+            lock (Connections)
+                Connections.Remove(con);
+            Sessions.Remove(con);
+        }
+
+
         public Stream OpenContent(string path) {
             try {
                 string dir = Path.GetFullPath(Settings.ContentRoot);

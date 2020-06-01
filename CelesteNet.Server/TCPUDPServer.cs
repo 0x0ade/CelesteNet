@@ -50,11 +50,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             try {
                 while (Server.IsAlive) {
                     TcpClient client = Listener.AcceptTcpClient();
-                    Logger.Log(LogLevel.INF, "tcpudp", $"New TCP connection: {client.Client.RemoteEndPoint}");
+                    Logger.Log(LogLevel.VVV, "tcpudp", $"New TCP connection: {client.Client.RemoteEndPoint}");
 
-                    lock (Server.Connections) {
-                        Server.Connections.Add(new CelesteNetTCPUDPConnection(Server.Data, client, null));
-                    }
+                    Server.HandleConnect(new CelesteNetTCPUDPConnection(Server.Data, client, null));
                 }
 
             } catch (Exception e) {

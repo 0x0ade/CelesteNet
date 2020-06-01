@@ -116,9 +116,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         [RCEndpoint(false, "/status", null, null, "Server Status", "Basic server status information.")]
         public static void Status(Frontend f, HttpRequestEventArgs c) {
             f.RespondJSON(c, new {
-                Registered = 32,
-                Players = 16,
-                Sessions = 4
+                Connections = f.Server.Connections.Count,
+                Sessions = f.Server.Sessions.Count
             });
         }
 

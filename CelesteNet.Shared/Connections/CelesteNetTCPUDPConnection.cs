@@ -128,16 +128,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public void ReadTeapot() {
             using (StreamReader reader = new StreamReader(TCPStream, Encoding.UTF8, false, 1024, true)) {
-                int empty = 0;
-                while (empty < 2) {
-                    string line = reader.ReadLine()?.Trim();
-                    if (string.IsNullOrEmpty(line)) {
-                        Console.WriteLine("EMPTY");
-                        empty++;
-                    } else {
-                        Console.WriteLine(line);
-                        empty = 0;
-                    }
+                while (!string.IsNullOrWhiteSpace(reader.ReadLine())) {
                 }
             }
         }

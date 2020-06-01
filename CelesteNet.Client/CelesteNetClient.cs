@@ -51,12 +51,14 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Start() {
-            lock (StartStopLock) {
-                if (IsAlive)
-                    return;
+            if (IsAlive)
+                return;
+            IsAlive = true;
 
+            lock (StartStopLock) {
+                if (IsReady)
+                    return;
                 Logger.Log(LogLevel.CRI, "main", $"Startup");
-                IsAlive = true;
 
                 switch (Settings.ConnectionType) {
                     case ConnectionType.Auto:
@@ -94,12 +96,14 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Dispose() {
-            lock (StartStopLock) {
-                if (!IsAlive)
-                    return;
+            if (!IsAlive)
+                return;
+            IsAlive = false;
 
+            lock (StartStopLock) {
+                if (!IsReady)
+                    return;
                 Logger.Log(LogLevel.CRI, "main", "Shutdown");
-                IsAlive = false;
                 IsReady = false;
 
                 HandshakeEvent.Set();

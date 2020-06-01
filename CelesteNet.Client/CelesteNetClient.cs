@@ -98,6 +98,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 IsAlive = false;
                 IsReady = false;
 
+                HandshakeEvent.Set();
                 HandshakeEvent.Dispose();
                 Con?.Dispose();
             }

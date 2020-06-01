@@ -19,12 +19,15 @@ namespace Celeste.Mod.CelesteNet {
         public readonly string Creator;
         public readonly DataContext Data;
 
+        private object DisposeLock = new object();
         private Action<CelesteNetConnection> _OnDisconnect;
         public event Action<CelesteNetConnection> OnDisconnect {
             add {
-                _OnDisconnect += value;
-                if (!IsAlive)
-                    value?.Invoke(this);
+                lock (DisposeLock) {
+                    _OnDisconnect += value;
+                    if (!IsAlive)
+                        value?.Invoke(this);
+                }
             }
             remove {
                 _OnDisconnect -= value;
@@ -134,7 +137,9 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void Dispose() {
-            Dispose(true);
+            lock (DisposeLock) {
+                Dispose(true);
+            }
         }
 
     }

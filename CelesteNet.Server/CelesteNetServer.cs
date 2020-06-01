@@ -25,7 +25,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
 
-        public uint PlayerCounter;
+        public uint PlayerCounter = 1;
         public readonly Dictionary<CelesteNetConnection, CelesteNetPlayerSession> Players = new Dictionary<CelesteNetConnection, CelesteNetPlayerSession>();
 
         private ManualResetEvent ShutdownEvent = new ManualResetEvent(false);

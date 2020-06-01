@@ -16,6 +16,8 @@ namespace Celeste.Mod.CelesteNet {
         public const ushort Version = 1;
         public static readonly ushort LoadedVersion = Version;
 
+        public static readonly string HTTPTeapot = "HTTP/1.1 418 I'm a teapot\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+
         public static Type[] GetTypes() {
             if (Everest.Modules.Count != 0)
                 return _GetTypes();

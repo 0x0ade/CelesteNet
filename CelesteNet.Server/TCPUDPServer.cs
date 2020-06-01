@@ -63,6 +63,11 @@ namespace Celeste.Mod.CelesteNet.Server {
             try {
                 while (Server.IsAlive) {
                     TcpClient client = TCPListener.AcceptTcpClient();
+
+                    // Try to filter out any unwanted clients.
+                    using (StreamWriter writer = new StreamWriter(client.GetStream(), Encoding.UTF8, 1024, true))
+                        writer.Write(CelesteNetUtils.HTTPTeapot);
+
                     Logger.Log(LogLevel.VVV, "tcpudp", $"New TCP connection: {client.Client.RemoteEndPoint}");
 
                     client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);

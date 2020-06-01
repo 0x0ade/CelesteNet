@@ -121,5 +121,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             });
         }
 
+        [RCEndpoint(false, "/players", null, null, "Player List", "Basic player list.")]
+        public static void Players(Frontend f, HttpRequestEventArgs c) {
+            f.RespondJSON(c, f.Server.Players.Values.Select(p => new {
+                p.ID, p.Name, p.FullName,
+                Connection = f.IsAuthorized(c) ? p.Con.ID : null
+            }).ToArray());
+        }
+
     }
 }

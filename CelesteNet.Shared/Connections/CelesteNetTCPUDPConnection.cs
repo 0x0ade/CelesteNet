@@ -32,6 +32,7 @@ namespace Celeste.Mod.CelesteNet {
         protected Thread ReadUDPThread;
 
         public override bool IsConnected => TCP?.Connected ?? false;
+        public override string ID => "TCP/UDP " + (TCPRemoteEndPoint?.ToString() ?? $"?{GetHashCode()}");
 
         protected IPEndPoint TCPLocalEndPoint;
         protected IPEndPoint TCPRemoteEndPoint;

@@ -38,6 +38,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public virtual bool IsAlive { get; protected set; } = true;
         public abstract bool IsConnected { get; }
+        public abstract string ID { get; }
 
         public CelesteNetConnection(DataContext data) {
             Data = data;

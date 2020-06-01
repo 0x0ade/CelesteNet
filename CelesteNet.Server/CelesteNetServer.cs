@@ -105,6 +105,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             lock (Players)
                 Players.Remove(con);
             Control.BroadcastCMD("update", "/status");
+            Control.BroadcastCMD("update", "/players");
         }
 
 

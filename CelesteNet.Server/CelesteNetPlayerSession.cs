@@ -58,6 +58,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             FullName = $"{Name}#{ID}";
 
             Logger.Log(LogLevel.INF, "playersession", $"#{ID} is {FullName}");
+            Server.Control.BroadcastCMD("update", "/players");
 
             Con.Send(new DataHandshakeServer {
                 Version = CelesteNetUtils.Version,

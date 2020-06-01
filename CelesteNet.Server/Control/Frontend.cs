@@ -98,7 +98,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
-            if (endpoint.Auth && !CurrentSessionKeys.Contains(c.Request.Cookies[Frontend.COOKIE_SESSION]?.Value)) {
+            if (endpoint.Auth && !IsAuthorized(c)) {
                 RespondJSON(c, new {
                     Error = "Unauthorized."
                 });
@@ -113,6 +113,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             HTTPServer?.Stop();
             HTTPServer = null;
         }
+
+        public bool IsAuthorized(HttpRequestEventArgs c)
+            => CurrentSessionKeys.Contains(c.Request.Cookies[Frontend.COOKIE_SESSION]?.Value);
 
         public void BroadcastRawString(string data) {
             WSHost.Sessions.Broadcast(data);

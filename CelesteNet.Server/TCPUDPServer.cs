@@ -65,6 +65,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     TcpClient client = TCPListener.AcceptTcpClient();
                     Logger.Log(LogLevel.VVV, "tcpudp", $"New TCP connection: {client.Client.RemoteEndPoint}");
 
+                    client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
+
                     Server.HandleConnect(new CelesteNetTCPUDPConnection(Server.Data, client, null));
                 }
 

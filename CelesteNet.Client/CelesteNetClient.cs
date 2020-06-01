@@ -87,7 +87,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             Logger.Log(LogLevel.CRI, "main", "Shutdown");
             IsAlive = false;
             IsReady = false;
+
             HandshakeEvent.Dispose();
+            Con?.Dispose();
         }
 
 

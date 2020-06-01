@@ -84,7 +84,17 @@ namespace Celeste.Mod.CelesteNet {
             try {
                 while (IsAlive) {
                     if (SendQueue.Count == 0)
-                        WaitHandle.WaitAny(SendQueueEventHandles);
+                        WaitHandle.WaitAny(SendQueueEventHandles, 1000);
+
+                    if (SendQueue.Count == 0) {
+                        SendRaw(new DataKeepAlive {
+                            IsUpdate = false
+                        });
+                        SendRaw(new DataKeepAlive {
+                            IsUpdate = true
+                        });
+                        continue;
+                    }
 
                     while (SendQueue.Count > 0) {
                         DataType data;

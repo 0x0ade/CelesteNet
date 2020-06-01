@@ -47,7 +47,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         private static UdpClient GetUDP(string host, int port) {
-            UdpClient client = new UdpClient(host, port);
+            UdpClient client = new UdpClient(0);
 
             client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
@@ -93,7 +93,11 @@ namespace Celeste.Mod.CelesteNet {
                 return;
 
             UDPLocalEndPoint = (IPEndPoint) UDP.Client.LocalEndPoint;
-            UDPRemoteEndPoint = (IPEndPoint) UDP.Client.RemoteEndPoint;
+            try {
+                UDPRemoteEndPoint = (IPEndPoint) UDP.Client.RemoteEndPoint;
+            } catch (Exception) {
+                UDPRemoteEndPoint = TCPRemoteEndPoint;
+            }
 
             ReadUDPThread = new Thread(ReadUDPLoop) {
                 Name = $"{GetType().Name} ReadUDP ({Creator} - {GetHashCode()})",
@@ -127,6 +131,9 @@ namespace Celeste.Mod.CelesteNet {
             } catch (ThreadAbortException) {
 
             } catch (Exception e) {
+                if (!IsAlive)
+                    return;
+
                 Logger.Log(LogLevel.CRI, "tcpudpcon", $"TCP loop error:\n{this}\n{(e is IOException ? e.Message : e.ToString())}");
                 ReadTCPThread = null;
                 Dispose();
@@ -136,13 +143,12 @@ namespace Celeste.Mod.CelesteNet {
 
         protected virtual void ReadUDPLoop() {
             try {
-                IPEndPoint remoteExpected = (IPEndPoint) UDP.Client.RemoteEndPoint;
                 using (MemoryStream stream = new MemoryStream())
                 using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
                     while (UDP != null && IsAlive) {
                         IPEndPoint remote = null;
                         byte[] raw = UDP.Receive(ref remote);
-                        if (remote != remoteExpected)
+                        if (UDPRemoteEndPoint != null && remote != UDPRemoteEndPoint)
                             continue;
 
                         stream.Seek(0, SeekOrigin.Begin);
@@ -156,6 +162,9 @@ namespace Celeste.Mod.CelesteNet {
             } catch (ThreadAbortException) {
 
             } catch (Exception e) {
+                if (!IsAlive)
+                    return;
+
                 Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP loop error:\n{this}\n{(e is SocketException ? e.Message : e.ToString())}");
                 ReadUDPThread = null;
                 Dispose();
@@ -167,6 +176,7 @@ namespace Celeste.Mod.CelesteNet {
             base.Dispose(disposing);
 
             try {
+                TCP.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 0);
                 TCP.Client.Disconnect(false);
             } catch (Exception) {
             }
@@ -176,8 +186,13 @@ namespace Celeste.Mod.CelesteNet {
             TCP.Close();
 
             // UDP is a mess and the UdpClient can be shared.
-            if (ReadUDPThread != null)
+            if (ReadUDPThread != null) {
+                try {
+                    UDP?.Client?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 0);
+                } catch (Exception) {
+                }
                 UDP?.Close();
+            }
 
             BufferWriter.Dispose();
             BufferStream.Dispose();

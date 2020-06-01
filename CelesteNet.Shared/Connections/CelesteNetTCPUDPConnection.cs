@@ -31,8 +31,12 @@ namespace Celeste.Mod.CelesteNet {
         protected Thread ReadTCPThread;
         protected Thread ReadUDPThread;
 
+        public override bool IsConnected => TCP?.Connected ?? false;
+
         private static TcpClient GetTCP(string host, int port) {
             TcpClient client = new TcpClient(host, port);
+
+            client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
             return client;
         }
@@ -41,6 +45,7 @@ namespace Celeste.Mod.CelesteNet {
             UdpClient client = new UdpClient(host, port);
 
             client.AllowNatTraversal(true);
+            client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
             return client;
         }
@@ -105,7 +110,11 @@ namespace Celeste.Mod.CelesteNet {
 
         protected virtual void ReadTCPLoop() {
             while (TCP?.Connected ?? false) {
-                Data.Handle(this, Data.Read(TCPReader));
+                if (!Data.Handle(this, Data.Read(TCPReader))) {
+                    ReadTCPThread = null;
+                    Dispose();
+                    return;
+                }
             }
         }
 
@@ -113,23 +122,31 @@ namespace Celeste.Mod.CelesteNet {
             IPEndPoint remote = (IPEndPoint) UDP.Client.RemoteEndPoint;
             using (MemoryStream stream = new MemoryStream())
             using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
-                while (UDP != null) {
-                    byte[] raw = UDP.Receive(ref remote);
+                while (UDP != null && IsConnected) {
+                    byte[] raw;
+                    try {
+                        raw = UDP.Receive(ref remote);
+                    } catch (IOException) {
+                        ReadUDPThread = null;
+                        Dispose();
+                        return;
+                    }
 
                     BufferStream.Seek(0, SeekOrigin.Begin);
                     stream.Write(raw, 0, raw.Length);
 
                     BufferStream.Seek(0, SeekOrigin.Begin);
-                    Data.Handle(this, Data.Read(reader));
+                    if (!Data.Handle(this, Data.Read(reader))) {
+                        ReadUDPThread = null;
+                        Dispose();
+                        return;
+                    }
                 }
             }
         }
 
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
-
-            ReadTCPThread?.Abort();
-            ReadUDPThread?.Abort();
 
             TCPReader.Dispose();
             TCPWriter.Dispose();
@@ -138,6 +155,9 @@ namespace Celeste.Mod.CelesteNet {
             UDP?.Close();
             BufferWriter.Dispose();
             BufferStream.Dispose();
+
+            ReadTCPThread?.Abort();
+            ReadUDPThread?.Abort();
         }
 
         public override string ToString() {

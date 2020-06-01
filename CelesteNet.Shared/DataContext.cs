@@ -79,21 +79,26 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public DataType Read(BinaryReader reader) {
-            string id = Calc.ReadNullTerminatedString(reader);
-            DataFlags flags = (DataFlags) reader.ReadUInt16();
-            ushort length = reader.ReadUInt16();
+            try {
+                string id = Calc.ReadNullTerminatedString(reader);
+                DataFlags flags = (DataFlags) reader.ReadUInt16();
+                ushort length = reader.ReadUInt16();
 
-            if (!IDToTypeMap.TryGetValue(id, out Type type)) {
-                return new DataUnparsed() {
-                    InnerID = id,
-                    InnerFlags = flags,
-                    InnerData = reader.ReadBytes(length)
-                };
+                if (!IDToTypeMap.TryGetValue(id, out Type type)) {
+                    return new DataUnparsed() {
+                        InnerID = id,
+                        InnerFlags = flags,
+                        InnerData = reader.ReadBytes(length)
+                    };
+                }
+
+                DataType data = (DataType) Activator.CreateInstance(type);
+                data.Read(reader);
+                return data;
+
+            } catch (IOException) {
+                return null;
             }
-
-            DataType data = (DataType) Activator.CreateInstance(type);
-            data.Read(reader);
-            return data;
         }
 
         public int Write(BinaryWriter writer, DataType data)
@@ -144,18 +149,23 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public void Handle(CelesteNetConnection con, DataType data)
-            => Handle(con, data.GetType(), data);
+        public bool Handle(CelesteNetConnection con, DataType data)
+            => Handle(con, data?.GetType(), data);
 
-        public void Handle<T>(CelesteNetConnection con, T data) where T : DataType<T>
+        public bool Handle<T>(CelesteNetConnection con, T data) where T : DataType<T>
             => Handle(con, typeof(T), data);
 
-        protected void Handle(CelesteNetConnection con, Type type, DataType data) {
+        protected bool Handle(CelesteNetConnection con, Type type, DataType data) {
+            if (type == null || data == null)
+                return false;
+
             for (; type != typeof(DataType); type = type.BaseType) {
                 if (Handlers.TryGetValue(type, out DataHandler handler)) {
                     handler(con, data);
                 }
             }
+
+            return true;
         }
 
     }

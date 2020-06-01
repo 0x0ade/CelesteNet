@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet {
         private readonly WaitHandle[] SendQueueEventHandles;
         private readonly Thread SendQueueThread;
 
-        public bool IsConnected { get; protected set; } = true;
+        public virtual bool IsConnected { get; protected set; } = true;
 
         public CelesteNetConnection(DataContext data) {
             Data = data;

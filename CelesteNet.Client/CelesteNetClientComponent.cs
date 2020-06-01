@@ -70,6 +70,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
             cogTimeTotal += Engine.RawDeltaTime;
 
+
+            if (!(Client?.IsAlive ?? true)) {
+                Dispose();
+            }
         }
 
         private void RenderContent(bool toBuffer) {
@@ -146,10 +150,17 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         protected override void Dispose(bool disposing) {
+            if (CelesteNetClientModule.Instance.ClientComponent == this) {
+                CelesteNetClientModule.Instance.ClientComponent = null;
+                CelesteNetClientModule.Instance.Settings.Connected = false;
+            }
+
             base.Dispose(disposing);
 
             Client?.Dispose();
             Client = null;
+
+            Celeste.Instance.Components.Remove(this);
         }
 
     }

@@ -108,9 +108,11 @@ namespace Celeste.Mod.CelesteNet {
             => Write(writer, typeof(T), data);
 
         protected int Write(BinaryWriter writer, Type type, DataType data) {
+            if (!TypeToIDMap.TryGetValue(type, out string id))
+                throw new Exception($"Unknown data type {type} ({data})");
+            
             long startAll = writer.BaseStream.Position;
 
-            string id = TypeToIDMap[type];
             writer.WriteNullTerminatedString(id);
             writer.Write((ushort) data.DataFlags);
             writer.Write((ushort) 0); // Filled in later.

@@ -71,7 +71,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void StartReadTCP() {
-            if (TCP != null && ReadTCPThread != null)
+            if (TCP == null || ReadTCPThread != null)
                 return;
 
             ReadTCPThread = new Thread(ReadTCPLoop) {
@@ -82,7 +82,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void StartReadUDP() {
-            if (UDP != null && ReadUDPThread != null)
+            if (UDP == null || ReadUDPThread != null)
                 return;
 
             ReadUDPThread = new Thread(ReadUDPLoop) {

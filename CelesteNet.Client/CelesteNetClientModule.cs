@@ -72,13 +72,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void Stop() {
             lock (ClientLock) {
-                if (ClientComponent == null)
-                    return;
-
                 if (_StartThread?.IsAlive ?? false)
                     _StartThread.Abort();
 
-                Celeste.Instance.Components.Remove(ClientComponent);
+                if (ClientComponent == null)
+                    return;
+
                 ClientComponent.Dispose();
                 ClientComponent = null;
             }

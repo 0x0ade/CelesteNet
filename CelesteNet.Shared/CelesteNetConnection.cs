@@ -90,7 +90,10 @@ namespace Celeste.Mod.CelesteNet {
             } catch (ThreadAbortException) {
                 // Just a normal abort.
 
-            } catch {
+            } catch (Exception e) {
+                if (!(e is IOException))
+                    Logger.Log(LogLevel.CRI, "connection", $"Failed sending data:\n{e}");
+
                 Dispose();
 
             } finally {

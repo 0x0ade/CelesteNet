@@ -20,6 +20,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 else
                     CelesteNetClientModule.Instance.Stop();
 
+                if (!value && EnabledEntry != null && Engine.Scene != null)
+                    Engine.Scene.OnEndOfFrame += () => EnabledEntry?.LeftPressed();
                 if (ServerEntry != null)
                     ServerEntry.Disabled = value || !(Engine.Scene is Overworld);
                 if (NameEntry != null)
@@ -95,7 +97,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region Custom Entry Creators
 
-        public void CreateConnectionEntry(TextMenu menu, bool inGame) {
+        public void CreateConnectedEntry(TextMenu menu, bool inGame) {
             menu.Add(
                 (EnabledEntry = new TextMenu.OnOff("modoptions_celestenet_connected".DialogClean(), Connected))
                 .Change(v => Connected = v)

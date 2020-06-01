@@ -11,17 +11,21 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public abstract class DataHandshakeClient<T> : DataType<T> where T : DataHandshakeClient<T> {
+    public class DataTCPHTTPTeapot : DataType<DataTCPHTTPTeapot> {
 
-        public string Name;
+        // Handled specially by CelesteNetTCPUDPConnection.
 
         public override void Read(BinaryReader reader) {
-            Name = reader.ReadNullTerminatedString();
+            throw new NotSupportedException();
         }
 
         public override void Write(BinaryWriter writer) {
-            writer.WriteNullTerminatedString(Name);
+            throw new NotSupportedException();
         }
+
+        public override DataTCPHTTPTeapot CloneT()
+            => new DataTCPHTTPTeapot {
+            };
 
     }
 }

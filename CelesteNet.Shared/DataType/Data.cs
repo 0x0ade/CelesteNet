@@ -12,8 +12,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public abstract class DataType {
 
         public virtual DataFlags DataFlags => DataFlags.None;
-        public virtual bool IsSendable => true;
-        public abstract bool IsValid { get; }
 
         public abstract void Read(BinaryReader reader);
         public abstract void Write(BinaryWriter writer);

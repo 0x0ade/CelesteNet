@@ -131,7 +131,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(
                         Name,
                         v => Name = v,
-                        maxValueLength: 10
+                        maxValueLength: 20
                     );
                 })
             );

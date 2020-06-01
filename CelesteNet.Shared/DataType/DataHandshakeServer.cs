@@ -17,9 +17,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "hsS";
         }
 
-        public override bool IsValid => true;
-        public override bool IsSendable => true;
-
         public ushort Version;
 
         public DataPlayer PlayerInfo;

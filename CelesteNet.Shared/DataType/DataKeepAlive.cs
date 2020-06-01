@@ -18,8 +18,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override DataFlags DataFlags => IsUpdate ? DataFlags.Update : DataFlags.None;
-        public override bool IsValid => true;
-        public override bool IsSendable => true;
 
         public bool IsUpdate;
 

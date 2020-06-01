@@ -17,8 +17,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "chat";
         }
 
-        public override bool IsValid => !string.IsNullOrWhiteSpace(Text);
-
         /// <summary>
         /// Server-internal field.
         /// </summary>

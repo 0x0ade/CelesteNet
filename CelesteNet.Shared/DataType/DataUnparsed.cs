@@ -17,9 +17,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "unparsed";
         }
 
-        public override bool IsValid => false;
-        public override bool IsSendable => false;
-
         public string InnerID;
         public DataFlags InnerFlags;
         public byte[] InnerData;

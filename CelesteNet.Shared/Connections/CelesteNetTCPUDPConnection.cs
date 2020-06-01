@@ -109,6 +109,12 @@ namespace Celeste.Mod.CelesteNet {
 
         public override void SendRaw(DataType data) {
             lock (BufferStream) {
+                // Let's have some fun with dumb port sniffers.
+                if (data is DataTCPHTTPTeapot) {
+                    WriteTeapot();
+                    return;
+                }
+
                 BufferStream.Seek(0, SeekOrigin.Begin);
 
                 int length = Data.Write(BufferWriter, data);
@@ -121,6 +127,27 @@ namespace Celeste.Mod.CelesteNet {
                     TCPWriter.Write(raw, 0, length);
                 }
             }
+        }
+
+        public void ReadTeapot() {
+            using (StreamReader reader = new StreamReader(TCPStream, Encoding.UTF8, false, 1024, true)) {
+                int empty = 0;
+                while (empty < 2) {
+                    string line = reader.ReadLine()?.Trim();
+                    if (string.IsNullOrEmpty(line)) {
+                        Console.WriteLine("EMPTY");
+                        empty++;
+                    } else {
+                        Console.WriteLine(line);
+                        empty = 0;
+                    }
+                }
+            }
+        }
+
+        public void WriteTeapot() {
+            using (StreamWriter writer = new StreamWriter(TCPStream, Encoding.UTF8, 1024, true))
+                writer.Write(CelesteNetUtils.HTTPTeapot);
         }
 
         protected virtual void ReadTCPLoop() {

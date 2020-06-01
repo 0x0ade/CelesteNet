@@ -17,9 +17,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "hsTUC";
         }
 
-        public override bool IsValid => true;
-        public override bool IsSendable => true;
-
         public int UDPPort;
 
         public override void Read(BinaryReader reader) {

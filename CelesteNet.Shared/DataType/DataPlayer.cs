@@ -18,8 +18,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "playerInfo";
         }
 
-        public override bool IsValid => true;
-
         public uint ID;
         public string Name;
         public string FullName;

@@ -214,6 +214,9 @@ namespace Celeste.Mod.CelesteNet {
             return refs[data.ID] = data;
         }
 
+        public void FreeRef<T>(uint id) where T : DataType<T>, IDataRefType
+            => FreeRef(typeof(T), id);
+
         public void FreeRef(Type type, uint id) {
             if (References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs))
                 refs.Remove(id);

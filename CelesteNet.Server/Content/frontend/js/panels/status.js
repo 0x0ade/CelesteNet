@@ -22,6 +22,7 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
       Alive: false,
       Connections: 0,
       Players: 0,
+      PlayerRefs: 0,
     };
 
     /** @type {[string | ((el: HTMLElement) => HTMLElement), () => void][] | [string | ((el: HTMLElement) => HTMLElement)][]} */

@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Celeste.Mod.CelesteNet.DataTypes;
 using Newtonsoft.Json;
 using WebSocketSharp.Net;
 using WebSocketSharp.Server;
@@ -117,7 +118,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void Status(Frontend f, HttpRequestEventArgs c) {
             f.RespondJSON(c, new {
                 Connections = f.Server.Connections.Count,
-                Players = f.Server.Players.Count
+                Players = f.Server.Players.Count,
+                PlayerRefs = f.Server.Data.GetRefs<DataPlayerInfo>().Length
             });
         }
 

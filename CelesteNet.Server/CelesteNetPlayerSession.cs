@@ -92,6 +92,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                 });
             }
 
+            Server.Data.FreeRef<DataPlayerInfo>(ID);
+
             Server.Control.BroadcastCMD("update", "/status");
             Server.Control.BroadcastCMD("update", "/players");
         }

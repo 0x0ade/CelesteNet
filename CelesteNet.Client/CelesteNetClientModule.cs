@@ -46,11 +46,22 @@ namespace Celeste.Mod.CelesteNet.Client {
                 ClientComponent.SetStatus("Initializing...");
 
                 RunThread.Start(() => {
-                    ClientComponent.Init(Settings);
-                    ClientComponent.SetStatus("Connecting...");
-                    ClientComponent.Start();
-                    ClientComponent.SetStatus(null);
-                    _StartThread = null;
+                    try {
+                        ClientComponent.Init(Settings);
+                        ClientComponent.SetStatus("Connecting...");
+                        ClientComponent.Start();
+                        ClientComponent.SetStatus(null);
+
+                    } catch (ThreadAbortException) {
+
+                    } catch (Exception e) {
+                        Logger.Log(LogLevel.CRI, "clientmod", "Failed connecting:\n" + e);
+                        _StartThread = null;
+                        Stop();
+
+                    } finally {
+                        _StartThread = null;
+                    }
                 }, "CelesteNet Client Start", true);
 
                 RunThread.Current.TryGetTarget(out _StartThread);

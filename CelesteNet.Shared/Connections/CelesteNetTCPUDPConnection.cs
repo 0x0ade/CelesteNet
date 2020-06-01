@@ -33,10 +33,10 @@ namespace Celeste.Mod.CelesteNet {
 
         public override bool IsConnected => TCP?.Connected ?? false;
 
-        protected EndPoint TCPLocalEndPoint;
-        protected EndPoint TCPRemoteEndPoint;
-        protected EndPoint UDPLocalEndPoint;
-        protected EndPoint UDPRemoteEndPoint;
+        protected IPEndPoint TCPLocalEndPoint;
+        protected IPEndPoint TCPRemoteEndPoint;
+        public IPEndPoint UDPLocalEndPoint;
+        public IPEndPoint UDPRemoteEndPoint;
 
         private static TcpClient GetTCP(string host, int port) {
             TcpClient client = new TcpClient(host, port);
@@ -49,7 +49,6 @@ namespace Celeste.Mod.CelesteNet {
         private static UdpClient GetUDP(string host, int port) {
             UdpClient client = new UdpClient(host, port);
 
-            client.AllowNatTraversal(true);
             client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
             return client;
@@ -79,8 +78,8 @@ namespace Celeste.Mod.CelesteNet {
             if (TCP == null || ReadTCPThread != null)
                 return;
 
-            TCPLocalEndPoint = TCP.Client.LocalEndPoint;
-            TCPRemoteEndPoint = TCP.Client.RemoteEndPoint;
+            TCPLocalEndPoint = (IPEndPoint) TCP.Client.LocalEndPoint;
+            TCPRemoteEndPoint = (IPEndPoint) TCP.Client.RemoteEndPoint;
 
             ReadTCPThread = new Thread(ReadTCPLoop) {
                 Name = $"{GetType().Name} ReadTCP ({Creator} - {GetHashCode()})",
@@ -93,8 +92,8 @@ namespace Celeste.Mod.CelesteNet {
             if (UDP == null || ReadUDPThread != null)
                 return;
 
-            UDPLocalEndPoint = UDP.Client.LocalEndPoint;
-            UDPRemoteEndPoint = UDP.Client.RemoteEndPoint;
+            UDPLocalEndPoint = (IPEndPoint) UDP.Client.LocalEndPoint;
+            UDPRemoteEndPoint = (IPEndPoint) UDP.Client.RemoteEndPoint;
 
             ReadUDPThread = new Thread(ReadUDPLoop) {
                 Name = $"{GetType().Name} ReadUDP ({Creator} - {GetHashCode()})",
@@ -111,7 +110,7 @@ namespace Celeste.Mod.CelesteNet {
                 byte[] raw = BufferStream.GetBuffer();
 
                 if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
-                    UDP.Send(raw, length);
+                    UDP.Send(raw, length, UDPRemoteEndPoint);
 
                 } else {
                     TCPWriter.Write(raw, 0, length);
@@ -137,15 +136,19 @@ namespace Celeste.Mod.CelesteNet {
 
         protected virtual void ReadUDPLoop() {
             try {
-                IPEndPoint remote = (IPEndPoint) UDP.Client.RemoteEndPoint;
+                IPEndPoint remoteExpected = (IPEndPoint) UDP.Client.RemoteEndPoint;
                 using (MemoryStream stream = new MemoryStream())
                 using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
                     while (UDP != null && IsAlive) {
+                        IPEndPoint remote = null;
                         byte[] raw = UDP.Receive(ref remote);
-                        BufferStream.Seek(0, SeekOrigin.Begin);
+                        if (remote != remoteExpected)
+                            continue;
+
+                        stream.Seek(0, SeekOrigin.Begin);
                         stream.Write(raw, 0, raw.Length);
 
-                        BufferStream.Seek(0, SeekOrigin.Begin);
+                        stream.Seek(0, SeekOrigin.Begin);
                         Data.Handle(this, Data.Read(reader));
                     }
                 }
@@ -171,13 +174,21 @@ namespace Celeste.Mod.CelesteNet {
             TCPWriter.Dispose();
             TCPStream.Dispose();
             TCP.Close();
-            UDP?.Close();
+
+            // UDP is a mess and the UdpClient can be shared.
+            if (ReadUDPThread != null)
+                UDP?.Close();
+
             BufferWriter.Dispose();
             BufferStream.Dispose();
+
         }
 
         public override string ToString() {
-            return $"CelesteNetTCPUDPConnection {TCPLocalEndPoint?.ToString() ?? "???"} <-> {TCPRemoteEndPoint?.ToString() ?? "???"} / {UDPLocalEndPoint?.ToString() ?? "???"} <-> {UDPRemoteEndPoint?.ToString() ?? "???"}";
+            string s = $"CelesteNetTCPUDPConnection {TCPLocalEndPoint?.ToString() ?? "???"} <-> {TCPRemoteEndPoint?.ToString() ?? "???"}";
+            if (UDPRemoteEndPoint != null)
+                s += $" / {UDPLocalEndPoint?.ToString() ?? "???"} <-> {UDPRemoteEndPoint?.ToString() ?? "???"}";
+            return s;
         }
 
     }

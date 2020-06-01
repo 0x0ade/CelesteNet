@@ -25,8 +25,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
 
-        public uint SessionCounter;
-        public readonly Dictionary<CelesteNetConnection, CelesteNetSession> Sessions = new Dictionary<CelesteNetConnection, CelesteNetSession>();
+        public uint PlayerCounter;
+        public readonly Dictionary<CelesteNetConnection, CelesteNetPlayerSession> Players = new Dictionary<CelesteNetConnection, CelesteNetPlayerSession>();
 
         private ManualResetEvent ShutdownEvent = new ManualResetEvent(false);
 
@@ -101,7 +101,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "main", $"Disconnecting: {con}");
             lock (Connections)
                 Connections.Remove(con);
-            Sessions.Remove(con);
+            Players.Remove(con);
         }
 
 

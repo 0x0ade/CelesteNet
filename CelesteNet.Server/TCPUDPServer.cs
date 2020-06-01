@@ -18,9 +18,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly CelesteNetServer Server;
 
-        protected TcpListener Listener;
+        protected TcpListener TCPListener;
+        protected UdpClient UDP;
 
-        private Thread ListenerThread;
+        private Thread TCPListenerThread;
+        private Thread UDPReadThread;
+
+        private Dictionary<IPEndPoint, CelesteNetTCPUDPConnection> UDPMap = new Dictionary<IPEndPoint, CelesteNetTCPUDPConnection>();
 
         public TCPUDPServer(CelesteNetServer server) {
             Server = server;
@@ -30,26 +34,35 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void Start() {
             Logger.Log(LogLevel.CRI, "tcpudp", $"Startup on port {Server.Settings.MainPort}");
 
-            Listener = new TcpListener(IPAddress.Any, Server.Settings.MainPort);
-            Listener.Start();
+            TCPListener = new TcpListener(IPAddress.Any, Server.Settings.MainPort);
+            TCPListener.Start();
 
-            ListenerThread = new Thread(ListenerThreadLoop) {
-                Name = $"TCPUDPServer Listener ({GetHashCode()})",
+            TCPListenerThread = new Thread(TCPListenerLoop) {
+                Name = $"TCPUDPServer TCPListener ({GetHashCode()})",
                 IsBackground = true
             };
-            ListenerThread.Start();
+            TCPListenerThread.Start();
+
+            UDP = new UdpClient(Server.Settings.MainPort);
+
+            UDPReadThread = new Thread(UDPReadLoop) {
+                Name = $"TCPUDPServer UDPRead ({GetHashCode()})",
+                IsBackground = true
+            };
+            UDPReadThread.Start();
         }
 
         public void Dispose() {
             Logger.Log(LogLevel.INF, "tcpudp", "Shutdown");
 
-            Listener.Stop();
+            TCPListener.Stop();
+            UDP.Close();
         }
 
-        protected virtual void ListenerThreadLoop() {
+        protected virtual void TCPListenerLoop() {
             try {
                 while (Server.IsAlive) {
-                    TcpClient client = Listener.AcceptTcpClient();
+                    TcpClient client = TCPListener.AcceptTcpClient();
                     Logger.Log(LogLevel.VVV, "tcpudp", $"New TCP connection: {client.Client.RemoteEndPoint}");
 
                     Server.HandleConnect(new CelesteNetTCPUDPConnection(Server.Data, client, null));
@@ -58,7 +71,33 @@ namespace Celeste.Mod.CelesteNet.Server {
             } catch (ThreadAbortException) {
 
             } catch (Exception e) {
-                Logger.Log(LogLevel.CRI, "tcpudp", $"Failed listening:\n{e}");
+                Logger.Log(LogLevel.CRI, "tcpudp", $"Failed listening for TCP connection:\n{e}");
+                Server.Dispose();
+            }
+        }
+
+        protected virtual void UDPReadLoop() {
+            try {
+                using (MemoryStream stream = new MemoryStream())
+                using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
+                    while (Server.IsAlive) {
+                        IPEndPoint remote = null;
+                        byte[] raw = UDP.Receive(ref remote);
+                        if (!UDPMap.TryGetValue(remote, out CelesteNetTCPUDPConnection con))
+                            continue;
+
+                        stream.Seek(0, SeekOrigin.Begin);
+                        stream.Write(raw, 0, raw.Length);
+
+                        stream.Seek(0, SeekOrigin.Begin);
+                        Server.Data.Handle(con, Server.Data.Read(reader));
+                    }
+                }
+
+            } catch (ThreadAbortException) {
+
+            } catch (Exception e) {
+                Logger.Log(LogLevel.CRI, "tcpudp", $"Failed waiting for UDP data:\n{e}");
                 Server.Dispose();
             }
         }
@@ -67,17 +106,22 @@ namespace Celeste.Mod.CelesteNet.Server {
         #region Handlers
 
         public void Handle(CelesteNetTCPUDPConnection con, DataHandshakeTCPUDPClient handshake) {
-            if (Server.Sessions.ContainsKey(con))
+            if (Server.Players.ContainsKey(con))
                 return;
 
             IPEndPoint ep = (IPEndPoint) con.TCP.Client.RemoteEndPoint;
-            con.UDP = new UdpClient(new IPEndPoint(ep.Address, handshake.UDPPort));
+            con.UDP = UDP;
+            con.UDPLocalEndPoint = (IPEndPoint) UDP.Client.LocalEndPoint;
+            con.UDPRemoteEndPoint = new IPEndPoint(ep.Address, handshake.UDPPort);
 
-            CelesteNetSession session = new CelesteNetSession(Server, con, Server.SessionCounter++);
-            lock (Server.Sessions) {
-                Server.Sessions[con] = session;
+            UDPMap[con.UDPRemoteEndPoint] = con;
+            con.OnDisconnect += _ => UDPMap.Remove(con.UDPRemoteEndPoint);
+
+            CelesteNetPlayerSession session = new CelesteNetPlayerSession(Server, con, Server.PlayerCounter++);
+            lock (Server.Players) {
+                Server.Players[con] = session;
             }
-            session.Start();
+            session.Start(handshake);
         }
 
         #endregion

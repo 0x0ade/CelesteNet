@@ -62,7 +62,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void RegisterHandlersIn(object handlers) {
-            foreach (MethodInfo method in GetType().GetMethods()) {
+            foreach (MethodInfo method in handlers.GetType().GetMethods()) {
                 if (method.Name != "Handle")
                     continue;
 
@@ -105,7 +105,7 @@ namespace Celeste.Mod.CelesteNet {
         protected int Write(BinaryWriter writer, Type type, DataType data) {
             if (!TypeToIDMap.TryGetValue(type, out string id))
                 throw new Exception($"Unknown data type {type} ({data})");
-            
+
             long startAll = writer.BaseStream.Position;
 
             writer.WriteNullTerminatedString(id);

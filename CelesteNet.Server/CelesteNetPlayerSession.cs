@@ -13,13 +13,16 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server {
-    public class CelesteNetSession : IDisposable {
+    public class CelesteNetPlayerSession : IDisposable {
 
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
         public readonly uint ID;
 
-        public CelesteNetSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
+        public string Name;
+        public string FullName;
+
+        public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
             Server = server;
             Con = con;
             ID = id;
@@ -44,16 +47,30 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        public void Start() {
-            Logger.Log(LogLevel.INF, "session", $"Startup #{ID} {Con}");
+        public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
+            Logger.Log(LogLevel.INF, "playersession", $"Startup #{ID} {Con}");
+
+            // TODO: Handle names starting with # as "keys"
+            Name = handshake.Name;
+            FullName = $"{Name}#{ID}";
+
+            Logger.Log(LogLevel.INF, "playersession", $"#{ID} is {FullName}");
 
             Con.Send(new DataHandshakeServer {
-                Version = CelesteNetUtils.Version
+                Version = CelesteNetUtils.Version,
+
+                PlayerInfo = new DataPlayer {
+                    ID = ID,
+                    Name = Name,
+                    FullName = FullName
+                }
             });
+
+            // TODO: Welcome the player.
         }
 
         public void Dispose() {
-            Logger.Log(LogLevel.INF, "session", $"Shutdown #{ID} {Con}");
+            Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{ID} {Con}");
         }
 
 

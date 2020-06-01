@@ -76,6 +76,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Logger.Log(LogLevel.INF, "main", "Waiting for server handshake.");
             WaitHandle.WaitAny(new WaitHandle[] { HandshakeEvent });
 
+            Logger.Log(LogLevel.INF, "main", "Ready");
             IsReady = true;
         }
 
@@ -93,6 +94,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         #region Handlers
 
         public void Handle(CelesteNetConnection con, DataHandshakeServer handshake) {
+            Logger.Log(LogLevel.INF, "main", $"Received handshake: {handshake}");
             if (handshake.Version != CelesteNetUtils.Version) {
                 Dispose();
                 throw new Exception($"Version mismatch - client {CelesteNetUtils.Version} vs server {handshake.Version}");

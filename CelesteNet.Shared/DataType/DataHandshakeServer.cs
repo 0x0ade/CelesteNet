@@ -43,5 +43,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 PlayerInfo = PlayerInfo.CloneT()
             };
 
+        public override string ToString()
+            => $"{Version}, {PlayerInfo}";
+
     }
 }

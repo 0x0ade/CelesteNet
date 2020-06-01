@@ -153,7 +153,7 @@ namespace Celeste.Mod.CelesteNet {
             } catch (ThreadAbortException) {
 
             } catch (Exception e) {
-                Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP loop error:\n{this}\n{(e is IOException ? e.Message : e.ToString())}");
+                Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP loop error:\n{this}\n{(e is SocketException ? e.Message : e.ToString())}");
                 ReadUDPThread = null;
                 Dispose();
                 return;

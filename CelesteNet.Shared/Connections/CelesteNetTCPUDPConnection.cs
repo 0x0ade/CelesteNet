@@ -33,6 +33,11 @@ namespace Celeste.Mod.CelesteNet {
 
         public override bool IsConnected => TCP?.Connected ?? false;
 
+        protected EndPoint TCPLocalEndPoint;
+        protected EndPoint TCPRemoteEndPoint;
+        protected EndPoint UDPLocalEndPoint;
+        protected EndPoint UDPRemoteEndPoint;
+
         private static TcpClient GetTCP(string host, int port) {
             TcpClient client = new TcpClient(host, port);
 
@@ -74,6 +79,9 @@ namespace Celeste.Mod.CelesteNet {
             if (TCP == null || ReadTCPThread != null)
                 return;
 
+            TCPLocalEndPoint = TCP.Client.LocalEndPoint;
+            TCPRemoteEndPoint = TCP.Client.RemoteEndPoint;
+
             ReadTCPThread = new Thread(ReadTCPLoop) {
                 Name = $"{GetType().Name} ReadTCP ({Creator} - {GetHashCode()})",
                 IsBackground = true
@@ -84,6 +92,9 @@ namespace Celeste.Mod.CelesteNet {
         public void StartReadUDP() {
             if (UDP == null || ReadUDPThread != null)
                 return;
+
+            UDPLocalEndPoint = UDP.Client.LocalEndPoint;
+            UDPRemoteEndPoint = UDP.Client.RemoteEndPoint;
 
             ReadUDPThread = new Thread(ReadUDPLoop) {
                 Name = $"{GetType().Name} ReadUDP ({Creator} - {GetHashCode()})",
@@ -152,6 +163,10 @@ namespace Celeste.Mod.CelesteNet {
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
+            try {
+                TCP.Client.Disconnect(false);
+            } catch (ObjectDisposedException) {
+            }
             TCPReader.Dispose();
             TCPWriter.Dispose();
             TCPStream.Dispose();
@@ -162,7 +177,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public override string ToString() {
-            return $"CelesteNetTCPUDPConnection {TCP?.Client.LocalEndPoint?.ToString() ?? "???"} <-> {TCP?.Client.RemoteEndPoint?.ToString() ?? "???"} / {UDP?.Client.LocalEndPoint?.ToString() ?? "???"} <-> {UDP?.Client.RemoteEndPoint?.ToString() ?? "???"}";
+            return $"CelesteNetTCPUDPConnection {TCPLocalEndPoint?.ToString() ?? "???"} <-> {TCPRemoteEndPoint?.ToString() ?? "???"} / {UDPLocalEndPoint?.ToString() ?? "???"} <-> {UDPRemoteEndPoint?.ToString() ?? "???"}";
         }
 
     }

@@ -101,7 +101,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             IsAlive = false;
 
             lock (StartStopLock) {
-                if (!IsReady)
+                if (Con == null)
                     return;
                 Logger.Log(LogLevel.CRI, "main", "Shutdown");
                 IsReady = false;
@@ -109,6 +109,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 HandshakeEvent.Set();
                 HandshakeEvent.Dispose();
                 Con?.Dispose();
+                Con = null;
             }
         }
 

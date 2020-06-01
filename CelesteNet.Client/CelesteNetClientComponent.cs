@@ -42,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Start() {
-            Client.Start();
+            Client?.Start();
         }
 
         public void SetStatus(string text) {

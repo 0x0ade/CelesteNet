@@ -92,6 +92,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void HandleConnect(CelesteNetConnection con) {
             Logger.Log(LogLevel.INF, "main", $"New connection: {con}");
+            con.SendKeepAlive = true;
             lock (Connections)
                 Connections.Add(con);
             con.OnDisconnect += HandleDisconnect;

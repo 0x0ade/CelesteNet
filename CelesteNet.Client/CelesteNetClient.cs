@@ -62,7 +62,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     case ConnectionType.Auto:
                     case ConnectionType.TCPUDP:
                         Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {Settings.Host}:{Settings.Port}");
-                        
+
                         CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Data, Settings.Host, Settings.Port);
                         con.OnDisconnect += _ => Dispose();
                         Con = con;
@@ -71,6 +71,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // Server replies with a dummy HTTP response to filter out dumb port sniffers.
                         con.ReadTeapot();
 
+                        con.SendKeepAlive = true;
                         con.Send(new DataHandshakeTCPUDPClient {
                             Name = Settings.Name,
                             UDPPort = ((IPEndPoint) con.UDP.Client.LocalEndPoint).Port

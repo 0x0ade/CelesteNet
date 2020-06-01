@@ -43,6 +43,8 @@ namespace Celeste.Mod.CelesteNet {
         public abstract bool IsConnected { get; }
         public abstract string ID { get; }
 
+        public bool SendKeepAlive;
+
         public CelesteNetConnection(DataContext data) {
             Data = data;
 
@@ -90,7 +92,7 @@ namespace Celeste.Mod.CelesteNet {
                     if (SendQueue.Count == 0)
                         WaitHandle.WaitAny(SendQueueEventHandles, 1000);
 
-                    if (SendQueue.Count == 0) {
+                    if (SendQueue.Count == 0 && SendKeepAlive) {
                         SendRaw(new DataKeepAlive {
                             IsUpdate = false
                         });

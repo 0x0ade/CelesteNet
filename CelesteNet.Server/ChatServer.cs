@@ -63,7 +63,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return;
             }
 
-            // TODO: BROADCAST!
+            Server.Broadcast(msg);
         }
 
 

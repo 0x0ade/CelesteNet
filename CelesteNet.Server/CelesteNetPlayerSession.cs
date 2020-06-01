@@ -84,7 +84,16 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Dispose() {
             Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{ID} {Con}");
+
+            lock (Server.Players) {
+                Server.Players.Remove(Con);
+                Server.Broadcast(new DataPlayerInfo {
+                    ID = ID
+                });
+            }
+
             Server.Control.BroadcastCMD("update", "/status");
+            Server.Control.BroadcastCMD("update", "/players");
         }
 
 

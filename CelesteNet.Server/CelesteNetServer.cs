@@ -101,12 +101,47 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void HandleDisconnect(CelesteNetConnection con) {
             Logger.Log(LogLevel.INF, "main", $"Disconnecting: {con}");
+
             lock (Connections)
                 Connections.Remove(con);
-            lock (Players)
+
+            CelesteNetPlayerSession session;
+            lock (Players) {
+                Players.TryGetValue(con, out session);
+                session?.Dispose();
                 Players.Remove(con);
-            Control.BroadcastCMD("update", "/status");
-            Control.BroadcastCMD("update", "/players");
+            }
+
+            if (session == null)
+                Control.BroadcastCMD("update", "/status");
+        }
+
+        public void Broadcast(DataType data) {
+            lock (Connections) {
+                foreach (CelesteNetConnection con in Connections) {
+                    try {
+                        con.Send(data);
+                    } catch (Exception e) {
+                        // Whoops, it probably wasn't important anyway.
+                        Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
+                    }
+                }
+            }
+        }
+
+        public void Broadcast(DataType data, params CelesteNetConnection[] except) {
+            lock (Connections) {
+                foreach (CelesteNetConnection con in Connections) {
+                    if (except.Contains(con))
+                        continue;
+                    try {
+                        con.Send(data);
+                    } catch (Exception e) {
+                        // Whoops, it probably wasn't important anyway.
+                        Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
+                    }
+                }
+            }
         }
 
 

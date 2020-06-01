@@ -201,12 +201,22 @@ namespace Celeste.Mod.CelesteNet {
             => (T) SetRef(typeof(T), data);
 
         public IDataRefType SetRef(Type type, IDataRefType data) {
+            if (!data.IsValidRef) {
+                FreeRef(type, data.ID);
+                return null;
+            }
+
             if (!References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs)) {
                 refs = new Dictionary<uint, IDataRefType>();
                 References[type] = refs;
             }
 
             return refs[data.ID] = data;
+        }
+
+        public void FreeRef(Type type, uint id) {
+            if (References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs))
+                refs.Remove(id);
         }
 
     }

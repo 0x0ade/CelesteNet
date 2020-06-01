@@ -18,6 +18,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public uint ID { get; set; }
+        public bool IsValidRef => !string.IsNullOrEmpty(FullName);
         public string Name;
         public string FullName;
 

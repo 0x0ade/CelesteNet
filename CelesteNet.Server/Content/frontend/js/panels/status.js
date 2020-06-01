@@ -64,14 +64,22 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
   }
 
   render(el) {
-    const state = this.frontend.sync.status;
-    this.progress =
-      (state.startsWith("closed") || state.startsWith("error")) ? 1 :
-      (state.startsWith("connecting")) ? 2 :
-      (state.startsWith("open")) ? 0 :
-      -2;
+    const progressReal = this.progress;
 
-    return super.render(el);
+    if (progressReal === 0) {
+      const state = this.frontend.sync.status;
+      this.progress =
+        (state.startsWith("closed") || state.startsWith("error")) ? 1 :
+        (state.startsWith("connecting")) ? 2 :
+        (state.startsWith("open")) ? 0 :
+        -2;
+    }
+
+    el = super.render(el);
+
+    this.progress = progressReal;
+
+    return el;
   }
 
 }

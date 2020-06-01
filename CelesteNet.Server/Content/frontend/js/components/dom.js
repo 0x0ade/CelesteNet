@@ -12,6 +12,7 @@ const mdc = window["mdc"]; // mdc
  * @typedef {{
     id: string,
     ep: string?,
+    progress: number?,
     render: (el: HTMLElement) => HTMLElement,
     el: HTMLElement,
     start: () => Promise,
@@ -61,11 +62,21 @@ export class FrontendDOM {
       await panel.start();
     this.frontend.render();
 
-    if (panel.ep)
+    if (panel.ep) {
+      let refreshTimeout;
       this.frontend.sync.register("update", data => {
-        if (data === panel.ep)
-          panel.refresh()
+        if (data !== panel.ep)
+          return;
+        console.log("update", data);
+        if (panel.progress !== 2) {
+          panel.progress = 2;
+          panel.render(null);
+        }
+        if (refreshTimeout)
+          clearTimeout(refreshTimeout);
+        refreshTimeout = setTimeout(() => panel.refresh(), 300);
       });
+    }
   }
 
   /**

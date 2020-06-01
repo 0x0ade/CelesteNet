@@ -37,6 +37,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private ManualResetEvent HandshakeEvent = new ManualResetEvent(false);
 
+        private object StartStopLock = new object();
+
         public CelesteNetClient()
             : this(new CelesteNetClientSettings()) {
         }
@@ -49,47 +51,51 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Start() {
-            if (IsAlive)
-                return;
+            lock (StartStopLock) {
+                if (IsAlive)
+                    return;
 
-            Logger.Log(LogLevel.CRI, "main", $"Startup");
-            IsAlive = true;
+                Logger.Log(LogLevel.CRI, "main", $"Startup");
+                IsAlive = true;
 
-            switch (Settings.ConnectionType) {
-                case ConnectionType.Auto:
-                case ConnectionType.TCPUDP:
-                    Logger.Log(LogLevel.INF, "main", "Connecting via TCP + UDP.");
-                    CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Data, Settings.Host, Settings.Port);
-                    con.OnDisconnect += _ => Dispose();
-                    Con = con;
-                    Logger.Log(LogLevel.INF, "main", $"Local endpoints: {con.TCP.Client.LocalEndPoint} / {con.UDP.Client.LocalEndPoint}");
-                    con.Send(new DataHandshakeTCPUDPClient {
-                        Name = Settings.Name,
-                        UDPPort = ((IPEndPoint) con.UDP.Client.LocalEndPoint).Port
-                    });
-                    break;
+                switch (Settings.ConnectionType) {
+                    case ConnectionType.Auto:
+                    case ConnectionType.TCPUDP:
+                        Logger.Log(LogLevel.INF, "main", "Connecting via TCP + UDP.");
+                        CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Data, Settings.Host, Settings.Port);
+                        con.OnDisconnect += _ => Dispose();
+                        Con = con;
+                        Logger.Log(LogLevel.INF, "main", $"Local endpoints: {con.TCP.Client.LocalEndPoint} / {con.UDP.Client.LocalEndPoint}");
+                        con.Send(new DataHandshakeTCPUDPClient {
+                            Name = Settings.Name,
+                            UDPPort = ((IPEndPoint) con.UDP.Client.LocalEndPoint).Port
+                        });
+                        break;
 
-                default:
-                    throw new NotSupportedException($"Unsupported connection type {Settings.ConnectionType}");
+                    default:
+                        throw new NotSupportedException($"Unsupported connection type {Settings.ConnectionType}");
+                }
+
+                Logger.Log(LogLevel.INF, "main", "Waiting for server handshake.");
+                WaitHandle.WaitAny(new WaitHandle[] { HandshakeEvent });
+
+                Logger.Log(LogLevel.INF, "main", "Ready");
+                IsReady = true;
             }
-
-            Logger.Log(LogLevel.INF, "main", "Waiting for server handshake.");
-            WaitHandle.WaitAny(new WaitHandle[] { HandshakeEvent });
-
-            Logger.Log(LogLevel.INF, "main", "Ready");
-            IsReady = true;
         }
 
         public void Dispose() {
-            if (!IsAlive)
-                return;
+            lock (StartStopLock) {
+                if (!IsAlive)
+                    return;
 
-            Logger.Log(LogLevel.CRI, "main", "Shutdown");
-            IsAlive = false;
-            IsReady = false;
+                Logger.Log(LogLevel.CRI, "main", "Shutdown");
+                IsAlive = false;
+                IsReady = false;
 
-            HandshakeEvent.Dispose();
-            Con?.Dispose();
+                HandshakeEvent.Dispose();
+                Con?.Dispose();
+            }
         }
 
 

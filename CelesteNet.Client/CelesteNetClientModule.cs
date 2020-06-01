@@ -45,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 ClientComponent.SetStatus("Initializing...");
 
-                RunThread.Start(() => {
+                _StartThread = new Thread(() => {
                     try {
                         ClientComponent.Init(Settings);
                         ClientComponent.SetStatus("Connecting...");
@@ -62,11 +62,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                     } finally {
                         _StartThread = null;
                     }
-                }, "CelesteNet Client Start", true);
-
-                RunThread.Current.TryGetTarget(out _StartThread);
-                if (!(_StartThread?.IsAlive ?? false))
-                    _StartThread = null;
+                }) {
+                    Name = "CelesteNet Client Start",
+                    IsBackground = true
+                };
+                _StartThread.Start();
             }
         }
 

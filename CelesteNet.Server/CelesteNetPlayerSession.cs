@@ -19,8 +19,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetConnection Con;
         public readonly uint ID;
 
-        public string Name;
-        public string FullName;
+        public DataPlayerInfo PlayerInfo => Server.Data.GetRef<DataPlayerInfo>(ID);
 
         public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
             Server = server;
@@ -54,20 +53,18 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Control.BroadcastCMD("update", "/status");
 
             // TODO: Handle names starting with # as "keys"
-            Name = handshake.Name;
-            FullName = $"{Name}#{ID}";
+            Server.Data.SetRef(new DataPlayerInfo {
+                ID = ID,
+                Name = handshake.Name,
+                FullName = $"{handshake.Name}#{ID}"
+            });
 
-            Logger.Log(LogLevel.INF, "playersession", $"#{ID} is {FullName}");
+            Logger.Log(LogLevel.INF, "playersession", $"#{ID} is {PlayerInfo.FullName}");
             Server.Control.BroadcastCMD("update", "/players");
 
             Con.Send(new DataHandshakeServer {
                 Version = CelesteNetUtils.Version,
-
-                PlayerInfo = Server.Data.SetRef(new DataPlayerInfo {
-                    ID = ID,
-                    Name = Name,
-                    FullName = FullName
-                })
+                PlayerInfo = PlayerInfo
             });
 
             lock (Server.Players) {

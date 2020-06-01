@@ -23,6 +23,8 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly Dictionary<Type, DataHandler> Handlers = new Dictionary<Type, DataHandler>();
 
+        protected readonly Dictionary<Type, Dictionary<uint, IDataRefType>> References = new Dictionary<Type, Dictionary<uint, IDataRefType>>();
+
         public DataContext() {
             foreach (Type type in CelesteNetUtils.GetTypes()) {
                 if (!typeof(DataType).IsAssignableFrom(type) || type.IsAbstract)
@@ -92,7 +94,7 @@ namespace Celeste.Mod.CelesteNet {
             }
 
             DataType data = (DataType) Activator.CreateInstance(type);
-            data.Read(reader);
+            data.Read(this, reader);
             return data;
         }
 
@@ -115,7 +117,7 @@ namespace Celeste.Mod.CelesteNet {
 
             long startData = writer.BaseStream.Position;
 
-            data.Write(writer);
+            data.Write(this, writer);
             writer.Flush();
 
             long end = writer.BaseStream.Position;
@@ -156,11 +158,55 @@ namespace Celeste.Mod.CelesteNet {
             if (type == null || data == null)
                 return;
 
+            if (data is IDataRefType dataRef)
+                SetRef(dataRef);
+
             for (; type != typeof(DataType); type = type.BaseType) {
                 if (Handlers.TryGetValue(type, out DataHandler handler)) {
                     handler(con, data);
                 }
             }
+        }
+
+
+        public T ReadRef<T>(BinaryReader reader) where T : DataType<T>, IDataRefType
+            => GetRef<T>(reader.ReadUInt32());
+
+        public void WriteRef<T>(BinaryWriter writer, T data) where T : DataType<T>, IDataRefType
+            => writer.Write(data.ID);
+
+        public T GetRef<T>(uint id) where T : DataType<T>, IDataRefType
+            => (T) GetRef(typeof(T), id);
+
+        public IDataRefType GetRef(Type type, uint id) {
+            if (References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs) &&
+                refs.TryGetValue(id, out IDataRefType data))
+                return data;
+            return null;
+        }
+
+        public T[] GetRefs<T>() where T : DataType<T>, IDataRefType
+            => GetRefs(typeof(T)).Cast<T>().ToArray();
+
+        public IDataRefType[] GetRefs(Type type) {
+            if (References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs))
+                return refs.Values.ToArray();
+            return new IDataRefType[0];
+        }
+
+        public void SetRef(IDataRefType data)
+            => SetRef(data.GetType(), data);
+
+        public T SetRef<T>(T data) where T : DataType<T>, IDataRefType
+            => (T) SetRef(typeof(T), data);
+
+        public IDataRefType SetRef(Type type, IDataRefType data) {
+            if (!References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs)) {
+                refs = new Dictionary<uint, IDataRefType>();
+                References[type] = refs;
+            }
+
+            return refs[data.ID] = data;
         }
 
     }

@@ -22,8 +22,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         /// </summary>
         public bool CreatedByServer = true;
 
-        [DataReference]
-        public DataPlayer Player;
+        public DataPlayerInfo Player;
 
         public uint ID;
         public string Tag;
@@ -31,8 +30,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Color Color;
         public DateTime Date;
 
-        public override void Read(BinaryReader reader) {
+        public override void Read(DataContext ctx, BinaryReader reader) {
             CreatedByServer = false;
+            Player = ctx.ReadRef<DataPlayerInfo>(reader);
             ID = reader.ReadUInt32();
             Tag = reader.ReadNullTerminatedString();
             Text = reader.ReadNullTerminatedString();
@@ -40,7 +40,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Date = DateTime.FromBinary(reader.ReadInt64());
         }
 
-        public override void Write(BinaryWriter writer) {
+        public override void Write(DataContext ctx, BinaryWriter writer) {
+            ctx.WriteRef(writer, Player);
             writer.Write(ID);
             writer.WriteNullTerminatedString(Tag);
             writer.WriteNullTerminatedString(Text);

@@ -13,8 +13,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public virtual DataFlags DataFlags => DataFlags.None;
 
-        public abstract void Read(BinaryReader reader);
-        public abstract void Write(BinaryWriter writer);
+        public abstract void Read(DataContext ctx, BinaryReader reader);
+        public abstract void Write(DataContext ctx, BinaryWriter writer);
 
         public abstract object Clone();
 
@@ -29,8 +29,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Source = typeof(T).Assembly.GetName().Name;
         }
 
-        public T ReadT(BinaryReader reader) {
-            Read(reader);
+        public T ReadT(DataContext ctx, BinaryReader reader) {
+            Read(ctx, reader);
             return (T) this;
         }
 
@@ -39,7 +39,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public abstract T CloneT();
     }
 
-    public class DataReferenceAttribute : Attribute {
+    public interface IDataRefType {
+
+        uint ID { get; set; }
+
     }
 
     [Flags]

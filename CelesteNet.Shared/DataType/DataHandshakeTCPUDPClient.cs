@@ -19,14 +19,14 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public int UDPPort;
 
-        public override void Read(BinaryReader reader) {
-            base.Read(reader);
+        public override void Read(DataContext ctx, BinaryReader reader) {
+            base.Read(ctx, reader);
 
             UDPPort = reader.ReadInt32();
         }
 
-        public override void Write(BinaryWriter writer) {
-            base.Write(writer);
+        public override void Write(DataContext ctx, BinaryWriter writer) {
+            base.Write(ctx, writer);
 
             writer.Write(UDPPort);
         }

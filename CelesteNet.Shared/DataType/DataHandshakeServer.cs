@@ -19,18 +19,18 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public ushort Version;
 
-        public DataPlayer PlayerInfo;
+        public DataPlayerInfo PlayerInfo;
 
-        public override void Read(BinaryReader reader) {
+        public override void Read(DataContext ctx, BinaryReader reader) {
             Version = reader.ReadUInt16();
 
-            PlayerInfo = new DataPlayer().ReadT(reader);
+            PlayerInfo = new DataPlayerInfo().ReadT(ctx, reader);
         }
 
-        public override void Write(BinaryWriter writer) {
+        public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.Write(Version);
 
-            PlayerInfo.Write(writer);
+            PlayerInfo.Write(ctx, writer);
         }
 
         public override DataHandshakeServer CloneT()

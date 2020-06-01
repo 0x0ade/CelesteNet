@@ -21,13 +21,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public DataFlags InnerFlags;
         public byte[] InnerData;
 
-        public override void Read(BinaryReader reader) {
+        public override void Read(DataContext ctx, BinaryReader reader) {
             InnerID = reader.ReadNullTerminatedString();
             InnerFlags = (DataFlags) reader.ReadUInt16();
             InnerData = reader.ReadBytes(reader.ReadUInt16());
         }
 
-        public override void Write(BinaryWriter writer) {
+        public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.WriteNullTerminatedString(InnerID);
             writer.Write((ushort) InnerFlags);
             writer.Write(InnerData);

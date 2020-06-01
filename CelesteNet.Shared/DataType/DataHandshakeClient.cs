@@ -15,11 +15,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public string Name;
 
-        public override void Read(BinaryReader reader) {
+        public override void Read(DataContext ctx, BinaryReader reader) {
             Name = reader.ReadNullTerminatedString();
         }
 
-        public override void Write(BinaryWriter writer) {
+        public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.WriteNullTerminatedString(Name);
         }
 

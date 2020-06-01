@@ -11,31 +11,30 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    [DataReference]
-    public class DataPlayer : DataType<DataPlayer> {
+    public class DataPlayerInfo : DataType<DataPlayerInfo>, IDataRefType {
 
-        static DataPlayer() {
+        static DataPlayerInfo() {
             DataID = "playerInfo";
         }
 
-        public uint ID;
+        public uint ID { get; set; }
         public string Name;
         public string FullName;
 
-        public override void Read(BinaryReader reader) {
+        public override void Read(DataContext ctx, BinaryReader reader) {
             ID = reader.ReadUInt32();
             Name = reader.ReadNullTerminatedString();
             FullName = reader.ReadNullTerminatedString();
         }
 
-        public override void Write(BinaryWriter writer) {
+        public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.Write(ID);
             writer.WriteNullTerminatedString(Name);
             writer.WriteNullTerminatedString(FullName);
         }
 
-        public override DataPlayer CloneT()
-            => new DataPlayer {
+        public override DataPlayerInfo CloneT()
+            => new DataPlayerInfo {
                 ID = ID,
                 Name = Name,
                 FullName = FullName

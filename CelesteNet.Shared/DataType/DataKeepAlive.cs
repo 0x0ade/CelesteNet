@@ -21,10 +21,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public bool IsUpdate;
 
-        public override void Read(BinaryReader reader) {
+        public override void Read(DataContext ctx, BinaryReader reader) {
         }
 
-        public override void Write(BinaryWriter writer) {
+        public override void Write(DataContext ctx, BinaryWriter writer) {
         }
 
         public override DataKeepAlive CloneT()

@@ -63,12 +63,21 @@ namespace Celeste.Mod.CelesteNet.Server {
             Con.Send(new DataHandshakeServer {
                 Version = CelesteNetUtils.Version,
 
-                PlayerInfo = new DataPlayer {
+                PlayerInfo = Server.Data.SetRef(new DataPlayerInfo {
                     ID = ID,
                     Name = Name,
                     FullName = FullName
-                }
+                })
             });
+
+            lock (Server.Players) {
+                foreach (DataPlayerInfo other in Server.Data.GetRefs<DataPlayerInfo>()) {
+                    if (other.ID == ID)
+                        continue;
+
+                    Con.Send(other);
+                }
+            }
 
             // TODO: Welcome the player.
         }

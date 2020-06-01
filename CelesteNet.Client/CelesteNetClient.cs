@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool IsReady { get; protected set; }
 
-        public DataPlayer PlayerInfo;
+        public DataPlayerInfo PlayerInfo;
 
         private ManualResetEvent HandshakeEvent = new ManualResetEvent(false);
 
@@ -128,8 +128,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             HandshakeEvent.Set();
         }
 
-        public void Handle(CelesteNetConnection con, DataPlayer info) {
-            PlayerInfo = info;
+        public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
+            if (PlayerInfo == null || PlayerInfo.ID == info.ID)
+                PlayerInfo = info;
         }
 
         #endregion

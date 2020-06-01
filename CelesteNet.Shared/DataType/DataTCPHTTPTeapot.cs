@@ -15,11 +15,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         // Handled specially by CelesteNetTCPUDPConnection.
 
-        public override void Read(BinaryReader reader) {
+        public override void Read(DataContext ctx, BinaryReader reader) {
             throw new NotSupportedException();
         }
 
-        public override void Write(BinaryWriter writer) {
+        public override void Write(DataContext ctx, BinaryWriter writer) {
             throw new NotSupportedException();
         }
 

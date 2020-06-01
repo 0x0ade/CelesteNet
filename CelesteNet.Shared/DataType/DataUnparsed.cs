@@ -15,7 +15,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         static DataUnparsed() {
             DataID = "unparsed";
-            DataFlags = DataFlags.ForceForward;
         }
 
         public override bool IsValid => false;

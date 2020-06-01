@@ -13,8 +13,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public static string DataID;
         public static string Source;
-        public static DataFlags DataFlags;
 
+        public virtual DataFlags DataFlags => DataFlags.None;
         public virtual bool IsSendable => true;
         public abstract bool IsValid { get; }
 
@@ -31,7 +31,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Source = typeof(T).Assembly.GetName().Name;
         }
 
-        public override object Clone() => CloneT();
+        public T ReadT(BinaryReader reader) {
+            Read(reader);
+            return (T) this;
+        }
+
+        public override object Clone()
+            => CloneT();
         public abstract T CloneT();
     }
 

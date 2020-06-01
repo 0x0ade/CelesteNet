@@ -22,8 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public ChatServer(CelesteNetServer server) {
             Server = server;
-
-            Server.Data.RegisterHandler<DataChat>(Receive);
+            Server.Data.RegisterHandlersIn(this);
         }
 
         public void Start() {
@@ -35,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
 
-        public void Receive(DataChat msg) {
+        public void Handle(CelesteNetConnection con, DataChat msg) {
             if (!msg.CreatedByServer) {
                 msg.Text.Replace("\r", "").Replace("\n", "");
                 if (msg.Text.Length > Server.Settings.MaxChatTextLength)
@@ -71,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void Broadcast(string text) {
             Logger.Log(LogLevel.INF, "chat", $"Broadcasting: {text}");
             lock (ChatLog) {
-                Receive(new DataChat() {
+                Handle(null, new DataChat() {
                     Text = text,
                     Color = Server.Settings.ColorBroadcast
                 });

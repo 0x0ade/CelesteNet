@@ -19,7 +19,6 @@ namespace Celeste.Mod.CelesteNet {
         public readonly string Creator;
         public readonly DataContext Data;
 
-        public event Action<CelesteNetConnection, DataType> OnReceive;
         public event Action<CelesteNetConnection> OnDisconnect;
 
         private readonly Queue<DataType> SendQueue = new Queue<DataType>();
@@ -52,17 +51,17 @@ namespace Celeste.Mod.CelesteNet {
             SendQueueThread.Start();
         }
 
-        public void SendLazy(DataType data) {
+        public void Send(DataType data) {
             lock (SendQueue) {
                 SendQueue.Enqueue(data);
                 SendQueueEvent.Set();
             }
         }
 
-        public abstract void Send(DataType data);
+        public abstract void SendRaw(DataType data);
 
         protected virtual void Receive(DataType data) {
-            OnReceive?.Invoke(this, data);
+            Data.Handle(this, data);
         }
 
         public virtual void LogCreator(LogLevel level) {
@@ -79,7 +78,7 @@ namespace Celeste.Mod.CelesteNet {
                         DataType data;
                         lock (SendQueue)
                             data = SendQueue.Dequeue();
-                        Send(data);
+                        SendRaw(data);
                     }
 
                     lock (SendQueue)
@@ -92,10 +91,14 @@ namespace Celeste.Mod.CelesteNet {
 
             } catch {
                 Dispose();
+
+            } finally {
+                SendQueueEvent.Dispose();
             }
         }
 
         protected virtual void Dispose(bool disposing) {
+            IsConnected = false;
             OnDisconnect?.Invoke(this);
             SendQueueThread?.Abort();
         }

@@ -12,20 +12,18 @@ namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientSettings : EverestModuleSettings {
 
         [YamlIgnore]
-        public bool Connection {
-            get {
-                return false; // GhostNetModule.Instance.Client?.Connection != null;
-            }
+        public bool Connected {
+            get => CelesteNetClientModule.Instance.IsAlive;
             set {
-                if (value) {
-                    // GhostNetModule.ResetGhostModuleSettings();
+                if (value)
+                    CelesteNetClientModule.Instance.Start();
+                else
+                    CelesteNetClientModule.Instance.Stop();
 
-                    // GhostNetModule.Instance.Start();
-                } else {
-                    // GhostNetModule.Instance.Stop();
-                }
                 if (ServerEntry != null)
                     ServerEntry.Disabled = value || !(Engine.Scene is Overworld);
+                if (NameEntry != null)
+                    NameEntry.Disabled = value || !(Engine.Scene is Overworld);
             }
         }
         [YamlIgnore]
@@ -33,42 +31,74 @@ namespace Celeste.Mod.CelesteNet.Client {
         public TextMenu.OnOff EnabledEntry { get; protected set; }
 
 
-        [SettingIgnore]
-        [YamlMember(Alias = "Server")]
-        public string _Server { get; set; } = "celeste.0x0ade.ga";
-        [YamlIgnore]
-        public string Server {
-            get {
-                return _Server;
-            }
-            set {
-                _Server = value;
-
-                // if (Connection)
-                    // GhostNetModule.Instance.Start();
-            }
-        }
+        public string Server { get; set; } = "celeste.0x0ade.ga";
         [YamlIgnore]
         [SettingIgnore]
         public TextMenu.Button ServerEntry { get; protected set; }
+
+        public string Name { get; set; } = "Guest";
+        [YamlIgnore]
+        [SettingIgnore]
+        public TextMenu.Button NameEntry { get; protected set; }
 
 
 #if !DEBUG
         [SettingIgnore]
 #endif
-        [SettingSubText("modoptions_celestenet_loglevel_info")]
+        [SettingSubText("modoptions_celestenet_devonly")]
+        public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
+
+
+#if !DEBUG
+        [SettingIgnore]
+#endif
+        [SettingSubText("modoptions_celestenet_devonly")]
         public LogLevel LogLevel {
             get => Logger.Level;
             set => Logger.Level = value;
         }
 
 
-#region Custom Entry Creators
+        #region Helpers
+
+        [SettingIgnore]
+        [YamlIgnore]
+        public string Host {
+            get {
+                string server = Server?.ToLowerInvariant();
+                int indexOfPort;
+                if (!string.IsNullOrEmpty(server) &&
+                    (indexOfPort = server.LastIndexOf(':')) != -1 &&
+                    int.TryParse(server.Substring(indexOfPort + 1), out _))
+                    return server.Substring(0, indexOfPort);
+
+                return server;
+            }
+        }
+        [SettingIgnore]
+        [YamlIgnore]
+        public int Port {
+            get {
+                string server = Server;
+                int indexOfPort;
+                if (!string.IsNullOrEmpty(server) &&
+                    (indexOfPort = server.LastIndexOf(':')) != -1 &&
+                    int.TryParse(server.Substring(indexOfPort + 1), out int port))
+                    return port;
+
+                return 3802;
+            }
+        }
+
+        #endregion
+
+
+        #region Custom Entry Creators
 
         public void CreateConnectionEntry(TextMenu menu, bool inGame) {
             menu.Add(
-                (EnabledEntry = new TextMenu.OnOff("modoptions_celestenet_connected".DialogClean(), Connection))
-                .Change(v => Connection = v)
+                (EnabledEntry = new TextMenu.OnOff("modoptions_celestenet_connected".DialogClean(), Connected))
+                .Change(v => Connected = v)
             );
         }
 
@@ -84,10 +114,29 @@ namespace Celeste.Mod.CelesteNet.Client {
                     );
                 })
             );
-            ServerEntry.Disabled = inGame || Connection;
+            ServerEntry.Disabled = inGame || Connected;
         }
 
-#endregion
+        public void CreateNameEntry(TextMenu menu, bool inGame) {
+            string name = Name;
+            if (name.StartsWith("#"))
+                name = "########";
+
+            menu.Add(
+                (NameEntry = new TextMenu.Button(("modoptions_celestenet_name".DialogClean()).Replace("(name)", name)))
+                .Pressed(() => {
+                    Audio.Play("event:/ui/main/savefile_rename_start");
+                    menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(
+                        Name,
+                        v => Name = v,
+                        maxValueLength: 10
+                    );
+                })
+            );
+            NameEntry.Disabled = inGame || Connected;
+        }
+
+        #endregion
 
     }
 }

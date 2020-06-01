@@ -11,17 +11,17 @@ using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.Helpers;
 using Monocle;
+using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet {
-    public delegate void DataHandler(DataType data);
-    public delegate void DataHandler<T>(T data) where T : DataType<T>;
+    public delegate void DataHandler(CelesteNetConnection con, DataType data);
+    public delegate void DataHandler<T>(CelesteNetConnection con, T data) where T : DataType<T>;
     public class DataContext {
 
         public readonly Dictionary<string, Type> IDToTypeMap = new Dictionary<string, Type>();
         public readonly Dictionary<Type, string> TypeToIDMap = new Dictionary<Type, string>();
-        public readonly Dictionary<string, DataFlags> Flags = new Dictionary<string, DataFlags>();
 
-        public readonly Dictionary<string, DataHandler> Handlers = new Dictionary<string, DataHandler>();
+        public readonly Dictionary<Type, DataHandler> Handlers = new Dictionary<Type, DataHandler>();
 
         public DataContext() {
             foreach (Type type in CelesteNetUtils.GetTypes()) {
@@ -48,24 +48,38 @@ namespace Celeste.Mod.CelesteNet {
                 Logger.Log(LogLevel.INF, "data", $"Found data type {type.FullName} with ID {id}");
                 IDToTypeMap[id] = type;
                 TypeToIDMap[type] = id;
-                Flags[id] = (
-                    type.GetField(nameof(DataType.DataFlags), BindingFlags.Public | BindingFlags.Static) ??
-                    typeof(DataType).GetField(nameof(DataType.DataFlags), BindingFlags.Public | BindingFlags.Static)
-                ).GetValue(null) as DataFlags? ?? DataFlags.None;
             }
         }
 
-        public void RegisterHandler<T>(DataHandler<T> handler) where T : DataType<T> {
-            DataHandler wrapped = data => handler((T) data);
-            string id = TypeToIDMap[typeof(T)];
-            if (Handlers.TryGetValue(id, out DataHandler existing)) {
-                wrapped = existing + wrapped;
+        public void RegisterHandler<T>(DataHandler<T> handler) where T : DataType<T>
+            => RegisterHandler(typeof(T), (con, data) => handler(con, (T) data));
+
+        public void RegisterHandler(Type type, DataHandler handler) {
+            if (Handlers.TryGetValue(type, out DataHandler existing)) {
+                handler = existing + handler;
             }
-            Handlers[id] = wrapped;
+            Handlers[type] = handler;
+        }
+
+        public void RegisterHandlersIn(object handlers) {
+            foreach (MethodInfo method in GetType().GetMethods()) {
+                if (method.Name != "Handle")
+                    continue;
+
+                ParameterInfo[] args = method.GetParameters();
+                if (args.Length != 2 || !args[0].ParameterType.IsCompatible(typeof(CelesteNetConnection)))
+                    continue;
+
+                Type argType = args[1].ParameterType;
+                if (!argType.IsCompatible(typeof(DataType)))
+                    continue;
+
+                RegisterHandler(argType, (con, data) => method.Invoke(handlers, new object[] { con, data }));
+            }
         }
 
         public DataType Read(BinaryReader reader) {
-            string id = reader.ReadNullTerminatedString();
+            string id = Calc.ReadNullTerminatedString(reader);
             DataFlags flags = (DataFlags) reader.ReadUInt16();
             ushort length = reader.ReadUInt16();
 
@@ -82,35 +96,66 @@ namespace Celeste.Mod.CelesteNet {
             return data;
         }
 
-        public long Write(BinaryWriter writer, DataType data)
-            => Write(writer, data, data.GetType());
+        public int Write(BinaryWriter writer, DataType data)
+            => Write(writer, data.GetType(), data);
 
-        public long Write<T>(BinaryWriter writer, T data) where T : DataType<T>
-            => Write(writer, data, typeof(T));
+        public int Write<T>(BinaryWriter writer, T data) where T : DataType<T>
+            => Write(writer, typeof(T), data);
 
-        public long Write(BinaryWriter writer, DataType data, Type type) {
+        protected int Write(BinaryWriter writer, Type type, DataType data) {
+            long startAll = writer.BaseStream.Position;
+
             string id = TypeToIDMap[type];
             writer.WriteNullTerminatedString(id);
-            writer.Write((ushort) Flags[id]);
+            writer.Write((ushort) data.DataFlags);
             writer.Write((ushort) 0); // Filled in later.
             writer.Flush();
 
-            long start = writer.BaseStream.Position;
+            long startData = writer.BaseStream.Position;
 
             data.Write(writer);
             writer.Flush();
 
             long end = writer.BaseStream.Position;
 
-            writer.BaseStream.Seek(start, SeekOrigin.Begin);
-            long length = end - start;
+            writer.BaseStream.Seek(startData - 2, SeekOrigin.Begin);
+            long length = end - startData;
             if (length > ushort.MaxValue)
                 length = ushort.MaxValue;
             writer.Write((ushort) length);
             writer.Flush();
             writer.BaseStream.Seek(end, SeekOrigin.Begin);
 
-            return length;
+            return (int) (end - startAll);
+        }
+
+        public byte[] ToBytes(DataType data)
+            => ToBytes(data.GetType(), data);
+
+        public byte[] ToBytes<T>(T data) where T : DataType<T>
+            => ToBytes(typeof(T), data);
+
+        protected byte[] ToBytes(Type type, DataType data) {
+            using (MemoryStream stream = new MemoryStream())
+            using (BinaryWriter writer = new BinaryWriter(stream)) {
+                Write(writer, type, data);
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
+        public void Handle(CelesteNetConnection con, DataType data)
+            => Handle(con, data.GetType(), data);
+
+        public void Handle<T>(CelesteNetConnection con, T data) where T : DataType<T>
+            => Handle(con, typeof(T), data);
+
+        protected void Handle(CelesteNetConnection con, Type type, DataType data) {
+            for (; type != typeof(DataType); type = type.BaseType) {
+                if (Handlers.TryGetValue(type, out DataHandler handler)) {
+                    handler(con, data);
+                }
+            }
         }
 
     }

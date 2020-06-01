@@ -15,7 +15,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         static DataChat() {
             DataID = "chat";
-            DataFlags = DataFlags.None;
         }
 
         public override bool IsValid => !string.IsNullOrWhiteSpace(Text);

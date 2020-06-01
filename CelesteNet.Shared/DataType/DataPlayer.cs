@@ -16,7 +16,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         static DataPlayer() {
             DataID = "playerInfo";
-            DataFlags = DataFlags.None;
         }
 
         public override bool IsValid => true;

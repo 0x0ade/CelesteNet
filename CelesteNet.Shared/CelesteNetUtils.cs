@@ -13,7 +13,13 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet {
     public static class CelesteNetUtils {
 
+        public const ushort Version = 1;
+        public static readonly ushort LoadedVersion = Version;
+
         public static Type[] GetTypes() {
+            if (Everest.Modules.Count != 0)
+                return Everest.Modules.Select(m => m.GetType().Assembly).Distinct().SelectMany(_GetTypes).ToArray();
+
             Type[] typesPrev = _GetTypes();
             Retry:
             Type[] types = _GetTypes();
@@ -25,13 +31,15 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         private static Type[] _GetTypes()
-            => AppDomain.CurrentDomain.GetAssemblies().SelectMany(asm => {
-                try {
-                    return asm.GetTypes();
-                } catch (ReflectionTypeLoadException e) {
-                    return e.Types.Where(t => t != null);
-                }
-            }).ToArray();
+            => AppDomain.CurrentDomain.GetAssemblies().SelectMany(_GetTypes).ToArray();
+
+        private static IEnumerable<Type> _GetTypes(Assembly asm) {
+            try {
+                return asm.GetTypes();
+            } catch (ReflectionTypeLoadException e) {
+                return e.Types.Where(t => t != null);
+            }
+        }
 
         public static string ToHex(this Color c)
             => $"#{c.R:X2}{c.G:X2}{c.B:X2}";

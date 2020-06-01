@@ -45,9 +45,10 @@ namespace Celeste.Mod.CelesteNet {
             SendQueueEvent = new ManualResetEvent(false);
             SendQueueEventHandles = new WaitHandle[] { SendQueueEvent };
 
-            SendQueueThread = new Thread(SendQueueThreadLoop);
-            SendQueueThread.Name = $"{GetType().Name} SendQueue ({Creator} - {GetHashCode()})";
-            SendQueueThread.IsBackground = true;
+            SendQueueThread = new Thread(SendQueueThreadLoop) {
+                Name = $"{GetType().Name} SendQueue ({Creator} - {GetHashCode()})",
+                IsBackground = true
+            };
             SendQueueThread.Start();
         }
 

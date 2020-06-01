@@ -137,7 +137,7 @@ namespace Celeste.Mod.CelesteNet {
 
         protected byte[] ToBytes(Type type, DataType data) {
             using (MemoryStream stream = new MemoryStream())
-            using (BinaryWriter writer = new BinaryWriter(stream)) {
+            using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8)) {
                 Write(writer, type, data);
                 writer.Flush();
                 return stream.ToArray();

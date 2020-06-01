@@ -29,13 +29,14 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Start() {
             Logger.Log(LogLevel.CRI, "tcpudp", $"Startup on port {Server.Settings.MainPort}");
-            
+
             Listener = new TcpListener(IPAddress.Any, Server.Settings.MainPort);
             Listener.Start();
 
-            ListenerThread = new Thread(ListenerThreadLoop);
-            ListenerThread.Name = $"TCPUDPServer Listener ({GetHashCode()})";
-            ListenerThread.IsBackground = true;
+            ListenerThread = new Thread(ListenerThreadLoop) {
+                Name = $"TCPUDPServer Listener ({GetHashCode()})",
+                IsBackground = true
+            };
             ListenerThread.Start();
         }
 

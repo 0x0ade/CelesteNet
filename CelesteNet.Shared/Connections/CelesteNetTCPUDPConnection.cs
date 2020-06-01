@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -26,6 +27,9 @@ namespace Celeste.Mod.CelesteNet {
 
         protected MemoryStream BufferStream;
         protected BinaryWriter BufferWriter;
+
+        protected Thread ReadTCPThread;
+        protected Thread ReadUDPThread;
 
         private static TcpClient GetTCP(string host, int port) {
             TcpClient client = new TcpClient(host, port);
@@ -56,6 +60,31 @@ namespace Celeste.Mod.CelesteNet {
 
             BufferStream = new MemoryStream();
             BufferWriter = new BinaryWriter(BufferStream, Encoding.UTF8);
+
+            StartReadTCP();
+            StartReadUDP();
+        }
+
+        public void StartReadTCP() {
+            if (TCP != null && ReadTCPThread != null)
+                return;
+
+            ReadTCPThread = new Thread(ReadTCPLoop) {
+                Name = $"{GetType().Name} ReadTCP ({Creator} - {GetHashCode()})",
+                IsBackground = true
+            };
+            ReadTCPThread.Start();
+        }
+
+        public void StartReadUDP() {
+            if (UDP != null && ReadUDPThread != null)
+                return;
+
+            ReadUDPThread = new Thread(ReadUDPLoop) {
+                Name = $"{GetType().Name} ReadUDP ({Creator} - {GetHashCode()})",
+                IsBackground = true
+            };
+            ReadUDPThread.Start();
         }
 
         public override void SendRaw(DataType data) {
@@ -74,8 +103,33 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
+        protected virtual void ReadTCPLoop() {
+            while (TCP?.Connected ?? false) {
+                Data.Handle(this, Data.Read(TCPReader));
+            }
+        }
+
+        protected virtual void ReadUDPLoop() {
+            IPEndPoint remote = (IPEndPoint) UDP.Client.RemoteEndPoint;
+            using (MemoryStream stream = new MemoryStream())
+            using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
+                while (UDP != null) {
+                    byte[] raw = UDP.Receive(ref remote);
+
+                    BufferStream.Seek(0, SeekOrigin.Begin);
+                    stream.Write(raw, 0, raw.Length);
+
+                    BufferStream.Seek(0, SeekOrigin.Begin);
+                    Data.Handle(this, Data.Read(reader));
+                }
+            }
+        }
+
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
+
+            ReadTCPThread?.Abort();
+            ReadUDPThread?.Abort();
 
             TCPReader.Dispose();
             TCPWriter.Dispose();

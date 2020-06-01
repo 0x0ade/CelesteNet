@@ -165,7 +165,7 @@ namespace Celeste.Mod.CelesteNet {
 
             try {
                 TCP.Client.Disconnect(false);
-            } catch (ObjectDisposedException) {
+            } catch (Exception) {
             }
             TCPReader.Dispose();
             TCPWriter.Dispose();

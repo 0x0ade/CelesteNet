@@ -16,10 +16,11 @@ export class FrontendAssembliesPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Assemblies";
+    this.ep = "/asms";
   }
 
   async update() {
-    this.list = await fetch("/asms")
+    this.list = await fetch(this.ep)
       .then(r => r.json())
       .then(r => r.map(asm => [
         el => rd$(el)`

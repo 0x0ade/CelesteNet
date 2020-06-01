@@ -118,9 +118,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             con.OnDisconnect += _ => UDPMap.Remove(con.UDPRemoteEndPoint);
 
             CelesteNetPlayerSession session = new CelesteNetPlayerSession(Server, con, Server.PlayerCounter++);
-            lock (Server.Players) {
-                Server.Players[con] = session;
-            }
             session.Start(handshake);
         }
 

@@ -94,6 +94,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "main", $"New connection: {con}");
             lock (Connections)
                 Connections.Add(con);
+            Control.BroadcastCMD("update", "/status");
             con.OnDisconnect += HandleDisconnect;
         }
 
@@ -101,6 +102,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "main", $"Disconnecting: {con}");
             lock (Connections)
                 Connections.Remove(con);
+            Control.BroadcastCMD("update", "/status");
             Players.Remove(con);
         }
 

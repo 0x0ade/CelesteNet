@@ -11,9 +11,11 @@ const mdc = window["mdc"]; // mdc
 /**
  * @typedef {{
     id: string,
+    ep: string?,
     render: (el: HTMLElement) => HTMLElement,
     el: HTMLElement,
-    start: () => Promise
+    start: () => Promise,
+    refresh: (() => Promise)?
   }} Panel
  */
 
@@ -50,7 +52,7 @@ export class FrontendDOM {
       render: render
     }
 
-    if (this.panels.findIndex(p => p.id == panel.id) != -1)
+    if (this.panels.findIndex(p => p.id === panel.id) !== -1)
       return;
 
     this.panels.push(panel);
@@ -58,6 +60,12 @@ export class FrontendDOM {
     if (this.started && panel.start)
       await panel.start();
     this.frontend.render();
+
+    if (panel.ep)
+      this.frontend.sync.register("update", data => {
+        if (data === panel.ep)
+          panel.refresh()
+      });
   }
 
   /**

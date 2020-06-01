@@ -16,11 +16,12 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Status";
+    this.ep = "/status";
 
     this.data = {
       Alive: false,
       Connections: 0,
-      Sessions: 0,
+      Players: 0,
     };
 
     /** @type {[string | ((el: HTMLElement) => HTMLElement), () => void][] | [string | ((el: HTMLElement) => HTMLElement)][]} */
@@ -47,11 +48,10 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
 
   async update() {
     const dataPrev = this.data;
-    dataPrev.Alive = false;
     let data;
 
     try {
-      data = await fetch("/status")
+      data = await fetch(this.ep)
         .then(r => r.json());
       data.Alive = true;
     } catch (e) {

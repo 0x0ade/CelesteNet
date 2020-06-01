@@ -117,7 +117,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void Status(Frontend f, HttpRequestEventArgs c) {
             f.RespondJSON(c, new {
                 Connections = f.Server.Connections.Count,
-                Sessions = f.Server.Players.Count
+                Players = f.Server.Players.Count
             });
         }
 

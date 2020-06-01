@@ -49,6 +49,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
             Logger.Log(LogLevel.INF, "playersession", $"Startup #{ID} {Con}");
+            lock (Server.Players)
+                Server.Players[Con] = this;
+            Server.Control.BroadcastCMD("update", "/status");
 
             // TODO: Handle names starting with # as "keys"
             Name = handshake.Name;
@@ -71,6 +74,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Dispose() {
             Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{ID} {Con}");
+            Server.Control.BroadcastCMD("update", "/status");
         }
 
 

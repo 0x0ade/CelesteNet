@@ -119,7 +119,7 @@ namespace Celeste.Mod.CelesteNet {
             } catch (ThreadAbortException) {
 
             } catch (Exception e) {
-                if (!(e is IOException))
+                if (!(e is IOException) && !(e is ObjectDisposedException))
                     Logger.Log(LogLevel.CRI, "con", $"Failed sending data:\n{e}");
 
                 Dispose();
@@ -140,6 +140,8 @@ namespace Celeste.Mod.CelesteNet {
 
         public void Dispose() {
             lock (DisposeLock) {
+                if (!IsAlive)
+                    return;
                 Dispose(true);
             }
         }

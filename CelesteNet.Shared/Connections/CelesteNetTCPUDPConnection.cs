@@ -150,7 +150,7 @@ namespace Celeste.Mod.CelesteNet {
                 if (!IsAlive)
                     return;
 
-                Logger.Log(LogLevel.CRI, "tcpudpcon", $"TCP loop error:\n{this}\n{(e is IOException ? e.Message : e.ToString())}");
+                Logger.Log(LogLevel.CRI, "tcpudpcon", $"TCP loop error:\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is IOException ? e.Message : e.ToString())}");
                 ReadTCPThread = null;
                 Dispose();
                 return;
@@ -181,7 +181,7 @@ namespace Celeste.Mod.CelesteNet {
                 if (!IsAlive)
                     return;
 
-                Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP loop error:\n{this}\n{(e is SocketException ? e.Message : e.ToString())}");
+                Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP loop error:\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
                 ReadUDPThread = null;
                 Dispose();
                 return;

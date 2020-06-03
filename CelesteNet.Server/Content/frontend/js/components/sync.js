@@ -27,6 +27,10 @@ export class FrontendSync {
 
     /** @type {Map<string, (data: any) => void>} */
     this.cmds = new Map();
+
+    this.keepalive = setInterval(() => {
+      this.run("echo", "keepalive");
+    }, 6000);
   }
 
   /** @type {string} */

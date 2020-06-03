@@ -35,14 +35,16 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void Start() {
             lock (ClientLock) {
+                CelesteNetClientComponent last = Context ?? ContextLast;
                 if (Client?.IsAlive ?? false)
                     Stop();
 
                 if (Context != null)
                     return;
 
-                ContextLast?.Status?.Set(null);
+                last?.Status?.Set(null);
                 Context = new CelesteNetClientComponent(Celeste.Instance);
+                ContextLast = Context;
 
                 Context.Status.Set("Initializing...");
 

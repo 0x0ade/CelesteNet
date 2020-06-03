@@ -67,7 +67,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 FullName = fullName
             });
 
-            Logger.Log(LogLevel.INF, "playersession", $"#{ID} is {PlayerInfo.FullName}");
+            Logger.Log(LogLevel.INF, "playersession", PlayerInfo.ToString());
             Server.Control.BroadcastCMD("update", "/players");
 
             Con.Send(new DataHandshakeServer {

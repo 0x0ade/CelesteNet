@@ -42,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             };
 
         public override string ToString()
-            => $"{FullName} ({Name}#{ID})";
+            => $"#{ID}: {FullName} ({Name})";
 
     }
 }

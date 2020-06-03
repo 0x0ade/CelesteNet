@@ -53,10 +53,18 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Control.BroadcastCMD("update", "/status");
 
             // TODO: Handle names starting with # as "keys"
+
+            string name = handshake.Name;
+            string fullName = name;
+
+            lock (Server.Players)
+                for (int i = 2; Server.Players.Values.Any(other => other.PlayerInfo?.FullName == fullName); i++)
+                    fullName = $"{name}#{i}";
+
             Server.Data.SetRef(new DataPlayerInfo {
                 ID = ID,
-                Name = handshake.Name,
-                FullName = $"{handshake.Name}#{ID}"
+                Name = name,
+                FullName = fullName
             });
 
             Logger.Log(LogLevel.INF, "playersession", $"#{ID} is {PlayerInfo.FullName}");

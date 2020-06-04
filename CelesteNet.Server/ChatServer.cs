@@ -36,6 +36,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Handle(CelesteNetConnection con, DataChat msg) {
             if (!msg.CreatedByServer) {
+                msg.Player = Server.GetPlayerInfo(con);
+                if (msg.Player == null)
+                    return;
+
                 msg.Text.Replace("\r", "").Replace("\n", "");
                 if (msg.Text.Length > Server.Settings.MaxChatTextLength)
                     msg.Text = msg.Text.Substring(0, Server.Settings.MaxChatTextLength);

@@ -90,6 +90,15 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
 
+        public DataPlayerInfo GetPlayerInfo(CelesteNetConnection con) {
+            CelesteNetPlayerSession player;
+            lock (Players)
+                if (!Players.TryGetValue(con, out player))
+                    return null;
+            return player.PlayerInfo;
+        }
+
+
         public void HandleConnect(CelesteNetConnection con) {
             Logger.Log(LogLevel.INF, "main", $"New connection: {con}");
             con.SendKeepAlive = true;

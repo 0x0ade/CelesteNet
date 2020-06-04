@@ -83,7 +83,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Send(string text) {
-            if (string.IsNullOrEmpty(text = text?.Trim()))
+            text = text?.Trim();
+            if (string.IsNullOrEmpty(text))
                 return;
 
             lock (Log) {
@@ -91,7 +92,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
                 DataChat msg = new DataChat {
                     Player = Client.PlayerInfo,
-                    Text = Typing
+                    Text = text
                 };
                 Pending[text] = msg;
                 Log.Add(msg);

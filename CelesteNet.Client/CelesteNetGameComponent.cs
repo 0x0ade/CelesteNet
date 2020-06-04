@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetClientComponent Context;
         public CelesteNetClient Client => Context.Client;
-        public CelesteNetClientSettings Settings => Context.Client.Settings;
+        public CelesteNetClientSettings Settings => Context.Client.Settings ?? CelesteNetClientModule.Settings;
 
         public bool AutoRemove = true;
 

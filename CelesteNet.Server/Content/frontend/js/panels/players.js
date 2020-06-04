@@ -33,14 +33,22 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
   async update() {
     this.data = await fetch(this.ep).then(r => r.json());
     // @ts-ignore
-    this.list = this.data.map(p => [
-      el => rd$(el)`
-      <span>
-      <b>#${p.ID}${": "}</b>${p.FullName}<br>
-      ${p.Name}<br>
-      ${p.Connection}
-      </span>`
-    ]);
+    this.list = this.data.map(p => el => {
+      el = mdcrd.list.item(el => rd$(el)`
+        <span>
+        <b>#${p.ID}${": "}</b>${p.FullName}<br>
+        ${p.Name}<br>
+        ${p.Connection}
+        </span>`
+      )(el);
+
+      this.frontend.dom.setContext(el,
+        [ "error_outline", `Kick ${p.FullName}` ],
+        [ "gavel", `Ban ${p.FullName}` ]
+      );
+
+      return el;
+    });
   }
 
 }

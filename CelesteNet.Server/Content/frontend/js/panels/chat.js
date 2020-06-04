@@ -125,6 +125,8 @@ export class FrontendChatPanel extends FrontendBasicPanel {
       el = mdcrd.list.item(text)(el);
       if (color && color.toLowerCase() !== "#ffffff")
         el.style.color = color;
+      else
+        el.style.color = "#000000";
 
       let opts = [];
 

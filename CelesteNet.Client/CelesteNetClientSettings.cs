@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Client {
-    [SettingName("modoptions_celestenet_title")]
+    [SettingName("modoptions_celestenetclient_title")]
     public class CelesteNetClientSettings : EverestModuleSettings {
 
         [YamlIgnore]
@@ -48,14 +48,14 @@ namespace Celeste.Mod.CelesteNet.Client {
 #if !DEBUG
         [SettingIgnore]
 #endif
-        [SettingSubText("modoptions_celestenet_devonly")]
+        [SettingSubText("modoptions_celestenetclient_devonly")]
         public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
 
 
 #if !DEBUG
         [SettingIgnore]
 #endif
-        [SettingSubText("modoptions_celestenet_devonly")]
+        [SettingSubText("modoptions_celestenetclient_devonly")]
         public LogLevel DevLogLevel {
             get => Logger.Level;
             set => Logger.Level = value;
@@ -65,11 +65,11 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingRange(4, 16)]
         public int ChatLogLength { get; set; } = 8;
 
-        public const int ChatScaleMin = 1;
-        public const int ChatScaleReachableMax = 4;
-        public const int ChatScaleMax = 5;
-        [SettingRange(ChatScaleMin, ChatScaleReachableMax)]
-        public int ChatScale { get; set; } = 2;
+        public const int UISizeMin = 1;
+        public const int UISizeReachableMax = 4;
+        public const int UISizeMax = 5;
+        [SettingRange(UISizeMin, UISizeReachableMax)]
+        public int UISize { get; set; } = 2;
 
         #region Key Bindings
 
@@ -120,14 +120,14 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateConnectedEntry(TextMenu menu, bool inGame) {
             menu.Add(
-                (EnabledEntry = new TextMenu.OnOff("modoptions_celestenet_connected".DialogClean(), Connected))
+                (EnabledEntry = new TextMenu.OnOff("modoptions_celestenetclient_connected".DialogClean(), Connected))
                 .Change(v => Connected = v)
             );
         }
 
         public void CreateServerEntry(TextMenu menu, bool inGame) {
             menu.Add(
-                (ServerEntry = new TextMenu.Button(("modoptions_celestenet_server".DialogClean()).Replace("(server)", Server)))
+                (ServerEntry = new TextMenu.Button(("modoptions_celestenetclient_server".DialogClean()).Replace("(server)", Server)))
                 .Pressed(() => {
                     Audio.Play("event:/ui/main/savefile_rename_start");
                     menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(
@@ -146,7 +146,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 name = "########";
 
             menu.Add(
-                (NameEntry = new TextMenu.Button(("modoptions_celestenet_name".DialogClean()).Replace("(name)", name)))
+                (NameEntry = new TextMenu.Button(("modoptions_celestenetclient_name".DialogClean()).Replace("(name)", name)))
                 .Pressed(() => {
                     Audio.Play("event:/ui/main/savefile_rename_start");
                     menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(

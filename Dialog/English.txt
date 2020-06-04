@@ -19,12 +19,13 @@
 # {anchor} controls the visual position of the textbox in-game
 
 # GhostNet Module Postcards
-	POSTCARD_CELESTENET_BACKTOMENU=			The server has sent you back to the main menu\.
+	POSTCARD_CELESTENETCLIENT_BACKTOMENU=			The server has sent you back to the main menu\.
 
 # GhostNet Module Options
-	MODOPTIONS_CELESTENET_TITLE= 			CelesteNet - Multiplayer
-	MODOPTIONS_CELESTENET_CONNECTED=		Connected
-	MODOPTIONS_CELESTENET_SERVER=			Server: (server)
-	MODOPTIONS_CELESTENET_NAME=				Name: (name)
-	MODOPTIONS_CELESTENET_SETTINGS=			Settings
-	MODOPTIONS_CELESTENET_DEVONLY= 			Only for developers.
+	MODOPTIONS_CELESTENETCLIENT_TITLE= 				CelesteNet - Multiplayer
+	MODOPTIONS_CELESTENETCLIENT_CONNECTED=			Connected
+	MODOPTIONS_CELESTENETCLIENT_SERVER=				Server: (server)
+	MODOPTIONS_CELESTENETCLIENT_NAME=				Name: (name)
+	MODOPTIONS_CELESTENETCLIENT_SETTINGS=			Settings
+	MODOPTIONS_CELESTENETCLIENT_DEVONLY= 			Only for developers.
+	MODOPTIONS_CELESTENETCLIENT_UISIZE= 			UI Size

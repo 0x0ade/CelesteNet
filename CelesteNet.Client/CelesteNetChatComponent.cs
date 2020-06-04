@@ -15,7 +15,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         protected float _Time;
 
-        public float Scale => 0.5f + 0.5f * ((Settings.ChatScale - 1f) / (CelesteNetClientSettings.ChatScaleMax - 1f));
+        public float Scale => 0.5f + 0.5f * ((Settings.UISize - 1f) / (CelesteNetClientSettings.UISizeMax - 1f));
 
         protected Overlay _DummyOverlay = new Overlay();
 

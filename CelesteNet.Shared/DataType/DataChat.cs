@@ -21,6 +21,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         /// Server-internal field.
         /// </summary>
         public bool CreatedByServer = true;
+        /// <summary>
+        /// Server-internal field.
+        /// </summary>
+        public DataPlayerInfo Target;
 
         public DataPlayerInfo Player;
 
@@ -65,7 +69,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             };
 
         public override string ToString()
-            => $"[{Date.ToLocalTime().ToLongTimeString()}]{(string.IsNullOrEmpty(Tag) ? "" : $"[{Tag}]")} {Player?.FullName ?? "**SERVER**"}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
+            => $"[{Date.ToLocalTime().ToLongTimeString()}]{(string.IsNullOrEmpty(Tag) ? "" : $"[{Tag}]")} {Player?.FullName ?? "**SERVER**"}{(Target != null ? " @ " + Target.FullName : "")}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
 
     }
 }

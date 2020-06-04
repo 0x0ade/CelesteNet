@@ -133,10 +133,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/chatlog", null, null, "Chat Log", "Basic chat log.")]
         public static void ChatLog(Frontend f, HttpRequestEventArgs c) {
+            bool auth = f.IsAuthorized(c);
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
             if (!int.TryParse(args["count"], out int count) || count <= 0)
                 count = 20;
+            if (!auth && count > 100)
+                count = 100;
 
             ChatServer chat = f.Server.Chat;
             List<object> log = new List<object>();
@@ -144,7 +147,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 RingBuffer<DataChat> buffer = chat.ChatBuffer;
                 for (int i = Math.Max(-chat.ChatBuffer.Moved, -count); i < 0; i++) {
                     DataChat msg = buffer[i];
-                    log.Add(msg.ToFrontendChat());
+                    if (msg.Target == null || auth)
+                        log.Add(msg.ToFrontendChat());
                 }
             }
 

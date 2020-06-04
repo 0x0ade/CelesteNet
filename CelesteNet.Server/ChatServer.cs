@@ -35,15 +35,15 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
 
-        public void Handle(CelesteNetConnection con, DataChat msg) {
+        public DataChat PrepareAndLog(CelesteNetConnection from, DataChat msg) {
             if (!msg.CreatedByServer) {
-                msg.Player = Server.GetPlayerInfo(con);
+                msg.Player = Server.GetPlayerInfo(from);
                 if (msg.Player == null)
-                    return;
+                    return null;
 
                 msg.Text = msg.Text?.Trim();
                 if (string.IsNullOrEmpty(msg.Text))
-                    return;
+                    return null;
 
                 msg.Text.Replace("\r", "").Replace("\n", "");
                 if (msg.Text.Length > Server.Settings.MaxChatTextLength)
@@ -54,7 +54,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             if (msg.Text.Length == 0)
-                return;
+                return null;
 
             lock (ChatLog) {
                 ChatLog[msg.ID = NextID++] = msg;
@@ -63,7 +63,15 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             msg.Date = DateTime.UtcNow;
 
+            if (!msg.CreatedByServer)
+                Logger.Log(LogLevel.INF, "chatmsg", msg.ToString());
             Server.Control.BroadcastCMD("chat", msg.ToFrontendChat());
+            return msg;
+        }
+
+
+        public void Handle(CelesteNetConnection con, DataChat msg) {
+            PrepareAndLog(con, msg);
 
             if (msg.Text.StartsWith(Server.Settings.CommandPrefix)) {
                 // TODO: Handle commands separately!
@@ -74,14 +82,27 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
 
-        public void Broadcast(string text) {
+        public void Broadcast(string text, string tag = null, Color? color = null) {
             Logger.Log(LogLevel.INF, "chat", $"Broadcasting: {text}");
             lock (ChatLog) {
                 Handle(null, new DataChat() {
                     Text = text,
-                    Color = Server.Settings.ColorBroadcast
+                    Tag = tag,
+                    Color = color ?? Server.Settings.ColorBroadcast
                 });
             }
+        }
+
+
+        public void Send(CelesteNetPlayerSession player, string text, string tag = null, Color? color = null) {
+            Logger.Log(LogLevel.INF, "chat", $"Sending to {player.PlayerInfo}: {text}");
+
+            player.Con.Send(PrepareAndLog(null, new DataChat() {
+                Target = player.PlayerInfo,
+                Text = text,
+                Tag = tag,
+                Color = color ?? Server.Settings.ColorServer
+            }));
         }
 
     }

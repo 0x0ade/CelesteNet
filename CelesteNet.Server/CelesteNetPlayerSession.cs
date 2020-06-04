@@ -52,9 +52,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Server.Players[Con] = this;
             Server.Control.BroadcastCMD("update", "/status");
 
+            string name = handshake.Name;
             // TODO: Handle names starting with # as "keys"
 
-            string name = handshake.Name;
+            name = name.Replace("\r", "").Replace("\n", "").Trim();
+            if (name.Length > Server.Settings.MaxNameLength)
+                name = name.Substring(0, Server.Settings.MaxNameLength);
+
             string fullName = name;
 
             lock (Server.Players)
@@ -84,11 +88,16 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            // TODO: Welcome the player.
+            Server.Chat.Broadcast(Server.Settings.MessageGreeting.InjectSingleValue("player", fullName));
+            Server.Chat.Send(this, Server.Settings.MessageMOTD);
         }
 
         public void Dispose() {
             Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{ID} {Con}");
+
+            string fullName = PlayerInfo?.FullName;
+            if (!string.IsNullOrEmpty(fullName))
+                Server.Chat.Broadcast(Server.Settings.MessageLeave.InjectSingleValue("player", fullName));
 
             lock (Server.Players) {
                 Server.Players.Remove(Con);

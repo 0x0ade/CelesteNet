@@ -56,13 +56,19 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore]
 #endif
         [SettingSubText("modoptions_celestenet_devonly")]
-        public LogLevel LogLevel {
+        public LogLevel DevLogLevel {
             get => Logger.Level;
             set => Logger.Level = value;
         }
 
+        [SettingIgnore]
+        [SettingRange(4, 16)]
+        public int ChatLogLength { get; set; } = 8;
 
         #region Key Bindings
+
+        [DefaultButtonBinding(Buttons.Back, Keys.Tab)]
+        public ButtonBinding ButtonPlayerList { get; set; }
 
         [DefaultButtonBinding(0, Keys.T)]
         public ButtonBinding ButtonChat { get; set; }

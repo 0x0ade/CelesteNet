@@ -13,6 +13,10 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetChatComponent : CelesteNetGameComponent {
 
+        protected float _Time;
+
+        public float Scale = 0.75f;
+
         protected Overlay _DummyOverlay = new Overlay();
 
         public List<DataChat> Log = new List<DataChat>();
@@ -55,6 +59,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         level.Overlay = _DummyOverlay;
 
                     _RepeatIndex = 0;
+                    TextInput.OnInput += OnTextInput;
 
                 } else {
                     Typing = "";
@@ -62,6 +67,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     _ConsumeInput = 2;
                     if (Engine.Scene is Level level && level.Overlay == _DummyOverlay)
                         level.Overlay = null;
+                    TextInput.OnInput -= OnTextInput;
                 }
 
                 _Active = value;
@@ -76,6 +82,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public override void Update(GameTime gameTime) {
+            _Time += Engine.RawDeltaTime;
+
             if (!(Engine.Scene?.Paused ?? true)) {
                 string typing = Typing;
                 Active = false;
@@ -102,7 +110,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
             }
 
-            // Prevent the menus from reacting to player input after exiting the chat.
+            // Prevent menus from reacting to player input after exiting chat.
             if (_ConsumeInput > 0) {
                 Input.MenuConfirm.ConsumeBuffer();
                 Input.MenuConfirm.ConsumePress();
@@ -115,13 +123,89 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         }
 
-        public override void Draw(GameTime gameTime) {
-            if (_Active)
-                base.Draw(gameTime);
+        public void OnTextInput(char c) {
+            if (!Active)
+                return;
+
+            if (c == (char) 13) {
+                // Enter - send.
+                // Handled in Update.
+
+            } else if (c == (char) 8) {
+                // Backspace - trim.
+                if (Typing.Length > 0)
+                    Typing = Typing.Substring(0, Typing.Length - 1);
+                RepeatIndex = 0;
+
+            } else if (c == (char) 127) {
+                // Delete - currenly not handled.
+
+            } else if (!char.IsControl(c)) {
+                // Any other character - append.
+                Typing += c;
+                RepeatIndex = 0;
+            }
         }
 
         protected override void Render(GameTime gameTime, bool toBuffer) {
+            float scale = Scale;
+            Vector2 fontScale = Vector2.One * Scale;
 
+            if (Active) {
+                MDraw.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
+
+                string text = ">" + Typing;
+                if (Calc.BetweenInterval(_Time, 0.5f))
+                    text += "_";
+                ActiveFont.Draw(
+                    text,
+                    new Vector2(50f * scale, UI_HEIGHT - 105f * scale),
+                    Vector2.Zero,
+                    fontScale,
+                    Color.White
+                );
+            }
+
+            lock (Log) {
+                if (Log.Count > 0) {
+                    DateTime now = DateTime.UtcNow;
+
+                    float y = UI_HEIGHT - 50f * scale;
+                    if (Active)
+                        y -= 105f * scale;
+
+                    for (int i = 0; i < Log.Count && i < CelesteNetClientModule.Settings.ChatLogLength; i++) {
+                        DataChat msg = Log[i];
+
+                        float alpha = 1f;
+                        float delta = (float) (now - msg.Date).TotalSeconds;
+                        if (!Active && delta > 3f)
+                            alpha = 1f - Ease.CubeIn(delta - 3f);
+                        if (alpha <= 0f)
+                            continue;
+
+                        string text = msg.ToString();
+                        Vector2 size = ActiveFont.Measure(text) * fontScale;
+                        float height = 50f * scale + size.Y;
+
+                        y -= height;
+
+                        MDraw.Rect(25f * scale, y, size.X + 50f * scale, height, Color.Black * 0.8f * alpha);
+                        ActiveFont.Draw(
+                            text,
+                            new Vector2(50f * scale, y + 25f * scale),
+                            Vector2.Zero,
+                            fontScale,
+                            msg.Color * alpha
+                        );
+                    }
+                }
+            }
+        }
+
+        protected override void Dispose(bool disposing) {
+            base.Dispose(disposing);
+            TextInput.OnInput -= OnTextInput;
         }
 
     }

@@ -103,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         protected override void Render(GameTime gameTime, bool toBuffer) {
             float a = Ease.SineInOut(show ? (time / timeIn) : (1f - (time - timeIn) / timeOut));
 
-            Vector2 anchor = new Vector2(96f, UIH - 96f);
+            Vector2 anchor = new Vector2(96f, UI_HEIGHT - 96f);
 
             Vector2 pos = anchor + new Vector2(0f, 0f);
             float cogScale = MathHelper.Lerp(0.2f, 0.25f, Ease.CubeOut(a));

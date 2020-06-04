@@ -235,8 +235,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         protected override void Dispose(bool disposing) {
+            if (Active)
+                Active = false;
+
             base.Dispose(disposing);
-            TextInput.OnInput -= OnTextInput;
         }
 
     }

@@ -80,11 +80,12 @@ namespace Celeste.Mod.CelesteNet.Server {
             });
 
             lock (Server.Players) {
-                foreach (DataPlayerInfo other in Server.Data.GetRefs<DataPlayerInfo>()) {
+                foreach (CelesteNetPlayerSession other in Server.Players.Values) {
                     if (other.ID == ID)
                         continue;
 
-                    Con.Send(other);
+                    other.Con.Send(PlayerInfo);
+                    Con.Send(other.PlayerInfo);
                 }
             }
 

@@ -57,6 +57,7 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
       data.Alive = true;
     } catch (e) {
       console.error(e);
+      data = data || dataPrev;
       if (data)
         data.Alive = false;
     }

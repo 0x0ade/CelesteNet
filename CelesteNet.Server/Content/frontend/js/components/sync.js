@@ -158,6 +158,11 @@ export class FrontendSync {
       p.reject(new Error("Connection closed."));
     }
     this.awaiting = [];
+
+    /** @type {FrontendStatusPanel} */
+    const sp = FrontendStatusPanel["instance"];
+    if (sp)
+      sp.refresh();
   }
 
   /**

@@ -78,7 +78,7 @@ export class FrontendCMDPanel extends FrontendBasicPanel {
       }
     })(cmd));
 
-    let data = "";
+    let data = "null";
     const indexOfSplit = cmd.indexOf(" ");
     if (indexOfSplit !== -1) {
       data = cmd.slice(indexOfSplit + 1);

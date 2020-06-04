@@ -81,6 +81,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             DrawOrder = 10001;
         }
 
+        public void Handle(CelesteNetConnection con, DataChat msg) {
+            if (!Log.Contains(msg))
+                Log.Add(msg);
+        }
+
         public override void Update(GameTime gameTime) {
             _Time += Engine.RawDeltaTime;
 
@@ -90,7 +95,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Typing = typing;
             }
 
-            if (!Active && CelesteNetClientModule.Settings.ButtonChat.Button.Pressed) {
+            if (!Active && Settings.ButtonChat.Button.Pressed) {
                 Active = true;
 
             } else if (Active) {
@@ -174,7 +179,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     if (Active)
                         y -= 105f * scale;
 
-                    for (int i = 0; i < Log.Count && i < CelesteNetClientModule.Settings.ChatLogLength; i++) {
+                    for (int i = 0; i < Log.Count && i < Settings.ChatLogLength; i++) {
                         DataChat msg = Log[i];
 
                         float alpha = 1f;

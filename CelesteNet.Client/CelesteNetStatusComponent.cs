@@ -35,6 +35,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             DrawOrder = 10000;
 
             AutoRemove = false;
+            Enabled = true;
         }
 
         protected override void LoadContent() {

@@ -29,10 +29,17 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void Init(CelesteNetClientSettings settings) {
             Client = new CelesteNetClient(settings);
+            Status.Init();
+            Chat.Init();
         }
 
         public void Start() {
-            Client?.Start();
+            if (Client == null)
+                return;
+
+            Client.Start();
+            Status.Start();
+            Chat.Start();
         }
 
         public override void Update(GameTime gameTime) {

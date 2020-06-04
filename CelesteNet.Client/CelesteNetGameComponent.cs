@@ -4,6 +4,7 @@ using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Contexts;
 using System.Text;
 using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
@@ -15,6 +16,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const float UI_HEIGHT = 1080f;
 
         public CelesteNetClientComponent Context;
+        public CelesteNetClient Client => Context.Client;
+        public CelesteNetClientSettings Settings => Context.Client.Settings;
 
         public bool AutoRemove = true;
 
@@ -25,6 +28,16 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             UpdateOrder = 10000;
             DrawOrder = 10000;
+
+            Enabled = false;
+        }
+
+        public virtual void Init() {
+            Enabled = true;
+            Client.Data.RegisterHandlersIn(this);
+        }
+
+        public virtual void Start() {
         }
 
         public override void Update(GameTime gameTime) {

@@ -48,8 +48,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
             Logger.Log(LogLevel.INF, "playersession", $"Startup #{ID} {Con}");
-            lock (Server.Players)
-                Server.Players[Con] = this;
+            lock (Server.Connections) {
+                Server.PlayersByCon[Con] = this;
+                Server.PlayersByID[ID] = this;
+            }
             Server.Control.BroadcastCMD("update", "/status");
 
             string name = handshake.Name;
@@ -61,8 +63,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             string fullName = name;
 
-            lock (Server.Players)
-                for (int i = 2; Server.Players.Values.Any(other => other.PlayerInfo?.FullName == fullName); i++)
+            lock (Server.Connections)
+                for (int i = 2; Server.PlayersByCon.Values.Any(other => other.PlayerInfo?.FullName == fullName); i++)
                     fullName = $"{name}#{i}";
 
             Server.Data.SetRef(new DataPlayerInfo {
@@ -79,8 +81,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                 PlayerInfo = PlayerInfo
             });
 
-            lock (Server.Players) {
-                foreach (CelesteNetPlayerSession other in Server.Players.Values) {
+            lock (Server.Connections) {
+                foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
                     if (other.ID == ID)
                         continue;
 
@@ -100,12 +102,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (!string.IsNullOrEmpty(fullName))
                 Server.Chat.Broadcast(Server.Settings.MessageLeave.InjectSingleValue("player", fullName));
 
-            lock (Server.Players) {
-                Server.Players.Remove(Con);
-                Server.Broadcast(new DataPlayerInfo {
-                    ID = ID
-                });
+            lock (Server.Connections) {
+                Server.PlayersByCon.Remove(Con);
+                Server.PlayersByID.Remove(ID);
             }
+
+            Server.Broadcast(new DataPlayerInfo {
+                ID = ID
+            });
 
             Server.Data.FreeRef<DataPlayerInfo>(ID);
 

@@ -51,7 +51,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     /** @type {ChatData[]} */
     this.data = [];
 
-    frontend.sync.register("chat", data => this.log(data.Text, data.Color, data.ID));
+    frontend.sync.register("chat", data => this.log(data.Text, data.Color, data));
   }
 
   async refresh() {
@@ -131,7 +131,11 @@ export class FrontendChatPanel extends FrontendBasicPanel {
       if (data) {
         opts = [
           ...opts,
-          [ "delete", `Delete #${data.ID}` ]
+          [ "delete", `Delete #${data.ID}`, () => this.frontend.sync.run("chatedit", {
+            ID: data.ID,
+            Color: "#ee2233",
+            Text: "*deleted*"
+          }) ]
         ];
 
         if (data.PlayerID && data.PlayerID !== this.frontend.MAX_INT) {

@@ -112,8 +112,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         #region Handlers
 
         public void Handle(CelesteNetTCPUDPConnection con, DataHandshakeTCPUDPClient handshake) {
-            if (Server.Players.ContainsKey(con))
-                return;
+            lock (Server.Connections)
+                if (Server.PlayersByCon.ContainsKey(con))
+                    return;
 
             IPEndPoint ep = (IPEndPoint) con.TCP.Client.RemoteEndPoint;
             con.UDP = UDP;

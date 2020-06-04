@@ -93,7 +93,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-
         public void Send(CelesteNetPlayerSession player, string text, string tag = null, Color? color = null) {
             Logger.Log(LogLevel.INF, "chat", $"Sending to {player.PlayerInfo}: {text}");
 
@@ -103,6 +102,21 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Tag = tag,
                 Color = color ?? Server.Settings.ColorServer
             }));
+        }
+
+        public void Resend(DataChat msg) {
+            Logger.Log(LogLevel.INF, "chatupd", msg.ToString());
+            Server.Control.BroadcastCMD("chat", msg.ToFrontendChat());
+            if (msg.Target == null) {
+                Server.Broadcast(msg);
+                return;
+            }
+
+            CelesteNetPlayerSession player;
+            lock (Server.Connections)
+                if (!Server.PlayersByID.TryGetValue(msg.Target.ID, out player))
+                    return;
+            player.Con?.Send(msg);
         }
 
     }

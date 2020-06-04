@@ -118,14 +118,15 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void Status(Frontend f, HttpRequestEventArgs c) {
             f.RespondJSON(c, new {
                 Connections = f.Server.Connections.Count,
-                Players = f.Server.Players.Count,
+                PlayersByCon = f.Server.PlayersByCon.Count,
+                PlayersByID = f.Server.PlayersByID.Count,
                 PlayerRefs = f.Server.Data.GetRefs<DataPlayerInfo>().Length
             });
         }
 
         [RCEndpoint(false, "/players", null, null, "Player List", "Basic player list.")]
         public static void Players(Frontend f, HttpRequestEventArgs c) {
-            f.RespondJSON(c, f.Server.Players.Values.Select(p => new {
+            f.RespondJSON(c, f.Server.PlayersByID.Values.Select(p => new {
                 p.ID, p.PlayerInfo?.Name, p.PlayerInfo?.FullName,
                 Connection = f.IsAuthorized(c) ? p.Con.ID : null
             }).ToArray());

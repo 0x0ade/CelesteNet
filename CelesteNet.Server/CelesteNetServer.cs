@@ -26,7 +26,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
 
         public uint PlayerCounter = 1;
-        public readonly Dictionary<CelesteNetConnection, CelesteNetPlayerSession> Players = new Dictionary<CelesteNetConnection, CelesteNetPlayerSession>();
+        public readonly Dictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new Dictionary<CelesteNetConnection, CelesteNetPlayerSession>();
+        public readonly Dictionary<uint, CelesteNetPlayerSession> PlayersByID = new Dictionary<uint, CelesteNetPlayerSession>();
 
         private ManualResetEvent ShutdownEvent = new ManualResetEvent(false);
 
@@ -92,8 +93,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public DataPlayerInfo GetPlayerInfo(CelesteNetConnection con) {
             CelesteNetPlayerSession player;
-            lock (Players)
-                if (!Players.TryGetValue(con, out player))
+            lock (Connections)
+                if (!PlayersByCon.TryGetValue(con, out player))
                     return null;
             return player.PlayerInfo;
         }
@@ -115,11 +116,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Connections.Remove(con);
 
             CelesteNetPlayerSession session;
-            lock (Players) {
-                Players.TryGetValue(con, out session);
-                session?.Dispose();
-                Players.Remove(con);
-            }
+            lock (Connections)
+                PlayersByCon.TryGetValue(con, out session);
+
+            session?.Dispose();
 
             if (session == null)
                 Control.BroadcastCMD("update", "/status");

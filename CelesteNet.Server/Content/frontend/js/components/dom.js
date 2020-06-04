@@ -194,7 +194,7 @@ export class FrontendDOM {
       for (let other of this.menus)
         other.open = other === menu && items.length !== 0;
 
-      menu.setAbsolutePosition(e.pageX, e.pageY);
+      menu.setAbsolutePosition(e.clientX, e.clientY);
       menu.setFixedPosition(true);
 
       return false;

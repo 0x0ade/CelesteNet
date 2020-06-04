@@ -1,5 +1,6 @@
 ﻿using IL.Monocle;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -124,17 +125,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 case EState.WaitForCMDPayload:
                     object input = null;
 
-                    if (CurrentCommand.InputType != null) {
-                        try {
-                            using (MemoryStream ms = new MemoryStream(c.RawData))
-                            using (StreamReader sr = new StreamReader(ms, Encoding.UTF8, false, 1024, true))
-                            using (JsonTextReader jtr = new JsonTextReader(sr))
-                                input = Frontend.Serializer.Deserialize(jtr, CurrentCommand.InputType);
-                        } catch (Exception e) {
-                            Logger.Log(LogLevel.ERR, "frontend-ws", e.ToString());
-                            Close("error on cmd data parse");
-                            break;
-                        }
+                    try {
+                        using (MemoryStream ms = new MemoryStream(c.RawData))
+                        using (StreamReader sr = new StreamReader(ms, Encoding.UTF8, false, 1024, true))
+                        using (JsonTextReader jtr = new JsonTextReader(sr))
+                            input =
+                                CurrentCommand.InputType != null ? Frontend.Serializer.Deserialize(jtr, CurrentCommand.InputType) :
+                                Frontend.Serializer.Deserialize<dynamic>(jtr);
+                    } catch (Exception e) {
+                        Logger.Log(LogLevel.ERR, "frontend-ws", e.ToString());
+                        Close("error on cmd data parse");
+                        break;
                     }
 
                     RunCommand(input);

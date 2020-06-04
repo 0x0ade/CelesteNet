@@ -18,6 +18,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetServer Server;
 
         public readonly Dictionary<uint, DataChat> ChatLog = new Dictionary<uint, DataChat>();
+        public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
         public uint NextID;
 
         public ChatServer(CelesteNetServer server) {
@@ -40,6 +41,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (msg.Player == null)
                     return;
 
+                msg.Text = msg.Text?.Trim();
+                if (string.IsNullOrEmpty(msg.Text))
+                    return;
+
                 msg.Text.Replace("\r", "").Replace("\n", "");
                 if (msg.Text.Length > Server.Settings.MaxChatTextLength)
                     msg.Text = msg.Text.Substring(0, Server.Settings.MaxChatTextLength);
@@ -53,14 +58,12 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             lock (ChatLog) {
                 ChatLog[msg.ID = NextID++] = msg;
+                ChatBuffer.Set(msg).Move(1);
             }
 
             msg.Date = DateTime.UtcNow;
 
-            Server.Control.BroadcastCMD("chat", new {
-                Color = msg.Color.ToHex(),
-                Text = msg.ToString()
-            });
+            Server.Control.BroadcastCMD("chat", msg.ToFrontendChat());
 
             if (msg.Text.StartsWith(Server.Settings.CommandPrefix)) {
                 // TODO: Handle commands separately!

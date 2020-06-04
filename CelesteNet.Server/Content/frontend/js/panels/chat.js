@@ -20,6 +20,13 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     /** @type {[string, string, () => void][]} */
     this.actions = [
       [
+        "Fetch Log", "history",
+        () => {
+          this.fetchLog();
+        }
+      ],
+
+      [
         "Clear", "clear",
         () => {
           this.list = [];
@@ -31,7 +38,22 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     /** @type {[string | ((el: HTMLElement) => HTMLElement), () => void][] | [string | ((el: HTMLElement) => HTMLElement)][]} */
     this.list = [];
 
-    frontend.sync.register("chat", data => this.log(data.Text, data.Color));
+    frontend.sync.register("chat", data => this.log(data.Text, data.Color, data.ID));
+    this.fetchLog();
+  }
+
+  async fetchLog(count) {
+    this.progress = 2;
+    if (this.el)
+      this.render(null);
+
+    this.list = (await this.frontend.sync.run("chatlog", count || 0)).map(
+      data => this.createEntry(data.Text, data.Color, data.ID)
+    );
+
+    this.progress = 0;
+    if (this.el)
+      this.render(null);
   }
 
   render(el) {
@@ -86,15 +108,25 @@ export class FrontendChatPanel extends FrontendBasicPanel {
   /**
    * @param {string} text
    * @param {string} [color]
+   * @param {number} [id]
    */
-  log(text, color) {
-    // @ts-ignore
-    this.list.push(el => {
+  createEntry(text, color, id) {
+    return el => {
       el = mdcrd.list.item(text)(el);
-      if (color)
+      if (color && color.toLowerCase() !== "#ffffff")
         el.style.color = color;
       return el;
-    });
+    };
+  }
+
+  /**
+   * @param {string} text
+   * @param {string} [color]
+   * @param {number} [id]
+   */
+  log(text, color, id) {
+    // @ts-ignore
+    this.list.push(this.createEntry(text, color, id));
     this.render(null);
     this.elBody.scrollTop = this.elBody.scrollHeight;
   }

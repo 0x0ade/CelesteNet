@@ -24,11 +24,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public DataPlayerInfo Player;
 
-        public uint ID;
-        public string Tag;
+        public uint ID = uint.MaxValue;
+        public string Tag = "";
         public string Text;
-        public Color Color;
-        public DateTime Date;
+        public Color Color = Color.White;
+        public DateTime Date = DateTime.UtcNow;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             CreatedByServer = false;

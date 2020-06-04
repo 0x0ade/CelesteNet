@@ -114,6 +114,27 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
 
+        public DataType Send(DataType data) {
+            Con.Send(data);
+            return data;
+        }
+
+        public T Send<T>(T data) where T : DataType<T> {
+            Con.Send(data);
+            return data;
+        }
+
+        public IDataRefType SendAndSet(IDataRefType data) {
+            Con.Send((DataType) data);
+            return data;
+        }
+
+        public T SendAndSet<T>(T data) where T : DataType<T>, IDataRefType {
+            Con.Send(data);
+            return data;
+        }
+
+
         #region Handlers
 
         public void Handle(CelesteNetConnection con, DataHandshakeServer handshake) {

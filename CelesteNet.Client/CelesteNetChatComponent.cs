@@ -20,6 +20,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         protected Overlay _DummyOverlay = new Overlay();
 
         public List<DataChat> Log = new List<DataChat>();
+        public Dictionary<string, DataChat> Pending = new Dictionary<string, DataChat>();
         public string Typing = "";
 
         public List<string> Repeat = new List<string>() {
@@ -81,9 +82,32 @@ namespace Celeste.Mod.CelesteNet.Client {
             DrawOrder = 10001;
         }
 
-        public void Handle(CelesteNetConnection con, DataChat msg) {
-            if (!Log.Contains(msg))
+        public void Send(string text) {
+            if (string.IsNullOrEmpty(text = text?.Trim()))
+                return;
+
+            lock (Log) {
+                if (Pending.ContainsKey(text))
+                    return;
+                DataChat msg = new DataChat {
+                    Player = Client.PlayerInfo,
+                    Text = Typing
+                };
+                Pending[text] = msg;
                 Log.Add(msg);
+                Client.Send(msg);
+            }
+        }
+
+        public void Handle(CelesteNetConnection con, DataChat msg) {
+            lock (Log) {
+                if (msg.Player != null && msg.Player.ID == Client.PlayerInfo?.ID && Pending.TryGetValue(msg.Text, out DataChat pending)) {
+                    Pending.Remove(msg.Text);
+                    Log.Remove(pending);
+                }
+                if (!Log.Contains(msg))
+                    Log.Add(msg);
+            }
         }
 
         public override void Update(GameTime gameTime) {
@@ -102,7 +126,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Engine.Commands.Open = false;
 
                 if (MInput.Keyboard.Pressed(Keys.Enter)) {
-                    // AAAAAAAAAAAAAAAAA
+                    Send(Typing);
                     Active = false;
 
                 } else if (MInput.Keyboard.Pressed(Keys.Down) && RepeatIndex > 0) {
@@ -172,15 +196,16 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
 
             lock (Log) {
-                if (Log.Count > 0) {
+                int count = Log.Count;
+                if (count > 0) {
                     DateTime now = DateTime.UtcNow;
 
                     float y = UI_HEIGHT - 50f * scale;
                     if (Active)
                         y -= 105f * scale;
 
-                    for (int i = 0; i < Log.Count && i < Settings.ChatLogLength; i++) {
-                        DataChat msg = Log[i];
+                    for (int i = 0; i < count && i < Settings.ChatLogLength; i++) {
+                        DataChat msg = Log[count - 1 - i];
 
                         float alpha = 1f;
                         float delta = (float) (now - msg.Date).TotalSeconds;
@@ -201,7 +226,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             new Vector2(50f * scale, y + 25f * scale),
                             Vector2.Zero,
                             fontScale,
-                            msg.Color * alpha
+                            msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)
                         );
                     }
                 }

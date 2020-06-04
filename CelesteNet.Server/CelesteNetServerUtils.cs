@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public static object ToFrontendChat(this DataChat msg)
             => new {
                 ID = msg.ID,
-                PlayerID = msg.Player.ID,
+                PlayerID = msg.Player?.ID ?? uint.MaxValue,
                 Color = msg.Color.ToHex(),
                 Text = msg.ToString()
             };

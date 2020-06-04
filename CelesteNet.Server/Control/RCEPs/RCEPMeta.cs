@@ -81,9 +81,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/res", "?id={id}", "?id=frontend/css/frontend.css", "Resource", "Obtain a resource.")]
         public static void Resource(Frontend f, HttpRequestEventArgs c) {
-            NameValueCollection data = f.ParseQueryString(c.Request.RawUrl);
+            NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
-            string id = data["id"];
+            string id = args["id"];
             if (string.IsNullOrEmpty(id)) {
                 c.Response.StatusCode = (int) HttpStatusCode.NotFound;
                 f.RespondJSON(c, new {
@@ -129,6 +129,26 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 p.ID, p.PlayerInfo?.Name, p.PlayerInfo?.FullName,
                 Connection = f.IsAuthorized(c) ? p.Con.ID : null
             }).ToArray());
+        }
+
+        [RCEndpoint(false, "/chatlog", null, null, "Chat Log", "Basic chat log.")]
+        public static void ChatLog(Frontend f, HttpRequestEventArgs c) {
+            NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
+
+            if (!int.TryParse(args["count"], out int count) || count <= 0)
+                count = 20;
+
+            ChatServer chat = f.Server.Chat;
+            List<object> log = new List<object>();
+            lock (chat.ChatLog) {
+                RingBuffer<DataChat> buffer = chat.ChatBuffer;
+                for (int i = Math.Max(-chat.ChatBuffer.Moved, -count); i < 0; i++) {
+                    DataChat msg = buffer[i];
+                    log.Add(msg.ToFrontendChat());
+                }
+            }
+
+            f.RespondJSON(c, log);
         }
 
     }

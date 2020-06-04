@@ -16,13 +16,14 @@ export class FrontendChatPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Chat";
+    this.ep = "/chatlog";
 
     /** @type {[string, string, () => void][]} */
     this.actions = [
       [
         "Fetch Log", "history",
         () => {
-          this.fetchLog();
+          this.refresh();
         }
       ],
 
@@ -39,21 +40,12 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     this.list = [];
 
     frontend.sync.register("chat", data => this.log(data.Text, data.Color, data.ID));
-    this.fetchLog();
   }
 
-  async fetchLog(count) {
-    this.progress = 2;
-    if (this.el)
-      this.render(null);
-
-    this.list = (await this.frontend.sync.run("chatlog", count || 0)).map(
-      data => this.createEntry(data.Text, data.Color, data.ID)
-    );
-
-    this.progress = 0;
-    if (this.el)
-      this.render(null);
+  async update() {
+    this.list = await fetch(this.ep)
+      .then(r => r.json())
+      .then(r => r.map(data => this.createEntry(data.Text, data.Color, data.ID)));
   }
 
   render(el) {

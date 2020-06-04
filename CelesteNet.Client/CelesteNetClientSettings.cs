@@ -65,6 +65,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingRange(4, 16)]
         public int ChatLogLength { get; set; } = 8;
 
+        public const int ChatScaleMin = 1;
+        public const int ChatScaleReachableMax = 4;
+        public const int ChatScaleMax = 5;
+        [SettingRange(ChatScaleMin, ChatScaleReachableMax)]
+        public int ChatScale { get; set; } = 2;
+
         #region Key Bindings
 
         [DefaultButtonBinding(Buttons.Back, Keys.Tab)]

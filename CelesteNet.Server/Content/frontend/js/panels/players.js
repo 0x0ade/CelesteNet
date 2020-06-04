@@ -9,6 +9,15 @@ import { FrontendBasicPanel } from "./basic.js";
 /** @type {import("material-components-web")} */
 const mdc = window["mdc"]; // mdc
 
+/**
+@typedef {{
+  ID: number,
+  Name: string,
+  FullName: string,
+  Connection: string
+}} PlayerData
+ */
+
 export class FrontendPlayersPanel extends FrontendBasicPanel {
   /**
    * @param {import("../frontend.js").Frontend} frontend
@@ -17,19 +26,21 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
     super(frontend);
     this.header = "Players";
     this.ep = "/players";
+    /** @type {PlayerData[]} */
+    this.data = [];
   }
 
   async update() {
-    this.list = await fetch(this.ep)
-      .then(r => r.json())
-      .then(r => r.map(p => [
-        el => rd$(el)`
-        <span>
-        <b>#${p.ID}${": "}</b>${p.FullName}<br>
-        ${p.Name}<br>
-        ${p.Connection}
-        </span>`
-      ]));
+    this.data = await fetch(this.ep).then(r => r.json());
+    // @ts-ignore
+    this.list = this.data.map(p => [
+      el => rd$(el)`
+      <span>
+      <b>#${p.ID}${": "}</b>${p.FullName}<br>
+      ${p.Name}<br>
+      ${p.Connection}
+      </span>`
+    ]);
   }
 
 }

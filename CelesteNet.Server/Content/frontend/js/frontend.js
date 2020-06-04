@@ -16,6 +16,8 @@ export class Frontend {
     this.renderable = false;
 
     this.gid = 0;
+
+    this.MAX_INT = 4294967295;
   }
 
   async start() {

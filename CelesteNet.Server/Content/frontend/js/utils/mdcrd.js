@@ -208,7 +208,7 @@ var mdcrd = {
         a instanceof Event ? a :
         b instanceof Event ? b :
         null;
-      
+
       let menuEl = el["MDCMenu"] ? el : el.parentElement.getElementsByClassName("mdc-menu")[
         Array.prototype.slice.call(
           el.parentElement.getElementsByClassName("mdc-menu-btn")

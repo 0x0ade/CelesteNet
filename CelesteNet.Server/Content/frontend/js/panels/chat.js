@@ -2,12 +2,22 @@
 import { rd, rdom, rd$, escape$, RDOMListHelper } from "../utils/rdom.js";
 import mdcrd from "../utils/mdcrd.js";
 import { FrontendBasicPanel } from "./basic.js";
+import { FrontendPlayersPanel } from "./players.js";
 
 /**
  * @typedef {import("material-components-web")} mdc
  */
 /** @type {import("material-components-web")} */
 const mdc = window["mdc"]; // mdc
+
+/**
+@typedef {{
+  ID: number,
+  PlayerID: number,
+  Color: string,
+  Text: string
+}} ChatData
+ */
 
 export class FrontendChatPanel extends FrontendBasicPanel {
   /**
@@ -38,14 +48,21 @@ export class FrontendChatPanel extends FrontendBasicPanel {
 
     /** @type {[string | ((el: HTMLElement) => HTMLElement), () => void][] | [string | ((el: HTMLElement) => HTMLElement)][]} */
     this.list = [];
+    /** @type {ChatData[]} */
+    this.data = [];
 
     frontend.sync.register("chat", data => this.log(data.Text, data.Color, data.ID));
   }
 
+  async refresh() {
+    await super.refresh();
+    this.elBody.scrollTop = this.elBody.scrollHeight;
+  }
+
   async update() {
-    this.list = await fetch(this.ep)
-      .then(r => r.json())
-      .then(r => r.map(data => this.createEntry(data.Text, data.Color, data.ID)));
+    this.data = await fetch(this.ep).then(r => r.json());
+    // @ts-ignore
+    this.list = this.data.map(data => this.createEntry(data.Text, data.Color, data));
   }
 
   render(el) {
@@ -100,13 +117,39 @@ export class FrontendChatPanel extends FrontendBasicPanel {
   /**
    * @param {string} text
    * @param {string} [color]
-   * @param {number} [id]
+   * @param {ChatData} [data]
+   * @returns {(el: HTMLElement) => HTMLElement}
    */
-  createEntry(text, color, id) {
+  createEntry(text, color, data) {
     return el => {
       el = mdcrd.list.item(text)(el);
       if (color && color.toLowerCase() !== "#ffffff")
         el.style.color = color;
+
+      let opts = [];
+
+      if (data) {
+        opts = [
+          ...opts,
+          [ "delete", `Delete #${data.ID}` ]
+        ];
+
+        if (data.PlayerID && data.PlayerID !== this.frontend.MAX_INT) {
+          const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == data.PlayerID);
+          if (!player)
+            FrontendPlayersPanel["instance"].refresh();
+          const name = player && player.FullName || ("#" + data.PlayerID);
+
+          opts = [
+            ...opts,
+            [ "error_outline", `Kick ${name}` ],
+            [ "gavel", `Ban ${name}` ]
+          ];
+        }
+      }
+
+      this.frontend.dom.setContext(el, ...opts);
+
       return el;
     };
   }
@@ -114,11 +157,11 @@ export class FrontendChatPanel extends FrontendBasicPanel {
   /**
    * @param {string} text
    * @param {string} [color]
-   * @param {number} [id]
+   * @param {ChatData} [data]
    */
-  log(text, color, id) {
+  log(text, color, data) {
     // @ts-ignore
-    this.list.push(this.createEntry(text, color, id));
+    this.list.push(this.createEntry(text, color, data));
     this.render(null);
     this.elBody.scrollTop = this.elBody.scrollHeight;
   }

@@ -32,6 +32,8 @@ export class FrontendDOM {
     /** @type {Map<string, Panel>} */
     this.panelmap = new Map();
     this.started = false;
+    /** @type {import("material-components-web").menu[]} */
+    this.menus = [];
   }
 
   async start() {
@@ -39,6 +41,10 @@ export class FrontendDOM {
     for (let panel of this.panels)
       if (panel.start)
         await panel.start();
+    document.addEventListener("scroll", e => {
+      for (let other of this.menus)
+        other.open = false;
+    }, true);
   }
 
   /**
@@ -166,6 +172,33 @@ export class FrontendDOM {
     document.body.appendChild(renderTooltip(false));
     el["cogTooltip"] = ctx;
     return ctx.tooltipEl;
+  }
+
+  /**
+   * @param {HTMLElement} el
+   * @param {(string | any[] | ((el: HTMLElement) => HTMLElement))[]} items
+   */
+  setContext(el, ...items) {
+    const prevEl = el.frontendctx;
+    let ctx = el.frontendctx = mdcrd.menu.list(...items)(prevEl);
+    let menu = ctx["MDCMenu"];
+
+    if (!prevEl) {
+      document.body.appendChild(ctx);
+      this.menus.push(menu);
+    }
+
+    el.addEventListener("contextmenu", e => {
+      e.preventDefault();
+
+      for (let other of this.menus)
+        other.open = other === menu && items.length !== 0;
+
+      menu.setAbsolutePosition(e.pageX, e.pageY);
+      menu.setFixedPosition(true);
+
+      return false;
+    });
   }
 
   render() {

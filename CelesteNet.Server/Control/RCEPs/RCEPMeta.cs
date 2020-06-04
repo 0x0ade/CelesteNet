@@ -131,7 +131,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }).ToArray());
         }
 
-        [RCEndpoint(false, "/chatlog", null, null, "Chat Log", "Basic chat log.")]
+        [RCEndpoint(false, "/chatlog", "?count={count}", "?count=20", "Chat Log", "Basic chat log.")]
         public static void ChatLog(Frontend f, HttpRequestEventArgs c) {
             bool auth = f.IsAuthorized(c);
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);

@@ -173,16 +173,33 @@ namespace Celeste.Mod.CelesteNet {
             => GetRef<T>(reader.ReadUInt32());
 
         public void WriteRef<T>(BinaryWriter writer, T data) where T : DataType<T>, IDataRefType
-            => writer.Write(data.ID);
+            => writer.Write(data?.ID ?? uint.MaxValue);
 
         public T GetRef<T>(uint id) where T : DataType<T>, IDataRefType
             => (T) GetRef(typeof(T), id);
 
-        public IDataRefType GetRef(Type type, uint id) {
+        public IDataRefType GetRef(Type type, uint id)
+            => TryGetRef(type, id, out IDataRefType value) ? value : throw new Exception($"Unknown reference {type.FullName} ID {id}");
+
+        public bool TryGetRef<T>(uint id, out T value) where T : DataType<T>, IDataRefType {
+            bool rv = TryGetRef(typeof(T), id, out IDataRefType value_);
+            value = (T) value_;
+            return rv;
+        }
+
+        public bool TryGetRef(Type type, uint id, out IDataRefType value) {
+            if (id == uint.MaxValue) {
+                value = null;
+                return true;
+            }
+
             if (References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs) &&
-                refs.TryGetValue(id, out IDataRefType data))
-                return data;
-            return null;
+                refs.TryGetValue(id, out value)) {
+                return true;
+            }
+
+            value = null;
+            return false;
         }
 
         public T[] GetRefs<T>() where T : DataType<T>, IDataRefType
@@ -201,6 +218,9 @@ namespace Celeste.Mod.CelesteNet {
             => (T) SetRef(typeof(T), data);
 
         public IDataRefType SetRef(Type type, IDataRefType data) {
+            if (data == null)
+                return null;
+
             if (!data.IsValidRef) {
                 FreeRef(type, data.ID);
                 return null;

@@ -19,7 +19,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetConnection Con;
         public readonly uint ID;
 
-        public DataPlayerInfo PlayerInfo => Server.Data.GetRef<DataPlayerInfo>(ID);
+        public DataPlayerInfo PlayerInfo => Server.Data.TryGetRef<DataPlayerInfo>(ID, out DataPlayerInfo value) ? value : null;
 
         public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
             Server = server;

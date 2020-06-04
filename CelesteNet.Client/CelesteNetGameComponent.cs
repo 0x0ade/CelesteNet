@@ -16,8 +16,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const float UI_HEIGHT = 1080f;
 
         public CelesteNetClientComponent Context;
-        public CelesteNetClient Client => Context.Client;
-        public CelesteNetClientSettings Settings => Context.Client.Settings ?? CelesteNetClientModule.Settings;
+        public CelesteNetClient Client => Context?.Client;
+        public CelesteNetClientSettings Settings => Context?.Client?.Settings ?? CelesteNetClientModule.Settings;
 
         public bool AutoRemove = true;
 

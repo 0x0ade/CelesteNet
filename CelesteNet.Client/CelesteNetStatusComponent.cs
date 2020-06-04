@@ -118,13 +118,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             pos = anchor + new Vector2(48f, 0f);
             string text = this.text;
-            try {
-                if (!string.IsNullOrEmpty(text) && Dialog.Language != null && ActiveFont.Font != null) {
-                    Vector2 size = ActiveFont.Measure(text);
-                    ActiveFont.DrawOutline(text, pos + new Vector2(size.X * 0.5f, 0f), new Vector2(0.5f, 0.5f), Vector2.One * MathHelper.Lerp(0.8f, 1f, Ease.CubeOut(a)), Color.White * a, 2f, Color.Black * a * a * a * a);
-                }
-            } catch {
-                // Whoops, we weren't ready to draw text yet...
+            if (!string.IsNullOrEmpty(text) && Dialog.Language != null && ActiveFont.Font != null) {
+                Vector2 size = ActiveFont.Measure(text);
+                ActiveFont.DrawOutline(text, pos + new Vector2(size.X * 0.5f, 0f), new Vector2(0.5f, 0.5f), Vector2.One * MathHelper.Lerp(0.8f, 1f, Ease.CubeOut(a)), Color.White * a, 2f, Color.Black * a * a * a * a);
             }
         }
 

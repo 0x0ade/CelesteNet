@@ -1,9 +1,13 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework.Input;
+using Monocle;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using FMOD.Studio;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
@@ -11,7 +15,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public static CelesteNetClientModule Instance;
 
         public override Type SettingsType => typeof(CelesteNetClientSettings);
-        public CelesteNetClientSettings Settings => (CelesteNetClientSettings) _Settings;
+        public static CelesteNetClientSettings Settings => (CelesteNetClientSettings) Instance._Settings;
 
         public CelesteNetClientComponent ContextLast;
         public CelesteNetClientComponent Context;
@@ -32,6 +36,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override void Unload() {
             Stop();
         }
+
 
         public void Start() {
             lock (ClientLock) {

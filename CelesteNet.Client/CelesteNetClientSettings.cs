@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.UI;
+using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections.Generic;
@@ -59,6 +60,14 @@ namespace Celeste.Mod.CelesteNet.Client {
             get => Logger.Level;
             set => Logger.Level = value;
         }
+
+
+        #region Key Bindings
+
+        [DefaultButtonBinding(0, Keys.T)]
+        public ButtonBinding ButtonChat { get; set; }
+
+        #endregion
 
 
         #region Helpers

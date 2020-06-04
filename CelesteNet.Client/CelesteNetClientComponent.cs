@@ -14,6 +14,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetClient Client;
 
         public CelesteNetStatusComponent Status;
+        public CelesteNetChatComponent Chat;
 
         public CelesteNetClientComponent(Game game)
             : base(game) {
@@ -23,6 +24,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Celeste.Instance.Components.Add(this);
 
             game.Components.Add(Status = new CelesteNetStatusComponent(this, game));
+            game.Components.Add(Chat = new CelesteNetChatComponent(this, game));
         }
 
         public void Init(CelesteNetClientSettings settings) {
@@ -43,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         protected override void Dispose(bool disposing) {
             if (CelesteNetClientModule.Instance.Context == this) {
                 CelesteNetClientModule.Instance.Context = null;
-                CelesteNetClientModule.Instance.Settings.Connected = false;
+                CelesteNetClientModule.Settings.Connected = false;
             }
 
             base.Dispose(disposing);
@@ -54,6 +56,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Celeste.Instance.Components.Remove(this);
 
             Status.Set("Disconnected", 3f, false);
+            Chat.Dispose();
         }
 
     }

@@ -106,8 +106,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                     Pending.Remove(msg.Text);
                     Log.Remove(pending);
                 }
-                if (!Log.Contains(msg))
+
+                int index = Log.FindIndex(other => other.ID == msg.ID);
+                if (index != -1) {
+                    Log[index] = msg;
+                } else {
                     Log.Add(msg);
+                }
             }
         }
 

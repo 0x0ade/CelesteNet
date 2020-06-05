@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Mod.Helpers;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
@@ -15,7 +16,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetStatusComponent Status;
         public CelesteNetChatComponent Chat;
-        public CelesteNetPlayerListComponent PlayerList;
+
+        public Dictionary<Type, CelesteNetGameComponent> Components = new Dictionary<Type, CelesteNetGameComponent>();
 
         public CelesteNetClientComponent(Game game)
             : base(game) {
@@ -24,16 +26,30 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Celeste.Instance.Components.Add(this);
 
-            game.Components.Add(Status = new CelesteNetStatusComponent(this, game));
-            game.Components.Add(Chat = new CelesteNetChatComponent(this, game));
-            game.Components.Add(PlayerList = new CelesteNetPlayerListComponent(this, game));
+            Add(Status = new CelesteNetStatusComponent(this, game));
+            Add(Chat = new CelesteNetChatComponent(this, game));
+
+            foreach (Type type in FakeAssembly.GetFakeEntryAssembly().GetTypes()) {
+                if (type.IsAbstract || !typeof(CelesteNetGameComponent).IsAssignableFrom(type) || Components.ContainsKey(type))
+                    continue;
+
+                Add((CelesteNetGameComponent) Activator.CreateInstance(type, this, game));
+            }
         }
+
+        protected void Add(CelesteNetGameComponent component) {
+            Logger.Log(LogLevel.INF, "clientcomp", $"Added component: {component}");
+            Components[component.GetType()] = component;
+            Game.Components.Add(component);
+        }
+
+        public T Get<T>() where T : CelesteNetGameComponent
+            => Components.TryGetValue(typeof(T), out CelesteNetGameComponent component) ? (T) component : null;
 
         public void Init(CelesteNetClientSettings settings) {
             Client = new CelesteNetClient(settings);
-            Status.Init();
-            Chat.Init();
-            PlayerList.Init();
+            foreach (CelesteNetGameComponent component in Components.Values)
+                component.Init();
         }
 
         public void Start() {
@@ -41,9 +57,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return;
 
             Client.Start();
-            Status.Start();
-            Chat.Start();
-            PlayerList.Start();
+            foreach (CelesteNetGameComponent component in Components.Values)
+                component.Start();
         }
 
         public override void Update(GameTime gameTime) {
@@ -67,8 +82,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             Celeste.Instance.Components.Remove(this);
 
             Status.Set("Disconnected", 3f, false);
-            Chat.Dispose();
-            PlayerList.Dispose();
+
+            foreach (CelesteNetGameComponent component in Components.Values)
+                if (component.AutoDispose)
+                    component.Dispose();
         }
 
     }

@@ -179,8 +179,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         #region Handlers
 
-
-
         #endregion
 
     }

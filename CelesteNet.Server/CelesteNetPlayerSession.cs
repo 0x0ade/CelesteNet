@@ -19,7 +19,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetConnection Con;
         public readonly uint ID;
 
-        public DataPlayerInfo PlayerInfo => Server.Data.TryGetRef<DataPlayerInfo>(ID, out DataPlayerInfo value) ? value : null;
+        public DataPlayerInfo PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo value) ? value : null;
 
         public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
             Server = server;
@@ -83,7 +83,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             lock (Server.Connections) {
                 foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
-                    if (other.ID == ID)
+                    if (other == this)
                         continue;
 
                     other.Con.Send(PlayerInfo);
@@ -119,6 +119,33 @@ namespace Celeste.Mod.CelesteNet.Server {
 
 
         #region Handlers
+
+        public bool Filter(CelesteNetConnection con, DataPlayerInfo updated) {
+            // Make sure that a player can only update their own info.
+            if (con != Con)
+                return false;
+
+            DataPlayerInfo old = PlayerInfo;
+            if (old == null)
+                return false;
+
+            updated.ID = old.ID;
+            updated.Name = old.Name;
+            updated.FullName = old.FullName;
+
+            return true;
+        }
+
+        public void Handle(CelesteNetConnection con, DataPlayerInfo updated) {
+            lock (Server.Connections) {
+                foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
+                    if (other == this)
+                        continue;
+
+                    other.Con.Send(updated);
+                }
+            }
+        }
 
         #endregion
 

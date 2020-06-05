@@ -22,16 +22,25 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public string Name;
         public string FullName;
 
+        public string SID;
+        public bool Idle;
+
         public override void Read(DataContext ctx, BinaryReader reader) {
             ID = reader.ReadUInt32();
             Name = reader.ReadNullTerminatedString();
             FullName = reader.ReadNullTerminatedString();
+
+            SID = reader.ReadNullTerminatedString();
+            Idle = reader.ReadBoolean();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.Write(ID);
             writer.WriteNullTerminatedString(Name);
             writer.WriteNullTerminatedString(FullName);
+
+            writer.WriteNullTerminatedString(SID);
+            writer.Write(Idle);
         }
 
         public override DataPlayerInfo CloneT()

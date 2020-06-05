@@ -16,12 +16,15 @@ using MonoMod.Utils;
 namespace Celeste.Mod.CelesteNet {
     public delegate void DataHandler(CelesteNetConnection con, DataType data);
     public delegate void DataHandler<T>(CelesteNetConnection con, T data) where T : DataType<T>;
+    public delegate bool DataFilter(CelesteNetConnection con, DataType data);
+    public delegate bool DataFilter<T>(CelesteNetConnection con, T data) where T : DataType<T>;
     public class DataContext {
 
         public readonly Dictionary<string, Type> IDToTypeMap = new Dictionary<string, Type>();
         public readonly Dictionary<Type, string> TypeToIDMap = new Dictionary<Type, string>();
 
         public readonly Dictionary<Type, DataHandler> Handlers = new Dictionary<Type, DataHandler>();
+        public readonly Dictionary<Type, DataFilter> Filters = new Dictionary<Type, DataFilter>();
 
         protected readonly Dictionary<Type, Dictionary<uint, IDataRefType>> References = new Dictionary<Type, Dictionary<uint, IDataRefType>>();
 
@@ -63,20 +66,32 @@ namespace Celeste.Mod.CelesteNet {
             Handlers[type] = handler;
         }
 
+        public void RegisterFilter<T>(DataFilter<T> filter) where T : DataType<T>
+            => RegisterFilter(typeof(T), (con, data) => filter(con, (T) data));
+
+        public void RegisterFilter(Type type, DataFilter filter) {
+            if (Filters.TryGetValue(type, out DataFilter existing)) {
+                filter = existing + filter;
+            }
+            Filters[type] = filter;
+        }
+
         public void RegisterHandlersIn(object handlers) {
             foreach (MethodInfo method in handlers.GetType().GetMethods()) {
-                if (method.Name != "Handle")
-                    continue;
+                if (method.Name == "Handle" || method.Name == "Filter") {
+                    ParameterInfo[] args = method.GetParameters();
+                    if (args.Length != 2 || !args[0].ParameterType.IsCompatible(typeof(CelesteNetConnection)))
+                        continue;
 
-                ParameterInfo[] args = method.GetParameters();
-                if (args.Length != 2 || !args[0].ParameterType.IsCompatible(typeof(CelesteNetConnection)))
-                    continue;
+                    Type argType = args[1].ParameterType;
+                    if (!argType.IsCompatible(typeof(DataType)))
+                        continue;
 
-                Type argType = args[1].ParameterType;
-                if (!argType.IsCompatible(typeof(DataType)))
-                    continue;
-
-                RegisterHandler(argType, (con, data) => method.Invoke(handlers, new object[] { con, data }));
+                    if (method.Name == "Filter")
+                        RegisterFilter(argType, (con, data) => (bool) method.Invoke(handlers, new object[] { con, data }));
+                    else
+                        RegisterHandler(argType, (con, data) => method.Invoke(handlers, new object[] { con, data }));
+                }
             }
         }
 
@@ -158,14 +173,17 @@ namespace Celeste.Mod.CelesteNet {
             if (type == null || data == null)
                 return;
 
+            for (; type != typeof(DataType); type = type.BaseType)
+                if (Filters.TryGetValue(type, out DataFilter filter))
+                    if (!filter.InvokeWhileTrue(con, data))
+                        return;
+
             if (data is IDataRefType dataRef)
                 SetRef(dataRef);
 
-            for (; type != typeof(DataType); type = type.BaseType) {
-                if (Handlers.TryGetValue(type, out DataHandler handler)) {
+            for (; type != typeof(DataType); type = type.BaseType)
+                if (Handlers.TryGetValue(type, out DataHandler handler))
                     handler(con, data);
-                }
-            }
         }
 
 

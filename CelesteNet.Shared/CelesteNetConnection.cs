@@ -111,13 +111,13 @@ namespace Celeste.Mod.CelesteNet {
                     }
 
                     if (SendKeepAlive) {
-                        if ((LastSendUpdate - now).TotalSeconds >= 1D) {
+                        if ((now - LastSendUpdate).TotalSeconds >= 1D) {
                             SendRaw(new DataKeepAlive {
                                 IsUpdate = true
                             });
                             LastSendUpdate = now;
                         }
-                        if ((LastSendNonUpdate - now).TotalSeconds >= 1D) {
+                        if ((now - LastSendNonUpdate).TotalSeconds >= 1D) {
                             SendRaw(new DataKeepAlive {
                                 IsUpdate = false
                             });

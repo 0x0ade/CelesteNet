@@ -39,6 +39,9 @@ namespace Celeste.Mod.CelesteNet {
         private readonly WaitHandle[] SendQueueEventHandles;
         private readonly Thread SendQueueThread;
 
+        private DateTime LastSendUpdate;
+        private DateTime LastSendNonUpdate;
+
         public virtual bool IsAlive { get; protected set; } = true;
         public abstract bool IsConnected { get; }
         public abstract string ID { get; }
@@ -92,31 +95,34 @@ namespace Celeste.Mod.CelesteNet {
                     if (SendQueue.Count == 0)
                         WaitHandle.WaitAny(SendQueueEventHandles, 1000);
 
-                    bool sentUpdate = false;
-                    bool sentNonUpdate = false;
+                    DateTime now = DateTime.UtcNow;
 
                     while (SendQueue.Count > 0) {
                         DataType data;
                         lock (SendQueue)
                             data = SendQueue.Dequeue();
-                        
+
                         SendRaw(data);
 
                         if ((data.DataFlags & DataFlags.Update) == DataFlags.Update)
-                            sentUpdate = true;
+                            LastSendUpdate = now;
                         else
-                            sentNonUpdate = true;
+                            LastSendNonUpdate = now;
                     }
 
                     if (SendKeepAlive) {
-                        if (!sentUpdate)
+                        if ((LastSendUpdate - now).TotalSeconds >= 1D) {
                             SendRaw(new DataKeepAlive {
                                 IsUpdate = true
                             });
-                        if (!sentNonUpdate)
+                            LastSendUpdate = now;
+                        }
+                        if ((LastSendNonUpdate - now).TotalSeconds >= 1D) {
                             SendRaw(new DataKeepAlive {
                                 IsUpdate = false
                             });
+                            LastSendNonUpdate = now;
+                        }
                     }
 
                     lock (SendQueue)

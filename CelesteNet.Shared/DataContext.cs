@@ -173,16 +173,16 @@ namespace Celeste.Mod.CelesteNet {
             if (type == null || data == null)
                 return;
 
-            for (; type != typeof(DataType); type = type.BaseType)
-                if (Filters.TryGetValue(type, out DataFilter filter))
+            for (Type btype = type; btype != typeof(DataType); btype = btype.BaseType)
+                if (Filters.TryGetValue(btype, out DataFilter filter))
                     if (!filter.InvokeWhileTrue(con, data))
                         return;
 
             if (data is IDataRefType dataRef)
                 SetRef(dataRef);
 
-            for (; type != typeof(DataType); type = type.BaseType)
-                if (Handlers.TryGetValue(type, out DataHandler handler))
+            for (Type btype = type; btype != typeof(DataType); btype = btype.BaseType)
+                if (Handlers.TryGetValue(btype, out DataHandler handler))
                     handler(con, data);
         }
 

@@ -47,7 +47,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             => new DataPlayerInfo {
                 ID = ID,
                 Name = Name,
-                FullName = FullName
+                FullName = FullName,
+
+                SID = SID,
+                Idle = Idle
             };
 
         public override string ToString()

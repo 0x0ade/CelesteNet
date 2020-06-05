@@ -82,8 +82,24 @@ namespace Celeste.Mod.CelesteNet.Client {
             Vector2 fontScale = Vector2.One * scale;
 
             float y = 50f * scale;
-            if ((global::Celeste.Settings.Instance?.SpeedrunClock ?? SpeedrunType.Off) != SpeedrunType.Off)
-                y += 192f;
+
+            SpeedrunTimerDisplay timer = Engine.Scene?.Entities.FindFirst<SpeedrunTimerDisplay>();
+            if (timer != null) {
+                switch (global::Celeste.Settings.Instance?.SpeedrunClock ?? SpeedrunType.Off) {
+                    case SpeedrunType.Off:
+                        break;
+
+                    case SpeedrunType.Chapter:
+                        if (timer.CompleteTimer < 3f)
+                            y += 104f;
+                        break;
+
+                    case SpeedrunType.File:
+                    default:
+                        y += 104f + 24f;
+                        break;
+                }
+            }
 
             Vector2 size = ActiveFont.Measure(ListText) * fontScale;
             MDraw.Rect(25f * scale, y - 25f * scale, size.X + 50f * scale, size.Y + 50f * scale, Color.Black * 0.8f);

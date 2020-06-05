@@ -20,6 +20,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetClientSettings Settings => Context?.Client?.Settings ?? CelesteNetClientModule.Settings;
 
         public bool AutoRemove = true;
+        public bool AutoDispose = true;
 
         public CelesteNetGameComponent(CelesteNetClientComponent context, Game game)
             : base(game) {

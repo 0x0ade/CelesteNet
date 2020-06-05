@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             UpdateOrder = 10000;
             DrawOrder = 10000;
 
-            AutoRemove = false;
+            AutoDispose = false;
             Enabled = true;
         }
 
@@ -90,10 +90,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             timeSpin += Engine.RawDeltaTime * spinSpeed;
 
-            if (Context.Game == null && time == 0f) {
-                AutoRemove = true;
+            if (Context.Game == null && time == 0f)
                 Dispose();
-            }
         }
 
         public override void Draw(GameTime gameTime) {

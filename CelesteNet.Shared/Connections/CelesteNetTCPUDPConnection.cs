@@ -118,7 +118,8 @@ namespace Celeste.Mod.CelesteNet {
                 byte[] raw = BufferStream.GetBuffer();
 
                 if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
-                    UDP.Send(raw, length, UDPRemoteEndPoint);
+                    // Missed updates aren't that bad...
+                    UDP?.Send(raw, length, UDPRemoteEndPoint);
 
                 } else {
                     TCPWriter.Write(raw, 0, length);

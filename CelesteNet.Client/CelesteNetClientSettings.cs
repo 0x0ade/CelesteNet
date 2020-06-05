@@ -70,6 +70,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int UISizeMax = 5;
         [SettingRange(UISizeMin, UISizeReachableMax)]
         public int UISize { get; set; } = 2;
+        [SettingIgnore]
+        [YamlIgnore]
+        public float UIScale => 0.5f + 0.5f * ((UISize - 1f) / (UISizeMax - 1f));
 
         #region Key Bindings
 

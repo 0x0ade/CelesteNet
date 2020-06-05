@@ -15,6 +15,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetStatusComponent Status;
         public CelesteNetChatComponent Chat;
+        public CelesteNetPlayerListComponent PlayerList;
 
         public CelesteNetClientComponent(Game game)
             : base(game) {
@@ -25,12 +26,14 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             game.Components.Add(Status = new CelesteNetStatusComponent(this, game));
             game.Components.Add(Chat = new CelesteNetChatComponent(this, game));
+            game.Components.Add(PlayerList = new CelesteNetPlayerListComponent(this, game));
         }
 
         public void Init(CelesteNetClientSettings settings) {
             Client = new CelesteNetClient(settings);
             Status.Init();
             Chat.Init();
+            PlayerList.Init();
         }
 
         public void Start() {
@@ -40,6 +43,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Client.Start();
             Status.Start();
             Chat.Start();
+            PlayerList.Start();
         }
 
         public override void Update(GameTime gameTime) {
@@ -64,6 +68,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Status.Set("Disconnected", 3f, false);
             Chat.Dispose();
+            PlayerList.Dispose();
         }
 
     }

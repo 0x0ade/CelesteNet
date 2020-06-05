@@ -15,7 +15,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         protected float _Time;
 
-        public float Scale => 0.5f + 0.5f * ((Settings.UISize - 1f) / (CelesteNetClientSettings.UISizeMax - 1f));
+        public float Scale => Settings.UIScale;
 
         protected Overlay _DummyOverlay = new Overlay();
 
@@ -79,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             : base(context, game) {
 
             UpdateOrder = 10000;
-            DrawOrder = 10001;
+            DrawOrder = 10100;
         }
 
         public void Send(string text) {
@@ -117,6 +117,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public override void Update(GameTime gameTime) {
+            base.Update(gameTime);
+
             _Time += Engine.RawDeltaTime;
 
             if (!(Engine.Scene?.Paused ?? true)) {
@@ -184,7 +186,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         protected override void Render(GameTime gameTime, bool toBuffer) {
             float scale = Scale;
-            Vector2 fontScale = Vector2.One * Scale;
+            Vector2 fontScale = Vector2.One * scale;
 
             if (Active) {
                 MDraw.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);

@@ -42,8 +42,14 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public interface IDataRefType {
 
         uint ID { get; }
-        bool IsValidRef { get; }
+        bool IsAliveRef { get; }
 
+    }
+
+    public interface IDataBoundRefType : IDataRefType {
+    }
+
+    public interface IDataBoundRefType<T> : IDataBoundRefType where T : DataType<T>, IDataRefType {
     }
 
     [Flags]

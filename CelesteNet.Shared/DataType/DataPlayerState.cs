@@ -11,38 +11,39 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataPlayerInfo : DataType<DataPlayerInfo>, IDataRefType {
+    public class DataPlayerState : DataType<DataPlayerState>, IDataBoundRefType<DataPlayerInfo> {
 
-        static DataPlayerInfo() {
-            DataID = "playerInfo";
+        static DataPlayerState() {
+            DataID = "playerState";
         }
 
         public uint ID { get; set; }
-        public bool IsAliveRef => !string.IsNullOrEmpty(FullName);
-        public string Name;
-        public string FullName;
+        public bool IsAliveRef => true;
+
+        public string SID;
+        public bool Idle;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             ID = reader.ReadUInt32();
-            Name = reader.ReadNullTerminatedString();
-            FullName = reader.ReadNullTerminatedString();
+            SID = reader.ReadNullTerminatedString();
+            Idle = reader.ReadBoolean();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.Write(ID);
-            writer.WriteNullTerminatedString(Name);
-            writer.WriteNullTerminatedString(FullName);
+            writer.WriteNullTerminatedString(SID);
+            writer.Write(Idle);
         }
 
-        public override DataPlayerInfo CloneT()
-            => new DataPlayerInfo {
+        public override DataPlayerState CloneT()
+            => new DataPlayerState {
                 ID = ID,
-                Name = Name,
-                FullName = FullName
+                SID = SID,
+                Idle = Idle
             };
 
         public override string ToString()
-            => $"#{ID}: {FullName} ({Name})";
+            => $"#{ID}: {SID}, {Idle}";
 
     }
 }

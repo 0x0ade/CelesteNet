@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>8</LangVersion>
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
   </PropertyGroup>
 

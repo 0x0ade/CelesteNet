@@ -37,18 +37,17 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 builder.Append(player.FullName);
 
-                /*
-                if (!string.IsNullOrWhiteSpace(player.Value.SID)) {
+                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state) &&
+                    !string.IsNullOrWhiteSpace(state.SID)) {
                     builder
                         .Append(" @ ")
-                        .Append(Escape(AreaDataExt.Get(player.Value.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? player.Value.SID))
+                        .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
                         .Append(" ")
-                        .Append((char) ('A' + (int) player.Value.Mode))
+                        .Append((char) ('A' + (int) state.Mode))
                         .Append(" ")
-                        .Append(Escape(player.Value.Level))
+                        .Append(state.Level)
                     ;
                 }
-                */
 
                 builder.AppendLine();
             }
@@ -56,7 +55,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             ListText = builder.ToString().Trim();
         }
 
-        public void Handle(CelesteNetConnection con, DataChat msg) {
+        public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
+            RebuildList();
+        }
+
+        public void Handle(CelesteNetConnection con, DataPlayerState state) {
             RebuildList();
         }
 

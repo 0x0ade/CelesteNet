@@ -21,17 +21,23 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public bool IsAliveRef => true;
 
         public string SID;
+        public AreaMode Mode;
+        public string Level;
         public bool Idle;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             ID = reader.ReadUInt32();
             SID = reader.ReadNullTerminatedString();
+            Mode = (AreaMode) reader.ReadByte();
+            Level = reader.ReadNullTerminatedString();
             Idle = reader.ReadBoolean();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.Write(ID);
             writer.WriteNullTerminatedString(SID);
+            writer.Write((byte) Mode);
+            writer.WriteNullTerminatedString(Level);
             writer.Write(Idle);
         }
 

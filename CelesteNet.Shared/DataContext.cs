@@ -224,8 +224,14 @@ namespace Celeste.Mod.CelesteNet {
         public T GetBoundRef<TBoundTo, T>(uint id) where TBoundTo : DataType<TBoundTo>, IDataRefType where T : DataType<T>, IDataBoundRefType<TBoundTo>
             => (T) GetBoundRef(typeof(TBoundTo), typeof(T), id);
 
+        public T GetBoundRef<TBoundTo, T>(TBoundTo boundTo) where TBoundTo : DataType<TBoundTo>, IDataRefType where T : DataType<T>, IDataBoundRefType<TBoundTo>
+            => (T) GetBoundRef(typeof(TBoundTo), typeof(T), boundTo.ID);
+
         public IDataBoundRefType GetBoundRef(Type typeBoundTo, Type type, uint id)
             => TryGetBoundRef(typeBoundTo, type, id, out IDataBoundRefType value) ? value : throw new Exception($"Unknown reference {typeBoundTo.FullName} bound to {type.FullName} ID {id}");
+
+        public bool TryGetBoundRef<TBoundTo, T>(TBoundTo boundTo, out T value) where TBoundTo : DataType<TBoundTo>, IDataRefType where T : DataType<T>, IDataBoundRefType<TBoundTo>
+            => TryGetBoundRef<TBoundTo, T>(boundTo.ID, out value);
 
         public bool TryGetBoundRef<TBoundTo, T>(uint id, out T value) where TBoundTo : DataType<TBoundTo>, IDataRefType where T : DataType<T>, IDataBoundRefType<TBoundTo> {
             bool rv = TryGetBoundRef(typeof(TBoundTo), typeof(T), id, out IDataBoundRefType value_);

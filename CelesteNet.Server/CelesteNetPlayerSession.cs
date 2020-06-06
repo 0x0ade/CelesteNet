@@ -26,24 +26,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Con = con;
             ID = id;
 
-            foreach (MethodInfo method in GetType().GetMethods()) {
-                if (method.Name != "Handle")
-                    continue;
-
-                ParameterInfo[] args = method.GetParameters();
-                if (args.Length != 1)
-                    continue;
-
-                Type argType = args[0].ParameterType;
-                if (!argType.IsCompatible(typeof(DataType)))
-                    continue;
-
-                Server.Data.RegisterHandler(argType, (other, data) => {
-                    if (con != other)
-                        return;
-                    method.Invoke(this, new object[] { data });
-                });
-            }
+            Server.Data.RegisterHandlersIn(this);
         }
 
         public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
@@ -123,11 +106,11 @@ namespace Celeste.Mod.CelesteNet.Server {
         public bool Filter(CelesteNetConnection con, DataPlayerInfo updated) {
             // Make sure that a player can only update their own info.
             if (con != Con)
-                return false;
+                return true;
 
             DataPlayerInfo old = PlayerInfo;
             if (old == null)
-                return false;
+                return true;
 
             updated.ID = old.ID;
             updated.Name = old.Name;
@@ -136,13 +119,42 @@ namespace Celeste.Mod.CelesteNet.Server {
             return true;
         }
 
+        public bool Filter(CelesteNetConnection con, DataType data) {
+            if (con != Con)
+                return true;
+
+            if (data is IDataBoundRefType<DataPlayerInfo> bound)
+                bound.ID = ID;
+
+            return true;
+        }
+
         public void Handle(CelesteNetConnection con, DataPlayerInfo updated) {
+            if (con != Con)
+                return;
+
             lock (Server.Connections) {
                 foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
                     if (other == this)
                         continue;
 
                     other.Con.Send(updated);
+                }
+            }
+        }
+
+        public void Handle(CelesteNetConnection con, DataType data) {
+            if (con != Con)
+                return;
+
+            if (data is IDataBoundRefType<DataPlayerInfo> bound) {
+                lock (Server.Connections) {
+                    foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
+                        if (other == this)
+                            continue;
+
+                        other.Con.Send(data);
+                    }
                 }
             }
         }

@@ -37,7 +37,7 @@ namespace Celeste.Mod.CelesteNet {
                 RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 
                 string id = null;
-                for (Type parent = type; parent != typeof(DataType) && string.IsNullOrEmpty(id); parent = parent.BaseType) {
+                for (Type parent = type; parent != typeof(DataType).BaseType && string.IsNullOrEmpty(id); parent = parent.BaseType) {
                     id = parent.GetField("DataID", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string;
                 }
 
@@ -88,10 +88,13 @@ namespace Celeste.Mod.CelesteNet {
                     if (!argType.IsCompatible(typeof(DataType)))
                         continue;
 
-                    if (method.Name == "Filter")
+                    if (method.Name == "Filter") {
+                        Logger.Log(LogLevel.VVV, "data", $"Autoregistering filter for {argType}: {method.GetID()}");
                         RegisterFilter(argType, (con, data) => (bool) method.Invoke(handlers, new object[] { con, data }));
-                    else
+                    } else {
+                        Logger.Log(LogLevel.VVV, "data", $"Autoregistering handler for {argType}: {method.GetID()}");
                         RegisterHandler(argType, (con, data) => method.Invoke(handlers, new object[] { con, data }));
+                    }
                 }
             }
         }
@@ -174,7 +177,7 @@ namespace Celeste.Mod.CelesteNet {
             if (type == null || data == null)
                 return;
 
-            for (Type btype = type; btype != typeof(DataType); btype = btype.BaseType)
+            for (Type btype = type; btype != typeof(DataType).BaseType; btype = btype.BaseType)
                 if (Filters.TryGetValue(btype, out DataFilter filter))
                     if (!filter.InvokeWhileTrue(con, data))
                         return;
@@ -182,7 +185,7 @@ namespace Celeste.Mod.CelesteNet {
             if (data is IDataRefType dataRef)
                 SetRef(dataRef);
 
-            for (Type btype = type; btype != typeof(DataType); btype = btype.BaseType)
+            for (Type btype = type; btype != typeof(DataType).BaseType; btype = btype.BaseType)
                 if (Handlers.TryGetValue(btype, out DataHandler handler))
                     handler(con, data);
         }

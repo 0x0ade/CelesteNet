@@ -73,7 +73,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         #region Send
 
         public void SendState() {
-            Client.SendAndSet(LastState = new DataPlayerState {
+            Client.SendAndHandle(LastState = new DataPlayerState {
+                ID = Client.PlayerInfo.ID,
                 SID = Session?.Area.GetSID() ?? "",
                 Mode = Session?.Area.Mode ?? AreaMode.Normal,
                 Level = Session?.Level ?? "",

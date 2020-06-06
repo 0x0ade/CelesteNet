@@ -24,8 +24,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             DrawOrder = 10100;
         }
 
-        public override void Init() {
-            base.Init();
+        public override void Start() {
+            base.Start();
 
             On.Celeste.Level.LoadLevel += OnLoadLevel;
             if (Engine.Instance != null && Engine.Scene is Level level)

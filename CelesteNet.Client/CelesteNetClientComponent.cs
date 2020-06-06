@@ -14,10 +14,13 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetClient Client;
 
+        public CelesteNetMainComponent Main;
         public CelesteNetStatusComponent Status;
         public CelesteNetChatComponent Chat;
 
         public Dictionary<Type, CelesteNetGameComponent> Components = new Dictionary<Type, CelesteNetGameComponent>();
+
+        private bool Started = false;
 
         public CelesteNetClientComponent(Game game)
             : base(game) {
@@ -26,6 +29,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Celeste.Instance.Components.Add(this);
 
+            Add(Main = new CelesteNetMainComponent(this, game));
             Add(Status = new CelesteNetStatusComponent(this, game));
             Add(Chat = new CelesteNetChatComponent(this, game));
 
@@ -59,12 +63,14 @@ namespace Celeste.Mod.CelesteNet.Client {
             Client.Start();
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Start();
+
+            Started = true;
         }
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
-            if (!(Client?.IsAlive ?? true))
+            if (Started && !(Client?.IsAlive ?? true))
                 Dispose();
         }
 

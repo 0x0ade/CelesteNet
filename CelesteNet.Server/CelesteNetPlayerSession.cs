@@ -71,6 +71,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     other.Con.Send(PlayerInfo);
                     Con.Send(other.PlayerInfo);
+                    foreach (DataType bound in Server.Data.GetBoundRefs(other.PlayerInfo))
+                        Con.Send(bound);
                 }
             }
 

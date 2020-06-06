@@ -267,6 +267,19 @@ namespace Celeste.Mod.CelesteNet {
             return new IDataRefType[0];
         }
 
+        public IDataBoundRefType[] GetBoundRefs<TBoundTo>(TBoundTo boundTo) where TBoundTo : DataType<TBoundTo>, IDataRefType
+            => GetBoundRefs<TBoundTo>(boundTo.ID);
+
+        public IDataBoundRefType[] GetBoundRefs<TBoundTo>(uint id) where TBoundTo : DataType<TBoundTo>, IDataRefType
+            => GetBoundRefs(typeof(TBoundTo), id);
+
+        public IDataBoundRefType[] GetBoundRefs(Type typeBoundTo, uint id) {
+            if (Bound.TryGetValue(typeBoundTo, out Dictionary<uint, Dictionary<Type, IDataBoundRefType>> boundByID) &&
+                boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRefType> boundByType))
+                return boundByType.Values.ToArray();
+            return new IDataBoundRefType[0];
+        }
+
         public void SetRef(IDataRefType data)
             => SetRef(data.GetType(), data);
 

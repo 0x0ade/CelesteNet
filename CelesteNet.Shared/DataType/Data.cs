@@ -13,6 +13,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public virtual DataFlags DataFlags => DataFlags.None;
 
+        public virtual bool FilterHandle(DataContext ctx) => true;
+        public virtual bool FilterSend(DataContext ctx) => true;
+
         public abstract void Read(DataContext ctx, BinaryReader reader);
         public abstract void Write(DataContext ctx, BinaryWriter writer);
 

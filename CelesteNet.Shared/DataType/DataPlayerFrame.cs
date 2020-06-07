@@ -45,8 +45,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Vector2 DashDir;
         public bool DashWasB;
 
+        public override bool FilterHandle(DataContext ctx)
+            => Player != null; // Can be RECEIVED BY CLIENT TOO EARLY because UDP is UDP.
+
         public override void Read(DataContext ctx, BinaryReader reader) {
-            Player = ctx.ReadRef<DataPlayerInfo>(reader);
+            Player = ctx.ReadOptRef<DataPlayerInfo>(reader);
             base.Read(ctx, reader);
 
             Position = new Vector2(reader.ReadSingle(), reader.ReadSingle());

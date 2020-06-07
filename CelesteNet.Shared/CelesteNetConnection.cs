@@ -73,6 +73,8 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void Send(DataType data) {
+            if (!data.FilterSend(Data))
+                return;
             if (!IsAlive)
                 return;
             lock (SendQueue) {

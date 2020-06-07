@@ -174,7 +174,7 @@ namespace Celeste.Mod.CelesteNet {
             => Handle(con, typeof(T), data);
 
         protected void Handle(CelesteNetConnection con, Type type, DataType data) {
-            if (type == null || data == null)
+            if (type == null || data == null || !data.FilterHandle(this))
                 return;
 
             for (Type btype = type; btype != typeof(DataType).BaseType; btype = btype.BaseType)
@@ -193,6 +193,9 @@ namespace Celeste.Mod.CelesteNet {
 
         public T ReadRef<T>(BinaryReader reader) where T : DataType<T>, IDataRefType
             => GetRef<T>(reader.ReadUInt32());
+
+        public T ReadOptRef<T>(BinaryReader reader) where T : DataType<T>, IDataRefType
+            => TryGetRef(reader.ReadUInt32(), out T value) ? value : null;
 
         public void WriteRef<T>(BinaryWriter writer, T data) where T : DataType<T>, IDataRefType
             => writer.Write(data?.ID ?? uint.MaxValue);

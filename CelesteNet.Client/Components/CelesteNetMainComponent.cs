@@ -61,6 +61,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (ghost != null) {
                     ghost.NameTag.Name = "";
                 }
+                ghost = null;
                 Ghosts.Remove(frame.Player.ID);
             }
 

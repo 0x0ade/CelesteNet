@@ -21,7 +21,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Tracking = tracking;
             Name = name;
 
-            Tag = TagsExt.SubHUD | Tags.Global;
+            Tag = TagsExt.SubHUD | Tags.Persistent;
         }
 
         public override void Render() {

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     public class Ghost : Actor {
 
-        public float Alpha = 0.85f;
+        public float Alpha = 0.875f;
 
         public PlayerSprite Sprite;
         public PlayerHair Hair;
@@ -27,11 +27,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Add(Hair = new PlayerHair(Sprite));
             Add(Sprite);
 
+            Add(new PostUpdateHook(ForceAfterUpdateHair));
+
             Hair.Color = Player.NormalHairColor;
 
             NameTag = new GhostNameTag(this, "");
 
-            Tag = Tags.Global | Tags.TransitionUpdate | Tags.FrozenUpdate;
+            Tag = Tags.Persistent | Tags.PauseUpdate | Tags.TransitionUpdate | Tags.FrozenUpdate;
         }
 
         public override void Added(Scene scene) {
@@ -52,6 +54,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 RemoveSelf();
 
             base.Update();
+        }
+
+        private void ForceAfterUpdateHair() {
+            if (!SceneAs<Level>().GetUpdateHair())
+                Hair.AfterUpdate();
         }
 
         public void UpdateHair(Facings facing, Color color, bool simulateMotion, int count, Color[] colors, string[] textures) {

@@ -45,6 +45,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 OnLoadLevel(null, level, Player.IntroTypes.Transition, true);
         }
 
+        public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
+            if (string.IsNullOrEmpty(player.FullName) &&
+                Ghosts.TryGetValue(player.ID, out Ghost ghost)) {
+                if (ghost != null)
+                    ghost.NameTag.Name = "";
+                Ghosts.Remove(player.ID);
+            }
+        }
+
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
             Level level = Engine.Scene as Level;
 
@@ -58,9 +67,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost.Scene != level ||
                 ghost.Sprite.Mode != frame.SpriteMode ||
                 outside) {
-                if (ghost != null) {
+                if (ghost != null)
                     ghost.NameTag.Name = "";
-                }
                 ghost = null;
                 Ghosts.Remove(frame.Player.ID);
             }

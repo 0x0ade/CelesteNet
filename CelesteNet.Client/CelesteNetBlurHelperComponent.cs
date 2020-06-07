@@ -22,6 +22,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public bool ForceRTGameAsBackbuffer;
 
         public RenderTarget2D RTBlurX;
+        public RenderTarget2D RTBlurY;
         public RenderTarget2D RTBlur;
 
         private Hook h_SetRenderTarget;
@@ -38,11 +39,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             int yi = (int) Math.Floor(y);
             int wi = (int) Math.Ceiling(x + width) - xi;
             int hi = (int) Math.Ceiling(y + height) - yi;
+
+            Rectangle rect = new Rectangle(xi, yi, wi, hi);
             
             MDraw.SpriteBatch.Draw(
                 RTBlur,
-                new Rectangle(xi, yi, wi, hi),
-                new Rectangle(xi / BLUR_SCALE, yi / BLUR_SCALE, wi / BLUR_SCALE, hi / BLUR_SCALE),
+                rect, rect,
                 Color.White * Math.Min(1f, color.A / 255f * 2f)
             );
             
@@ -63,7 +65,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             base.Initialize();
 
             RTBlurX = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
-            RTBlur = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
+            RTBlurY = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
+            RTBlur = new RenderTarget2D(GraphicsDevice, UI_WIDTH, UI_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
         }
 
         protected override void Dispose(bool disposing) {
@@ -78,7 +81,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             MainThreadHelper.Do(() => {
                 RTGame?.Dispose();
                 RTBlurX?.Dispose();
-                RTBlur?.Dispose();
+                RTBlurY?.Dispose();
                 RTGame = null;
             });
         }
@@ -97,6 +100,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 const int blurrad = 16;
                 const float blurdist = 0.6f;
                 Vector2 blurScale = new Vector2(BLUR_WIDTH / (float) viewportPrev.Width, BLUR_HEIGHT / (float) viewportPrev.Height);
+                Vector2 blurScaleInv = new Vector2(UI_WIDTH / (float) BLUR_WIDTH, UI_HEIGHT / (float) BLUR_HEIGHT);
 
                 GraphicsDevice.Viewport = new Viewport(0, 0, BLUR_WIDTH, BLUR_HEIGHT);
 
@@ -105,7 +109,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 MDraw.SpriteBatch.Begin(
                     SpriteSortMode.Deferred,
                     BlendState.AlphaBlend,
-                    SamplerState.AnisotropicClamp,
+                    SamplerState.LinearClamp,
                     DepthStencilState.None,
                     RasterizerState.CullNone,
                     null,
@@ -123,12 +127,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 MDraw.SpriteBatch.End();
 
-                GraphicsDevice.SetRenderTarget(RTBlur);
+                GraphicsDevice.SetRenderTarget(RTBlurY);
                 GraphicsDevice.Clear(Engine.ClearColor);
                 MDraw.SpriteBatch.Begin(
                     SpriteSortMode.Deferred,
                     BlendState.AlphaBlend,
-                    SamplerState.AnisotropicClamp,
+                    SamplerState.LinearClamp,
                     DepthStencilState.None,
                     RasterizerState.CullNone,
                     null,
@@ -143,6 +147,22 @@ namespace Celeste.Mod.CelesteNet.Client {
                     MDraw.SpriteBatch.Draw(RTBlurX, new Vector2(0f, -y * blurdist - 0.5f), null, c, 0f, Vector2.Zero, Vector2.One, SpriteEffects.None, 0);
                     MDraw.SpriteBatch.Draw(RTBlurX, new Vector2(0f, +y * blurdist - 0.5f), null, c, 0f, Vector2.Zero, Vector2.One, SpriteEffects.None, 0);
                 }
+
+                MDraw.SpriteBatch.End();
+
+                GraphicsDevice.SetRenderTarget(RTBlur);
+                GraphicsDevice.Clear(Engine.ClearColor);
+                MDraw.SpriteBatch.Begin(
+                    SpriteSortMode.Deferred,
+                    BlendState.Opaque,
+                    SamplerState.LinearClamp,
+                    DepthStencilState.None,
+                    RasterizerState.CullNone,
+                    null,
+                    Matrix.Identity
+                );
+
+                MDraw.SpriteBatch.Draw(RTBlurY, new Vector2(0f, 0f), null, Color.White, 0f, Vector2.Zero, blurScaleInv, SpriteEffects.None, 0);
 
                 MDraw.SpriteBatch.End();
 

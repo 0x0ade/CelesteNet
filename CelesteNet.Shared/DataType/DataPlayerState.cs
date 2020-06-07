@@ -20,6 +20,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public uint ID { get; set; }
         public bool IsAliveRef => true;
 
+        public uint Channel;
         public string SID;
         public AreaMode Mode;
         public string Level;
@@ -27,6 +28,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             ID = reader.ReadUInt32();
+            Channel = reader.ReadUInt32();
             SID = reader.ReadNullTerminatedString();
             Mode = (AreaMode) reader.ReadByte();
             Level = reader.ReadNullTerminatedString();
@@ -35,6 +37,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.Write(ID);
+            writer.Write(Channel);
             writer.WriteNullTerminatedString(SID);
             writer.Write((byte) Mode);
             writer.WriteNullTerminatedString(Level);
@@ -42,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override string ToString()
-            => $"#{ID}: {SID}, {Idle}";
+            => $"#{ID}: {Channel}, {SID}, {Idle}";
 
     }
 }

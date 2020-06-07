@@ -18,6 +18,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private Player Player;
         private Session Session;
 
+        public uint Channel;
+
         public GhostNameTag PlayerNameTag;
         public Dictionary<uint, Ghost> Ghosts = new Dictionary<uint, Ghost>();
 
@@ -49,7 +51,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             bool outside =
                 level == null ||
                 !Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
-                (state.SID != Session.Area.SID || state.Mode != Session.Area.Mode);
+                (state.Channel != Channel || state.SID != Session.Area.SID || state.Mode != Session.Area.Mode);
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost == null ||
@@ -150,6 +152,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void SendState() {
             Client?.SendAndHandle(LastState = new DataPlayerState {
                 ID = Client.PlayerInfo.ID,
+                Channel = Channel,
                 SID = Session?.Area.GetSID() ?? "",
                 Mode = Session?.Area.Mode ?? AreaMode.Normal,
                 Level = Session?.Level ?? "",

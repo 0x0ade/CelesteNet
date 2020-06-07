@@ -37,16 +37,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 builder.Append(player.FullName);
 
-                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state) &&
-                    !string.IsNullOrWhiteSpace(state.SID)) {
-                    builder
-                        .Append(" @ ")
-                        .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
-                        .Append(" ")
-                        .Append((char) ('A' + (int) state.Mode))
-                        .Append(" ")
-                        .Append(state.Level)
-                    ;
+                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
+                    if (state.Channel != 0)
+                        builder
+                            .Append(" >")
+                            .Append(state.Channel);
+
+
+                    if (!string.IsNullOrWhiteSpace(state.SID))
+                        builder
+                            .Append(" @ ")
+                            .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
+                            .Append(" ")
+                            .Append((char) ('A' + (int) state.Mode))
+                            .Append(" ")
+                            .Append(state.Level);
                 }
 
                 builder.AppendLine();

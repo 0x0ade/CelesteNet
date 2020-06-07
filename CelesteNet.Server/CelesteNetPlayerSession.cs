@@ -152,11 +152,23 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (con != Con)
                 return;
 
+            if (PlayerInfo == null || !Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState state))
+                state = null;
+
             if (data is IDataBoundRefType<DataPlayerInfo> ||
                 data is IDataPlayerUpdate) {
                 lock (Server.Connections) {
                     foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
                         if (other == this)
+                            continue;
+
+                        if (data is IDataPlayerUpdate && (
+                            other.PlayerInfo == null ||
+                            !Server.Data.TryGetBoundRef(other.PlayerInfo, out DataPlayerState otherState) ||
+                            otherState.Channel != state.Channel ||
+                            otherState.SID != state.SID ||
+                            otherState.Mode != state.Mode
+                        ))
                             continue;
 
                         other.Con.Send(data);

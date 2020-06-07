@@ -34,15 +34,14 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.WriteNullTerminatedString(FullName);
         }
 
-        public override DataPlayerInfo CloneT()
-            => new DataPlayerInfo {
-                ID = ID,
-                Name = Name,
-                FullName = FullName
-            };
-
         public override string ToString()
             => $"#{ID}: {FullName} ({Name})";
+
+    }
+
+    public interface IDataPlayerUpdate {
+
+        DataPlayerInfo Player { get; set; }
 
     }
 }

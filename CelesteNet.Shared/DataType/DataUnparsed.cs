@@ -33,12 +33,5 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(InnerData);
         }
 
-        public override DataUnparsed CloneT()
-            => new DataUnparsed {
-                InnerID = InnerID,
-                InnerFlags = InnerFlags,
-                InnerData = InnerData.ToArray(),
-            };
-
     }
 }

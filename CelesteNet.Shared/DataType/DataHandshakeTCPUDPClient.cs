@@ -31,10 +31,5 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(UDPPort);
         }
 
-        public override DataHandshakeTCPUDPClient CloneT()
-            => new DataHandshakeTCPUDPClient {
-                Name = Name,
-            };
-
     }
 }

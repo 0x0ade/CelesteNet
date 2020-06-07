@@ -16,11 +16,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public abstract void Read(DataContext ctx, BinaryReader reader);
         public abstract void Write(DataContext ctx, BinaryWriter writer);
 
-        public abstract object Clone();
-
     }
 
     public abstract class DataType<T> : DataType where T : DataType<T> {
+
         public static string DataID;
         public static string Source;
 
@@ -34,9 +33,23 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             return (T) this;
         }
 
-        public override object Clone()
-            => CloneT();
-        public abstract T CloneT();
+    }
+
+    // TODO: Interface this maybe?
+    public abstract class DataUpdateType<T> : DataType<T> where T : DataUpdateType<T> {
+
+        public override DataFlags DataFlags => DataFlags.Update;
+
+        public uint UpdateID;
+
+        public override void Read(DataContext ctx, BinaryReader reader) {
+            UpdateID = reader.ReadUInt32();
+        }
+
+        public override void Write(DataContext ctx, BinaryWriter writer) {
+            writer.Write(UpdateID);
+        }
+
     }
 
     public interface IDataRefType {

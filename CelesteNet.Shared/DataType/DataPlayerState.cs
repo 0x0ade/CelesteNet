@@ -41,13 +41,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(Idle);
         }
 
-        public override DataPlayerState CloneT()
-            => new DataPlayerState {
-                ID = ID,
-                SID = SID,
-                Idle = Idle
-            };
-
         public override string ToString()
             => $"#{ID}: {SID}, {Idle}";
 

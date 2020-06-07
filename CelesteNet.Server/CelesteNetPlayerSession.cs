@@ -128,6 +128,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (data is IDataBoundRefType<DataPlayerInfo> bound)
                 bound.ID = ID;
 
+            if (data is IDataPlayerUpdate update)
+                update.Player = PlayerInfo;
+
             return true;
         }
 
@@ -149,7 +152,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (con != Con)
                 return;
 
-            if (data is IDataBoundRefType<DataPlayerInfo> bound) {
+            if (data is IDataBoundRefType<DataPlayerInfo> ||
+                data is IDataPlayerUpdate) {
                 lock (Server.Connections) {
                     foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
                         if (other == this)

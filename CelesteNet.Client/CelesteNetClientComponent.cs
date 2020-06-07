@@ -1,4 +1,5 @@
-﻿using Celeste.Mod.Helpers;
+﻿using Celeste.Mod.CelesteNet.Client.Components;
+using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;

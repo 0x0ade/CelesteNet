@@ -33,13 +33,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             PlayerInfo.Write(ctx, writer);
         }
 
-        public override DataHandshakeServer CloneT()
-            => new DataHandshakeServer {
-                Version = Version,
-
-                PlayerInfo = PlayerInfo.CloneT()
-            };
-
         public override string ToString()
             => $"{Version}, {PlayerInfo}";
 

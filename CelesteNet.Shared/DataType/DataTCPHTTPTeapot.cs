@@ -23,9 +23,5 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             throw new NotSupportedException();
         }
 
-        public override DataTCPHTTPTeapot CloneT()
-            => new DataTCPHTTPTeapot {
-            };
-
     }
 }

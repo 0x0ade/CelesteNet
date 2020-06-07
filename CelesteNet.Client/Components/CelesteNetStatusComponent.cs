@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
-namespace Celeste.Mod.CelesteNet.Client {
+namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetStatusComponent : CelesteNetGameComponent {
 
         private bool show;

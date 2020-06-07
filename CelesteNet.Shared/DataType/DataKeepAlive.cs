@@ -27,10 +27,5 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override void Write(DataContext ctx, BinaryWriter writer) {
         }
 
-        public override DataKeepAlive CloneT()
-            => new DataKeepAlive {
-                IsUpdate = IsUpdate
-            };
-
     }
 }

@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
-namespace Celeste.Mod.CelesteNet.Client {
+namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetPlayerListComponent : CelesteNetGameComponent {
 
         public float Scale => 0.5f + 0.5f * ((Settings.UISize - 1f) / (CelesteNetClientSettings.UISizeMax - 1f));

@@ -55,19 +55,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(Date.ToBinary());
         }
 
-        public override DataChat CloneT()
-            => new DataChat {
-                CreatedByServer = CreatedByServer,
-
-                Player = Player,
-
-                ID = ID,
-                Tag = Tag,
-                Text = Text,
-                Color = Color,
-                Date = Date
-            };
-
         public override string ToString()
             => $"[{Date.ToLocalTime().ToLongTimeString()}]{(string.IsNullOrEmpty(Tag) ? "" : $"[{Tag}]")} {Player?.FullName ?? "**SERVER**"}{(Target != null ? " @ " + Target.FullName : "")}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
 

@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
-namespace Celeste.Mod.CelesteNet.Client {
+namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetBlurHelperComponent : CelesteNetGameComponent {
 
         public const int BLUR_SCALE = 3;

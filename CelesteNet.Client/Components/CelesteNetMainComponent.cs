@@ -46,7 +46,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (!(Engine.Scene is Level level))
                 return;
 
-            bool outside = Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) && state.SID != Session.Area.SID;
+            bool outside =
+                !Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
+                (state.SID != Session.Area.SID || state.Mode != Session.Area.Mode);
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 (ghost.Scene != null && ghost.Scene != Engine.Scene) ||

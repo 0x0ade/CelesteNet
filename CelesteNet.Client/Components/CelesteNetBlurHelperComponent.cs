@@ -51,8 +51,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             MDraw.Rect(xi, yi, wi, hi, color);
         }
 
-        public override void Init() {
-            base.Init();
+        public override void Initialize() {
+            base.Initialize();
+
+            RTBlurX = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
+            RTBlurY = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
+            RTBlur = new RenderTarget2D(GraphicsDevice, UI_WIDTH, UI_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
 
             On.Celeste.Celeste.RenderCore += OnRenderCore;
             h_SetRenderTarget = new Hook(
@@ -61,22 +65,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             );
         }
 
-        public override void Initialize() {
-            base.Initialize();
-
-            RTBlurX = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
-            RTBlurY = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
-            RTBlur = new RenderTarget2D(GraphicsDevice, UI_WIDTH, UI_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
-        }
-
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
-            try {
+            MainThreadHelper.Do(() => {
                 On.Celeste.Celeste.RenderCore -= OnRenderCore;
                 h_SetRenderTarget?.Dispose();
-            } catch (InvalidOperationException) {
-            }
+            });
 
             MainThreadHelper.Do(() => {
                 RTGame?.Dispose();

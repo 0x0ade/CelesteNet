@@ -28,11 +28,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Visible = false;
         }
 
-        public override void Start() {
-            base.Start();
+        public override void Initialize() {
+            base.Initialize();
 
             On.Celeste.Level.LoadLevel += OnLoadLevel;
             Everest.Events.Level.OnExit += OnExitLevel;
+        }
+
+        public override void Start() {
+            base.Start();
 
             if (Engine.Instance != null && Engine.Scene is Level level)
                 OnLoadLevel(null, level, Player.IntroTypes.Transition, true);
@@ -42,18 +46,23 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (!(Engine.Scene is Level level))
                 return;
 
+            bool outside = Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) && state.SID != Session.Area.SID;
+
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
-                ghost.Scene != Engine.Scene ||
-                ghost.Sprite.Mode != frame.SpriteMode) {
-                ghost?.RemoveSelf();
+                (ghost.Scene != null && ghost.Scene != Engine.Scene) ||
+                ghost.Sprite.Mode != frame.SpriteMode ||
+                outside) {
+                Engine.Scene.OnEndOfFrame += () => ghost?.RemoveSelf();
                 Ghosts.Remove(frame.Player.ID);
             }
 
-            if (!Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
-                state.SID != Session.Area.SID)
+            if (outside)
                 return;
 
-            level.Add(Ghosts[frame.Player.ID] = ghost = new Ghost(frame.SpriteMode));
+            if (ghost == null) {
+                Ghosts[frame.Player.ID] = ghost = new Ghost(frame.SpriteMode);
+                Engine.Scene.OnEndOfFrame += () => level.Add(ghost);
+            }
 
             ghost.NameTag.Name = frame.Player.FullName;
             ghost.UpdateSprite(frame.Position, frame.Scale, frame.Facing, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
@@ -80,11 +89,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
-            try {
+            MainThreadHelper.Do(() => {
                 On.Celeste.Level.LoadLevel -= OnLoadLevel;
                 Everest.Events.Level.OnExit -= OnExitLevel;
-            } catch (InvalidOperationException) {
-            }
+            });
 
             Cleanup();
         }

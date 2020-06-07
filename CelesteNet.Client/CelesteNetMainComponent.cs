@@ -22,6 +22,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             UpdateOrder = 10000;
             DrawOrder = 10100;
+            Visible = false;
         }
 
         public override void Start() {
@@ -37,9 +38,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             
 
-        }
-
-        public override void Draw(GameTime gameTime) {
         }
 
         protected override void Dispose(bool disposing) {

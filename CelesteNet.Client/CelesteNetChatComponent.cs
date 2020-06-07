@@ -189,7 +189,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Vector2 fontScale = Vector2.One * scale;
 
             if (Active) {
-                MDraw.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
+                Context.Blur.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
 
                 string text = ">" + Typing;
                 if (Calc.BetweenInterval(_Time, 0.5f))
@@ -228,7 +228,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                         y -= height;
 
-                        MDraw.Rect(25f * scale, y, size.X + 50f * scale, height, Color.Black * 0.8f * alpha);
+                        Context.Blur.Rect(25f * scale, y, size.X + 50f * scale, height, Color.Black * 0.8f * alpha);
                         ActiveFont.Draw(
                             text,
                             new Vector2(50f * scale, y + 25f * scale),

@@ -12,8 +12,8 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client {
     public abstract class CelesteNetGameComponent : DrawableGameComponent {
 
-        public const float UI_WIDTH = 1920f;
-        public const float UI_HEIGHT = 1080f;
+        public const int UI_WIDTH = 1920;
+        public const int UI_HEIGHT = 1080;
 
         public CelesteNetClientComponent Context;
         public CelesteNetClient Client => Context?.Client;

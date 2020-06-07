@@ -15,6 +15,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetClient Client;
 
         public CelesteNetMainComponent Main;
+        public CelesteNetBlurHelperComponent Blur;
         public CelesteNetStatusComponent Status;
         public CelesteNetChatComponent Chat;
 
@@ -30,6 +31,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Celeste.Instance.Components.Add(this);
 
             Add(Main = new CelesteNetMainComponent(this, game));
+            Add(Blur = new CelesteNetBlurHelperComponent(this, game));
             Add(Status = new CelesteNetStatusComponent(this, game));
             Add(Chat = new CelesteNetChatComponent(this, game));
 

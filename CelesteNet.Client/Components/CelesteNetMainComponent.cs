@@ -89,6 +89,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Player == null)
                 return;
 
+            if (PlayerNameTag == null || PlayerNameTag.Tracking != Player) {
+                PlayerNameTag?.RemoveSelf();
+                level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.FullName));
+            }
+
             SendFrame();
         }
 
@@ -110,6 +115,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             foreach (Ghost ghost in Ghosts.Values)
                 ghost?.RemoveSelf();
             Ghosts.Clear();
+
+            PlayerNameTag?.RemoveSelf();
         }
 
         #region Hooks

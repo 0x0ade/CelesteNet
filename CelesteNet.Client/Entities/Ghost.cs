@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     public class Ghost : Actor {
 
+        public float Alpha = 0.85f;
+
         public PlayerSprite Sprite;
         public PlayerHair Hair;
 
@@ -54,7 +56,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public void UpdateHair(Facings facing, Color color, bool simulateMotion, int count, Color[] colors, string[] textures) {
             Hair.Facing = facing;
-            Hair.Color = color;
+            Hair.Color = color * Alpha;
+            Hair.Alpha = Alpha;
             Hair.SimulateMotion = simulateMotion;
             Sprite.HairCount = count;
             HairColors = colors;
@@ -65,7 +68,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Position = position;
             Sprite.Scale = scale;
             Sprite.Scale.X *= (float) facing;
-            Sprite.Color = color;
+            Sprite.Color = color * Alpha;
 
             Sprite.Rate = rate;
             Sprite.Justify = justify;

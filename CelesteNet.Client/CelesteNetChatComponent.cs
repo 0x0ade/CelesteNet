@@ -223,7 +223,20 @@ namespace Celeste.Mod.CelesteNet.Client {
                             continue;
 
                         string text = msg.ToString();
-                        Vector2 size = ActiveFont.Measure(text) * fontScale;
+
+                        int lineScaleTry = 0;
+                        float lineScale = scale;
+                        RetryLineScale:
+                        Vector2 lineFontScale = Vector2.One * lineScale;
+
+                        Vector2 size = ActiveFont.Measure(text) * lineFontScale;
+
+                        if ((size.X + 100f * scale) > UI_WIDTH && lineScaleTry < 4) {
+                            lineScaleTry++;
+                            lineScale -= scale * 0.1f;
+                            goto RetryLineScale;
+                        }
+
                         float height = 50f * scale + size.Y;
 
                         y -= height;
@@ -233,7 +246,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             text,
                             new Vector2(50f * scale, y + 25f * scale),
                             Vector2.Zero,
-                            fontScale,
+                            lineFontScale,
                             msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)
                         );
                     }

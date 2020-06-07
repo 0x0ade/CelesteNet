@@ -44,17 +44,27 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost.Scene != Engine.Scene ||
-                frame.SpriteMode != ghost.Sprite.Mode) {
+                ghost.Sprite.Mode != frame.SpriteMode) {
                 ghost?.RemoveSelf();
-                level.Add(Ghosts[frame.Player.ID] = ghost = new Ghost(frame.SpriteMode));
+                Ghosts.Remove(frame.Player.ID);
             }
 
+            if (!Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
+                state.SID != Session.Area.SID)
+                return;
+
+            level.Add(Ghosts[frame.Player.ID] = ghost = new Ghost(frame.SpriteMode));
+
+            ghost.NameTag.Name = frame.Player.FullName;
             ghost.UpdateSprite(frame.Position, frame.Scale, frame.Facing, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
             ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
         }
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
+
+            if (Client == null || !Client.IsReady)
+                return;
 
             if (!(Engine.Scene is Level level))
                 return;

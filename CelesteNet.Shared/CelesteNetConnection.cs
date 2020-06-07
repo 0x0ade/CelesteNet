@@ -73,12 +73,13 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void Send(DataType data) {
-            lock (DisposeLock) {
-                if (!IsAlive)
-                    return;
-                lock (SendQueue) {
-                    SendQueue.Enqueue(data);
+            if (!IsAlive)
+                return;
+            lock (SendQueue) {
+                SendQueue.Enqueue(data);
+                try {
                     SendQueueEvent.Set();
+                } catch (ObjectDisposedException) {
                 }
             }
         }

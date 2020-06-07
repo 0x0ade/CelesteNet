@@ -28,6 +28,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.Color = Player.NormalHairColor;
 
             NameTag = new GhostNameTag(this, "");
+
+            Tag = Tags.Global | Tags.TransitionUpdate | Tags.FrozenUpdate;
         }
 
         public override void Added(Scene scene) {
@@ -41,6 +43,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             base.Removed(scene);
 
             NameTag.RemoveSelf();
+        }
+
+        public override void Update() {
+            if (string.IsNullOrEmpty(NameTag.Name))
+                RemoveSelf();
+
+            base.Update();
         }
 
         public void UpdateHair(Facings facing, Color color, bool simulateMotion, int count, Color[] colors, string[] textures) {

@@ -18,6 +18,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private Player Player;
         private Session Session;
 
+        public GhostNameTag PlayerNameTag;
         public Dictionary<uint, Ghost> Ghosts = new Dictionary<uint, Ghost>();
 
         public CelesteNetMainComponent(CelesteNetClientComponent context, Game game)
@@ -43,27 +44,30 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
-            if (!(Engine.Scene is Level level))
-                return;
+            Level level = Engine.Scene as Level;
 
             bool outside =
+                level == null ||
                 !Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
                 (state.SID != Session.Area.SID || state.Mode != Session.Area.Mode);
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
-                (ghost.Scene != null && ghost.Scene != Engine.Scene) ||
+                ghost == null ||
+                ghost.Scene != level ||
                 ghost.Sprite.Mode != frame.SpriteMode ||
                 outside) {
-                Engine.Scene.OnEndOfFrame += () => ghost?.RemoveSelf();
+                if (ghost != null) {
+                    ghost.NameTag.Name = "";
+                }
                 Ghosts.Remove(frame.Player.ID);
             }
 
-            if (outside)
+            if (level == null || outside)
                 return;
 
             if (ghost == null) {
                 Ghosts[frame.Player.ID] = ghost = new Ghost(frame.SpriteMode);
-                Engine.Scene.OnEndOfFrame += () => level.Add(ghost);
+                level.Add(ghost);
             }
 
             ghost.NameTag.Name = frame.Player.FullName;

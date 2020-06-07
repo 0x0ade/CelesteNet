@@ -165,7 +165,7 @@ namespace Celeste.Mod.CelesteNet {
                     while (UDP != null && IsAlive) {
                         IPEndPoint remote = null;
                         byte[] raw = UDP.Receive(ref remote);
-                        if (UDPRemoteEndPoint != null && remote != UDPRemoteEndPoint)
+                        if (UDPRemoteEndPoint != null && !remote.Equals(UDPRemoteEndPoint))
                             continue;
 
                         stream.Seek(0, SeekOrigin.Begin);

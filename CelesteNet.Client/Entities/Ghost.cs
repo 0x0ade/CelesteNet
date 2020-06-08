@@ -67,6 +67,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.Alpha = Alpha;
             Hair.SimulateMotion = simulateMotion;
             Sprite.HairCount = count;
+            while (Hair.Nodes.Count < count)
+                Hair.Nodes.Add(Hair.Nodes.LastOrDefault());
+            while (Hair.Nodes.Count > count)
+                Hair.Nodes.RemoveAt(Hair.Nodes.Count - 1);
             HairColors = colors;
             HairTextures = textures;
         }

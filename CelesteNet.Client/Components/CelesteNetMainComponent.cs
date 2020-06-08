@@ -102,11 +102,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Client == null || !Client.IsReady)
                 return;
 
-            if (!(Engine.Scene is Level level))
+            if (!(Engine.Scene is Level level)) {
+                if (Player != null && Engine.Scene != Player.Scene) {
+                    Player = null;
+                    Session = null;
+                    SendState();
+                }
                 return;
+            }
 
-            if (Player == null || Player.Scene != Engine.Scene)
+            if (Player == null || Player.Scene != Engine.Scene) {
                 Player = level.Tracker.GetEntity<Player>();
+                if (Player != null) {
+                    Session = level.Session;
+                    SendState();
+                }
+            }
             if (Player == null)
                 return;
 

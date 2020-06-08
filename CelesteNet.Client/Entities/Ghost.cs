@@ -27,13 +27,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Add(Hair = new PlayerHair(Sprite));
             Add(Sprite);
 
-            Add(new PostUpdateHook(ForceAfterUpdateHair));
-
             Hair.Color = Player.NormalHairColor;
 
             NameTag = new GhostNameTag(this, "");
 
-            Tag = Tags.Persistent | Tags.PauseUpdate | Tags.TransitionUpdate | Tags.FrozenUpdate;
+            Tag = Tags.Persistent | Tags.PauseUpdate;
         }
 
         public override void Added(Scene scene) {
@@ -54,10 +52,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 RemoveSelf();
 
             base.Update();
-        }
 
-        private void ForceAfterUpdateHair() {
-            if (!SceneAs<Level>().GetUpdateHair())
+            if (!(Scene is Level level))
+                return;
+
+            if (!level.GetUpdateHair() || level.Overlay is PauseUpdateOverlay)
                 Hair.AfterUpdate();
         }
 

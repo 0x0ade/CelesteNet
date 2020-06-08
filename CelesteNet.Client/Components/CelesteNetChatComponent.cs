@@ -1,4 +1,5 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
+﻿using Celeste.Mod.CelesteNet.Client.Entities;
+using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -17,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public float Scale => Settings.UIScale;
 
-        protected Overlay _DummyOverlay = new Overlay();
+        protected Overlay _DummyOverlay = new PauseUpdateOverlay();
 
         public List<DataChat> Log = new List<DataChat>();
         public Dictionary<string, DataChat> Pending = new Dictionary<string, DataChat>();

@@ -58,10 +58,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             base.Update(gameTime);
 
             if (Client == null || !Client.IsReady)
-                return;
+                goto End;
 
             if (!(Engine.Scene is Level level))
-                return;
+                goto End;
 
             if (Player == null || Player.Scene != level)
                 Player = level.Tracker.GetEntity<Player>();
@@ -72,7 +72,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             if (Player == null)
-                return;
+                goto End;
 
             if (Wheel == null)
                 level.Add(Wheel = new GhostEmoteWheel(Player));
@@ -110,6 +110,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 else if (MInput.Keyboard.Pressed(Keys.D0))
                     Send(9);
             }
+
+            End:
+            if (Wheel?.Shown ?? false)
+                Context.Main.StateUpdated |= Context.Main.ForceIdle.Add("EmoteWheel");
+            else
+                Context.Main.StateUpdated |= Context.Main.ForceIdle.Remove("EmoteWheel");
         }
 
         protected override void Dispose(bool disposing) {

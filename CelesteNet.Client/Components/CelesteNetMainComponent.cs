@@ -37,6 +37,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             On.Celeste.Level.LoadLevel += OnLoadLevel;
             Everest.Events.Level.OnExit += OnExitLevel;
+            On.Celeste.PlayerHair.GetHairColor += OnGetHairColor;
+            On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
         }
 
         public override void Start() {
@@ -220,6 +222,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Cleanup();
 
             SendState();
+        }
+
+        public Color OnGetHairColor(On.Celeste.PlayerHair.orig_GetHairColor orig, PlayerHair self, int index) {
+            if (self.Entity is Ghost ghost && 0 <= index && index < ghost.HairColors.Length)
+                return ghost.HairColors[index] * ghost.Alpha;
+            return orig(self, index);
+        }
+
+        private MTexture OnGetHairTexture(On.Celeste.PlayerHair.orig_GetHairTexture orig, PlayerHair self, int index) {
+            if (self.Entity is Ghost ghost && 0 <= index && index < ghost.HairTextures.Length && GFX.Game.Textures.TryGetValue(ghost.HairTextures[index], out MTexture tex))
+                return tex;
+            return orig(self, index);
         }
 
         #endregion

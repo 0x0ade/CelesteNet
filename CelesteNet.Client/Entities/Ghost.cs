@@ -17,8 +17,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public GhostNameTag NameTag;
         public GhostEmote IdleTag;
 
-        internal Color[] HairColors;
-        internal string[] HairTextures;
+        public Color[] HairColors;
+        public string[] HairTextures;
 
         public Ghost(PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {

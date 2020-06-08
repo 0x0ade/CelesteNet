@@ -15,6 +15,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public PlayerHair Hair;
 
         public GhostNameTag NameTag;
+        public GhostEmote IdleTag;
 
         internal Color[] HairColors;
         internal string[] HairTextures;

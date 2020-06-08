@@ -21,11 +21,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public const int BLUR_WIDTH = UI_WIDTH / BLUR_SCALE;
         public const int BLUR_HEIGHT = UI_HEIGHT / BLUR_SCALE;
 
-        public RenderTarget2D RTGame;
+        public RenderTarget2D FakeRT;
 
-        public RenderTarget2D RTBlurX;
-        public RenderTarget2D RTBlurY;
-        public RenderTarget2D RTBlur;
+        public RenderTarget2D BlurXRT;
+        public RenderTarget2D BlurYRT;
+        public RenderTarget2D BlurRT;
 
         public CelesteNetBlurHelperComponent(CelesteNetClientComponent context, Game game)
             : base(context, game) {
@@ -43,7 +43,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Rectangle rect = new Rectangle(xi, yi, wi, hi);
             
             MDraw.SpriteBatch.Draw(
-                RTBlur,
+                BlurRT,
                 rect, rect,
                 Color.White * Math.Min(1f, color.A / 255f * 2f)
             );
@@ -54,11 +54,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Initialize() {
             base.Initialize();
 
-            RTBlurX = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
-            RTBlurY = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
-            RTBlur = new RenderTarget2D(GraphicsDevice, UI_WIDTH, UI_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
+            BlurXRT = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
+            BlurYRT = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
+            BlurRT = new RenderTarget2D(GraphicsDevice, UI_WIDTH, UI_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
 
             IL.Monocle.Engine.RenderCore += ILRenderCore;
+            IL.Celeste.Level.Render += ILRenderLevel;
         }
 
         protected override void Dispose(bool disposing) {
@@ -66,12 +67,38 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             MainThreadHelper.Do(() => {
                 IL.Monocle.Engine.RenderCore -= ILRenderCore;
+                IL.Celeste.Level.Render -= ILRenderLevel;
 
-                RTGame?.Dispose();
-                RTBlurX?.Dispose();
-                RTBlurY?.Dispose();
-                RTGame = null;
+                FakeRT?.Dispose();
+                BlurXRT?.Dispose();
+                BlurYRT?.Dispose();
+                FakeRT = null;
             });
+        }
+
+        private RenderTarget2D GetFakeRT(RenderTarget2D realRT) {
+            if (realRT != null)
+                return realRT;
+
+            if (FakeRT != null && (FakeRT.Width != Engine.ViewWidth || FakeRT.Height != Engine.ViewHeight)) {
+                FakeRT.Dispose();
+                FakeRT = null;
+            }
+
+            if (FakeRT == null) {
+                FakeRT = new RenderTarget2D(
+                    GraphicsDevice,
+                    Engine.ViewWidth,
+                    Engine.ViewHeight,
+                    false,
+                    SurfaceFormat.Color,
+                    GraphicsDevice.PresentationParameters.DepthStencilFormat,
+                    0,
+                    RenderTargetUsage.DiscardContents
+                );
+            }
+
+            return FakeRT;
         }
 
         private void ILRenderCore(ILContext il) {
@@ -89,29 +116,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             });
             c.Emit(OpCodes.Stloc, vd_tmpRealVP);
 
-            c.GotoNext(i => i.MatchCallOrCallvirt(typeof(GraphicsDevice).GetMethod("SetRenderTarget", new Type[] { typeof(RenderTarget2D) })));
+            c.GotoNext(i => i.MatchCallOrCallvirt(typeof(GraphicsDevice), "SetRenderTarget"));
+            c.Emit(OpCodes.Dup);
             c.Emit(OpCodes.Stloc, vd_tmpRealRT);
-            c.EmitDelegate<Func<RenderTarget2D>>(() => {
-                if (RTGame != null && (RTGame.Width != Engine.ViewWidth || RTGame.Height != Engine.ViewHeight)) {
-                    RTGame.Dispose();
-                    RTGame = null;
-                }
-
-                if (RTGame == null) {
-                    RTGame = new RenderTarget2D(
-                        GraphicsDevice,
-                        Engine.ViewWidth,
-                        Engine.ViewHeight,
-                        false,
-                        SurfaceFormat.Color,
-                        GraphicsDevice.PresentationParameters.DepthStencilFormat,
-                        0,
-                        RenderTargetUsage.DiscardContents
-                    );
-                }
-
-                return RTGame;
-            });
+            c.EmitDelegate<Func<RenderTarget2D, RenderTarget2D>>(GetFakeRT);
 
             c.GotoNext(i => i.MatchRet());
             c.Emit(OpCodes.Ldloc, vd_tmpRealVP);
@@ -119,7 +127,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             c.EmitDelegate<Action<Viewport, RenderTarget2D>>((tmpRealVP, tmpRealRT) => {
                 Engine.SetViewport(tmpRealVP);
 
-                if (RTGame != null) {
+                if (FakeRT != null) {
                     const int blurrad = 16;
                     const float blurdist = 0.6f;
                     Vector2 blurScale = new Vector2(BLUR_WIDTH / (float) tmpRealVP.Width, BLUR_HEIGHT / (float) tmpRealVP.Height);
@@ -127,7 +135,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     GraphicsDevice.Viewport = new Viewport(0, 0, BLUR_WIDTH, BLUR_HEIGHT);
 
-                    GraphicsDevice.SetRenderTarget(RTBlurX);
+                    GraphicsDevice.SetRenderTarget(BlurXRT);
                     GraphicsDevice.Clear(Engine.ClearColor);
                     MDraw.SpriteBatch.Begin(
                         SpriteSortMode.Deferred,
@@ -139,18 +147,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         Matrix.Identity
                     );
 
-                    MDraw.SpriteBatch.Draw(RTGame, new Vector2(0f, 0f), null, Color.White, 0f, Vector2.Zero, blurScale, SpriteEffects.None, 0);
+                    MDraw.SpriteBatch.Draw(FakeRT, new Vector2(0f, 0f), null, Color.White, 0f, Vector2.Zero, blurScale, SpriteEffects.None, 0);
 
                     for (int x = blurrad - 1; x > 0; x--) {
                         float a = (blurrad - x) * 0.5f / blurrad;
                         Color c = new Color(a, a, a, a) * 0.5f;
-                        MDraw.SpriteBatch.Draw(RTGame, new Vector2(-x * blurdist - 0.5f, 0), null, c, 0f, Vector2.Zero, blurScale, SpriteEffects.None, 0);
-                        MDraw.SpriteBatch.Draw(RTGame, new Vector2(+x * blurdist - 0.5f, 0), null, c, 0f, Vector2.Zero, blurScale, SpriteEffects.None, 0);
+                        MDraw.SpriteBatch.Draw(FakeRT, new Vector2(-x * blurdist - 0.5f, 0), null, c, 0f, Vector2.Zero, blurScale, SpriteEffects.None, 0);
+                        MDraw.SpriteBatch.Draw(FakeRT, new Vector2(+x * blurdist - 0.5f, 0), null, c, 0f, Vector2.Zero, blurScale, SpriteEffects.None, 0);
                     }
 
                     MDraw.SpriteBatch.End();
 
-                    GraphicsDevice.SetRenderTarget(RTBlurY);
+                    GraphicsDevice.SetRenderTarget(BlurYRT);
                     GraphicsDevice.Clear(Engine.ClearColor);
                     MDraw.SpriteBatch.Begin(
                         SpriteSortMode.Deferred,
@@ -162,18 +170,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         Matrix.Identity
                     );
 
-                    MDraw.SpriteBatch.Draw(RTBlurX, new Vector2(0f, 0f), null, Color.White, 0f, Vector2.Zero, Vector2.One, SpriteEffects.None, 0);
+                    MDraw.SpriteBatch.Draw(BlurXRT, new Vector2(0f, 0f), null, Color.White, 0f, Vector2.Zero, Vector2.One, SpriteEffects.None, 0);
 
                     for (int y = blurrad - 1; y > 0; y--) {
                         float a = (blurrad - y) * 0.5f / blurrad;
                         Color c = new Color(a, a, a, a) * 0.5f;
-                        MDraw.SpriteBatch.Draw(RTBlurX, new Vector2(0f, -y * blurdist - 0.5f), null, c, 0f, Vector2.Zero, Vector2.One, SpriteEffects.None, 0);
-                        MDraw.SpriteBatch.Draw(RTBlurX, new Vector2(0f, +y * blurdist - 0.5f), null, c, 0f, Vector2.Zero, Vector2.One, SpriteEffects.None, 0);
+                        MDraw.SpriteBatch.Draw(BlurXRT, new Vector2(0f, -y * blurdist - 0.5f), null, c, 0f, Vector2.Zero, Vector2.One, SpriteEffects.None, 0);
+                        MDraw.SpriteBatch.Draw(BlurXRT, new Vector2(0f, +y * blurdist - 0.5f), null, c, 0f, Vector2.Zero, Vector2.One, SpriteEffects.None, 0);
                     }
 
                     MDraw.SpriteBatch.End();
 
-                    GraphicsDevice.SetRenderTarget(RTBlur);
+                    GraphicsDevice.SetRenderTarget(BlurRT);
                     GraphicsDevice.Clear(Engine.ClearColor);
                     MDraw.SpriteBatch.Begin(
                         SpriteSortMode.Deferred,
@@ -185,12 +193,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         Matrix.Identity
                     );
 
-                    MDraw.SpriteBatch.Draw(RTBlurY, new Vector2(0f, 0f), null, Color.White, 0f, Vector2.Zero, blurScaleInv, SpriteEffects.None, 0);
+                    MDraw.SpriteBatch.Draw(BlurYRT, new Vector2(0f, 0f), null, Color.White, 0f, Vector2.Zero, blurScaleInv, SpriteEffects.None, 0);
 
                     MDraw.SpriteBatch.End();
                 }
 
-                if (RTGame != null) {
+                if (FakeRT != null) {
                     GraphicsDevice.SetRenderTarget(tmpRealRT);
                     GraphicsDevice.Viewport = Engine.Viewport;
                     GraphicsDevice.Clear(Engine.ClearColor);
@@ -205,11 +213,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         Matrix.Identity
                     );
 
-                    MDraw.SpriteBatch.Draw(RTGame, Vector2.Zero, Color.White);
+                    MDraw.SpriteBatch.Draw(FakeRT, Vector2.Zero, Color.White);
 
                     MDraw.SpriteBatch.End();
                 }
             });
+        }
+
+        private void ILRenderLevel(ILContext il) {
+            ILCursor c = new ILCursor(il);
+
+            while (c.TryGotoNext(i => i.MatchCallOrCallvirt(typeof(GraphicsDevice), "SetRenderTarget"))) {
+                c.EmitDelegate<Func<RenderTarget2D, RenderTarget2D>>(GetFakeRT);
+                c.Index++;
+            }
         }
 
     }

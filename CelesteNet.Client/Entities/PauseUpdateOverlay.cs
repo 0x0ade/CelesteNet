@@ -13,7 +13,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             base.Update();
 
             foreach (Entity e in Engine.Scene[Tags.PauseUpdate])
-                if (e.Active)
+                if (e.Active && !(e is TextMenu))
                     e.Update();
         }
 

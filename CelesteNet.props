@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <LangVersion>8</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
   </PropertyGroup>
 
@@ -64,13 +65,13 @@
   </ItemGroup>
 
   <Choose>
-    <When Condition="$(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp'))">
+    <When Condition="!Exists('$(CelesteDir)\BuildIsXNA.txt') And ($(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp')))">
       <ItemGroup>
         <Reference Include="FNA" HintPath="..\lib\netcoreapp3.1\FNA.dll" Private="true" />
       </ItemGroup>
     </When>
 
-    <When Condition="'$(OS)' != 'Windows_NT' Or Exists('$(CelesteDir)\FNA.dll')">
+    <When Condition="'$(OS)' != 'Windows_NT' Or (!Exists('$(CelesteDir)\BuildIsXNA.txt') And Exists('$(CelesteDir)\FNA.dll'))">
       <ItemGroup>
         <Reference Include="FNA" HintPath="$(CelesteDir)\FNA.dll" Private="$(CopyCeleste)" />
       </ItemGroup>

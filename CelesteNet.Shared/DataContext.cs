@@ -174,13 +174,16 @@ namespace Celeste.Mod.CelesteNet {
             => Handle(con, typeof(T), data);
 
         protected void Handle(CelesteNetConnection con, Type type, DataType data) {
-            if (type == null || data == null || !data.FilterHandle(this))
+            if (type == null || data == null)
                 return;
 
             for (Type btype = type; btype != typeof(DataType).BaseType; btype = btype.BaseType)
                 if (Filters.TryGetValue(btype, out DataFilter filter))
                     if (!filter.InvokeWhileTrue(con, data))
                         return;
+
+            if (!data.FilterHandle(this))
+                return;
 
             if (data is IDataRefType dataRef)
                 SetRef(dataRef);

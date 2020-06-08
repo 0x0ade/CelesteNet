@@ -195,8 +195,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost?.RemoveSelf();
             Ghosts.Clear();
 
-            PlayerNameTag?.RemoveSelf();
-            PlayerIdleTag?.RemoveSelf();
+            if (PlayerNameTag != null)
+                PlayerNameTag.Name = "";
+
+            if (PlayerIdleTag != null) {
+                PlayerIdleTag.PopOut = true;
+                PlayerIdleTag.AnimationTime = 1f;
+            }
         }
 
         #region Hooks

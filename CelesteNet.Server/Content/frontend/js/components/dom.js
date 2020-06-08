@@ -74,13 +74,7 @@ export class FrontendDOM {
         if (data !== panel.ep)
           return;
         console.log("update", data);
-        if (panel.progress !== 2) {
-          panel.progress = 2;
-          panel.render(null);
-        }
-        if (refreshTimeout)
-          clearTimeout(refreshTimeout);
-        refreshTimeout = setTimeout(() => panel.refresh(), 300);
+        panel.refresh();
       });
     }
   }

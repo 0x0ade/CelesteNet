@@ -24,6 +24,8 @@ export class FrontendBasicPanel {
 
     this.progress = 2;
 
+    this.updateDelay = 100;
+
     /** @type {[string | ((el: HTMLElement) => HTMLElement), () => void][] | [string | ((el: HTMLElement) => HTMLElement)][]} */
     this.list = null;
 
@@ -38,10 +40,34 @@ export class FrontendBasicPanel {
   }
 
   async refresh() {
-    this.progress = 2;
-    this.render();
+    if (this.progress !== 2) {
+      this.progress = 2;
+      this.render();
+    }
 
-    await this.update();
+    if (!this.updatePromise) {
+      this.updatePromise = new Promise((resolve, reject) => {
+        this.updatePromiseResolve = (...args) => {
+          resolve(...args);
+          this.updatePromise = null;
+        };
+        this.updatePromiseReject = (...args) => {
+          reject(...args);
+          this.updatePromise = null;
+        };
+      });
+    }
+
+    if (this.updateTimeout)
+      clearTimeout(this.updateTimeout);
+    this.updateTimeout = setTimeout(() => {
+      this.update().then(
+        (...args) => this.updatePromiseResolve(...args),
+        (...args) => this.updatePromiseReject(...args)
+      );
+    }, this.updateDelay);
+
+    await this.updatePromise;
 
     this.progress = 0;
     this.render();

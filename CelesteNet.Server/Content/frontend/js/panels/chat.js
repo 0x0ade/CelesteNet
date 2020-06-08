@@ -60,7 +60,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
   }
 
   async update() {
-    this.data = await fetch(this.ep).then(r => r.json());
+    this.data = await fetch(this.ep + "?count=100").then(r => r.json());
     // @ts-ignore
     this.list = this.data.map(data => this.createEntry(data.Text, data.Color, data));
   }

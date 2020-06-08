@@ -77,7 +77,6 @@ namespace Celeste.Mod.CelesteNet.Client {
             ButtonEmoteSend?.Deregister();
         }
 
-
         public void Start() {
             lock (ClientLock) {
                 if (_StartThread?.IsAlive ?? false)

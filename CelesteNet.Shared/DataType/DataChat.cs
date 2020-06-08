@@ -34,6 +34,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Color Color = Color.White;
         public DateTime Date = DateTime.UtcNow;
 
+        public DateTime ReceivedDate = DateTime.UtcNow;
+
         public override void Read(DataContext ctx, BinaryReader reader) {
             CreatedByServer = false;
             Player = ctx.ReadRef<DataPlayerInfo>(reader);
@@ -42,6 +44,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Text = reader.ReadNullTerminatedString();
             Color = new Color(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), 255);
             Date = DateTime.FromBinary(reader.ReadInt64());
+            ReceivedDate = DateTime.UtcNow;
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {

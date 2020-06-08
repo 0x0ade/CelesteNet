@@ -216,7 +216,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         DataChat msg = Log[count - 1 - i];
 
                         float alpha = 1f;
-                        float delta = (float) (now - msg.Date).TotalSeconds;
+                        float delta = (float) (now - msg.ReceivedDate).TotalSeconds;
                         if (!Active && delta > 3f)
                             alpha = 1f - Ease.CubeIn(delta - 3f);
                         if (alpha <= 0f)

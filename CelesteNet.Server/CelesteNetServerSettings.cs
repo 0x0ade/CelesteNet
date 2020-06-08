@@ -30,7 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public string MessageGreeting { get; set; } = "Welcome {player}, to <insert server name here>!";
         public string MessageMOTD { get; set; } =
-@"Don't cheat and have fun!
+@"Don't cheat. Have fun!
 Press T to talk.
 Send /help for a list of all commands.";
         public string MessageLeave { get; set; } = "Cya, {player}!";

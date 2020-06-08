@@ -54,6 +54,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        public void Handle(CelesteNetConnection con, DataPlayerState state) {
+            if (Session != null &&
+                (state.Channel != Channel || state.SID != Session.Area.SID || state.Mode != Session.Area.Mode) &&
+                Ghosts.TryGetValue(state.ID, out Ghost ghost)) {
+                if (ghost != null)
+                    ghost.NameTag.Name = "";
+                Ghosts.Remove(state.ID);
+            }
+        }
+
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
             Level level = Engine.Scene as Level;
 

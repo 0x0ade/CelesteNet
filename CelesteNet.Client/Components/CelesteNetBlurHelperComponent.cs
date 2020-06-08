@@ -58,16 +58,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             BlurYRT = new RenderTarget2D(GraphicsDevice, BLUR_WIDTH, BLUR_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
             BlurRT = new RenderTarget2D(GraphicsDevice, UI_WIDTH, UI_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
 
-            IL.Monocle.Engine.RenderCore += ILRenderCore;
             IL.Celeste.Level.Render += ILRenderLevel;
+            IL.Monocle.Engine.RenderCore += ILRenderCore;
         }
 
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
             MainThreadHelper.Do(() => {
-                IL.Monocle.Engine.RenderCore -= ILRenderCore;
                 IL.Celeste.Level.Render -= ILRenderLevel;
+                IL.Monocle.Engine.RenderCore -= ILRenderCore;
 
                 FakeRT?.Dispose();
                 BlurXRT?.Dispose();

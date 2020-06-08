@@ -27,7 +27,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             : base(context, game) {
 
             UpdateOrder = 10000;
-            DrawOrder = 10100;
             Visible = false;
         }
 

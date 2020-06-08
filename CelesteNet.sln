@@ -34,6 +34,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dialog", "Dialog", "{30CD2B
 		Dialog\English.txt = Dialog\English.txt
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Graphics", "Graphics", "{EA46831D-A8C1-48F4-8E8A-B331EA03B73C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Atlases", "Atlases", "{B101467E-391E-4794-8FE5-D8E968BEFA74}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Gui", "Gui", "{9AE35793-3E94-4E8C-BDA7-C314BA7012FA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "celestenet", "celestenet", "{835CD78E-3E88-46F8-81EE-FC42E1D8FB38}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "iconwheel", "iconwheel", "{02E424ED-285B-453B-997F-3C4AC74DB4F6}"
+	ProjectSection(SolutionItems) = preProject
+		Graphics\Atlases\Gui\celestenet\iconwheel\bg.png = Graphics\Atlases\Gui\celestenet\iconwheel\bg.png
+		Graphics\Atlases\Gui\celestenet\iconwheel\indicator.png = Graphics\Atlases\Gui\celestenet\iconwheel\indicator.png
+		Graphics\Atlases\Gui\celestenet\iconwheel\line.png = Graphics\Atlases\Gui\celestenet\iconwheel\line.png
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,6 +75,11 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{30CD2B21-9175-456F-AF35-57BC9E735E9E} = {A2A695E6-AD24-4BF9-AE44-3B3FC4F0A0B3}
+		{EA46831D-A8C1-48F4-8E8A-B331EA03B73C} = {A2A695E6-AD24-4BF9-AE44-3B3FC4F0A0B3}
+		{B101467E-391E-4794-8FE5-D8E968BEFA74} = {EA46831D-A8C1-48F4-8E8A-B331EA03B73C}
+		{9AE35793-3E94-4E8C-BDA7-C314BA7012FA} = {B101467E-391E-4794-8FE5-D8E968BEFA74}
+		{835CD78E-3E88-46F8-81EE-FC42E1D8FB38} = {9AE35793-3E94-4E8C-BDA7-C314BA7012FA}
+		{02E424ED-285B-453B-997F-3C4AC74DB4F6} = {835CD78E-3E88-46F8-81EE-FC42E1D8FB38}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7FDFC39A-82B7-4B23-8208-F246E9B3A7A2}

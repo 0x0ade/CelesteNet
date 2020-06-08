@@ -25,6 +25,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         private Thread _StartThread;
         public bool IsAlive => Context != null;
 
+        // This should ideally be part of the "emote module" if emotes were a fully separate thing.
+        public VirtualJoystick JoystickEmoteWheel;
+        public VirtualButton ButtonEmoteSend;
+
         public CelesteNetClientModule() {
             Instance = this;
         }
@@ -35,6 +39,42 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override void Unload() {
             Stop();
+        }
+
+        public override void LoadSettings() {
+            base.LoadSettings();
+
+            if (Settings.Emotes == null || Settings.Emotes.Length == 0) {
+                Settings.Emotes = new string[] {
+                    "i:collectables/heartgem/0/spin",
+                    "i:collectables/strawberry",
+                    "Hi!",
+                    "Too slow!",
+                    "p:madeline/normal04",
+                    "p:ghost/scoff03",
+                    "p:theo/yolo03 theo/yolo02 theo/yolo01 theo/yolo02 END",
+                    "p:granny/laugh",
+                };
+            }
+        }
+
+        public override void OnInputInitialize() {
+            base.OnInputInitialize();
+
+            JoystickEmoteWheel = new VirtualJoystick(true,
+                new VirtualJoystick.PadRightStick(Input.Gamepad, 0.2f)
+            );
+            ButtonEmoteSend = new VirtualButton(
+                new VirtualButton.KeyboardKey(Keys.Q),
+                new VirtualButton.PadButton(Input.Gamepad, Buttons.RightStick)
+            );
+        }
+
+        public override void OnInputDeregister() {
+            base.OnInputDeregister();
+
+            JoystickEmoteWheel?.Deregister();
+            ButtonEmoteSend?.Deregister();
         }
 
 

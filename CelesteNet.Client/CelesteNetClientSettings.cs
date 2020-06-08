@@ -85,6 +85,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         #endregion
 
 
+        [SettingIgnore]
+        public string[] Emotes { get; set; }
+
+
         #region Helpers
 
         [SettingIgnore]

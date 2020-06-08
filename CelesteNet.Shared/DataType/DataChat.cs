@@ -36,6 +36,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public DateTime ReceivedDate = DateTime.UtcNow;
 
+        public override bool FilterHandle(DataContext ctx)
+            => !string.IsNullOrEmpty(Text);
+
+        public override bool FilterSend(DataContext ctx)
+            => !string.IsNullOrEmpty(Text);
+
         public override void Read(DataContext ctx, BinaryReader reader) {
             CreatedByServer = false;
             Player = ctx.ReadRef<DataPlayerInfo>(reader);

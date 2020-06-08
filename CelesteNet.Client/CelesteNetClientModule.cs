@@ -80,14 +80,15 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void Start() {
             lock (ClientLock) {
+                if (_StartThread?.IsAlive ?? false)
+                    _StartThread.Join();
+
                 CelesteNetClientComponent last = Context ?? ContextLast;
                 if (Client?.IsAlive ?? false)
                     Stop();
 
-                if (Context != null)
-                    return;
-
                 last?.Status?.Set(null);
+
                 Context = new CelesteNetClientComponent(Celeste.Instance);
                 ContextLast = Context;
 
@@ -131,7 +132,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public void Stop() {
             lock (ClientLock) {
                 if (_StartThread?.IsAlive ?? false)
-                    _StartThread.Interrupt();
+                    _StartThread.Join();
 
                 if (Context == null)
                     return;

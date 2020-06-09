@@ -204,10 +204,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                     );
 
                 } else {
-                    Vector2 textSize = ActiveFont.Measure(emote);
+                    Vector2 textSize = CelesteNetClientFont.Measure(emote);
                     float textScale = (GhostEmote.Size / Math.Max(textSize.X, textSize.Y)) * 0.24f * popupScale;
 
-                    ActiveFont.DrawOutline(
+                    CelesteNetClientFont.DrawOutline(
                         emote,
                         emotePos,
                         new Vector2(0.5f, 0.5f),

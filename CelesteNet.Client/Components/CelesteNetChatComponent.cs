@@ -195,7 +195,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 string text = ">" + Typing;
                 if (Calc.BetweenInterval(_Time, 0.5f))
                     text += "_";
-                ActiveFont.Draw(
+                CelesteNetClientFont.Draw(
                     text,
                     new Vector2(50f * scale, UI_HEIGHT - 105f * scale),
                     Vector2.Zero,
@@ -230,7 +230,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         RetryLineScale:
                         Vector2 lineFontScale = Vector2.One * lineScale;
 
-                        Vector2 size = ActiveFont.Measure(text) * lineFontScale;
+                        Vector2 size = CelesteNetClientFont.Measure(text) * lineFontScale;
 
                         if ((size.X + 100f * scale) > UI_WIDTH && lineScaleTry < 4) {
                             lineScaleTry++;
@@ -243,7 +243,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         y -= height;
 
                         Context.Blur.Rect(25f * scale, y, size.X + 50f * scale, height, Color.Black * 0.7f * alpha);
-                        ActiveFont.Draw(
+                        CelesteNetClientFont.Draw(
                             text,
                             new Vector2(50f * scale, y + 25f * scale),
                             Vector2.Zero,

@@ -48,14 +48,14 @@ namespace Celeste.Mod.CelesteNet.Client {
 #if !DEBUG
         [SettingIgnore]
 #endif
-        [SettingSubText("modoptions_celestenetclient_devonly")]
+        [SettingSubText("modoptions_celestenetclient_devonlyhint")]
         public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
 
 
 #if !DEBUG
         [SettingIgnore]
 #endif
-        [SettingSubText("modoptions_celestenetclient_devonly")]
+        [SettingSubText("modoptions_celestenetclient_devonlyhint")]
         public LogLevel DevLogLevel {
             get => Logger.Level;
             set => Logger.Level = value;
@@ -99,6 +99,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         [SettingIgnore]
         public string[] Emotes { get; set; }
+
 
 
         #region Helpers
@@ -176,6 +177,21 @@ namespace Celeste.Mod.CelesteNet.Client {
                 })
             );
             NameEntry.Disabled = inGame || Connected;
+        }
+
+        public void CreateEmotesEntry(TextMenu menu, bool inGame) {
+            TextMenu.Item item;
+            
+            menu.Add(item = new TextMenu.Button("modoptions_celestenetclient_reload".DialogClean()).Pressed(() => {
+                CelesteNetClientSettings settingsOld = CelesteNetClientModule.Settings;
+                CelesteNetClientModule.Instance.LoadSettings();
+                CelesteNetClientSettings settingsNew = CelesteNetClientModule.Settings;
+                CelesteNetClientModule.Instance._Settings = settingsOld;
+
+                settingsOld.Emotes = settingsNew.Emotes;
+            }));
+
+            item.AddDescription(menu, "modoptions_celestenetclient_reloadhint".DialogClean());
         }
 
         #endregion

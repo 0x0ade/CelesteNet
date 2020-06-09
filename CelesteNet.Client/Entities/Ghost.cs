@@ -15,9 +15,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public PlayerHair Hair;
 
         public GhostNameTag NameTag;
+        public GhostEmote IdleTag;
 
-        internal Color[] HairColors;
-        internal string[] HairTextures;
+        public Color[] HairColors;
+        public string[] HairTextures;
 
         public Ghost(PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
@@ -66,6 +67,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.Alpha = Alpha;
             Hair.SimulateMotion = simulateMotion;
             Sprite.HairCount = count;
+            while (Hair.Nodes.Count < count)
+                Hair.Nodes.Add(Hair.Nodes.LastOrDefault());
+            while (Hair.Nodes.Count > count)
+                Hair.Nodes.RemoveAt(Hair.Nodes.Count - 1);
             HairColors = colors;
             HairTextures = textures;
         }

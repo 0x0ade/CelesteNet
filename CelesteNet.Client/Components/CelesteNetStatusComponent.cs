@@ -32,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             : base(context, game) {
 
             UpdateOrder = 10000;
-            DrawOrder = 10000;
+            DrawOrder = 10200;
 
             AutoDispose = false;
             Enabled = true;
@@ -90,7 +90,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             timeSpin += Engine.RawDeltaTime * spinSpeed;
 
-            if (Context.Game == null && time == 0f)
+            if (AutoDispose && time == 0f)
                 Dispose();
         }
 

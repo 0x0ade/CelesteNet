@@ -90,11 +90,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Celeste.Instance.Components.Remove(this);
 
-            Status?.Set("Disconnected", 3f, false);
-
             foreach (CelesteNetGameComponent component in Components.Values)
                 if (component.AutoDispose)
                     component.Dispose();
+
+            Status?.Set("Disconnected", 3f, false);
+            Status.AutoDispose = true;
         }
 
     }

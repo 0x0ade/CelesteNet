@@ -27,7 +27,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         // This should ideally be part of the "emote module" if emotes were a fully separate thing.
         public VirtualJoystick JoystickEmoteWheel;
-        public VirtualButton ButtonEmoteSend;
 
         public CelesteNetClientModule() {
             Instance = this;
@@ -64,17 +63,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             JoystickEmoteWheel = new VirtualJoystick(true,
                 new VirtualJoystick.PadRightStick(Input.Gamepad, 0.2f)
             );
-            ButtonEmoteSend = new VirtualButton(
-                new VirtualButton.KeyboardKey(Keys.Q),
-                new VirtualButton.PadButton(Input.Gamepad, Buttons.RightStick)
-            );
         }
 
         public override void OnInputDeregister() {
             base.OnInputDeregister();
 
             JoystickEmoteWheel?.Deregister();
-            ButtonEmoteSend?.Deregister();
         }
 
 

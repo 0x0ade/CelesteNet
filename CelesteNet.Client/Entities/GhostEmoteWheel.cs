@@ -82,6 +82,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                         break;
                     }
                 }
+                if (Selected < 0) {
+                    Selected = 0;
+                } else if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button.Pressed) {
+                    Selected++;
+                } else if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button.Pressed) {
+                    Selected--;
+                }
             }
 
             time += Engine.RawDeltaTime;

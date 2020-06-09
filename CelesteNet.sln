@@ -12,9 +12,9 @@ EndProject
 Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "Celeste", "..\..\Celeste.exe", "{87AC742C-B0C1-4E7D-90A3-CADE72EB867C}"
 	ProjectSection(DebuggerProjectSystem) = preProject
 		PortSupplier = 00000000-0000-0000-0000-000000000000
-		Executable = D:\Program Files (x86)\Steam\steamapps\common\Celeste\Celeste.exe
-		RemoteMachine = MAIK-MEDIONPC-W
-		StartingDirectory = D:\Program Files (x86)\Steam\steamapps\common\Celeste
+		Executable = C:\Users\Leuu\Downloads\Celeste Modding\Celeste\Celeste.exe
+		RemoteMachine = PC
+		StartingDirectory = C:\Users\Leuu\Downloads\Celeste Modding\Celeste
 		Environment = Default
 		LaunchingEngine = 00000000-0000-0000-0000-000000000000
 		UseLegacyDebugEngines = No

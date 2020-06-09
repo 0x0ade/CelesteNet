@@ -82,6 +82,18 @@ namespace Celeste.Mod.CelesteNet.Client {
         [DefaultButtonBinding(0, Keys.T)]
         public ButtonBinding ButtonChat { get; set; }
 
+        [DefaultButtonBinding(Buttons.RightStick, Keys.Q)]
+        public ButtonBinding ButtonEmoteSend { get; set; }
+
+        [DefaultButtonBinding(0, Keys.E)]
+        public ButtonBinding ButtonEmoteWheelShow { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D)]
+        public ButtonBinding ButtonEmoteWheelScrollR { get; set; }
+
+        [DefaultButtonBinding(0,Keys.A)]
+        public ButtonBinding ButtonEmoteWheelScrollL { get; set; }
+
         #endregion
 
 

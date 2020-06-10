@@ -88,10 +88,18 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                     if (Selected < 0) {
                         Selected = 0;
                     }
-                    if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button && Selected < emotes.Length - 1) {
-                        Selected++;
-                    } else if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button && Selected > 0) {
-                        Selected--;
+                    if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button) {
+                        if (Selected < emotes.Length - 1) {
+                            Selected++;
+                        } else {
+                            Selected = 0;
+                        }
+                    } else if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button) {
+                        if (Selected > 0) {
+                            Selected--;
+                        } else {
+                            Selected = emotes.Length;
+                        }
                     }
                 }
             }

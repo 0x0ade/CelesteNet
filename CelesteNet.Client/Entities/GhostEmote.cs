@@ -157,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 );
 
             } else {
-                Vector2 size = ActiveFont.Measure(text);
+                Vector2 size = CelesteNetClientFont.Measure(text);
                 float scale = (Size / Math.Max(size.X, size.Y)) * 0.5f * PopupScale;
                 size *= scale;
 
@@ -166,7 +166,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                     1920f - size.X * 0.5f, 1080f
                 );
 
-                ActiveFont.DrawOutline(
+                CelesteNetClientFont.DrawOutline(
                     text,
                     pos,
                     new Vector2(0.5f, 1f),

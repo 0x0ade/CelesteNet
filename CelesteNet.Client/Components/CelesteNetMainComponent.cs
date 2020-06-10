@@ -19,6 +19,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private Session Session;
         private bool WasIdle;
 
+        public HashSet<string> ForceIdle = new HashSet<string>();
+        public bool StateUpdated;
+
         public uint Channel;
 
         public GhostNameTag PlayerNameTag;
@@ -28,7 +31,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public CelesteNetMainComponent(CelesteNetClientComponent context, Game game)
             : base(context, game) {
 
-            UpdateOrder = 10000;
+            UpdateOrder = 10200;
             Visible = false;
         }
 
@@ -145,7 +148,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
             }
 
-            bool sendState = false;
+            bool sendState = StateUpdated;
+            StateUpdated = false;
 
             if (Player == null || Player.Scene != Engine.Scene) {
                 Player = level.Tracker.GetEntity<Player>();
@@ -155,8 +159,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     sendState = true;
                 }
             }
-            if (Player == null)
-                return;
 
             bool idle = level.FrozenOrPaused || level.Overlay != null;
             if (WasIdle != idle) {
@@ -166,6 +168,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (sendState)
                 SendState();
+
+            if (Player == null)
+                return;
 
             if (PlayerNameTag == null || PlayerNameTag.Tracking != Player) {
                 PlayerNameTag?.RemoveSelf();
@@ -195,8 +200,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost?.RemoveSelf();
             Ghosts.Clear();
 
-            PlayerNameTag?.RemoveSelf();
-            PlayerIdleTag?.RemoveSelf();
+            if (PlayerNameTag != null)
+                PlayerNameTag.Name = "";
+
+            if (PlayerIdleTag != null) {
+                PlayerIdleTag.PopOut = true;
+                PlayerIdleTag.AnimationTime = 1f;
+            }
         }
 
         #region Hooks
@@ -248,7 +258,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 SID = Session?.Area.GetSID() ?? "",
                 Mode = Session?.Area.Mode ?? AreaMode.Normal,
                 Level = Session?.Level ?? "",
-                Idle = Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null)
+                Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null))
             });
         }
 

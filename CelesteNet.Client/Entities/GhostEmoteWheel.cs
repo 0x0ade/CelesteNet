@@ -19,6 +19,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected float time = 0f;
 
         public bool Shown = false;
+        public bool Joystick = true;
         protected bool popupShown = false;
         protected float popupTime = 100f;
         protected bool timeRateSet = false;
@@ -67,27 +68,31 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             // Update can halt in the pause menu.
 
             if (Shown) {
-                Angle = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.Angle();
-                float angle = (float) ((Angle + Math.PI * 2f) % (Math.PI * 2f));
-                float start = (-0.5f / emotes.Length) * 2f * (float) Math.PI;
-                if (2f * (float) Math.PI + start < angle) {
-                    // Angle should be start < angle < 0, but is (TAU + start) < angle < TAU
-                    angle -= 2f * (float) Math.PI;
-                }
-                for (int i = 0; i < emotes.Length; i++) {
-                    float min = ((i - 0.5f) / emotes.Length) * 2f * (float) Math.PI;
-                    float max = ((i + 0.5f) / emotes.Length) * 2f * (float) Math.PI;
-                    if (min <= angle && angle <= max) {
-                        Selected = i;
-                        break;
+                if (Joystick) {
+                    Angle = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.Angle();
+                    float angle = (float) ((Angle + Math.PI * 2f) % (Math.PI * 2f));
+                    float start = (-0.5f / emotes.Length) * 2f * (float) Math.PI;
+                    if (2f * (float) Math.PI + start < angle) {
+                        // Angle should be start < angle < 0, but is (TAU + start) < angle < TAU
+                        angle -= 2f * (float) Math.PI;
                     }
-                }
-                if (Selected < 0) {
-                    Selected = 0;
-                } else if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button.Pressed) {
-                    Selected++;
-                } else if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button.Pressed) {
-                    Selected--;
+                    for (int i = 0; i < emotes.Length; i++) {
+                        float min = ((i - 0.5f) / emotes.Length) * 2f * (float) Math.PI;
+                        float max = ((i + 0.5f) / emotes.Length) * 2f * (float) Math.PI;
+                        if (min <= angle && angle <= max) {
+                            Selected = i;
+                            break;
+                        }
+                    }
+                } else {
+                    if (Selected < 0) {
+                        Selected = 0;
+                    }
+                    if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button && Selected < emotes.Length - 1) {
+                        Selected++;
+                    } else if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button && Selected > 0) {
+                        Selected--;
+                    }
                 }
             }
 

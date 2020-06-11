@@ -48,7 +48,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         private static UdpClient GetUDP(string host, int port) {
-            UdpClient client = new UdpClient(0);
+            UdpClient client = new UdpClient(host, port);
 
             client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
@@ -120,12 +120,7 @@ namespace Celeste.Mod.CelesteNet {
                 if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
                     // Missed updates aren't that bad...
                     if (UDP != null) {
-                        // mono is mono and mono likes to complain about things...
-                        if (UDPRemoteEndPoint != null) {
-                            UDP.Send(raw, length, UDPRemoteEndPoint);
-                        } else {
-                            UDP.Send(raw, length);
-                        }
+                        UDP.Send(raw, length);
                     }
 
                 } else {

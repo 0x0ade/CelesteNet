@@ -75,7 +75,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     ghost == null)
                     return;
 
-                if (Session != null && (state.Channel != Channel || state.SID != Session.Area.SID || state.Mode != Session.Area.Mode)) {
+                Session session = Session;
+                if (session != null && (state.Channel != Channel || state.SID != session.Area.SID || state.Mode != session.Area.Mode)) {
                     ghost.NameTag.Name = "";
                     Ghosts.Remove(state.ID);
                     return;
@@ -87,11 +88,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
             Level level = Engine.Scene as Level;
+            Session session = Session;
 
             bool outside =
                 !Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
                 level == null ||
-                (state.Channel != Channel || state.SID != Session.Area.SID || state.Mode != Session.Area.Mode);
+                session == null ||
+                (state.Channel != Channel || state.SID != session.Area.SID || state.Mode != session.Area.Mode);
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost == null ||

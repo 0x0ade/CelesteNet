@@ -12,4 +12,8 @@
     <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="RPC\" />
+  </ItemGroup>
+
 </Project>

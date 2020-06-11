@@ -119,7 +119,14 @@ namespace Celeste.Mod.CelesteNet {
 
                 if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
                     // Missed updates aren't that bad...
-                    UDP?.Send(raw, length, UDPRemoteEndPoint);
+                    if (UDP != null) {
+                        // mono is mono and mono likes to complain about things...
+                        if (UDPRemoteEndPoint != null) {
+                            UDP.Send(raw, length, UDPRemoteEndPoint);
+                        } else {
+                            UDP.Send(raw, length);
+                        }
+                    }
 
                 } else {
                     TCPWriter.Write(raw, 0, length);

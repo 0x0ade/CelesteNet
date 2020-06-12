@@ -119,8 +119,16 @@ namespace Celeste.Mod.CelesteNet {
 
                 if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
                     // Missed updates aren't that bad...
-                    if (UDP != null) {
-                        UDP.Send(raw, length);
+                    try {
+                        if (UDP != null) {
+                            if (UDP.Client.Connected) {
+                                UDP.Send(raw, length);
+                            } else {
+                                UDP.Send(raw, length, UDPRemoteEndPoint);
+                            }
+                        }
+                    } catch(Exception e) {
+                        Console.WriteLine(e);
                     }
 
                 } else {

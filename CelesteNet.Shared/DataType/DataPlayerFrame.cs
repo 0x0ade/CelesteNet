@@ -45,6 +45,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Vector2 DashDir;
         public bool DashWasB;
 
+        public bool Dead;
+
         public override bool FilterHandle(DataContext ctx)
             => Player != null; // Can be RECEIVED BY CLIENT TOO EARLY because UDP is UDP.
 
@@ -83,6 +85,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DashColor = reader.ReadBoolean() ? (Color?) new Color(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte()) : null;
             DashDir = new Vector2(reader.ReadSingle(), reader.ReadSingle());
             DashWasB = reader.ReadBoolean();
+
+            Dead = reader.ReadBoolean();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
@@ -151,6 +155,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(DashDir.X);
             writer.Write(DashDir.Y);
             writer.Write(DashWasB);
+
+            writer.Write(Dead);
         }
 
     }

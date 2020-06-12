@@ -20,6 +20,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public Color[] HairColors;
         public string[] HairTextures;
 
+        public bool Dead;
+
         public Ghost(PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
             Depth = 1;
@@ -31,6 +33,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.Color = Player.NormalHairColor;
 
             NameTag = new GhostNameTag(this, "");
+
+            Dead = false;
 
             Tag = Tags.Persistent | Tags.PauseUpdate;
         }
@@ -51,6 +55,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Update() {
             if (string.IsNullOrEmpty(NameTag.Name))
                 RemoveSelf();
+
+            Visible = !Dead;
 
             base.Update();
 
@@ -92,6 +98,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 // Play likes to fail randomly as the ID doesn't exist in an underlying dict.
                 // Let's ignore this for now.
             }
+        }
+
+        public void HandleDeath() {
+            SceneAs<Level>().Add(new GhostDeadBody(this, Vector2.Zero));
         }
 
     }

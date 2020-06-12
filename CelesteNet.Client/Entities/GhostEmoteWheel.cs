@@ -3,6 +3,7 @@ using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -41,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             : base(Vector2.Zero) {
             Tracking = tracking;
 
-            Tag = TagsExt.SubHUD;
+            Tag = TagsExt.SubHUD + Tags.FrozenUpdate + Tags.PauseUpdate;
             Depth = -1;
         }
 
@@ -57,6 +58,48 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 timeRateSet = false;
             }
 
+            string[] emotes = CelesteNetClientModule.Settings.Emotes;
+            if (!SceneAs<Level>().FrozenOrPaused) {
+                if (Shown) {
+                    if (Joystick) {
+                        Angle = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.Angle();
+                        float angle = (float) ((Angle + Math.PI * 2f) % (Math.PI * 2f));
+                        float start = (-0.5f / emotes.Length) * 2f * (float) Math.PI;
+                        if (2f * (float) Math.PI + start < angle) {
+                            // Angle should be start < angle < 0, but is (TAU + start) < angle < TAU
+                            angle -= 2f * (float) Math.PI;
+                        }
+                        for (int i = 0; i < emotes.Length; i++) {
+                            float min = ((i - 0.5f) / emotes.Length) * 2f * (float) Math.PI;
+                            float max = ((i + 0.5f) / emotes.Length) * 2f * (float) Math.PI;
+                            if (min <= angle && angle <= max) {
+                                Selected = i;
+                                break;
+                            }
+                        }
+                    } else {
+                        if (Selected < 0) {
+                            Selected = 0;
+                        }
+                        VirtualButton Rbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button;
+                        VirtualButton Lbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button;
+                        if (Rbut.Pressed && !Rbut.Repeating) {
+                            if (Selected < emotes.Length - 1) {
+                                Selected++;
+                            } else {
+                                Selected = 0;
+                            }
+                        } else if (Lbut.Pressed && !Lbut.Repeating) {
+                            if (Selected > 0) {
+                                Selected--;
+                            } else {
+                                Selected = emotes.Length;
+                            }
+                        }
+                    }
+                }
+            }
+
             base.Update();
         }
 
@@ -64,45 +107,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             base.Render();
 
             string[] emotes = CelesteNetClientModule.Settings.Emotes;
-
-            // Update can halt in the pause menu.
-
-            if (Shown) {
-                if (Joystick) {
-                    Angle = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.Angle();
-                    float angle = (float) ((Angle + Math.PI * 2f) % (Math.PI * 2f));
-                    float start = (-0.5f / emotes.Length) * 2f * (float) Math.PI;
-                    if (2f * (float) Math.PI + start < angle) {
-                        // Angle should be start < angle < 0, but is (TAU + start) < angle < TAU
-                        angle -= 2f * (float) Math.PI;
-                    }
-                    for (int i = 0; i < emotes.Length; i++) {
-                        float min = ((i - 0.5f) / emotes.Length) * 2f * (float) Math.PI;
-                        float max = ((i + 0.5f) / emotes.Length) * 2f * (float) Math.PI;
-                        if (min <= angle && angle <= max) {
-                            Selected = i;
-                            break;
-                        }
-                    }
-                } else {
-                    if (Selected < 0) {
-                        Selected = 0;
-                    }
-                    if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button) {
-                        if (Selected < emotes.Length - 1) {
-                            Selected++;
-                        } else {
-                            Selected = 0;
-                        }
-                    } else if (CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button) {
-                        if (Selected > 0) {
-                            Selected--;
-                        } else {
-                            Selected = emotes.Length;
-                        }
-                    }
-                }
-            }
 
             time += Engine.RawDeltaTime;
 

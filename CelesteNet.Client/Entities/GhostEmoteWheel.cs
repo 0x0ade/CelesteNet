@@ -24,6 +24,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected bool popupShown = false;
         protected float popupTime = 100f;
         protected bool timeRateSet = false;
+        protected bool repeatSetR, repeatSetL = false;
 
         public float Angle = 0f;
 
@@ -42,7 +43,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             : base(Vector2.Zero) {
             Tracking = tracking;
 
-            Tag = TagsExt.SubHUD + Tags.FrozenUpdate + Tags.PauseUpdate;
+            Tag = TagsExt.SubHUD + Tags.PauseUpdate;
             Depth = -1;
         }
 
@@ -59,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             }
 
             string[] emotes = CelesteNetClientModule.Settings.Emotes;
-            if (!SceneAs<Level>().FrozenOrPaused) {
+            if (!SceneAs<Level>().Paused) {
                 if (Shown) {
                     if (Joystick) {
                         Angle = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.Angle();
@@ -83,17 +84,30 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                         }
                         VirtualButton Rbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button;
                         VirtualButton Lbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button;
-                        if (Rbut.Pressed && !Rbut.Repeating) {
+                        if (Rbut.Repeating && !repeatSetR) {
+                            Rbut.SetRepeat(0.04f, 0.025f);
+                            repeatSetR = true;
+                        } else if (Rbut.Released && repeatSetR) {
+                            Rbut.SetRepeat(0f, 0f);
+                            repeatSetR = false;
+                        } else if (Lbut.Repeating && !repeatSetL) {
+                            Lbut.SetRepeat(0.04f, 0.025f);
+                            repeatSetL = true;
+                        } else if (Lbut.Released && repeatSetL) {
+                            Lbut.SetRepeat(0f, 0f);
+                            repeatSetL = false;
+                        }
+                        if (repeatSetR ? Rbut.Repeating : (Rbut.Pressed && !Rbut.Repeating)) {
                             if (Selected < emotes.Length - 1) {
                                 Selected++;
                             } else {
                                 Selected = 0;
                             }
-                        } else if (Lbut.Pressed && !Lbut.Repeating) {
+                        } else if (repeatSetL ? Lbut.Repeating : (Lbut.Pressed && !Lbut.Repeating)) {
                             if (Selected > 0) {
                                 Selected--;
                             } else {
-                                Selected = emotes.Length;
+                                Selected = emotes.Length-1;
                             }
                         }
                     }

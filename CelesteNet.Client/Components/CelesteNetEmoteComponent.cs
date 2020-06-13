@@ -78,14 +78,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.Add(Wheel = new GhostEmoteWheel(Player));
 
             if (!level.Paused) {
-                Wheel.Shown = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f;
-                int selected = Wheel.Selected;
-                if (Wheel.Shown && selected != -1 && CelesteNetClientModule.Instance.ButtonEmoteSend.Pressed) {
-                    Send(selected);
+                if (CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f) {
+                    Wheel.Shown = true;
+                    Wheel.Joystick = true;
+                } else if (Settings.ButtonEmoteWheelShow.Button) {
+                    Wheel.Shown = true;
+                    Wheel.Joystick = false;
+                } else {
+                    Wheel.Shown = false;
+                    Wheel.Selected = -1;
                 }
-            } else {
-                Wheel.Shown = false;
-                Wheel.Selected = -1;
+                if (Wheel.Shown && Wheel.Selected != -1 && Settings.ButtonEmoteSend.Button.Pressed) {
+                    Send(Wheel.Selected);
+                }
             }
 
             if (!Context.Chat.Active) {

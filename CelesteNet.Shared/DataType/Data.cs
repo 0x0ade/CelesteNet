@@ -37,35 +37,25 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
     }
-
-    // TODO: Interface this maybe?
-    public abstract class DataUpdateType<T> : DataType<T> where T : DataUpdateType<T> {
-
-        public override DataFlags DataFlags => DataFlags.Update;
-
-        public uint UpdateID;
-
-        public override void Read(DataContext ctx, BinaryReader reader) {
-            UpdateID = reader.ReadUInt32();
-        }
-
-        public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.Write(UpdateID);
-        }
+    
+    public interface IDataOrderedUpdate {
+    
+        uint ID { get; }
+        uint UpdateID { get; set; }
 
     }
 
-    public interface IDataRefType {
+    public interface IDataRef {
 
         uint ID { get; set; }
         bool IsAliveRef { get; }
 
     }
 
-    public interface IDataBoundRefType : IDataRefType {
+    public interface IDataBoundRef : IDataRef {
     }
 
-    public interface IDataBoundRefType<T> : IDataBoundRefType where T : DataType<T>, IDataRefType {
+    public interface IDataBoundRef<T> : IDataBoundRef where T : DataType<T>, IDataRef {
     }
 
     [Flags]

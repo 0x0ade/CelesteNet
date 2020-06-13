@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataPlayerState : DataType<DataPlayerState>, IDataBoundRefType<DataPlayerInfo> {
+    public class DataPlayerState : DataType<DataPlayerState>, IDataBoundRef<DataPlayerInfo> {
 
         static DataPlayerState() {
             DataID = "playerState";

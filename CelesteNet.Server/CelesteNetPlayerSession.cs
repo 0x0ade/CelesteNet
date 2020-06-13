@@ -97,6 +97,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             });
 
             Server.Data.FreeRef<DataPlayerInfo>(ID);
+            Server.Data.FreeOrder<DataPlayerFrame>(ID);
 
             Server.Control.BroadcastCMD("update", "/status");
             Server.Control.BroadcastCMD("update", "/players");
@@ -125,7 +126,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (con != Con)
                 return true;
 
-            if (data is IDataBoundRefType<DataPlayerInfo> bound)
+            if (data is IDataBoundRef<DataPlayerInfo> bound)
                 bound.ID = ID;
 
             if (data is IDataPlayerUpdate update)
@@ -155,7 +156,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (PlayerInfo == null || !Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState state))
                 state = null;
 
-            if (data is IDataBoundRefType<DataPlayerInfo> ||
+            if (data is IDataBoundRef<DataPlayerInfo> ||
                 data is IDataPlayerUpdate) {
                 lock (Server.Connections) {
                     foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {

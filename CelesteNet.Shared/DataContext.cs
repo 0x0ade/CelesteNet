@@ -26,8 +26,10 @@ namespace Celeste.Mod.CelesteNet {
         public readonly Dictionary<Type, DataHandler> Handlers = new Dictionary<Type, DataHandler>();
         public readonly Dictionary<Type, DataFilter> Filters = new Dictionary<Type, DataFilter>();
 
-        protected readonly Dictionary<Type, Dictionary<uint, IDataRefType>> References = new Dictionary<Type, Dictionary<uint, IDataRefType>>();
-        protected readonly Dictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRefType>>> Bound = new Dictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRefType>>>();
+        protected readonly Dictionary<Type, Dictionary<uint, IDataRef>> References = new Dictionary<Type, Dictionary<uint, IDataRef>>();
+        protected readonly Dictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>> Bound = new Dictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>>();
+
+        protected readonly Dictionary<Type, Dictionary<uint, uint>> LastOrderedUpdate = new Dictionary<Type, Dictionary<uint, uint>>();
 
         public DataContext() {
             foreach (Type type in CelesteNetUtils.GetTypes()) {
@@ -185,7 +187,25 @@ namespace Celeste.Mod.CelesteNet {
             if (!data.FilterHandle(this))
                 return;
 
-            if (data is IDataRefType dataRef)
+            if (data is IDataOrderedUpdate update) {
+                if (!LastOrderedUpdate.TryGetValue(type, out Dictionary<uint, uint> updateIDs)) {
+                    updateIDs = new Dictionary<uint, uint>();
+                    LastOrderedUpdate[type] = updateIDs;
+                }
+
+                uint id = update.ID;
+                uint updateID = update.UpdateID;
+                if (!updateIDs.TryGetValue(id, out uint updateIDLast)) {
+                    updateIDLast = 0;
+                }
+
+                if (updateID < updateIDLast)
+                    return;
+
+                updateIDs[id] = updateID;
+            }
+
+            if (data is IDataRef dataRef)
                 SetRef(dataRef);
 
             for (Type btype = type; btype != typeof(DataType).BaseType; btype = btype.BaseType)
@@ -194,34 +214,34 @@ namespace Celeste.Mod.CelesteNet {
         }
 
 
-        public T ReadRef<T>(BinaryReader reader) where T : DataType<T>, IDataRefType
+        public T ReadRef<T>(BinaryReader reader) where T : DataType<T>, IDataRef
             => GetRef<T>(reader.ReadUInt32());
 
-        public T ReadOptRef<T>(BinaryReader reader) where T : DataType<T>, IDataRefType
+        public T ReadOptRef<T>(BinaryReader reader) where T : DataType<T>, IDataRef
             => TryGetRef(reader.ReadUInt32(), out T value) ? value : null;
 
-        public void WriteRef<T>(BinaryWriter writer, T data) where T : DataType<T>, IDataRefType
+        public void WriteRef<T>(BinaryWriter writer, T data) where T : DataType<T>, IDataRef
             => writer.Write(data?.ID ?? uint.MaxValue);
 
-        public T GetRef<T>(uint id) where T : DataType<T>, IDataRefType
+        public T GetRef<T>(uint id) where T : DataType<T>, IDataRef
             => (T) GetRef(typeof(T), id);
 
-        public IDataRefType GetRef(Type type, uint id)
-            => TryGetRef(type, id, out IDataRefType value) ? value : throw new Exception($"Unknown reference {type.FullName} ID {id}");
+        public IDataRef GetRef(Type type, uint id)
+            => TryGetRef(type, id, out IDataRef value) ? value : throw new Exception($"Unknown reference {type.FullName} ID {id}");
 
-        public bool TryGetRef<T>(uint id, out T value) where T : DataType<T>, IDataRefType {
-            bool rv = TryGetRef(typeof(T), id, out IDataRefType value_);
+        public bool TryGetRef<T>(uint id, out T value) where T : DataType<T>, IDataRef {
+            bool rv = TryGetRef(typeof(T), id, out IDataRef value_);
             value = (T) value_;
             return rv;
         }
 
-        public bool TryGetRef(Type type, uint id, out IDataRefType value) {
+        public bool TryGetRef(Type type, uint id, out IDataRef value) {
             if (id == uint.MaxValue) {
                 value = null;
                 return true;
             }
 
-            if (References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs) &&
+            if (References.TryGetValue(type, out Dictionary<uint, IDataRef> refs) &&
                 refs.TryGetValue(id, out value)) {
                 return true;
             }
@@ -230,32 +250,32 @@ namespace Celeste.Mod.CelesteNet {
             return false;
         }
 
-        public T GetBoundRef<TBoundTo, T>(uint id) where TBoundTo : DataType<TBoundTo>, IDataRefType where T : DataType<T>, IDataBoundRefType<TBoundTo>
+        public T GetBoundRef<TBoundTo, T>(uint id) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
             => (T) GetBoundRef(typeof(TBoundTo), typeof(T), id);
 
-        public T GetBoundRef<TBoundTo, T>(TBoundTo boundTo) where TBoundTo : DataType<TBoundTo>, IDataRefType where T : DataType<T>, IDataBoundRefType<TBoundTo>
+        public T GetBoundRef<TBoundTo, T>(TBoundTo boundTo) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
             => (T) GetBoundRef(typeof(TBoundTo), typeof(T), boundTo.ID);
 
-        public IDataBoundRefType GetBoundRef(Type typeBoundTo, Type type, uint id)
-            => TryGetBoundRef(typeBoundTo, type, id, out IDataBoundRefType value) ? value : throw new Exception($"Unknown reference {typeBoundTo.FullName} bound to {type.FullName} ID {id}");
+        public IDataBoundRef GetBoundRef(Type typeBoundTo, Type type, uint id)
+            => TryGetBoundRef(typeBoundTo, type, id, out IDataBoundRef value) ? value : throw new Exception($"Unknown reference {typeBoundTo.FullName} bound to {type.FullName} ID {id}");
 
-        public bool TryGetBoundRef<TBoundTo, T>(TBoundTo boundTo, out T value) where TBoundTo : DataType<TBoundTo>, IDataRefType where T : DataType<T>, IDataBoundRefType<TBoundTo>
+        public bool TryGetBoundRef<TBoundTo, T>(TBoundTo boundTo, out T value) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
             => TryGetBoundRef<TBoundTo, T>(boundTo.ID, out value);
 
-        public bool TryGetBoundRef<TBoundTo, T>(uint id, out T value) where TBoundTo : DataType<TBoundTo>, IDataRefType where T : DataType<T>, IDataBoundRefType<TBoundTo> {
-            bool rv = TryGetBoundRef(typeof(TBoundTo), typeof(T), id, out IDataBoundRefType value_);
+        public bool TryGetBoundRef<TBoundTo, T>(uint id, out T value) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo> {
+            bool rv = TryGetBoundRef(typeof(TBoundTo), typeof(T), id, out IDataBoundRef value_);
             value = (T) value_;
             return rv;
         }
 
-        public bool TryGetBoundRef(Type typeBoundTo, Type type, uint id, out IDataBoundRefType value) {
+        public bool TryGetBoundRef(Type typeBoundTo, Type type, uint id, out IDataBoundRef value) {
             if (id == uint.MaxValue) {
                 value = null;
                 return true;
             }
 
-            if (Bound.TryGetValue(typeBoundTo, out Dictionary<uint, Dictionary<Type, IDataBoundRefType>> boundByID) &&
-                boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRefType> boundByType) &&
+            if (Bound.TryGetValue(typeBoundTo, out Dictionary<uint, Dictionary<Type, IDataBoundRef>> boundByID) &&
+                boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRef> boundByType) &&
                 boundByType.TryGetValue(type, out value)) {
                 return true;
             }
@@ -264,35 +284,35 @@ namespace Celeste.Mod.CelesteNet {
             return false;
         }
 
-        public T[] GetRefs<T>() where T : DataType<T>, IDataRefType
+        public T[] GetRefs<T>() where T : DataType<T>, IDataRef
             => GetRefs(typeof(T)).Cast<T>().ToArray();
 
-        public IDataRefType[] GetRefs(Type type) {
-            if (References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs))
+        public IDataRef[] GetRefs(Type type) {
+            if (References.TryGetValue(type, out Dictionary<uint, IDataRef> refs))
                 return refs.Values.ToArray();
-            return new IDataRefType[0];
+            return new IDataRef[0];
         }
 
-        public IDataBoundRefType[] GetBoundRefs<TBoundTo>(TBoundTo boundTo) where TBoundTo : DataType<TBoundTo>, IDataRefType
+        public IDataBoundRef[] GetBoundRefs<TBoundTo>(TBoundTo boundTo) where TBoundTo : DataType<TBoundTo>, IDataRef
             => GetBoundRefs<TBoundTo>(boundTo.ID);
 
-        public IDataBoundRefType[] GetBoundRefs<TBoundTo>(uint id) where TBoundTo : DataType<TBoundTo>, IDataRefType
+        public IDataBoundRef[] GetBoundRefs<TBoundTo>(uint id) where TBoundTo : DataType<TBoundTo>, IDataRef
             => GetBoundRefs(typeof(TBoundTo), id);
 
-        public IDataBoundRefType[] GetBoundRefs(Type typeBoundTo, uint id) {
-            if (Bound.TryGetValue(typeBoundTo, out Dictionary<uint, Dictionary<Type, IDataBoundRefType>> boundByID) &&
-                boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRefType> boundByType))
+        public IDataBoundRef[] GetBoundRefs(Type typeBoundTo, uint id) {
+            if (Bound.TryGetValue(typeBoundTo, out Dictionary<uint, Dictionary<Type, IDataBoundRef>> boundByID) &&
+                boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRef> boundByType))
                 return boundByType.Values.ToArray();
-            return new IDataBoundRefType[0];
+            return new IDataBoundRef[0];
         }
 
-        public void SetRef(IDataRefType data)
+        public void SetRef(IDataRef data)
             => SetRef(data.GetType(), data);
 
-        public T SetRef<T>(T data) where T : DataType<T>, IDataRefType
+        public T SetRef<T>(T data) where T : DataType<T>, IDataRef
             => (T) SetRef(typeof(T), data);
 
-        public IDataRefType SetRef(Type type, IDataRefType data) {
+        public IDataRef SetRef(Type type, IDataRef data) {
             if (data == null)
                 return null;
 
@@ -303,28 +323,28 @@ namespace Celeste.Mod.CelesteNet {
                 return null;
             }
 
-            if (!References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs)) {
-                refs = new Dictionary<uint, IDataRefType>();
+            if (!References.TryGetValue(type, out Dictionary<uint, IDataRef> refs)) {
+                refs = new Dictionary<uint, IDataRef>();
                 References[type] = refs;
             }
 
-            if (data is IDataBoundRefType bound) {
+            if (data is IDataBoundRef bound) {
                 Type typeBoundTo = data.GetType()
                     .GetInterfaces()
-                    .FirstOrDefault(t => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDataBoundRefType<>))
+                    .FirstOrDefault(t => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDataBoundRef<>))
                     ?.GetGenericArguments()[0];
 
                 if (typeBoundTo != null) {
                     if (!TryGetRef(typeBoundTo, id, out _))
                         throw new Exception($"Cannot bind {type.FullName} to unknown reference {typeBoundTo.FullName} ID {id}");
 
-                    if (!Bound.TryGetValue(typeBoundTo, out Dictionary<uint, Dictionary<Type, IDataBoundRefType>> boundByID)) {
-                        boundByID = new Dictionary<uint, Dictionary<Type, IDataBoundRefType>>();
+                    if (!Bound.TryGetValue(typeBoundTo, out Dictionary<uint, Dictionary<Type, IDataBoundRef>> boundByID)) {
+                        boundByID = new Dictionary<uint, Dictionary<Type, IDataBoundRef>>();
                         Bound[typeBoundTo] = boundByID;
                     }
 
-                    if (!boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRefType> boundByType)) {
-                        boundByType = new Dictionary<Type, IDataBoundRefType>();
+                    if (!boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRef> boundByType)) {
+                        boundByType = new Dictionary<Type, IDataBoundRef>();
                         boundByID[id] = boundByType;
                     }
 
@@ -335,24 +355,24 @@ namespace Celeste.Mod.CelesteNet {
             return refs[data.ID] = data;
         }
 
-        public void FreeRef<T>(uint id) where T : DataType<T>, IDataRefType
+        public void FreeRef<T>(uint id) where T : DataType<T>, IDataRef
             => FreeRef(typeof(T), id);
 
         public void FreeRef(Type type, uint id) {
-            IDataRefType data = null;
-            if (References.TryGetValue(type, out Dictionary<uint, IDataRefType> refs) &&
+            IDataRef data = null;
+            if (References.TryGetValue(type, out Dictionary<uint, IDataRef> refs) &&
                 refs.TryGetValue(id, out data)) {
                 refs.Remove(id);
             }
 
-            if (Bound.TryGetValue(type, out Dictionary<uint, Dictionary<Type, IDataBoundRefType>> boundByID) &&
-                boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRefType> boundByType)) {
+            if (Bound.TryGetValue(type, out Dictionary<uint, Dictionary<Type, IDataBoundRef>> boundByID) &&
+                boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRef> boundByType)) {
                 boundByID.Remove(id);
                 foreach (Type typeBound in boundByType.Keys)
                     FreeRef(typeBound, id);
             }
 
-            if (data is IDataBoundRefType bound) {
+            if (data is IDataBoundRef bound) {
                 Type typeBoundTo = bound.GetTypeBoundTo();
                 if (typeBoundTo != null &&
                     Bound.TryGetValue(typeBoundTo, out boundByID) &&
@@ -361,6 +381,15 @@ namespace Celeste.Mod.CelesteNet {
                     foreach (Type typeBound in boundByType.Keys)
                         FreeRef(typeBound, id);
                 }
+            }
+        }
+
+        public void FreeOrder<T>(uint id) where T : DataType<T>, IDataOrderedUpdate
+            => FreeOrder(typeof(T), id);
+
+        public void FreeOrder(Type type, uint id) {
+            if (LastOrderedUpdate.TryGetValue(type, out Dictionary<uint, uint> updateIDs)) {
+                updateIDs.Remove(id);
             }
         }
 

@@ -27,6 +27,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public GhostNameTag PlayerNameTag;
         public GhostEmote PlayerIdleTag;
         public Dictionary<uint, Ghost> Ghosts = new Dictionary<uint, Ghost>();
+        public Dictionary<uint, uint> FrameIDs = new Dictionary<uint, uint>();
 
         public CelesteNetMainComponent(CelesteNetClientComponent context, Game game)
             : base(context, game) {
@@ -59,6 +60,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (string.IsNullOrEmpty(player.FullName)) {
                 ghost.NameTag.Name = "";
                 Ghosts.Remove(player.ID);
+                Client.Data.FreeOrder<DataPlayerFrame>(player.ID);
                 return;
             }
         }

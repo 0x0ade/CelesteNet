@@ -11,13 +11,16 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataPlayerFrame : DataUpdateType<DataPlayerFrame>, IDataPlayerUpdate {
+    public class DataPlayerFrame : DataType<DataPlayerFrame>, IDataOrderedUpdate, IDataPlayerUpdate {
 
         static DataPlayerFrame() {
             DataID = "playerFrame";
         }
 
         public override DataFlags DataFlags => DataFlags.Update;
+
+        public uint ID => Player?.ID ?? uint.MaxValue;
+        public uint UpdateID { get; set; }
 
         public DataPlayerInfo Player { get; set; }
 
@@ -49,8 +52,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             => Player != null; // Can be RECEIVED BY CLIENT TOO EARLY because UDP is UDP.
 
         public override void Read(DataContext ctx, BinaryReader reader) {
+            UpdateID = reader.ReadUInt32();
+
             Player = ctx.ReadOptRef<DataPlayerInfo>(reader);
-            base.Read(ctx, reader);
 
             Position = new Vector2(reader.ReadSingle(), reader.ReadSingle());
             Speed = new Vector2(reader.ReadSingle(), reader.ReadSingle());
@@ -86,8 +90,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
+            writer.Write(UpdateID);
+
             ctx.WriteRef(writer, Player);
-            base.Write(ctx, writer);
 
             writer.Write(Position.X);
             writer.Write(Position.Y);

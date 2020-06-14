@@ -123,10 +123,8 @@ namespace Celeste.Mod.CelesteNet {
                         // Make sure that we have a default address if sending it without an endpoint
                         if (UDP.Client.Connected) {
                             UDP.Send(raw, length);
-                        } else {
-                            if (UDPRemoteEndPoint != null) {
-                                UDP.Send(raw, length, UDPRemoteEndPoint);
-                            }
+                        } else if (UDPRemoteEndPoint != null) {
+                            UDP.Send(raw, length, UDPRemoteEndPoint);
                         }
                     }
 

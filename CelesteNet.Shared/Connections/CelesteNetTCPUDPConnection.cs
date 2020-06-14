@@ -120,11 +120,11 @@ namespace Celeste.Mod.CelesteNet {
                 if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
                     // Missed updates aren't that bad...
                     if (UDP != null) {
-                        // mono is mono and mono likes to complain about things...
-                        if (UDPRemoteEndPoint != null && !UDP.Client.Connected) {
-                            UDP.Send(raw, length, UDPRemoteEndPoint);
-                        } else {
+                        // Make sure that we have a default address if sending it without an endpoint
+                        if (UDP.Client.Connected) {
                             UDP.Send(raw, length);
+                        } else if (UDPRemoteEndPoint != null) {
+                            UDP.Send(raw, length, UDPRemoteEndPoint);
                         }
                     }
 

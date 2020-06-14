@@ -124,7 +124,9 @@ namespace Celeste.Mod.CelesteNet {
                         if (UDP.Client.Connected) {
                             UDP.Send(raw, length);
                         } else {
-                            UDP.Send(raw, length, UDPRemoteEndPoint);
+                            if (UDPRemoteEndPoint != null) {
+                                UDP.Send(raw, length, UDPRemoteEndPoint);
+                            }
                         }
                     }
 

@@ -79,41 +79,31 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                             }
                         }
                     } else {
-                        if (Selected < 0) {
-                            Selected = 0;
-                        }
                         VirtualButton Rbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button;
                         VirtualButton Lbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button;
-                        if (Rbut.Repeating && !repeatSetR) {
+                        Selected = Selected < 0 ? 0 : Selected;
+
+                        if (!repeatSetR) {
                             Rbut.SetRepeat(0.04f, 0.025f);
                             repeatSetR = true;
-                        } else if (Rbut.Released && repeatSetR) {
+                        } else if (repeatSetR) {
                             Rbut.SetRepeat(0f, 0f);
                             repeatSetR = false;
-                        } else if (Lbut.Repeating && !repeatSetL) {
+                        } else if (!repeatSetL) {
                             Lbut.SetRepeat(0.04f, 0.025f);
                             repeatSetL = true;
-                        } else if (Lbut.Released && repeatSetL) {
+                        } else if (repeatSetL) {
                             Lbut.SetRepeat(0f, 0f);
                             repeatSetL = false;
                         }
                         if (repeatSetR ? Rbut.Repeating : (Rbut.Pressed && !Rbut.Repeating)) {
-                            if (Selected < emotes.Length - 1) {
-                                Selected++;
-                            } else {
-                                Selected = 0;
-                            }
+                            Selected = Selected < emotes.Length - 1 ? Selected + 1 : 0;
                         } else if (repeatSetL ? Lbut.Repeating : (Lbut.Pressed && !Lbut.Repeating)) {
-                            if (Selected > 0) {
-                                Selected--;
-                            } else {
-                                Selected = emotes.Length-1;
-                            }
+                            Selected = Selected > 0 ? Selected - 1 : 0;
                         }
                     }
                 }
             }
-
             base.Update();
         }
 

@@ -10,6 +10,7 @@
   <Choose>
     <When Condition="$(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp'))">
       <PropertyGroup>
+        <Nullable>enable</Nullable>
         <DefineConstants>NETCORE;$(DefineConstants)</DefineConstants>
       </PropertyGroup>
     </When>

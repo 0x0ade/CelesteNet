@@ -17,15 +17,21 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public partial class CelesteNetServerModuleWrapper {
 
-        private AssemblyLoadContext ALC;
+        private AssemblyLoadContext? ALC;
 
         private void LoadAssembly() {
             ALC = new AssemblyLoadContext(null, true);
+            ALC.Resolving += (ctx, name) => {
+                foreach (CelesteNetServerModuleWrapper wrapper in Server.ModuleWrappers)
+                    if (wrapper.ID == name.Name)
+                        return wrapper.Assembly;
+                return null;
+            };
             Assembly = ALC.LoadFromAssemblyPath(AssemblyPath);
         }
 
         private void UnloadAssembly() {
-            ALC.Unload();
+            ALC?.Unload();
             ALC = null;
         }
 

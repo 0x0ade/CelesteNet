@@ -28,6 +28,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly List<CelesteNetServerModuleWrapper> ModuleWrappers = new List<CelesteNetServerModuleWrapper>();
         public readonly List<CelesteNetServerModule> Modules = new List<CelesteNetServerModule>();
         public readonly Dictionary<Type, CelesteNetServerModule> ModuleMap = new Dictionary<Type, CelesteNetServerModule>();
+        public readonly FileSystemWatcher ModulesFSWatcher;
 
         public readonly DetourModManager DetourModManager;
 
@@ -91,6 +92,21 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
+            ModulesFSWatcher = new FileSystemWatcher {
+                Path = Path.GetFullPath(Settings.ModuleRoot),
+                Filter = "*.dll",
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite
+            };
+
+            ModulesFSWatcher.Changed += (sender, args) => QueuedTaskHelper.Do("ReloadModuleAssembly:" + args.FullPath, () => {
+                lock (Modules)
+                    foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers)
+                        if (args.FullPath == wrapper.AssemblyPath)
+                            wrapper.Reload();
+            });
+
+            ModulesFSWatcher.EnableRaisingEvents = true;
+
             TCPUDP = new TCPUDPServer(this);
         }
 
@@ -124,6 +140,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Logger.Log(LogLevel.CRI, "main", "Shutdown");
             IsAlive = false;
+
+            ModulesFSWatcher.Dispose();
 
             lock (Modules) {
                 foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers.ToArray()) {

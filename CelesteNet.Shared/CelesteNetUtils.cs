@@ -34,12 +34,12 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         private static IEnumerable<Assembly> _GetAssemblies()
-            => AppDomain.CurrentDomain.GetAssemblies()
-            .Concat(Everest.Modules.Select(m => m.GetType().Assembly))
+            => (Everest.Modules?.Select(m => m.GetType().Assembly) ?? new Assembly[0])
+            .Concat(AppDomain.CurrentDomain.GetAssemblies())
             .Distinct();
 
         private static Type[] _GetTypes()
-            => AppDomain.CurrentDomain.GetAssemblies().SelectMany(_GetTypes).ToArray();
+            => _GetAssemblies().SelectMany(_GetTypes).ToArray();
 
         private static IEnumerable<Type> _GetTypes(Assembly asm) {
             try {

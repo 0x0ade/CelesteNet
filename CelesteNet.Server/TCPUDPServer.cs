@@ -1,5 +1,4 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.Server.Control;
 using Mono.Options;
 using System;
 using System.Collections.Generic;

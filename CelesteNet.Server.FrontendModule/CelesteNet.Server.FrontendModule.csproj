@@ -2,31 +2,20 @@
 
   <PropertyGroup>
     <TargetFrameworks>net452;netcoreapp3.1</TargetFrameworks>
-    <AssemblyName>CelesteNet.Server</AssemblyName>
-    <RootNamespace>Celeste.Mod.CelesteNet.Server</RootNamespace>
-    <OutputType>Exe</OutputType>
-    <CopyCeleste>true</CopyCeleste>
+    <AssemblyName>CelesteNet.Server.FrontendModule</AssemblyName>
+    <RootNamespace>Celeste.Mod.CelesteNet.Server.Control</RootNamespace>
   </PropertyGroup>
 
   <Import Project="..\CelesteNet.props" />
 
   <ItemGroup>
-    <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
+    <ProjectReference Include="..\CelesteNet.Server.ChatModule\CelesteNet.Server.ChatModule.csproj" Private="false" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Mono.Options" Version="6.6.0.161" />
-    <PackageReference Include="Mono.Cecil" Version="0.11.2" />
-  </ItemGroup>
-
-  <Target Name="ClearModulesFolder" AfterTargets="PostBuildEvent">
-    <RemoveDir Directories="bin\$(Configuration)\$(TargetFramework)\Modules" />
-  </Target>
-
-  <!-- dotnet is stupid. The modules depend on this, but those deps (and their deps' deps) aren't shipped. -->
-  
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <!-- PackageReference Include="WebSocketSharp" Version="1.0.3-rc11" /-->
+    <Reference Include="WebSocketSharp.CustomHeaders.CustomHttpServer" HintPath="..\lib\$(TargetFramework)\WebSocketSharp.CustomHeaders.CustomHttpServer.dll" />
   </ItemGroup>
 
   <Choose>

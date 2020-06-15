@@ -1,7 +1,5 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.Server.Control;
 using Microsoft.Xna.Framework;
-using Mono.Options;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,28 +10,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Server {
-    public class ChatServer : IDisposable {
-
-        public readonly CelesteNetServer Server;
+namespace Celeste.Mod.CelesteNet.Server.Chat {
+    public class ChatModule : CelesteNetServerModule {
 
         public readonly Dictionary<uint, DataChat> ChatLog = new Dictionary<uint, DataChat>();
         public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
         public uint NextID;
-
-        public ChatServer(CelesteNetServer server) {
-            Server = server;
-            Server.Data.RegisterHandlersIn(this);
-        }
-
-        public void Start() {
-            Logger.Log(LogLevel.INF, "chat", "Startup");
-        }
-
-        public void Dispose() {
-            Logger.Log(LogLevel.INF, "chat", "Shutdown");
-        }
-
 
         public DataChat PrepareAndLog(CelesteNetConnection from, DataChat msg) {
             if (!msg.CreatedByServer) {
@@ -65,7 +47,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             if (!msg.CreatedByServer)
                 Logger.Log(LogLevel.INF, "chatmsg", msg.ToString());
-            Server.Control.BroadcastCMD("chat", msg.ToFrontendChat());
+            // FIXME: Server.Control.BroadcastCMD("chat", msg.ToFrontendChat());
             return msg;
         }
 
@@ -106,7 +88,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Resend(DataChat msg) {
             Logger.Log(LogLevel.INF, "chatupd", msg.ToString());
-            Server.Control.BroadcastCMD("chat", msg.ToFrontendChat());
+            // FIXME: Server.Control.BroadcastCMD("chat", msg.ToFrontendChat());
             if (msg.Target == null) {
                 Server.Broadcast(msg);
                 return;

@@ -1,5 +1,4 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.Server.Control;
 using Mono.Options;
 using MonoMod.Utils;
 using System;
@@ -35,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Server.PlayersByCon[Con] = this;
                 Server.PlayersByID[ID] = this;
             }
-            Server.Control.BroadcastCMD("update", "/status");
+            // FIXME: Server.Control.BroadcastCMD("update", "/status");
 
             string name = handshake.Name;
             // TODO: Handle names starting with # as "keys"
@@ -57,7 +56,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             });
 
             Logger.Log(LogLevel.INF, "playersession", PlayerInfo.ToString());
-            Server.Control.BroadcastCMD("update", "/players");
+            // FIXME: Server.Control.BroadcastCMD("update", "/players");
 
             Con.Send(new DataHandshakeServer {
                 Version = CelesteNetUtils.Version,
@@ -76,16 +75,16 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            Server.Chat.Broadcast(Server.Settings.MessageGreeting.InjectSingleValue("player", fullName));
-            Server.Chat.Send(this, Server.Settings.MessageMOTD);
+            // FIXME: Server.Chat.Broadcast(Server.Settings.MessageGreeting.InjectSingleValue("player", fullName));
+            // FIXME: Server.Chat.Send(this, Server.Settings.MessageMOTD);
         }
 
         public void Dispose() {
             Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{ID} {Con}");
 
             string fullName = PlayerInfo?.FullName;
-            if (!string.IsNullOrEmpty(fullName))
-                Server.Chat.Broadcast(Server.Settings.MessageLeave.InjectSingleValue("player", fullName));
+            // FIXME: if (!string.IsNullOrEmpty(fullName))
+                // FIXME: Server.Chat.Broadcast(Server.Settings.MessageLeave.InjectSingleValue("player", fullName));
 
             lock (Server.Connections) {
                 Server.PlayersByCon.Remove(Con);
@@ -99,8 +98,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Data.FreeRef<DataPlayerInfo>(ID);
             Server.Data.FreeOrder<DataPlayerFrame>(ID);
 
-            Server.Control.BroadcastCMD("update", "/status");
-            Server.Control.BroadcastCMD("update", "/players");
+            // FIXME: Server.Control.BroadcastCMD("update", "/status");
+            // FIXME: Server.Control.BroadcastCMD("update", "/players");
         }
 
 

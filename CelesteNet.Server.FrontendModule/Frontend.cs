@@ -17,11 +17,10 @@ using WebSocketSharp.Server;
 using Celeste.Mod.Helpers;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
-    public class Frontend : IDisposable {
+    public class Frontend : CelesteNetServerModule<FrontendSettings> {
 
         public static readonly string COOKIE_SESSION = "celestenet-session";
 
-        public readonly CelesteNetServer Server;
         public readonly List<RCEndpoint> EndPoints = new List<RCEndpoint>();
         public readonly HashSet<string> CurrentSessionKeys = new HashSet<string>();
 
@@ -36,8 +35,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             Formatting = Formatting.Indented
         };
 
-        public Frontend(CelesteNetServer server) {
-            Server = server;
+        public override void Init(CelesteNetServerModuleWrapper wrapper) {
+            base.Init(wrapper);
 
             Logger.Log(LogLevel.VVV, "frontend", "Scanning for endpoints");
             foreach (Type t in CelesteNetUtils.GetTypes()) {
@@ -52,7 +51,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
         }
 
-        public void Start() {
+        public override void Start() {
+            base.Start();
+
             Logger.Log(LogLevel.INF, "frontend", $"Startup on port {Server.Settings.ControlPort}");
 
             HTTPServer = new HttpServer(Server.Settings.ControlPort);
@@ -65,6 +66,45 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             HTTPServer.Start();
 
             HTTPServer.WebSocketServices.TryGetServiceHost("/ws", out WSHost);
+        }
+
+        public override void Dispose() {
+            base.Dispose();
+
+            Logger.Log(LogLevel.INF, "frontend", "Shutdown");
+
+            HTTPServer?.Stop();
+            HTTPServer = null;
+        }
+
+        public Stream OpenContent(string path) {
+            try {
+                string dir = Path.GetFullPath(Settings.ContentRoot);
+                string pathFS = Path.GetFullPath(Path.Combine(dir, path));
+                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
+                    return File.OpenRead(pathFS);
+            } catch {
+            }
+
+#if DEBUG
+            try {
+                string dir = Path.GetFullPath(Path.Combine("..", "..", "..", "Content"));
+                string pathFS = Path.GetFullPath(Path.Combine(dir, path));
+                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
+                    return File.OpenRead(pathFS);
+            } catch {
+            }
+
+            try {
+                string dir = Path.GetFullPath(Path.Combine("..", "..", "..", "..", "CelesteNet.Server.FrontendModule", "Content"));
+                string pathFS = Path.GetFullPath(Path.Combine(dir, path));
+                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
+                    return File.OpenRead(pathFS);
+            } catch {
+            }
+#endif
+
+            return typeof(CelesteNetServer).Assembly.GetManifestResourceStream("Celeste.Mod.CelesteNet.Server.Content." + path.Replace("/", "."));
         }
 
         private void HandleRequestRaw(object sender, HttpRequestEventArgs c) {
@@ -105,13 +145,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
 
             endpoint.Handle(this, c);
-        }
-
-        public void Dispose() {
-            Logger.Log(LogLevel.INF, "frontend", "Shutdown");
-
-            HTTPServer?.Stop();
-            HTTPServer = null;
         }
 
         public bool IsAuthorized(HttpRequestEventArgs c)
@@ -167,7 +200,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public void RespondContent(HttpRequestEventArgs c, string id) {
             using (MemoryStream ms = new MemoryStream())
-            using (Stream s = Server.OpenContent(id)) {
+            using (Stream s = OpenContent(id)) {
                 if (s == null) {
                     c.Response.StatusCode = (int) HttpStatusCode.NotFound;
                     RespondJSON(c, new {

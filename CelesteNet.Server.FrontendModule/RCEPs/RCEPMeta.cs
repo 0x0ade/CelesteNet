@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.Server.Chat;
 using Newtonsoft.Json;
 using WebSocketSharp.Net;
 using WebSocketSharp.Server;
@@ -142,7 +143,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (!auth && count > 100)
                 count = 100;
 
-            ChatServer chat = f.Server.Chat;
+            ChatModule chat = f.Server.Get<ChatModule>();
             List<object> log = new List<object>();
             lock (chat.ChatLog) {
                 RingBuffer<DataChat> buffer = chat.ChatBuffer;

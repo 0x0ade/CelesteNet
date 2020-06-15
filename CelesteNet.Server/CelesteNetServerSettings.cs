@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetServerSettings {
 
+        public string ModuleRoot { get; set; } = "Modules";
+        public string ModuleConfigRoot { get; set; } = "ModuleConfigs";
+
         public int MainPort { get; set; } = 3802;
 
         public int ControlPort { get; set; } = 3800;

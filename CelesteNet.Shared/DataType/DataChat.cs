@@ -24,13 +24,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         /// <summary>
         /// Server-internal field.
         /// </summary>
-        public DataPlayerInfo Target;
+        public DataPlayerInfo? Target;
 
-        public DataPlayerInfo Player;
+        public DataPlayerInfo? Player;
 
         public uint ID = uint.MaxValue;
         public string Tag = "";
-        public string Text;
+        public string Text = "";
         public Color Color = Color.White;
         public DateTime Date = DateTime.UtcNow;
 

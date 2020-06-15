@@ -17,9 +17,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "emote";
         }
 
-        public DataPlayerInfo Player { get; set; }
+        public DataPlayerInfo? Player { get; set; }
 
-        public string Text;
+        public string Text = "";
 
         public override bool FilterHandle(DataContext ctx)
             => Player != null && !string.IsNullOrEmpty(Text);

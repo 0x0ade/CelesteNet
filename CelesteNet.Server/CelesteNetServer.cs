@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly Dictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new Dictionary<CelesteNetConnection, CelesteNetPlayerSession>();
         public readonly Dictionary<uint, CelesteNetPlayerSession> PlayersByID = new Dictionary<uint, CelesteNetPlayerSession>();
 
-        private ManualResetEvent ShutdownEvent = new ManualResetEvent(false);
+        private readonly ManualResetEvent ShutdownEvent = new ManualResetEvent(false);
 
         private bool _IsAlive;
         public bool IsAlive {
@@ -62,6 +62,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             DetourModManager = new DetourModManager();
 
             AppDomain.CurrentDomain.AssemblyResolve += (sender, args) => {
+                if (args.Name == null)
+                    return null;
+
                 AssemblyName name = new AssemblyName(args.Name);
                 if (ModuleWrappers.Any(wrapper => wrapper.ID == name.Name))
                     return null;
@@ -100,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             lock (Modules) {
                 foreach (CelesteNetServerModule module in Modules) {
-                    Logger.Log(LogLevel.INF, "main", $"Starting module {module.Wrapper.ID}");
+                    Logger.Log(LogLevel.INF, "main", $"Starting module {module.Wrapper?.ID ?? module.ToString()}");
                     module.Start();
                 }
             }
@@ -142,7 +145,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     continue;
 
                 wrapper.Load();
-                if (Initialized) {
+                if (Initialized && wrapper.Module != null) {
                     Logger.Log(LogLevel.INF, "main", $"Initializing module {wrapper.ID} (late)");
                     wrapper.Module.Init(wrapper);
                     if (IsAlive) {
@@ -156,20 +159,22 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public T Get<T>() where T : class {
             lock (Modules) {
-                if (ModuleMap.TryGetValue(typeof(T), out CelesteNetServerModule module))
-                    return module as T;
+                if (ModuleMap.TryGetValue(typeof(T), out CelesteNetServerModule? module))
+                    return module as T ?? throw new Exception($"Incompatible types: Requested {typeof(T).FullName}, got {module.GetType().FullName}");
 
                 foreach (CelesteNetServerModule other in Modules)
-                    if (other is T)
-                        return (ModuleMap[typeof(T)] = other) as T;
+                    if (other is T otherT) {
+                        ModuleMap[typeof(T)] = other;
+                        return otherT;
+                    }
             }
 
-            return null;
+            throw new Exception($"Invalid module type: {typeof(T).FullName}");
         }
 
 
-        public DataPlayerInfo GetPlayerInfo(CelesteNetConnection con) {
-            CelesteNetPlayerSession player;
+        public DataPlayerInfo? GetPlayerInfo(CelesteNetConnection con) {
+            CelesteNetPlayerSession? player;
             lock (Connections)
                 if (!PlayersByCon.TryGetValue(con, out player))
                     return null;
@@ -192,7 +197,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             lock (Connections)
                 Connections.Remove(con);
 
-            CelesteNetPlayerSession session;
+            CelesteNetPlayerSession? session;
             lock (Connections)
                 PlayersByCon.TryGetValue(con, out session);
 

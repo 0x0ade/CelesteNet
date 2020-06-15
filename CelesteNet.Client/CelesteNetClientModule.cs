@@ -20,7 +20,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetClientComponent ContextLast;
         public CelesteNetClientComponent Context;
         public CelesteNetClient Client => Context?.Client;
-        private object ClientLock = new object();
+        private readonly object ClientLock = new object();
 
         private Thread _StartThread;
         public bool IsAlive => Context != null;

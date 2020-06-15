@@ -2,15 +2,16 @@
 
   <PropertyGroup>
     <LangVersion>8</LangVersion>
+    <Nullable Condition="'$(Nullable)' == ''">enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
     <IsModule>$(AssemblyName.EndsWith('Module'))</IsModule>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
   </PropertyGroup>
 
   <Choose>
     <When Condition="$(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp'))">
       <PropertyGroup>
-        <Nullable>enable</Nullable>
         <DefineConstants>NETCORE;$(DefineConstants)</DefineConstants>
       </PropertyGroup>
     </When>

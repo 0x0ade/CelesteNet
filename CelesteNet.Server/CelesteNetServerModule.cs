@@ -2,6 +2,7 @@
 using Mono.Options;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -15,8 +16,8 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public abstract class CelesteNetServerModule : IDisposable {
 
-        public CelesteNetServer Server;
-        public CelesteNetServerModuleWrapper Wrapper;
+        public CelesteNetServer? Server;
+        public CelesteNetServerModuleWrapper? Wrapper;
 
         public virtual void Init(CelesteNetServerModuleWrapper wrapper) {
             Server = wrapper.Server;
@@ -44,10 +45,11 @@ namespace Celeste.Mod.CelesteNet.Server {
 
     public abstract class CelesteNetServerModule<TSettings> : CelesteNetServerModule where TSettings : new() {
 
-        public TSettings Settings;
+        public TSettings Settings = new TSettings();
 
         public override void LoadSettings() {
-            Settings = new TSettings();
+            if (Server == null || Wrapper == null)
+                return;
 
             string path = Path.Combine(Path.GetFullPath(Server.Settings.ModuleConfigRoot), $"{Wrapper.ID}.yaml");
             if (!File.Exists(path)) {
@@ -56,20 +58,23 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             using (StreamReader reader = new StreamReader(path))
-                YamlHelper.DeserializerUsing(Settings).Deserialize<TSettings>(reader);
+                YamlHelper.DeserializerUsing(Settings ??= new TSettings()).Deserialize<TSettings>(reader);
         }
 
         public override void SaveSettings() {
+            if (Server == null || Wrapper == null)
+                return;
+
             string path = Path.Combine(Path.GetFullPath(Server.Settings.ModuleConfigRoot), $"{Wrapper.ID}.yaml");
             if (File.Exists(path))
                 File.Delete(path);
 
-            string dir = Path.GetDirectoryName(path);
+            string? dir = Path.GetDirectoryName(path);
             if (!Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
 
             using (StreamWriter writer = new StreamWriter(path))
-                YamlHelper.Serializer.Serialize(writer, Settings, typeof(TSettings));
+                YamlHelper.Serializer.Serialize(writer, Settings ?? new TSettings(), typeof(TSettings));
         }
 
     }

@@ -11,7 +11,10 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDAuth : WSCMD<string> {
         public override bool Auth => false;
-        public override object Run(string data) {
+        public override object? Run(string data) {
+            if (WS == null || Frontend.Server == null)
+                return null;
+
             if (data == Frontend.Server.Settings.ControlPassword) {
                 data = Guid.NewGuid().ToString();
                 Frontend.CurrentSessionKeys.Add(data);

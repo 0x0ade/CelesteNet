@@ -21,8 +21,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         private float scale = 1f;
 
-        private bool finished = false;
-
         public GhostDeadBody(Ghost player, Vector2 direction) {
             Depth = -1000000;
             this.player = player;

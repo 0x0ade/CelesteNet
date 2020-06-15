@@ -2,6 +2,7 @@
 using Monocle;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -19,7 +20,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public ushort Version;
 
+#pragma warning disable CS8618 // You shouldn't be using an unintialized handshake anyway.
         public DataPlayerInfo PlayerInfo;
+#pragma warning restore CS8618
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             Version = reader.ReadUInt16();

@@ -13,14 +13,14 @@ using WebSocketSharp.Server;
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class RCEndpoint {
         public bool Auth;
-        public string Path;
-        public string PathHelp;
-        public string PathExample;
-        public string Name;
-        public string Info;
+        public string Path = "";
+        public string? PathHelp;
+        public string? PathExample;
+        public string Name = "";
+        public string Info = "";
 
         [JsonIgnore]
-        public Action<Frontend, HttpRequestEventArgs> Handle;
+        public Action<Frontend, HttpRequestEventArgs> Handle = (f, c) => { };
     }
 
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
@@ -38,12 +38,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             set => Data.Path = value;
         }
 
-        public string PathHelp {
+        public string? PathHelp {
             get => Data.PathHelp;
             set => Data.PathHelp = value;
         }
 
-        public string PathExample {
+        public string? PathExample {
             get => Data.PathExample;
             set => Data.PathExample = value;
         }
@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public RCEndpointAttribute() {
         }
 
-        public RCEndpointAttribute(bool auth, string path, string pathHelp, string pathExample, string name, string info) {
+        public RCEndpointAttribute(bool auth, string path, string? pathHelp, string? pathExample, string name, string info) {
             Auth = auth;
             Path = path;
             PathHelp = pathHelp;

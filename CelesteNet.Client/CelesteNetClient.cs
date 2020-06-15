@@ -35,9 +35,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public DataPlayerInfo PlayerInfo;
 
-        private ManualResetEvent HandshakeEvent = new ManualResetEvent(false);
+        private readonly ManualResetEvent HandshakeEvent = new ManualResetEvent(false);
 
-        private object StartStopLock = new object();
+        private readonly object StartStopLock = new object();
 
         public CelesteNetClient()
             : this(new CelesteNetClientSettings()) {

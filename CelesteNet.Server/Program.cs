@@ -27,12 +27,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 #if INMODDIR
-            string celestePath = Path.GetFullPath(Path.Combine("..", "..", "..", "..", "..", ".."));
+            string? celestePath = Path.GetFullPath(Path.Combine("..", "..", "..", "..", "..", ".."));
             if (!File.Exists(Path.Combine(celestePath, "Celeste.exe"))) {
                 celestePath = null;
             } else {
                 AppDomain.CurrentDomain.AssemblyResolve += (asmSender, asmArgs) => {
-                    string name = new AssemblyName(asmArgs.Name).Name;
+                    if (asmArgs.Name == null)
+                        return null;
+                    string name = new AssemblyName(asmArgs.Name).Name ?? asmArgs.Name;
                     string path = Path.Combine(celestePath, name + ".dll");
                     if (!File.Exists(path))
                         path = Path.Combine(celestePath, name + ".exe");
@@ -68,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
 
             bool showHelp = false;
-            string logFile = "log-celestenet.txt";
+            string? logFile = "log-celestenet.txt";
             OptionSet options = new OptionSet {
                 {
                     "v|loglevel:",

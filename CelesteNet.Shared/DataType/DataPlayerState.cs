@@ -21,9 +21,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public bool IsAliveRef => true;
 
         public uint Channel;
-        public string SID;
+        public string SID = "";
         public AreaMode Mode;
-        public string Level;
+        public string Level = "";
         public bool Idle;
 
         public override void Read(DataContext ctx, BinaryReader reader) {

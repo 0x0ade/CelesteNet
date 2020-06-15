@@ -15,8 +15,8 @@ namespace Celeste.Mod.CelesteNet {
         /// <param name="injectionObject">The object whose properties should be injected in the string</param>
         /// <returns>A version of the formatString string with keys replaced by (formatted) key values.</returns>
         public static string Inject(this string formatString, object injectionObject) {
-            if (injectionObject is IDictionary)
-                return formatString.Inject(new Hashtable((IDictionary) injectionObject));
+            if (injectionObject is IDictionary dictionary)
+                return formatString.Inject(new Hashtable(dictionary));
             return formatString.Inject(GetPropertyHash(injectionObject));
         }
 
@@ -43,8 +43,10 @@ namespace Celeste.Mod.CelesteNet {
             if (attributes == null || formatString == null)
                 return result;
 
-            foreach (string attributeKey in attributes.Keys) {
-                result = result.InjectSingleValue(attributeKey, attributes[attributeKey]);
+            foreach (string? attributeKey in attributes.Keys) {
+                if (attributeKey == null)
+                    continue;
+                result = result.InjectSingleValue(attributeKey, attributes[attributeKey] ?? string.Empty);
             }
             return result;
         }
@@ -63,16 +65,19 @@ namespace Celeste.Mod.CelesteNet {
             Regex attributeRegex = new Regex("{(" + key + ")(?:}|(?::(.[^}]*)}))");  //for key = foo, matches {foo} and {foo:SomeFormat}
 
             //loop through matches, since each key may be used more than once (and with a different format string)
-            foreach (Match m in attributeRegex.Matches(formatString)) {
+            foreach (Match? m in attributeRegex.Matches(formatString)) {
+                if (m == null)
+                    continue;
+
                 string replacement = m.ToString();
-                if (m.Groups[2].Length > 0) //matched {foo:SomeFormat}
-                {
+                if (m.Groups[2].Length > 0) {
+                    //matched {foo:SomeFormat}
                     //do a double string.Format - first to build the proper format string, and then to format the replacement value
                     string attributeFormatString = string.Format(CultureInfo.InvariantCulture, "{{0:{0}}}", m.Groups[2]);
                     replacement = string.Format(CultureInfo.CurrentCulture, attributeFormatString, replacementValue);
-                } else //matched {foo}
-                  {
-                    replacement = (replacementValue ?? string.Empty).ToString();
+                } else {
+                    //matched {foo}
+                    replacement = replacementValue.ToString() ?? string.Empty;
                 }
                 //perform replacements, one match at a time
                 result = result.Replace(m.ToString(), replacement);  //attributeRegex.Replace(result, replacement, 1);
@@ -89,11 +94,12 @@ namespace Celeste.Mod.CelesteNet {
         /// <param name="properties">The object from which to get the properties</param>
         /// <returns>A <see cref="Hashtable"/> containing the object instance's property names and their values</returns>
         private static Hashtable GetPropertyHash(object properties) {
-            Hashtable values = null;
+            Hashtable values = new Hashtable();
             if (properties != null) {
-                values = new Hashtable();
                 PropertyDescriptorCollection props = TypeDescriptor.GetProperties(properties);
-                foreach (PropertyDescriptor prop in props) {
+                foreach (PropertyDescriptor? prop in props) {
+                    if (prop == null)
+                        continue;
                     values.Add(prop.Name, prop.GetValue(properties));
                 }
             }

@@ -16,11 +16,11 @@ using Monocle;
 namespace Celeste.Mod.CelesteNet {
     public abstract class CelesteNetConnection : IDisposable {
 
-        public readonly string Creator;
+        public readonly string Creator = "Unknown";
         public readonly DataContext Data;
 
-        private object DisposeLock = new object();
-        private Action<CelesteNetConnection> _OnDisconnect;
+        private readonly object DisposeLock = new object();
+        private Action<CelesteNetConnection>? _OnDisconnect;
         public event Action<CelesteNetConnection> OnDisconnect {
             add {
                 lock (DisposeLock) {
@@ -52,13 +52,13 @@ namespace Celeste.Mod.CelesteNet {
             Data = data;
 
             StackTrace trace = new StackTrace();
-            foreach (StackFrame frame in trace.GetFrames()) {
-                MethodBase method = frame.GetMethod();
-                if (method.IsConstructor)
+            foreach (StackFrame? frame in trace.GetFrames()) {
+                MethodBase? method = frame?.GetMethod();
+                if (method == null || method.IsConstructor)
                     continue;
 
-                Creator = method.DeclaringType?.Name;
-                Creator = (Creator == null ? "" : Creator + "::") + method.Name;
+                string? type = method.DeclaringType?.Name;
+                Creator = (type == null ? "" : type + "::") + method.Name;
                 break;
             }
 
@@ -72,7 +72,9 @@ namespace Celeste.Mod.CelesteNet {
             SendQueueThread.Start();
         }
 
-        public void Send(DataType data) {
+        public void Send(DataType? data) {
+            if (data == null)
+                return;
             if (!data.FilterSend(Data))
                 return;
             if (!IsAlive)

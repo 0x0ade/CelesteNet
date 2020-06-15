@@ -4,6 +4,7 @@
     <TargetFrameworks>net452</TargetFrameworks>
     <AssemblyName>CelesteNet.Client</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Client</RootNamespace>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <Import Project="..\CelesteNet.props" />

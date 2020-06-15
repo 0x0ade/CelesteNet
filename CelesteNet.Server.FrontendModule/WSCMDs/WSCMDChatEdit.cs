@@ -14,9 +14,14 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDChatEdit : WSCMD {
         public override bool Auth => true;
-        public override object Run(dynamic input) {
+        public override object? Run(dynamic? input) {
+            if (Frontend.Server == null)
+                return null;
+            if (input == null)
+                return null;
+
             ChatModule chat = Frontend.Server.Get<ChatModule>();
-            DataChat msg;
+            DataChat? msg;
             lock (chat.ChatLog)
                 if (!chat.ChatLog.TryGetValue((uint?) input.ID ?? uint.MaxValue, out msg))
                     return null;

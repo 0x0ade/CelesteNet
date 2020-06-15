@@ -20,22 +20,19 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         // Each connection creates one instance of this.
 
-        public Frontend Frontend;
+        public Frontend? Frontend;
 
-        public string SessionKey;
+        public string SessionKey = "";
 
         public WSCommands Commands;
 
-        private IPEndPoint CurrentEndPoint;
+        private IPEndPoint? CurrentEndPoint;
 
         private new EState State = EState.Invalid;
-        private WSCMD CurrentCommand;
+        private WSCMD? CurrentCommand;
 
         public FrontendWebSocket() {
-        }
-
-        public FrontendWebSocket(Frontend frontend) {
-            Frontend = frontend;
+            Commands = new WSCommands(this);
         }
 
         private void Close(string reason) {
@@ -43,9 +40,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             Context.WebSocket.Close(CloseStatusCode.Normal, reason);
         }
 
-        private void RunCommand(object input) {
+        private void RunCommand(object? input) {
+            if (CurrentCommand == null)
+                throw new Exception("Cannot run no command.");
+            if (Frontend == null)
+                throw new Exception("Not ready.");
+
             try {
-                object output = CurrentCommand.Run(input);
+                object? output = CurrentCommand.Run(input);
 
                 using (MemoryStream ms = new MemoryStream()) {
                     using (StreamWriter sw = new StreamWriter(ms, Encoding.UTF8, 1024, true))
@@ -70,7 +72,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             base.OnOpen();
             Logger.Log(LogLevel.INF, "frontend-ws", $"Opened connection: {Context.UserEndPoint}");
             CurrentEndPoint = Context.UserEndPoint;
-            Commands = new WSCommands(this);
             State = EState.WaitForType;
             CurrentCommand = null;
         }
@@ -86,6 +87,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         protected override void OnMessage(MessageEventArgs c) {
+            if (Frontend == null)
+                throw new Exception("Not ready.");
+
             switch (State) {
                 case EState.WaitForType:
                     switch (c.Data) {
@@ -106,7 +110,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
                 case EState.WaitForCMDID:
                     Logger.Log(LogLevel.DEV, "frontend-ws", $"CMD: {Context.UserEndPoint} - {c.Data}");
-                    WSCMD cmd = Commands.Get(c.Data);
+                    WSCMD? cmd = Commands.Get(c.Data);
                     if (cmd == null) {
                         Close("unknown cmd");
                         break;
@@ -123,14 +127,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
 
                 case EState.WaitForCMDPayload:
-                    object input = null;
+                    object? input = null;
 
                     try {
                         using (MemoryStream ms = new MemoryStream(c.RawData))
                         using (StreamReader sr = new StreamReader(ms, Encoding.UTF8, false, 1024, true))
                         using (JsonTextReader jtr = new JsonTextReader(sr))
                             input =
-                                CurrentCommand.InputType != null ? Frontend.Serializer.Deserialize(jtr, CurrentCommand.InputType) :
+                                CurrentCommand?.InputType != null ? Frontend.Serializer.Deserialize(jtr, CurrentCommand.InputType) :
                                 Frontend.Serializer.Deserialize<dynamic>(jtr);
                     } catch (Exception e) {
                         Logger.Log(LogLevel.ERR, "frontend-ws", e.ToString());

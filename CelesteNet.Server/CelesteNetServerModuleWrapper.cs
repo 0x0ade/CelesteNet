@@ -3,6 +3,7 @@ using Mono.Cecil;
 using Mono.Options;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -20,9 +21,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly string AssemblyPath;
         public readonly string ID;
 
-        public CelesteNetServerModule Module;
-
-        public Assembly Assembly;
+        public CelesteNetServerModule? Module;
+        public Assembly? Assembly;
 
         public HashSet<string> References;
         public HashSet<CelesteNetServerModuleWrapper> ReferredBy = new HashSet<CelesteNetServerModuleWrapper>();
@@ -60,9 +60,12 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             LoadAssembly();
 
+            if (Assembly == null)
+                throw new Exception($"Failed to load assembly for {ID} - {AssemblyPath}");
+
             foreach (Type type in Assembly.GetTypes()) {
                 if (typeof(CelesteNetServerModule).IsAssignableFrom(type) && !type.IsAbstract) {
-                    Module = (CelesteNetServerModule) Activator.CreateInstance(type);
+                    Module = (CelesteNetServerModule?) Activator.CreateInstance(type);
                     break;
                 }
             }

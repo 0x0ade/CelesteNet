@@ -23,21 +23,21 @@ namespace Celeste.Mod.CelesteNet {
         public BinaryReader TCPReader;
         public BinaryWriter TCPWriter;
 
-        public UdpClient UDP;
+        public UdpClient? UDP;
 
         protected MemoryStream BufferStream;
         protected BinaryWriter BufferWriter;
 
-        protected Thread ReadTCPThread;
-        protected Thread ReadUDPThread;
+        protected Thread? ReadTCPThread;
+        protected Thread? ReadUDPThread;
 
         public override bool IsConnected => TCP?.Connected ?? false;
         public override string ID => "TCP/UDP " + (TCPRemoteEndPoint?.ToString() ?? $"?{GetHashCode()}");
 
-        protected IPEndPoint TCPLocalEndPoint;
-        protected IPEndPoint TCPRemoteEndPoint;
-        public IPEndPoint UDPLocalEndPoint;
-        public IPEndPoint UDPRemoteEndPoint;
+        protected IPEndPoint? TCPLocalEndPoint;
+        protected IPEndPoint? TCPRemoteEndPoint;
+        public IPEndPoint? UDPLocalEndPoint;
+        public IPEndPoint? UDPRemoteEndPoint;
 
         private static TcpClient GetTCP(string host, int port) {
             TcpClient client = new TcpClient(host, port);
@@ -59,7 +59,7 @@ namespace Celeste.Mod.CelesteNet {
             : this(data, GetTCP(host, port), GetUDP(host, port)) {
         }
 
-        public CelesteNetTCPUDPConnection(DataContext data, TcpClient tcp, UdpClient udp)
+        public CelesteNetTCPUDPConnection(DataContext data, TcpClient tcp, UdpClient? udp)
             : base(data) {
             TCP = tcp;
             TCPStream = tcp.GetStream();
@@ -170,7 +170,7 @@ namespace Celeste.Mod.CelesteNet {
                 using (MemoryStream stream = new MemoryStream())
                 using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
                     while (UDP != null && IsAlive) {
-                        IPEndPoint remote = null;
+                        IPEndPoint? remote = null;
                         byte[] raw = UDP.Receive(ref remote);
                         if (UDPRemoteEndPoint != null && !remote.Equals(UDPRemoteEndPoint))
                             continue;

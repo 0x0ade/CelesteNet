@@ -10,22 +10,18 @@ namespace Celeste.Mod.CelesteNet.Server {
     // Based off of Everest's LogWriter.
     public class LogWriter : TextWriter {
 
-        public TextWriter STDOUT;
-        public TextWriter File;
+        public TextWriter? STDOUT;
+        public TextWriter? File;
 
-        public override Encoding Encoding {
-            get {
-                return STDOUT?.Encoding ?? File?.Encoding;
-            }
-        }
+        public override Encoding Encoding => STDOUT?.Encoding ?? File?.Encoding ?? Encoding.UTF8;
 
-        public override void Write(string value) {
+        public override void Write(string? value) {
             STDOUT?.Write(value);
             File?.Write(value);
             File?.Flush();
         }
 
-        public override void WriteLine(string value) {
+        public override void WriteLine(string? value) {
             STDOUT?.WriteLine(value);
             File?.WriteLine(value);
             File?.Flush();

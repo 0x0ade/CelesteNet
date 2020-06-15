@@ -57,7 +57,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public static void DrawOutline(string text, Vector2 position, Vector2 justify, Vector2 scale, Color color, float stroke, Color strokeColor) 
             => Draw(text, position, justify, scale, color, 0f, Color.Transparent, stroke, strokeColor);
 
-        public static void DrawEdgeOutline(string text, Vector2 position, Vector2 justify, Vector2 scale, Color color, float edgeDepth, Color edgeColor, float stroke = 0f, Color strokeColor = default(Color)) 
+        public static void DrawEdgeOutline(string text, Vector2 position, Vector2 justify, Vector2 scale, Color color, float edgeDepth, Color edgeColor, float stroke = 0f, Color strokeColor = default) 
             => Draw(text, position, justify, scale, color, edgeDepth, edgeColor, stroke, strokeColor);
 
     }

@@ -87,15 +87,25 @@ namespace Celeste.Mod.CelesteNet.Server {
                 using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
                     while (Server.IsAlive && UDP != null) {
                         IPEndPoint? remote = null;
-                        byte[] raw = UDP.Receive(ref remote);
+                        byte[] raw;
+                        try {
+                            raw = UDP.Receive(ref remote);
+                        } catch (SocketException) {
+                            continue;
+                        }
                         if (!UDPMap.TryGetValue(remote, out CelesteNetTCPUDPConnection? con))
                             continue;
 
-                        stream.Seek(0, SeekOrigin.Begin);
-                        stream.Write(raw, 0, raw.Length);
+                        try {
+                            stream.Seek(0, SeekOrigin.Begin);
+                            stream.Write(raw, 0, raw.Length);
 
-                        stream.Seek(0, SeekOrigin.Begin);
-                        Server.Data.Handle(con, Server.Data.Read(reader));
+                            stream.Seek(0, SeekOrigin.Begin);
+                            Server.Data.Handle(con, Server.Data.Read(reader));
+                        } catch (Exception e) {
+                            Logger.Log(LogLevel.CRI, "tcpudp", $"Failed handling UDP data:\n{con}\n{e}");
+                            con.Dispose();
+                        }
                     }
                 }
 

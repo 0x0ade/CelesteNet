@@ -78,10 +78,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Start() {
-            lock (ClientLock) {
-                if (_StartThread?.IsAlive ?? false)
-                    _StartThread.Join();
+            if (_StartThread?.IsAlive ?? false)
+                _StartThread.Join();
 
+            lock (ClientLock) {
                 CelesteNetClientComponent last = Context ?? ContextLast;
                 if (Client?.IsAlive ?? false)
                     Stop();
@@ -92,47 +92,47 @@ namespace Celeste.Mod.CelesteNet.Client {
                 ContextLast = Context;
 
                 Context.Status.Set("Initializing...");
-
-                _StartThread = new Thread(() => {
-                    CelesteNetClientComponent context = Context;
-                    try {
-                        context.Init(Settings);
-                        context.Status.Set("Connecting...");
-                        context.Start();
-                        context.Status.Set("Connected", 1f);
-
-                    } catch (ThreadInterruptedException) {
-                        Logger.Log(LogLevel.CRI, "clientmod", "Startup interrupted.");
-                        _StartThread = null;
-                        Stop();
-                        context.Status.Set("Interrupted", 3f, false);
-
-                    } catch (ThreadAbortException) {
-                        _StartThread = null;
-                        Stop();
-
-                    } catch (Exception e) {
-                        Logger.Log(LogLevel.CRI, "clientmod", $"Failed connecting:\n{e}");
-                        _StartThread = null;
-                        Stop();
-                        context.Status.Set("Connection failed", 3f, false);
-
-                    } finally {
-                        _StartThread = null;
-                    }
-                }) {
-                    Name = "CelesteNet Client Start",
-                    IsBackground = true
-                };
-                _StartThread.Start();
             }
+
+            _StartThread = new Thread(() => {
+                CelesteNetClientComponent context = Context;
+                try {
+                    context.Init(Settings);
+                    context.Status.Set("Connecting...");
+                    context.Start();
+                    context.Status.Set("Connected", 1f);
+
+                } catch (ThreadInterruptedException) {
+                    Logger.Log(LogLevel.CRI, "clientmod", "Startup interrupted.");
+                    _StartThread = null;
+                    Stop();
+                    context.Status.Set("Interrupted", 3f, false);
+
+                } catch (ThreadAbortException) {
+                    _StartThread = null;
+                    Stop();
+
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.CRI, "clientmod", $"Failed connecting:\n{e}");
+                    _StartThread = null;
+                    Stop();
+                    context.Status.Set("Connection failed", 3f, false);
+
+                } finally {
+                    _StartThread = null;
+                }
+            }) {
+                Name = "CelesteNet Client Start",
+                IsBackground = true
+            };
+            _StartThread.Start();
         }
 
         public void Stop() {
-            lock (ClientLock) {
-                if (_StartThread?.IsAlive ?? false)
-                    _StartThread.Join();
+            if (_StartThread?.IsAlive ?? false)
+                _StartThread.Join();
 
+            lock (ClientLock) {
                 if (Context == null)
                     return;
 

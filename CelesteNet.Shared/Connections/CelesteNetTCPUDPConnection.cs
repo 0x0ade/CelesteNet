@@ -149,7 +149,7 @@ namespace Celeste.Mod.CelesteNet {
         protected virtual void ReadTCPLoop() {
             try {
                 while ((TCP?.Connected ?? false) && IsAlive) {
-                    Data.Handle(this, Data.Read(TCPReader));
+                    Receive(Data.Read(TCPReader));
                 }
 
             } catch (ThreadAbortException) {
@@ -179,7 +179,7 @@ namespace Celeste.Mod.CelesteNet {
                         stream.Write(raw, 0, raw.Length);
 
                         stream.Seek(0, SeekOrigin.Begin);
-                        Data.Handle(this, Data.Read(reader));
+                        Receive(Data.Read(reader));
                     }
                 }
 

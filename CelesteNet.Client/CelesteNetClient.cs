@@ -86,13 +86,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                     default:
                         throw new NotSupportedException($"Unsupported connection type {Settings.ConnectionType}");
                 }
-
-                Logger.Log(LogLevel.INF, "main", "Waiting for server handshake.");
-                WaitHandle.WaitAny(new WaitHandle[] { HandshakeEvent });
-
-                Logger.Log(LogLevel.INF, "main", "Ready");
-                IsReady = true;
             }
+
+            Logger.Log(LogLevel.INF, "main", "Waiting for server handshake.");
+            WaitHandle.WaitAny(new WaitHandle[] { HandshakeEvent });
+
+            Logger.Log(LogLevel.INF, "main", "Ready");
+            IsReady = true;
         }
 
         public void Dispose() {

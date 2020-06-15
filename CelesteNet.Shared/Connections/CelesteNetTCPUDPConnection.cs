@@ -39,37 +39,39 @@ namespace Celeste.Mod.CelesteNet {
         public IPEndPoint? UDPLocalEndPoint;
         public IPEndPoint? UDPRemoteEndPoint;
 
-        private static TcpClient GetTCP(string host, int port) {
-            TcpClient client = new TcpClient(host, port);
-
-            client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
-
-            return client;
-        }
-
-        private static UdpClient GetUDP(string host, int port) {
-            UdpClient client = new UdpClient(host, port);
-
-            client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
-
-            return client;
+#pragma warning disable CS8618 // Every other ctor uses this ctor and initializes everything properly.
+        private CelesteNetTCPUDPConnection(DataContext data)
+#pragma warning restore CS8618
+            : base(data) {
+            BufferStream = new MemoryStream();
+            BufferWriter = new BinaryWriter(BufferStream, Encoding.UTF8);
         }
 
         public CelesteNetTCPUDPConnection(DataContext data, string host, int port)
-            : this(data, GetTCP(host, port), GetUDP(host, port)) {
+            : this(data) {
+            TcpClient tcp = new TcpClient(host, port);
+            tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
+
+            // Reuse TCP endpoint as - at least on Windows - TCP and UDP hostname
+            // lookups can result in IPv4 for TCP vs IPv6 for UDP in some cases.
+            UdpClient udp = new UdpClient((IPEndPoint) tcp.Client.RemoteEndPoint);
+            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
+
+            InitTCPUDP(tcp, udp);
         }
 
         public CelesteNetTCPUDPConnection(DataContext data, TcpClient tcp, UdpClient? udp)
-            : base(data) {
+            : this(data) {
+            InitTCPUDP(tcp, udp);
+        }
+
+        private void InitTCPUDP(TcpClient tcp, UdpClient? udp) {
             TCP = tcp;
             TCPStream = tcp.GetStream();
             TCPReader = new BinaryReader(TCPStream, Encoding.UTF8, true);
             TCPWriter = new BinaryWriter(TCPStream, Encoding.UTF8, true);
 
             UDP = udp;
-
-            BufferStream = new MemoryStream();
-            BufferWriter = new BinaryWriter(BufferStream, Encoding.UTF8);
         }
 
         public void StartReadTCP() {

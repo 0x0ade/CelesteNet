@@ -78,9 +78,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.Add(Wheel = new GhostEmoteWheel(Player));
 
             if (!level.Paused) {
-                Wheel.Shown = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f || Settings.ButtonEmoteWheelShow.Button;
-                Wheel.Joystick = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f;
-                Wheel.Selected = (CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f || Settings.ButtonEmoteWheelShow.Button) ? Wheel.Selected : -1;
+                bool joyAnyDir = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f;
+                Wheel.Shown    = joyAnyDir || Settings.ButtonEmoteWheelShow.Button;
+                Wheel.Joystick = joyAnyDir;
+                Wheel.Selected =(joyAnyDir || Settings.ButtonEmoteWheelShow.Button) ? Wheel.Selected : -1;
 
                 if (Wheel.Shown && Wheel.Selected != -1 && Settings.ButtonEmoteSend.Button.Pressed) {
                     Send(Wheel.Selected);

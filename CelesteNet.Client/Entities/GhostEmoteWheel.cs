@@ -99,7 +99,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                         if (repeatSetR ? Rbut.Repeating : (Rbut.Pressed && !Rbut.Repeating)) {
                             Selected = Selected < emotes.Length - 1 ? Selected + 1 : 0;
                         } else if (repeatSetL ? Lbut.Repeating : (Lbut.Pressed && !Lbut.Repeating)) {
-                            Selected = Selected > 0 ? Selected - 1 : 0;
+                            Selected = Math.Max(Selected-1,0);
                         }
                     }
                 }

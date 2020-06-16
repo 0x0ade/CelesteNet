@@ -54,7 +54,9 @@ namespace Celeste.Mod.CelesteNet {
 
             // Reuse TCP endpoint as - at least on Windows - TCP and UDP hostname
             // lookups can result in IPv4 for TCP vs IPv6 for UDP in some cases.
-            UdpClient udp = new UdpClient((IPEndPoint) tcp.Client.RemoteEndPoint);
+            UdpClient udp = tcp.Client.RemoteEndPoint is IPEndPoint tcpEP ?
+                new UdpClient(tcpEP.Address.ToString(), tcpEP.Port) :
+                new UdpClient(host, port);
             udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
             InitTCPUDP(tcp, udp);

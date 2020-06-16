@@ -27,6 +27,9 @@ namespace Celeste.Mod.CelesteNet {
         public readonly Dictionary<Type, DataHandler> Handlers = new Dictionary<Type, DataHandler>();
         public readonly Dictionary<Type, DataFilter> Filters = new Dictionary<Type, DataFilter>();
 
+        private readonly Dictionary<object, List<Tuple<Type, DataHandler>>> RegisteredHandlers = new Dictionary<object, List<Tuple<Type, DataHandler>>>();
+        private readonly Dictionary<object, List<Tuple<Type, DataFilter>>> RegisteredFilters = new Dictionary<object, List<Tuple<Type, DataFilter>>>();
+
         protected readonly Dictionary<Type, Dictionary<uint, IDataRef>> References = new Dictionary<Type, Dictionary<uint, IDataRef>>();
         protected readonly Dictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>> Bound = new Dictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>>();
 
@@ -78,8 +81,40 @@ namespace Celeste.Mod.CelesteNet {
             Filters[type] = filter;
         }
 
-        public void RegisterHandlersIn(object handlers) {
-            foreach (MethodInfo method in handlers.GetType().GetMethods()) {
+        public void UnregisterHandler<T>(DataHandler<T> handler) where T : DataType<T>
+            => UnregisterHandler(typeof(T), (con, data) => handler(con, (T) data));
+
+        public void UnregisterHandler(Type type, DataHandler handler) {
+            if (Handlers.TryGetValue(type, out DataHandler? existing)) {
+                existing -= handler;
+                if (existing != null)
+                    Handlers[type] = existing;
+                else
+                    Handlers.Remove(type);
+            }
+        }
+
+        public void UnregisterFilter<T>(DataFilter<T> filter) where T : DataType<T>
+            => UnregisterFilter(typeof(T), (con, data) => filter(con, (T) data));
+
+        public void UnregisterFilter(Type type, DataFilter filter) {
+            if (Filters.TryGetValue(type, out DataFilter? existing)) {
+                existing -= filter;
+                if (existing != null)
+                    Filters[type] = existing;
+                else
+                    Filters.Remove(type);
+            }
+        }
+
+        public void RegisterHandlersIn(object owner) {
+            if (RegisteredHandlers.ContainsKey(owner))
+                return;
+
+            List<Tuple<Type, DataHandler>> handlers = RegisteredHandlers[owner] = new List<Tuple<Type, DataHandler>>();
+            List<Tuple<Type, DataFilter>> filters = RegisteredFilters[owner] = new List<Tuple<Type, DataFilter>>();
+
+            foreach (MethodInfo method in owner.GetType().GetMethods()) {
                 if (method.Name == "Handle" || method.Name == "Filter") {
                     ParameterInfo[] args = method.GetParameters();
                     if (args.Length != 2 || !args[0].ParameterType.IsCompatible(typeof(CelesteNetConnection)))
@@ -91,13 +126,29 @@ namespace Celeste.Mod.CelesteNet {
 
                     if (method.Name == "Filter") {
                         Logger.Log(LogLevel.VVV, "data", $"Autoregistering filter for {argType}: {method.GetID()}");
-                        RegisterFilter(argType, (con, data) => method.Invoke(handlers, new object[] { con, data }) as bool? ?? false);
+                        DataFilter filter = (con, data) => method.Invoke(owner, new object[] { con, data }) as bool? ?? false;
+                        filters.Add(Tuple.Create(argType, filter));
+                        RegisterFilter(argType, filter);
+
                     } else {
                         Logger.Log(LogLevel.VVV, "data", $"Autoregistering handler for {argType}: {method.GetID()}");
-                        RegisterHandler(argType, (con, data) => method.Invoke(handlers, new object[] { con, data }));
+                        DataHandler handler = (con, data) => method.Invoke(owner, new object[] { con, data });
+                        handlers.Add(Tuple.Create(argType, handler));
+                        RegisterHandler(argType, handler);
                     }
                 }
             }
+        }
+
+        public void UnregisterHandlersIn(object owner) {
+            if (!RegisteredHandlers.ContainsKey(owner))
+                return;
+
+            foreach (Tuple<Type, DataHandler> tuple in RegisteredHandlers[owner])
+                UnregisterHandler(tuple.Item1, tuple.Item2);
+
+            foreach (Tuple<Type, DataFilter> tuple in RegisteredFilters[owner])
+                UnregisterFilter(tuple.Item1, tuple.Item2);
         }
 
         public DataType Read(BinaryReader reader) {

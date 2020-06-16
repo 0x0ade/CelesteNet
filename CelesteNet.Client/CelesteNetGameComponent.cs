@@ -99,6 +99,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (AutoRemove)
                 Game.Components.Remove(this);
             base.Dispose(disposing);
+            Client?.Data.UnregisterHandlersIn(this);
         }
 
     }

@@ -106,6 +106,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             // FIXME: Server.Control.BroadcastCMD("update", "/status");
             // FIXME: Server.Control.BroadcastCMD("update", "/players");
+
+            Server.Data.UnregisterHandlersIn(this);
         }
 
 

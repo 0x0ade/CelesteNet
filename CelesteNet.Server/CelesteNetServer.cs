@@ -95,19 +95,30 @@ namespace Celeste.Mod.CelesteNet.Server {
             ModulesFSWatcher = new FileSystemWatcher {
                 Path = Path.GetFullPath(Settings.ModuleRoot),
                 Filter = "*.dll",
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime
             };
 
-            ModulesFSWatcher.Changed += (sender, args) => QueuedTaskHelper.Do("ReloadModuleAssembly:" + args.FullPath, () => {
+            ModulesFSWatcher.Error += (sender, args) => {
+                Logger.Log(LogLevel.ERR, "module", $"Module file watcher error:\n{args.GetException()}");
+            };
+
+            ModulesFSWatcher.Created += OnModuleFileUpdate;
+            ModulesFSWatcher.Renamed += OnModuleFileUpdate;
+            ModulesFSWatcher.Changed += OnModuleFileUpdate;
+
+            ModulesFSWatcher.EnableRaisingEvents = true;
+
+            TCPUDP = new TCPUDPServer(this);
+        }
+
+        private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
+            Logger.Log(LogLevel.VVV, "module", $"Module file changed: {args.FullPath}, {args.ChangeType}");
+            QueuedTaskHelper.Do("ReloadModuleAssembly:" + args.FullPath, () => {
                 lock (Modules)
                     foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers)
                         if (args.FullPath == wrapper.AssemblyPath)
                             wrapper.Reload();
             });
-
-            ModulesFSWatcher.EnableRaisingEvents = true;
-
-            TCPUDP = new TCPUDPServer(this);
         }
 
         public void Start() {

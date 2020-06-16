@@ -56,6 +56,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             TCPListener?.Stop();
             UDP?.Close();
+
+            Server.Data.UnregisterHandlersIn(this);
         }
 
         protected virtual void TCPListenerLoop() {

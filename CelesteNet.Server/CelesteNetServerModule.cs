@@ -39,6 +39,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public virtual void Dispose() {
             SaveSettings();
+
+            Server?.Data.UnregisterHandlersIn(this);
         }
 
     }

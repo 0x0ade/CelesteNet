@@ -15,7 +15,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public readonly Dictionary<uint, DataChat> ChatLog = new Dictionary<uint, DataChat>();
         public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
-        public uint NextID;
+        public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
         public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {
             if (Server == null)

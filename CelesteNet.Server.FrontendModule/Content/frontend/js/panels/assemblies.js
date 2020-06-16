@@ -22,12 +22,19 @@ export class FrontendAssembliesPanel extends FrontendBasicPanel {
   async update() {
     this.list = await fetch(this.ep)
       .then(r => r.json())
-      .then(r => r.map(asm => [
-        el => rd$(el)`
-        <span>
-          <b>${asm.Name}</b>${" " + asm.Version}
-        </span>`
-      ]));
+      .then(r =>
+        r.sort((a, b) => {
+          a = a.Context || "Default";
+          b = b.Context || "Default";
+          return a == "Default" ? 1 : b == "Default" ? -1 : a.localeCompare(b);
+        }).map(asm => [
+          el => rd$(el)`
+          <span>
+            <b>${asm.Name}</b>${" " + asm.Version}<br>
+            ${asm.Context}
+          </span>`
+        ])
+      );
   }
 
 }

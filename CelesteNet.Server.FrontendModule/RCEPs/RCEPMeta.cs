@@ -13,6 +13,10 @@ using Newtonsoft.Json;
 using WebSocketSharp.Net;
 using WebSocketSharp.Server;
 
+#if NETCORE
+using System.Runtime.Loader;
+#endif
+
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public static partial class RCEndpoints {
 
@@ -123,9 +127,15 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(true, "/asms", null, null, "Assembly List", "List of all loaded assemblies.")]
         public static void ASMs(Frontend f, HttpRequestEventArgs c) {
-            f.RespondJSON(c, AppDomain.CurrentDomain.GetAssemblies().Select(asm => asm.GetName()).Select(name => new {
-                name.Name,
-                Version = name.Version?.ToString() ?? ""
+            f.RespondJSON(c, AppDomain.CurrentDomain.GetAssemblies().Select(asm => new {
+                asm.GetName().Name,
+                Version = asm.GetName().Version?.ToString() ?? "",
+                Context =
+#if NETCORE
+                    (AssemblyLoadContext.GetLoadContext(asm) ?? AssemblyLoadContext.Default)?.Name ?? "Unknown",
+#else
+                    AppDomain.CurrentDomain.FriendlyName
+#endif
             }).ToList());
         }
 

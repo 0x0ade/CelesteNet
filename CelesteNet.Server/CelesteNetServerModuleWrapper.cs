@@ -77,6 +77,15 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Server.Modules.Add(Module);
                 Server.ModuleMap[Module.GetType()] = Module;
             }
+
+            if (Server.Initialized) {
+                Logger.Log(LogLevel.INF, "module", $"Initializing {ID} (late)");
+                Module.Init(this);
+                if (Server.IsAlive) {
+                    Logger.Log(LogLevel.INF, "module", $"Starting {ID} (late)");
+                    Module.Start();
+                }
+            }
         }
 
         public void Unload() {

@@ -111,9 +111,11 @@
 
   <Target Name="CopyModuleAssembly" AfterTargets="PostBuildEvent" Condition="$(IsModule)">
     <ItemGroup>
-      <BuiltFiles Include="bin\$(Configuration)\$(TargetFramework)\*"/>
+      <MainFiles Include="bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).*" Exclude="" />
+      <MiscFiles Include="bin\$(Configuration)\$(TargetFramework)\*" Exclude="@(MainFiles)" />
     </ItemGroup>
-    <Copy SourceFiles="@(BuiltFiles)" DestinationFolder="..\CelesteNet.Server\bin\$(Configuration)\$(TargetFramework)\Modules" />
+    <Copy SourceFiles="@(MiscFiles)" DestinationFolder="..\CelesteNet.Server\bin\$(Configuration)\$(TargetFramework)\Modules" ContinueOnError="true" Retries="1" />
+    <Copy SourceFiles="@(MainFiles)" DestinationFolder="..\CelesteNet.Server\bin\$(Configuration)\$(TargetFramework)\Modules" ContinueOnError="false" />
   </Target>
 
 </Project>

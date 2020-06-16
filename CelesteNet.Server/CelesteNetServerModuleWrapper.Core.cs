@@ -20,14 +20,27 @@ namespace Celeste.Mod.CelesteNet.Server {
         private AssemblyLoadContext? ALC;
 
         private void LoadAssembly() {
-            ALC = new AssemblyLoadContext(null, true);
+            long stamp = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+
+            string dir = Path.Combine(Path.GetTempPath(), "CelesteNetServerModuleCache");
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            string path = Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(AssemblyPath)}.{stamp}.dll");
+            File.Copy(AssemblyPath, path);
+
+            if (File.Exists(Path.ChangeExtension(AssemblyPath, "pdb")))
+                File.Copy(Path.ChangeExtension(AssemblyPath, "pdb"), Path.ChangeExtension(path, "pdb"));
+
+            ALC = new AssemblyLoadContext(Path.GetFileNameWithoutExtension(path), true);
             ALC.Resolving += (ctx, name) => {
                 foreach (CelesteNetServerModuleWrapper wrapper in Server.ModuleWrappers)
                     if (wrapper.ID == name.Name)
                         return wrapper.Assembly;
                 return null;
             };
-            Assembly = ALC.LoadFromAssemblyPath(AssemblyPath);
+
+            Assembly = ALC.LoadFromAssemblyPath(path);
         }
 
         private void UnloadAssembly() {

@@ -87,7 +87,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Initialized = true;
             lock (Modules) {
                 foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers) {
-                    Logger.Log(LogLevel.INF, "main", $"Initializing module {wrapper.ID}");
+                    Logger.Log(LogLevel.INF, "module", $"Initializing {wrapper.ID}");
                     wrapper.Module?.Init(wrapper);
                 }
             }
@@ -119,7 +119,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             lock (Modules) {
                 foreach (CelesteNetServerModule module in Modules) {
-                    Logger.Log(LogLevel.INF, "main", $"Starting module {module.Wrapper?.ID ?? module.ToString()}");
+                    Logger.Log(LogLevel.INF, "module", $"Starting {module.Wrapper?.ID ?? module.ToString()}");
                     module.Start();
                 }
             }
@@ -163,14 +163,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                     continue;
 
                 wrapper.Load();
-                if (Initialized && wrapper.Module != null) {
-                    Logger.Log(LogLevel.INF, "main", $"Initializing module {wrapper.ID} (late)");
-                    wrapper.Module.Init(wrapper);
-                    if (IsAlive) {
-                        Logger.Log(LogLevel.INF, "main", $"Starting module {wrapper.ID} (late)");
-                        wrapper.Module.Start();
-                    }
-                }
                 goto Reload;
             }
         }

@@ -14,13 +14,5 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public static class CelesteNetServerUtils {
 
-        public static object ToFrontendChat(this DataChat msg)
-            => new {
-                ID = msg.ID,
-                PlayerID = msg.Player?.ID ?? uint.MaxValue,
-                Color = msg.Color.ToHex(),
-                Text = msg.ToString()
-            };
-
     }
 }

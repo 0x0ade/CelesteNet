@@ -69,7 +69,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
-            if (pass == f.Server.Settings.ControlPassword) {
+            if (pass == f.Settings.Password) {
                 key = Guid.NewGuid().ToString();
                 f.CurrentSessionKeys.Add(key);
                 c.Response.SetCookie(new Cookie(Frontend.COOKIE_SESSION, key));

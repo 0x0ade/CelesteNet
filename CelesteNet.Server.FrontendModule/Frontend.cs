@@ -57,9 +57,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             base.Start();
 
-            Logger.Log(LogLevel.INF, "frontend", $"Startup on port {Server.Settings.ControlPort}");
+            Logger.Log(LogLevel.INF, "frontend", $"Startup on port {Settings.Port}");
 
-            HTTPServer = new HttpServer(Server.Settings.ControlPort);
+            HTTPServer = new HttpServer(Settings.Port);
 
             HTTPServer.OnGet += HandleRequestRaw;
             HTTPServer.OnPost += HandleRequestRaw;

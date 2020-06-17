@@ -15,7 +15,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (WS == null || Frontend.Server == null)
                 return null;
 
-            if (data == Frontend.Server.Settings.ControlPassword) {
+            if (data == Frontend.Settings.Password) {
                 data = Guid.NewGuid().ToString();
                 Frontend.CurrentSessionKeys.Add(data);
                 WS.SessionKey = data;

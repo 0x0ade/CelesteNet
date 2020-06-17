@@ -89,6 +89,10 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {DefaultNam
                     prev.Remove(session);
 
                 if (name == DefaultName) {
+                    if (state.Channel == 0) {
+                        env.Send($"Already in {name}");
+                        return;
+                    }
                     state.Channel = 0;
 
                 } else if (ByName.TryGetValue(name, out c)) {

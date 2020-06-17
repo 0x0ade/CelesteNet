@@ -14,7 +14,6 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetMainComponent : CelesteNetGameComponent {
 
-        private DataPlayerState LastState;
         private Player Player;
         private Session Session;
         private bool WasIdle;
@@ -67,6 +66,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
             if (state.ID == Client.PlayerInfo.ID) {
+                if (Channel != state.Channel) {
+                    Channel = state.Channel;
+                    foreach (Ghost ghost in Ghosts.Values)
+                        ghost?.RemoveSelf();
+                    Ghosts.Clear();
+                }
+
                 if (Player == null)
                     return;
 
@@ -112,19 +118,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (level == null || outside)
                 return;
 
-            bool dead = false;
-
             if (ghost == null) {
                 Ghosts[frame.Player.ID] = ghost = new Ghost(frame.SpriteMode);
                 level.Add(ghost);
             }
 
-            dead = ghost.Dead;
-
             ghost.NameTag.Name = frame.Player.FullName;
             UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
             ghost.UpdateSprite(frame.Position, frame.Scale, frame.Facing, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
             ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
+            bool dead = ghost.Dead;
             ghost.Dead = frame.Dead;
 
             if (ghost.Dead != dead && ghost.Dead) {
@@ -266,7 +269,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #region Send
 
         public void SendState() {
-            Client?.SendAndHandle(LastState = new DataPlayerState {
+            Client?.SendAndHandle(new DataPlayerState {
                 ID = Client.PlayerInfo.ID,
                 Channel = Channel,
                 SID = Session?.Area.GetSID() ?? "",

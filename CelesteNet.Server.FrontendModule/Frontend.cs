@@ -89,7 +89,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             Logger.Log(LogLevel.INF, "frontend", "Shutdown");
 
-            HTTPServer?.Stop();
+            try {
+                HTTPServer?.Stop();
+            } catch (Exception) {
+            }
             HTTPServer = null;
 
             if (Server == null)
@@ -102,9 +105,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     session.OnEnd -= OnSessionEnd;
             Server.OnDisconnect -= OnDisconnect;
 
-            ChatModule chat = Server.Get<ChatModule>();
-            chat.OnReceive -= OnChatReceive;
-            chat.OnForceSend -= OnForceSend;
+            if (Server.TryGet(out ChatModule chat)) {
+                chat.OnReceive -= OnChatReceive;
+                chat.OnForceSend -= OnForceSend;
+            }
         }
 
         private void OnConnect(CelesteNetServer server, CelesteNetConnection con) {

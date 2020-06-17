@@ -108,26 +108,27 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
 
-        public void Broadcast(string text, string? tag = null, Color? color = null) {
+        public DataChat Broadcast(string text, string? tag = null, Color? color = null) {
             Logger.Log(LogLevel.INF, "chat", $"Broadcasting: {text}");
-            lock (ChatLog) {
-                Handle(null, new DataChat() {
-                    Text = text,
-                    Tag = tag ?? "",
-                    Color = color ?? Settings.ColorBroadcast
-                });
-            }
+            DataChat msg = new DataChat() {
+                Text = text,
+                Tag = tag ?? "",
+                Color = color ?? Settings.ColorBroadcast
+            };
+            Handle(null, msg);
+            return msg;
         }
 
-        public void Send(CelesteNetPlayerSession player, string text, string? tag = null, Color? color = null) {
+        public DataChat Send(CelesteNetPlayerSession player, string text, string? tag = null, Color? color = null) {
             Logger.Log(LogLevel.INF, "chat", $"Sending to {player.PlayerInfo}: {text}");
-
-            player.Con.Send(PrepareAndLog(null, new DataChat() {
+            DataChat msg = new DataChat() {
                 Target = player.PlayerInfo,
                 Text = text,
                 Tag = tag ?? "",
                 Color = color ?? Settings.ColorServer
-            }));
+            };
+            player.Con.Send(PrepareAndLog(null, msg));
+            return msg;
         }
 
         public event Action<ChatModule, DataChat>? OnForceSend;

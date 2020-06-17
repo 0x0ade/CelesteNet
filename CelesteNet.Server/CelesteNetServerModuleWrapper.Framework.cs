@@ -24,11 +24,16 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private void LoadAssembly() {
             long stamp = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-            string path = Path.Combine(Path.GetTempPath(), "CelesteNetServerModuleCache", $"{Path.GetFileNameWithoutExtension(AssemblyPath)}.{stamp}.dll");
+
+            string dir = Path.Combine(Path.GetTempPath(), "CelesteNetServerModuleCache");
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            string path = Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(AssemblyPath)}.{stamp}.dll");
 
             using (ModuleDefinition module = ModuleDefinition.ReadModule(AssemblyPath)) {
                 AssemblyNameReal = new AssemblyName(module.Assembly.Name.FullName);
-                
+
                 module.Name += "." + stamp;
                 module.Assembly.Name.Name += "." + stamp;
 

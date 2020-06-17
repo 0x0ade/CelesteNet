@@ -4,6 +4,7 @@ using Mono.Options;
 using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -178,19 +179,26 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        public T Get<T>() where T : class {
+        public T Get<T>() where T : class
+            => TryGet(out T? module) ? module : throw new Exception($"Invalid module type: {typeof(T).FullName}");
+
+        public bool TryGet<T>([NotNullWhen(true)] out T? moduleT) where T : class {
             lock (Modules) {
-                if (ModuleMap.TryGetValue(typeof(T), out CelesteNetServerModule? module))
-                    return module as T ?? throw new Exception($"Incompatible types: Requested {typeof(T).FullName}, got {module.GetType().FullName}");
+                if (ModuleMap.TryGetValue(typeof(T), out CelesteNetServerModule? module)) {
+                    moduleT = module as T ?? throw new Exception($"Incompatible types: Requested {typeof(T).FullName}, got {module.GetType().FullName}");
+                    return true;
+                }
 
                 foreach (CelesteNetServerModule other in Modules)
                     if (other is T otherT) {
                         ModuleMap[typeof(T)] = other;
-                        return otherT;
+                        moduleT = otherT;
+                        return true;
                     }
             }
 
-            throw new Exception($"Invalid module type: {typeof(T).FullName}");
+            moduleT = null;
+            return false;
         }
 
 

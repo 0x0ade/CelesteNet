@@ -17,6 +17,39 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
+        public override void Init(CelesteNetServerModuleWrapper wrapper) {
+            base.Init(wrapper);
+            if (Server == null)
+                return;
+
+            Server.OnSessionStart += OnSessionStart;
+        }
+
+        public override void Dispose() {
+            base.Dispose();
+            if (Server == null)
+                return;
+
+            Server.OnSessionStart -= OnSessionStart;
+            lock (Server.Connections)
+                foreach (CelesteNetPlayerSession session in Server.PlayersByCon.Values)
+                    session.OnEnd -= OnSessionEnd;
+        }
+
+        private void OnSessionStart(CelesteNetPlayerSession session) {
+            Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.FullName ?? "???"));
+            Send(session, Settings.MessageMOTD);
+            session.OnEnd += OnSessionEnd;
+        }
+
+        private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
+            string? fullName = lastPlayerInfo?.FullName;
+            if (!fullName.IsNullOrEmpty())
+                Broadcast(Settings.MessageLeave.InjectSingleValue("player", fullName));
+        }
+
+        public event Func<ChatModule, DataChat, bool>? OnReceive;
+
         public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {
             if (Server == null)
                 return null;
@@ -53,7 +86,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             if (!msg.CreatedByServer)
                 Logger.Log(LogLevel.INF, "chatmsg", msg.ToString());
-            // FIXME: Server.Control.BroadcastCMD("chat", msg.ToFrontendChat());
+
+            if (!(OnReceive?.InvokeWhileTrue(this, msg) ?? true))
+                return null;
+
             return msg;
         }
 
@@ -94,12 +130,14 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             }));
         }
 
-        public void Resend(DataChat msg) {
+        public event Action<ChatModule, DataChat>? OnForceSend;
+
+        public void ForceSend(DataChat msg) {
             if (Server == null)
                 return;
 
             Logger.Log(LogLevel.INF, "chatupd", msg.ToString());
-            // FIXME: Server.Control.BroadcastCMD("chat", msg.ToFrontendChat());
+            OnForceSend?.Invoke(this, msg);
             if (msg.Target == null) {
                 Server.Broadcast(msg);
                 return;

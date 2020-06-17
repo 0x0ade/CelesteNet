@@ -15,6 +15,8 @@ using System.Threading.Tasks;
 using System.Web;
 using WebSocketSharp.Server;
 using Celeste.Mod.Helpers;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.Server.Chat;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : CelesteNetServerModule<FrontendSettings> {
@@ -49,6 +51,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     }
                 }
             }
+
+            if (Server == null)
+                return;
+
+            Server.OnConnect += OnConnect;
+            Server.OnSessionStart += OnSessionStart;
+            Server.OnDisconnect += OnDisconnect;
+
+            ChatModule chat = Server.Get<ChatModule>();
+            chat.OnReceive += OnChatReceive;
+            chat.OnForceSend += OnForceSend;
         }
 
         public override void Start() {
@@ -78,6 +91,49 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             HTTPServer?.Stop();
             HTTPServer = null;
+
+            if (Server == null)
+                return;
+
+            Server.OnConnect -= OnConnect;
+            Server.OnSessionStart -= OnSessionStart;
+            lock (Server.Connections)
+                foreach (CelesteNetPlayerSession session in Server.PlayersByCon.Values)
+                    session.OnEnd -= OnSessionEnd;
+            Server.OnDisconnect -= OnDisconnect;
+
+            ChatModule chat = Server.Get<ChatModule>();
+            chat.OnReceive -= OnChatReceive;
+            chat.OnForceSend -= OnForceSend;
+        }
+
+        private void OnConnect(CelesteNetServer server, CelesteNetConnection con) {
+            BroadcastCMD("update", "/status");
+        }
+
+        private void OnSessionStart(CelesteNetPlayerSession session) {
+            BroadcastCMD("update", "/status");
+            BroadcastCMD("update", "/players");
+            session.OnEnd += OnSessionEnd;
+        }
+
+        private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
+            BroadcastCMD("update", "/status");
+            BroadcastCMD("update", "/players");
+        }
+
+        private void OnDisconnect(CelesteNetServer server, CelesteNetConnection con, CelesteNetPlayerSession? session) {
+            if (session == null)
+                BroadcastCMD("update", "/status");
+        }
+
+        private bool OnChatReceive(ChatModule chat, DataChat msg) {
+            BroadcastCMD("chat", msg.ToFrontendChat());
+            return true;
+        }
+
+        private void OnForceSend(ChatModule chat, DataChat msg) {
+            BroadcastCMD("chat", msg.ToFrontendChat());
         }
 
         public Stream? OpenContent(string path) {

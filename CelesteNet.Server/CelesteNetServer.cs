@@ -202,6 +202,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             return player.PlayerInfo;
         }
 
+        public event Action<CelesteNetServer, CelesteNetConnection>? OnConnect;
 
         public void HandleConnect(CelesteNetConnection con) {
             Logger.Log(LogLevel.INF, "main", $"New connection: {con}");
@@ -209,8 +210,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             lock (Connections)
                 Connections.Add(con);
             con.OnDisconnect += HandleDisconnect;
-            // FIXME: Control.BroadcastCMD("update", "/status");
+            OnConnect?.Invoke(this, con);
         }
+
+        public event Action<CelesteNetServer, CelesteNetConnection, CelesteNetPlayerSession?>? OnDisconnect;
 
         public void HandleDisconnect(CelesteNetConnection con) {
             Logger.Log(LogLevel.INF, "main", $"Disconnecting: {con}");
@@ -224,9 +227,12 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             session?.Dispose();
 
-            // FIXME: if (session == null)
-                // FIXME: Control.BroadcastCMD("update", "/status");
+            OnDisconnect?.Invoke(this, con, session);
         }
+
+        public event Action<CelesteNetPlayerSession>? OnSessionStart;
+        internal void InvokeOnSessionStart(CelesteNetPlayerSession session)
+            => OnSessionStart?.Invoke(session);
 
         public void Broadcast(DataType data) {
             lock (Connections) {

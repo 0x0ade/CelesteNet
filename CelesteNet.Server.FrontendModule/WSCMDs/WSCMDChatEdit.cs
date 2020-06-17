@@ -32,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (input.Text != null)
                 msg.Text = (string) input.Text;
 
-            chat.Resend(msg);
+            chat.ForceSend(msg);
             return msg.ToFrontendChat();
         }
     }

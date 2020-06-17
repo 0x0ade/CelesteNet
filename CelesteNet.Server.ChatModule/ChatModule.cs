@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
-    public class ChatModule : CelesteNetServerModule {
+    public class ChatModule : CelesteNetServerModule<ChatSettings> {
 
         public readonly Dictionary<uint, DataChat> ChatLog = new Dictionary<uint, DataChat>();
         public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
@@ -34,8 +34,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     return null;
 
                 msg.Text.Replace("\r", "").Replace("\n", "");
-                if (msg.Text.Length > Server.Settings.MaxChatTextLength)
-                    msg.Text = msg.Text.Substring(0, Server.Settings.MaxChatTextLength);
+                if (msg.Text.Length > Settings.MaxChatTextLength)
+                    msg.Text = msg.Text.Substring(0, Settings.MaxChatTextLength);
 
                 msg.Tag = "";
                 msg.Color = Color.White;
@@ -63,7 +63,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 PrepareAndLog(con, msg) == null)
                 return;
 
-            if (msg.Text.StartsWith(Server.Settings.CommandPrefix)) {
+            if (msg.Text.StartsWith(Settings.CommandPrefix)) {
                 // TODO: Handle commands separately!
                 return;
             }
@@ -78,7 +78,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 Handle(null, new DataChat() {
                     Text = text,
                     Tag = tag ?? "",
-                    Color = color ?? Server?.Settings.ColorBroadcast ?? Color.White
+                    Color = color ?? Settings.ColorBroadcast
                 });
             }
         }
@@ -90,7 +90,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 Target = player.PlayerInfo,
                 Text = text,
                 Tag = tag ?? "",
-                Color = color ?? Server?.Settings.ColorServer ?? Color.Blue
+                Color = color ?? Settings.ColorServer
             }));
         }
 

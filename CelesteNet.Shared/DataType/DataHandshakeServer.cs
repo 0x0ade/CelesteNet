@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "hsS";
         }
 
-        public ushort Version;
+        public ushort Version = CelesteNetUtils.Version;
 
 #pragma warning disable CS8618 // You shouldn't be using an unintialized handshake anyway.
         public DataPlayerInfo PlayerInfo;

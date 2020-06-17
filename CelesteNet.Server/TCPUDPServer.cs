@@ -123,6 +123,11 @@ namespace Celeste.Mod.CelesteNet.Server {
         #region Handlers
 
         public void Handle(CelesteNetTCPUDPConnection con, DataHandshakeTCPUDPClient handshake) {
+            if (handshake.Version != CelesteNetUtils.Version) {
+                con.Dispose();
+                return;
+            }
+
             lock (Server.Connections)
                 if (Server.PlayersByCon.ContainsKey(con))
                     return;

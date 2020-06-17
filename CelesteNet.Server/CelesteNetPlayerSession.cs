@@ -58,7 +58,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "playersession", playerInfo.ToString());
 
             Con.Send(new DataHandshakeServer {
-                Version = CelesteNetUtils.Version,
                 PlayerInfo = playerInfo
             });
 

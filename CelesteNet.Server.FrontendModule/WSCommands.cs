@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Celeste.Mod.Helpers;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
-    public partial class WSCommands {
+    public class WSCommands {
         public readonly Dictionary<string, WSCMD> All = new Dictionary<string, WSCMD>();
 
         public WSCommands(FrontendWebSocket ws) {

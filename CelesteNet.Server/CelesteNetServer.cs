@@ -202,14 +202,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
 
-        public DataPlayerInfo? GetPlayerInfo(CelesteNetConnection con) {
-            CelesteNetPlayerSession? player;
-            lock (Connections)
-                if (!PlayersByCon.TryGetValue(con, out player))
-                    return null;
-            return player.PlayerInfo;
-        }
-
         public event Action<CelesteNetServer, CelesteNetConnection>? OnConnect;
 
         public void HandleConnect(CelesteNetConnection con) {

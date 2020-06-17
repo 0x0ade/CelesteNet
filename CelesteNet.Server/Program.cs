@@ -151,18 +151,18 @@ namespace Celeste.Mod.CelesteNet.Server {
         private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e) {
             if (e.IsTerminating) {
                 _CriticalFailureIsUnhandledException = true;
-                CriticalFailureHandler(e.ExceptionObject as Exception ?? new Exception("Unknown unhandled exception"));
+                CriticalFailureHandler(e.ExceptionObject as Exception ?? new Exception("Unknown unhandled exception."));
 
             } else {
                 Logger.Log(LogLevel.CRI, "main", "Encountered an UNHANDLED EXCEPTION. Server shutting down.");
-                Logger.LogDetailedException(e.ExceptionObject as Exception ?? new Exception("Unknown unhandled exception"));
+                Logger.LogDetailedException(e.ExceptionObject as Exception ?? new Exception("Unknown unhandled exception."));
             }
         }
 
         private static bool _CriticalFailureIsUnhandledException;
         public static void CriticalFailureHandler(Exception e) {
             Logger.Log(LogLevel.CRI, "main", "Encountered a CRITICAL FAILURE. Server shutting down.");
-            Logger.LogDetailedException(e ?? new Exception("Unknown exception"));
+            Logger.LogDetailedException(e ?? new Exception("Unknown exception."));
 
             if (!_CriticalFailureIsUnhandledException)
                 Environment.Exit(-1);

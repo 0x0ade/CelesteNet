@@ -105,7 +105,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     session.OnEnd -= OnSessionEnd;
             Server.OnDisconnect -= OnDisconnect;
 
-            if (Server.TryGet(out ChatModule chat)) {
+            if (Server.TryGet(out ChatModule? chat)) {
                 chat.OnReceive -= OnChatReceive;
                 chat.OnForceSend -= OnForceSend;
             }

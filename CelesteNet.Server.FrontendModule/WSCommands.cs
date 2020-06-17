@@ -33,8 +33,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     }
 
     public abstract class WSCMD {
-        public FrontendWebSocket? WS;
-        public Frontend Frontend => WS?.Frontend ?? throw new Exception("WSCMD not ready.");
+#pragma warning disable CS8618 // Fully initialized after construction.
+        public FrontendWebSocket WS;
+#pragma warning restore CS8618
+        public Frontend Frontend => WS.Frontend;
         public virtual string ID => GetType().Name.Substring(5);
         public virtual Type? InputType { get; } = null;
         public abstract bool Auth { get; }

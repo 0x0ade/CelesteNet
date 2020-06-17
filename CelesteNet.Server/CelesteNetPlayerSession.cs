@@ -124,6 +124,18 @@ namespace Celeste.Mod.CelesteNet.Server {
             return true;
         }
 
+        public bool Filter(CelesteNetConnection con, DataPlayerState updated) {
+            if (con != Con)
+                return true;
+
+            if (!Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? old) || old == null)
+                return true;
+
+            updated.Channel = old.Channel;
+
+            return true;
+        }
+
         public bool Filter(CelesteNetConnection con, DataType data) {
             if (con != Con)
                 return true;

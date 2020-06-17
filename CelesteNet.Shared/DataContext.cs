@@ -327,14 +327,14 @@ namespace Celeste.Mod.CelesteNet {
         public T? GetBoundRef<TBoundTo, T>(uint id) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
             => (T?) GetBoundRef(typeof(TBoundTo), typeof(T), id);
 
-        public T? GetBoundRef<TBoundTo, T>(TBoundTo boundTo) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
-            => (T?) GetBoundRef(typeof(TBoundTo), typeof(T), boundTo.ID);
+        public T? GetBoundRef<TBoundTo, T>(TBoundTo? boundTo) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
+            => (T?) GetBoundRef(typeof(TBoundTo), typeof(T), boundTo?.ID ?? uint.MaxValue);
 
         public IDataBoundRef? GetBoundRef(Type typeBoundTo, Type type, uint id)
             => TryGetBoundRef(typeBoundTo, type, id, out IDataBoundRef? value) ? value : throw new Exception($"Unknown reference {typeBoundTo.FullName} bound to {type.FullName} ID {id}");
 
-        public bool TryGetBoundRef<TBoundTo, T>(TBoundTo boundTo, out T? value) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
-            => TryGetBoundRef<TBoundTo, T>(boundTo.ID, out value);
+        public bool TryGetBoundRef<TBoundTo, T>(TBoundTo? boundTo, out T? value) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
+            => TryGetBoundRef<TBoundTo, T>(boundTo?.ID ?? uint.MaxValue, out value);
 
         public bool TryGetBoundRef<TBoundTo, T>(uint id, out T? value) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo> {
             bool rv = TryGetBoundRef(typeof(TBoundTo), typeof(T), id, out IDataBoundRef? value_);
@@ -367,8 +367,8 @@ namespace Celeste.Mod.CelesteNet {
             return new IDataRef[0];
         }
 
-        public IDataBoundRef[] GetBoundRefs<TBoundTo>(TBoundTo boundTo) where TBoundTo : DataType<TBoundTo>, IDataRef
-            => GetBoundRefs<TBoundTo>(boundTo.ID);
+        public IDataBoundRef[] GetBoundRefs<TBoundTo>(TBoundTo? boundTo) where TBoundTo : DataType<TBoundTo>, IDataRef
+            => GetBoundRefs<TBoundTo>(boundTo?.ID ?? uint.MaxValue);
 
         public IDataBoundRef[] GetBoundRefs<TBoundTo>(uint id) where TBoundTo : DataType<TBoundTo>, IDataRef
             => GetBoundRefs(typeof(TBoundTo), id);

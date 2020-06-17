@@ -10,7 +10,7 @@ using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
-    public class ChatCommands {
+    public class ChatCommands : IDisposable {
 
         public readonly List<ChatCMD> All = new List<ChatCMD>();
         public readonly Dictionary<string, ChatCMD> ByID = new Dictionary<string, ChatCMD>();
@@ -24,14 +24,21 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 ChatCMD? cmd = (ChatCMD?) Activator.CreateInstance(type);
                 if (cmd == null)
                     throw new Exception($"Cannot create instance of CMD {type.FullName}");
-                cmd.Chat = chat;
                 Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd.ID.ToLowerInvariant()} ({type.FullName})");
                 All.Add(cmd);
                 ByID[cmd.ID.ToLowerInvariant()] = cmd;
                 ByType[type] = cmd;
             }
 
+            foreach (ChatCMD cmd in All)
+                cmd.Init(chat);
+
             All = All.OrderBy(cmd => cmd.HelpOrder).ToList();
+        }
+
+        public void Dispose() {
+            foreach (ChatCMD cmd in All)
+                cmd.Dispose();
         }
 
         public ChatCMD? Get(string id)
@@ -45,7 +52,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
     }
 
-    public abstract class ChatCMD {
+    public abstract class ChatCMD : IDisposable {
 
         public static readonly char[] NameDelimiters = {
             ' ', '\n'
@@ -54,12 +61,19 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 #pragma warning disable CS8618 // Set manually after construction.
         public ChatModule Chat;
 #pragma warning restore CS8618
-        public virtual string ID => GetType().Name.Substring(7);
+        public virtual string ID => GetType().Name.Substring(7).ToLowerInvariant();
 
         public abstract string Args { get; }
         public abstract string Info { get; }
         public virtual string Help => Info;
         public virtual int HelpOrder => 0;
+
+        public virtual void Init(ChatModule chat) {
+            Chat = chat;
+        }
+
+        public virtual void Dispose() {
+        }
 
         public virtual void ParseAndRun(ChatCMDEnv env) {
             // TODO: Improve or rewrite. This comes from GhostNet, which adopted it from disbot (0x0ade's C# Discord bot).
@@ -126,8 +140,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             get {
                 if (Type != ChatCMDArgType.Int && Type != ChatCMDArgType.Long)
                     throw new Exception("Argument not an ID.");
-                if (Env.Chat.Server == null)
-                    throw new Exception("Not ready.");
                 CelesteNetPlayerSession? session;
                 lock (Env.Chat.Server.Connections)
                     if (!Env.Chat.Server.PlayersByID.TryGetValue((uint) Long, out session))
@@ -238,7 +250,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public CelesteNetPlayerSession? Session {
             get {
-                if (Msg.Player == null || Chat.Server == null)
+                if (Msg.Player == null)
                     return null;
                 CelesteNetPlayerSession? session;
                 lock (Chat.Server.Connections)
@@ -250,8 +262,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public DataPlayerInfo? Player => Session?.PlayerInfo;
 
+        public DataPlayerState? State => Chat.Server.Data.TryGetBoundRef(Player, out DataPlayerState? state) ? state : null;
+
         public string FullText => Msg.Text;
-        public string Text => Cmd == null ? Msg.Text : Msg.Text.Substring(Chat.Settings.CommandPrefix.Length + Cmd.ID.Length + 1);
+        public string Text => Cmd == null ? Msg.Text : Msg.Text.Substring(Chat.Settings.CommandPrefix.Length + Cmd.ID.Length);
 
         public DataChat? Send(string text, string? tag = null, Color? color = null) => Chat.Send(Session, text, tag, color ?? Chat.Settings.ColorCommandReply);
 

@@ -17,24 +17,21 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
+#pragma warning disable CS8618 // Set on init.
         public ChatCommands Commands;
-
-        public ChatModule() {
-            Commands = new ChatCommands(this);
-        }
+#pragma warning restore CS8618
 
         public override void Init(CelesteNetServerModuleWrapper wrapper) {
             base.Init(wrapper);
-            if (Server == null)
-                return;
 
+            Commands = new ChatCommands(this);
             Server.OnSessionStart += OnSessionStart;
         }
 
         public override void Dispose() {
             base.Dispose();
-            if (Server == null)
-                return;
+
+            Commands.Dispose();
 
             Server.OnSessionStart -= OnSessionStart;
             lock (Server.Connections)
@@ -55,9 +52,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {
-            if (Server == null)
-                return null;
-
             if (!msg.CreatedByServer) {
                 if (from == null)
                     return null;
@@ -105,7 +99,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public event Func<ChatModule, DataChat, bool>? OnReceive;
 
         public void Handle(CelesteNetConnection? con, DataChat msg) {
-            if (Server == null || PrepareAndLog(con, msg) == null)
+            if (PrepareAndLog(con, msg) == null)
                 return;
 
             if (msg.Text.StartsWith(Settings.CommandPrefix)) {
@@ -165,15 +159,19 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         public DataChat? Send(CelesteNetPlayerSession? player, string text, string? tag = null, Color? color = null) {
-            if (player?.PlayerInfo == null)
-                return null;
-            Logger.Log(LogLevel.INF, "chat", $"Sending to {player.PlayerInfo}: {text}");
             DataChat msg = new DataChat() {
-                Target = player.PlayerInfo,
+                Target = player?.PlayerInfo,
                 Text = text,
                 Tag = tag ?? "",
                 Color = color ?? Settings.ColorServer
             };
+            if (player == null || msg.Target == null) {
+                Logger.Log(LogLevel.INF, "chat", $"Sending to nobody: {text}");
+                PrepareAndLog(null, msg);
+                return null;
+            }
+
+            Logger.Log(LogLevel.INF, "chat", $"Sending to {msg.Target}: {text}");
             player.Con.Send(PrepareAndLog(null, msg));
             return msg;
         }
@@ -181,9 +179,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public event Action<ChatModule, DataChat>? OnForceSend;
 
         public void ForceSend(DataChat msg) {
-            if (Server == null)
-                return;
-
             Logger.Log(LogLevel.INF, "chatupd", msg.ToString());
             OnForceSend?.Invoke(this, msg);
 

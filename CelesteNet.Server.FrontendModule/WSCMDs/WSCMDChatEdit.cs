@@ -15,8 +15,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDChatEdit : WSCMD {
         public override bool Auth => true;
         public override object? Run(dynamic? input) {
-            if (Frontend.Server == null)
-                return null;
             if (input == null)
                 return null;
 

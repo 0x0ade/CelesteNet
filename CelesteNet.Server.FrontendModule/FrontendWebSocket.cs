@@ -20,7 +20,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         // Each connection creates one instance of this.
 
-        public Frontend? Frontend;
+        public Frontend Frontend;
 
         public string SessionKey = "";
 
@@ -31,7 +31,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private new EState State = EState.Invalid;
         private WSCMD? CurrentCommand;
 
+#pragma warning disable CS8618 // Fully initialized after construction.
         public FrontendWebSocket() {
+#pragma warning restore CS8618
             Commands = new WSCommands(this);
         }
 

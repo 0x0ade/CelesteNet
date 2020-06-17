@@ -36,7 +36,19 @@ namespace Celeste.Mod.CelesteNet {
         protected readonly Dictionary<Type, Dictionary<uint, uint>> LastOrderedUpdate = new Dictionary<Type, Dictionary<uint, uint>>();
 
         public DataContext() {
-            foreach (Type type in CelesteNetUtils.GetTypes()) {
+            RescanAllDataTypes();
+        }
+
+        public void RescanAllDataTypes() {
+            Logger.Log(LogLevel.INF, "data", "Rescanning all data types");
+            IDToTypeMap.Clear();
+            TypeToIDMap.Clear();
+
+            RescanDataTypes(CelesteNetUtils.GetTypes());
+        }
+
+        public void RescanDataTypes(Type[] types) {
+            foreach (Type type in types) {
                 if (!typeof(DataType).IsAssignableFrom(type) || type.IsAbstract)
                     continue;
 
@@ -60,6 +72,17 @@ namespace Celeste.Mod.CelesteNet {
                 Logger.Log(LogLevel.INF, "data", $"Found data type {type.FullName} with ID {id}");
                 IDToTypeMap[id] = type;
                 TypeToIDMap[type] = id;
+            }
+        }
+
+        public void RemoveDataTypes(Type[] types) {
+            foreach (Type type in types) {
+                if (!TypeToIDMap.TryGetValue(type, out string? id))
+                    continue;
+
+                Logger.Log(LogLevel.INF, "data", $"Removing data type {type.FullName} with ID {id}");
+                IDToTypeMap.Remove(id);
+                TypeToIDMap.Remove(type);
             }
         }
 

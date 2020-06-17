@@ -85,11 +85,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                     Logger.Log(LogLevel.INF, "module", $"Starting {ID} (late)");
                     Module.Start();
                 }
+                Server.Data.RescanDataTypes(Assembly.GetTypes());
             }
         }
 
         public void Unload() {
-            if (Module == null)
+            if (Module == null || Assembly == null)
                 return;
 
             foreach (CelesteNetServerModuleWrapper other in ReferredBy)
@@ -101,11 +102,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Server.Modules.Remove(Module);
                 Server.ModuleMap.Clear();
             }
-            
+
             Module.Dispose();
             Module = null;
 
             Server.DetourModManager.Unload(Assembly);
+            Server.Data.RemoveDataTypes(Assembly.GetTypes());
 
             UnloadAssembly();
             Assembly = null;

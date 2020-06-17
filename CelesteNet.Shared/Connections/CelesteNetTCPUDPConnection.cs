@@ -125,7 +125,9 @@ namespace Celeste.Mod.CelesteNet {
                     // Missed updates aren't that bad...
                     if (UDP != null) {
                         // Make sure that we have a default address if sending it without an endpoint
-                        if (UDP.Client.Connected) {
+                        // UDP is a mess and the UdpClient can be shared.
+                        // UDP.Client.Connected is true on mono server...
+                        if (UDP.Client.Connected && ReadUDPThread != null) {
                             UDP.Send(raw, length);
                         } else if (UDPRemoteEndPoint != null) {
                             UDP.Send(raw, length, UDPRemoteEndPoint);

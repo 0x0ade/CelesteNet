@@ -30,6 +30,8 @@ namespace Celeste.Mod.CelesteNet {
         private readonly Dictionary<object, List<Tuple<Type, DataHandler>>> RegisteredHandlers = new Dictionary<object, List<Tuple<Type, DataHandler>>>();
         private readonly Dictionary<object, List<Tuple<Type, DataFilter>>> RegisteredFilters = new Dictionary<object, List<Tuple<Type, DataFilter>>>();
 
+        protected readonly Dictionary<Type, IDataStatic> Static = new Dictionary<Type, IDataStatic>();
+
         protected readonly Dictionary<Type, Dictionary<uint, IDataRef>> References = new Dictionary<Type, Dictionary<uint, IDataRef>>();
         protected readonly Dictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>> Bound = new Dictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>>();
 
@@ -287,6 +289,23 @@ namespace Celeste.Mod.CelesteNet {
                     handler(con, data);
         }
 
+        public IDataStatic[] GetAllStatic()
+            => Static.Values.ToArray();
+
+        public T GetStatic<T>() where T : DataType<T>, IDataStatic
+            => (T) GetStatic(typeof(T));
+
+        public IDataStatic GetStatic(Type type)
+            => Static.TryGetValue(type, out IDataStatic? value) ? value : throw new Exception($"Unknown Static {type.FullName}");
+
+        public void SetStatic(IDataStatic data)
+            => SetStatic(data.GetType(), data);
+
+        public T SetStatic<T>(T data) where T : DataType<T>, IDataStatic
+            => (T) SetStatic(typeof(T), data);
+
+        public IDataStatic SetStatic(Type type, IDataStatic data)
+            => Static[type] = data;
 
         public T? ReadRef<T>(BinaryReader reader) where T : DataType<T>, IDataRef
             => GetRef<T>(reader.ReadUInt32());

@@ -10,10 +10,13 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
-    // FIXME: MOVE CHANNEL MANAGEMENT OUT OF HERE!
-    public class ChatCMDChannel : ChatCMD {
+    public class ChatCMDJoin : ChatCMDChannel {
 
-        public const string DefaultName = "main";
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}channel";
+
+    }
+
+    public class ChatCMDChannel : ChatCMD {
 
         public override string Args => "[page] | [channel]";
 
@@ -23,13 +26,8 @@ $@"Switch to a different channel.
 Work in progress, might not work properly.
 To list all public channels, {Chat.Settings.CommandPrefix}{ID}
 To create / join a public channel, {Chat.Settings.CommandPrefix}{ID} channel
-To create / join a private channel, {Chat.Settings.CommandPrefix}{ID} #channel
-To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {DefaultName}";
-
-        public readonly List<Channel> All = new List<Channel>();
-        public readonly Dictionary<uint, Channel> ByID = new Dictionary<uint, Channel>();
-        public readonly Dictionary<string, Channel> ByName = new Dictionary<string, Channel>();
-        public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
+To create / join a private channel, {Chat.Settings.CommandPrefix}{ID} {Channels.PrefixPrivate}channel
+To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Chat.Server.Channels.Default.Name}";
 
         public override void ParseAndRun(ChatCMDEnv env) {
             CelesteNetPlayerSession? session = env.Session;
@@ -37,12 +35,14 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {DefaultNam
             if (session == null || state == null)
                 return;
 
+            Channels channels = env.Server.Channels;
+
             Channel? c;
 
             if (int.TryParse(env.Text, out int page) ||
                 string.IsNullOrWhiteSpace(env.Text)) {
 
-                if (All.Count == 0) {
+                if (channels.All.Count == 0) {
                     env.Send($"No channels. See {Chat.Settings.CommandPrefix}{ID} on how to create one.");
                     return;
                 }
@@ -51,22 +51,22 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {DefaultNam
 
                 StringBuilder builder = new StringBuilder();
 
-                int pages = (int) Math.Ceiling(All.Count / (float) pageSize);
+                int pages = (int) Math.Ceiling(channels.All.Count / (float) pageSize);
                 if (page < 0 || pages <= page)
                     throw new Exception("Page out of range!");
 
                 if (page == 0)
                     builder
                         .Append("You're in ")
-                        .Append(state.Channel == 0 ? DefaultName : ByID.TryGetValue(state.Channel, out c) ? c.Name : $"?{state.Channel}?")
+                        .Append(channels.Get(session).Name)
                         .AppendLine();
 
-                for (int i = page * pageSize; i < (page + 1) * pageSize && i < All.Count; i++) {
-                    c = All[i];
+                for (int i = page * pageSize; i < (page + 1) * pageSize && i < channels.All.Count; i++) {
+                    c = channels.All[i];
                     builder
-                        .Append(c.Name.StartsWith("#") ? "########" : c.Name)
+                        .Append(c.PublicName)
                         .Append(" - ")
-                        .Append(c.Players)
+                        .Append(c.Players.Count)
                         .Append(" players")
                         .AppendLine();
                 }
@@ -82,77 +82,11 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {DefaultNam
                 return;
             }
 
-            string name = env.Text.Trim();
-
-            lock (All) {
-                if (ByID.TryGetValue(state.Channel, out Channel? prev) && prev.ID != state.Channel)
-                    prev.Remove(session);
-
-                if (name == DefaultName) {
-                    if (state.Channel == 0) {
-                        env.Send($"Already in {name}");
-                        return;
-                    }
-                    state.Channel = 0;
-
-                } else if (ByName.TryGetValue(name, out c)) {
-                    if (state.Channel == c.ID) {
-                        env.Send($"Already in {name}");
-                        return;
-                    }
-                    state.Channel = c.ID;
-                    c.Add(session);
-
-                } else {
-                    c = new Channel(this, name, NextID++);
-                    state.Channel = c.ID;
-                    c.Add(session);
-                }
-
-                session.Con.Send(state);
-                env.Server.Data.Handle(session.Con, state);
-
-                env.Send($"Switched to {name}");
-            }
-        }
-
-        public class Channel {
-            public ChatCMDChannel Ctx;
-            public string Name;
-            public uint ID;
-            public int Players;
-            
-            public Channel(ChatCMDChannel ctx, string name, uint id) {
-                Ctx = ctx;
-                Name = name;
-                ID = id;
-
-                lock (Ctx.All) {
-                    Ctx.All.Add(this);
-                    Ctx.ByName[Name] = this;
-                    Ctx.ByID[ID] = this;
-                }
-            }
-
-            public void Add(CelesteNetPlayerSession session) {
-                session.OnEnd += RemoveByDC;
-                Players++;
-            }
-
-            public void Remove(CelesteNetPlayerSession session) {
-                session.OnEnd -= RemoveByDC;
-                if ((--Players) > 0)
-                    return;
-
-                lock (Ctx.All) {
-                    Ctx.All.Remove(this);
-                    Ctx.ByName.Remove(Name);
-                    Ctx.ByID.Remove(ID);
-                }
-            }
-
-            private void RemoveByDC(CelesteNetPlayerSession session, DataPlayerInfo? lastInfo) {
-                Remove(session);
+            Tuple<Channel, Channel> tuple = channels.Move(session, env.Text);
+            if (tuple.Item1 == tuple.Item2) {
+                env.Send($"Already in {tuple.Item2.Name}");
+            } else {
+                env.Send($"Moved to {tuple.Item2.Name}");
             }
         }
 

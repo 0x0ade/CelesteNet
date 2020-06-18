@@ -58,6 +58,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public interface IDataBoundRef<T> : IDataBoundRef where T : DataType<T>, IDataRef {
     }
 
+    public interface IDataStatic {
+    }
+
     [Flags]
     public enum DataFlags : ushort {
         None =

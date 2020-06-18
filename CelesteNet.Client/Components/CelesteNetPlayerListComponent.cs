@@ -19,6 +19,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private string ListText;
 
+        public DataChannelList Channels;
+
+        public ListMode Mode => Settings.PlayerListMode;
+        private ListMode LastMode;
+
+        public enum ListMode {
+            Players,
+            Channels
+        }
+
         public CelesteNetPlayerListComponent(CelesteNetClientComponent context, Game game)
             : base(context, game) {
 
@@ -27,35 +37,82 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void RebuildList() {
-            if (MDraw.DefaultFont == null || Client == null)
+            if (MDraw.DefaultFont == null || Client == null || Channels == null)
                 return;
 
             StringBuilder builder = new StringBuilder();
-            foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
-                if (string.IsNullOrWhiteSpace(player.FullName))
-                    continue;
 
-                builder.Append(player.FullName);
 
-                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
-                    if (state.Channel != 0)
+            switch (Mode) {
+                case ListMode.Players:
+                    foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
+                        if (string.IsNullOrWhiteSpace(player.FullName))
+                            continue;
+
+                        builder.Append(player.FullName);
+
+                        if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
+                            if (state.Channel != 0 && state.Channel != uint.MaxValue) {
+                                string name = state.Channel != uint.MaxValue ? "?" : (Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID))?.Name ?? "?");
+                                if (!string.IsNullOrEmpty(name)) {
+                                    builder
+                                        .Append(" #")
+                                        .Append(name);
+                                }
+                            }
+
+
+                            if (!string.IsNullOrWhiteSpace(state.SID))
+                                builder
+                                    .Append(" @ ")
+                                    .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
+                                    .Append(" ")
+                                    .Append((char) ('A' + (int) state.Mode))
+                                    .Append(" ")
+                                    .Append(state.Level);
+                        }
+
+                        builder.AppendLine();
+                    }
+                    break;
+
+                case ListMode.Channels:
+                    foreach (DataChannelList.Channel channel in Channels.List) {
                         builder
-                            .Append(" >")
-                            .Append(state.Channel);
+                            .Append(channel.Name)
+                            .AppendLine();
 
+                        foreach (uint playerID in channel.Players) {
+                            if (Client.Data.TryGetRef(playerID, out DataPlayerInfo player) &&
+                                !string.IsNullOrEmpty(player.FullName)) {
 
-                    if (!string.IsNullOrWhiteSpace(state.SID))
-                        builder
-                            .Append(" @ ")
-                            .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
-                            .Append(" ")
-                            .Append((char) ('A' + (int) state.Mode))
-                            .Append(" ")
-                            .Append(state.Level);
-                }
+                                builder
+                                    .Append("  ")
+                                    .Append(player.FullName);
 
-                builder.AppendLine();
+                                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
+                                    if (!string.IsNullOrWhiteSpace(state.SID))
+                                        builder
+                                            .Append(" @ ")
+                                            .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
+                                            .Append(" ")
+                                            .Append((char) ('A' + (int) state.Mode))
+                                            .Append(" ")
+                                            .Append(state.Level);
+                                }
+
+                                builder.AppendLine();
+
+                            } else {
+                                builder.AppendLine("  ?");
+                            }
+                        }
+
+                    }
+                    break;
             }
+
+
 
             ListText = builder.ToString().Trim();
         }
@@ -68,8 +125,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             RebuildList();
         }
 
+        public void Handle(CelesteNetConnection con, DataChannelList channels) {
+            Channels = channels;
+            RebuildList();
+        }
+
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
+
+            if (LastMode != Mode) {
+                LastMode = Mode;
+                RebuildList();
+            }
 
             if (!(Engine.Scene?.Paused ?? false) && Settings.ButtonPlayerList.Button.Pressed)
                 Active = !Active;

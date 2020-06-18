@@ -1,4 +1,5 @@
-﻿using Celeste.Mod.UI;
+﻿using Celeste.Mod.CelesteNet.Client.Components;
+using Celeste.Mod.UI;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
@@ -60,6 +61,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             get => Logger.Level;
             set => Logger.Level = value;
         }
+
+        public CelesteNetPlayerListComponent.ListMode PlayerListMode { get; set; }
 
         [SettingIgnore]
         [SettingRange(4, 16)]

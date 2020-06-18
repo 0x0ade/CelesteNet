@@ -78,6 +78,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
+            foreach (DataType data in Server.Data.GetAllStatic())
+                Con.Send(data);
+
             Server.InvokeOnSessionStart(this);
         }
 

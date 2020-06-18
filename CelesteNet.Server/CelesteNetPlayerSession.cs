@@ -34,7 +34,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Server.PlayersByCon[Con] = this;
                 Server.PlayersByID[ID] = this;
             }
-            // FIXME: Server.Control.BroadcastCMD("update", "/status");
 
             string name = handshake.Name;
             // TODO: Handle names starting with # as "keys"
@@ -57,7 +56,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Data.SetRef(playerInfo);
 
             Logger.Log(LogLevel.INF, "playersession", playerInfo.ToString());
-            // FIXME: Server.Control.BroadcastCMD("update", "/players");
 
             Con.Send(new DataHandshakeServer {
                 Version = CelesteNetUtils.Version,
@@ -81,16 +79,15 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            // FIXME: Server.Chat.Broadcast(Server.Settings.MessageGreeting.InjectSingleValue("player", fullName));
-            // FIXME: Server.Chat.Send(this, Server.Settings.MessageMOTD);
+            Server.InvokeOnSessionStart(this);
         }
+
+        public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;
 
         public void Dispose() {
             Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{ID} {Con}");
 
-            string? fullName = PlayerInfo?.FullName;
-            // FIXME: if (!string.IsNullOrEmpty(fullName))
-                // FIXME: Server.Chat.Broadcast(Server.Settings.MessageLeave.InjectSingleValue("player", fullName));
+            DataPlayerInfo? playerInfoLast = PlayerInfo;
 
             lock (Server.Connections) {
                 Server.PlayersByCon.Remove(Con);
@@ -104,10 +101,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Data.FreeRef<DataPlayerInfo>(ID);
             Server.Data.FreeOrder<DataPlayerFrame>(ID);
 
-            // FIXME: Server.Control.BroadcastCMD("update", "/status");
-            // FIXME: Server.Control.BroadcastCMD("update", "/players");
-
             Server.Data.UnregisterHandlersIn(this);
+
+            OnEnd?.Invoke(this, playerInfoLast);
         }
 
 

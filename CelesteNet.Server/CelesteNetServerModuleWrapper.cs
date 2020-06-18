@@ -98,12 +98,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Logger.Log(LogLevel.INF, "module", $"Unloading {ID}");
 
+            Module.Dispose();
+
             lock (Server.Modules) {
                 Server.Modules.Remove(Module);
                 Server.ModuleMap.Clear();
             }
 
-            Module.Dispose();
             Module = null;
 
             Server.DetourModManager.Unload(Assembly);

@@ -101,9 +101,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                 prev.Remove(session);
                 c.Add(session);
 
-                session.Con.Send(new DataChannelMove {
+                DataChannelMove move = new DataChannelMove {
+                    Player = session.PlayerInfo,
                     ID = c.ID
-                });
+                };
+                session.Con.Send(move);
+                foreach (CelesteNetPlayerSession other in prev.Players)
+                    other.Con.Send(move);
 
                 BroadcastList();
 

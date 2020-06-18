@@ -63,9 +63,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataChannelMove move) {
-            foreach (Ghost ghost in Ghosts.Values)
-                ghost?.RemoveSelf();
-            Ghosts.Clear();
+            if (move.Player.ID == Client.PlayerInfo.ID) {
+                foreach (Ghost ghost in Ghosts.Values)
+                    ghost?.RemoveSelf();
+                Ghosts.Clear();
+                // TODO: CLEAN UP STATES!
+
+            } else {
+                if (!Ghosts.TryGetValue(move.Player.ID, out Ghost ghost) ||
+                    ghost == null)
+                    return;
+
+                ghost.NameTag.Name = "";
+                Ghosts.Remove(move.Player.ID);
+                // TODO: CLEAN UP STATES!
+            }
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerState state) {

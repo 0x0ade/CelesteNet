@@ -24,11 +24,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             for (int ci = 0; ci < List.Length; ci++) {
                 Channel c = List[ci] = new Channel();
                 c.Name = reader.ReadNullTerminatedString();
-                if ((c.ID = reader.ReadUInt32()) != 0) {
-                    c.Players = new uint[reader.ReadUInt32()];
-                    for (int pi = 0; pi < c.Players.Length; pi++)
-                        c.Players[pi] = reader.ReadUInt32();
-                }
+                c.ID = reader.ReadUInt32();
+                c.Players = new uint[reader.ReadUInt32()];
+                for (int pi = 0; pi < c.Players.Length; pi++)
+                    c.Players[pi] = reader.ReadUInt32();
             }
         }
 
@@ -37,11 +36,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             foreach (Channel c in List) {
                 writer.WriteNullTerminatedString(c.Name);
                 writer.Write(c.ID);
-                if (c.ID != 0) {
-                    writer.Write((uint) c.Players.Length);
-                    foreach (uint p in c.Players)
-                        writer.Write(p);
-                }
+                writer.Write((uint) c.Players.Length);
+                foreach (uint p in c.Players)
+                    writer.Write(p);
             }
         }
 

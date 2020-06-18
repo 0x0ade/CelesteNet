@@ -19,6 +19,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly uint ID;
 
         public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo? value) ? value : null;
+        public Channel Channel => Server.Channels.Get(this);
 
         public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
             Server = server;
@@ -73,16 +74,52 @@ namespace Celeste.Mod.CelesteNet.Server {
                         continue;
 
                     Con.Send(otherInfo);
+
                     foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        Con.Send(bound);
+                        if (!(bound is IDataPlayerState) || other.Channel.ID == 0)
+                            Con.Send(bound);
                 }
             }
+
+            ResendPlayerStates();
 
             foreach (DataType data in Server.Data.GetAllStatic())
                 Con.Send(data);
 
             Server.InvokeOnSessionStart(this);
         }
+
+        public void ResendPlayerStates() {
+            Channel channel = Channel;
+            if (!Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state))
+                state = null;
+
+            lock (Server.Connections) {
+                foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
+                    if (other == this)
+                        continue;
+
+                    DataPlayerInfo? otherInfo = other.PlayerInfo;
+                    if (otherInfo == null)
+                        continue;
+
+                    foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
+                        if (!(bound is IDataPlayerState) || IsSameArea(channel, state, other))
+                            Con.Send(bound);
+                }
+            }
+        }
+
+        public bool IsSameArea(CelesteNetPlayerSession other)
+            => Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state) && state != null && IsSameArea(Channel, state, other);
+
+        public bool IsSameArea(Channel channel, DataPlayerState? state, CelesteNetPlayerSession other)
+            =>  state != null &&
+                other.Channel == channel &&
+                Server.Data.TryGetBoundRef(other.PlayerInfo, out DataPlayerState? otherState) &&
+                otherState != null &&
+                otherState.SID == state.SID &&
+                otherState.Mode == state.Mode;
 
         public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;
 
@@ -127,24 +164,12 @@ namespace Celeste.Mod.CelesteNet.Server {
             return true;
         }
 
-        public bool Filter(CelesteNetConnection con, DataPlayerState updated) {
-            if (con != Con)
-                return true;
-
-            if (!Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? old) || old == null)
-                return true;
-
-            updated.Channel = old.Channel;
-
-            return true;
-        }
-
         public bool Filter(CelesteNetConnection con, DataType data) {
             if (con != Con)
                 return true;
 
-            if (data is IDataBoundRef<DataPlayerInfo> bound)
-                bound.ID = ID;
+            if (data is IDataPlayerState bound)
+                bound.Player = PlayerInfo;
 
             if (data is IDataPlayerUpdate update)
                 update.Player = PlayerInfo;
@@ -170,27 +195,20 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (con != Con)
                 return;
 
-            if (PlayerInfo == null || !Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state))
+            if (!Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state))
                 state = null;
 
             if (data is IDataBoundRef<DataPlayerInfo> ||
+                data is IDataPlayerState ||
                 data is IDataPlayerUpdate) {
-                if (state == null)
-                    return;
+                Channel channel = Channel;
 
                 lock (Server.Connections) {
                     foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
                         if (other == this)
                             continue;
 
-                        if (data is IDataPlayerUpdate && (
-                            other.PlayerInfo == null ||
-                            !Server.Data.TryGetBoundRef(other.PlayerInfo, out DataPlayerState? otherState) ||
-                            otherState == null ||
-                            otherState.Channel != state.Channel ||
-                            otherState.SID != state.SID ||
-                            otherState.Mode != state.Mode
-                        ))
+                        if ((data is IDataPlayerState || data is IDataPlayerUpdate) && !IsSameArea(channel, state, other))
                             continue;
 
                         other.Con.Send(data);

@@ -21,8 +21,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public HashSet<string> ForceIdle = new HashSet<string>();
         public bool StateUpdated;
 
-        public uint Channel;
-
         public GhostNameTag PlayerNameTag;
         public GhostEmote PlayerIdleTag;
         public Dictionary<uint, Ghost> Ghosts = new Dictionary<uint, Ghost>();
@@ -64,15 +62,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        public void Handle(CelesteNetConnection con, DataChannelMove move) {
+            foreach (Ghost ghost in Ghosts.Values)
+                ghost?.RemoveSelf();
+            Ghosts.Clear();
+        }
+
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
             if (state.ID == Client.PlayerInfo.ID) {
-                if (Channel != state.Channel) {
-                    Channel = state.Channel;
-                    foreach (Ghost ghost in Ghosts.Values)
-                        ghost?.RemoveSelf();
-                    Ghosts.Clear();
-                }
-
                 if (Player == null)
                     return;
 
@@ -84,7 +81,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
 
                 Session session = Session;
-                if (session != null && (state.Channel != Channel || state.SID != session.Area.SID || state.Mode != session.Area.Mode)) {
+                if (session != null && (state.SID != session.Area.SID || state.Mode != session.Area.Mode)) {
                     ghost.NameTag.Name = "";
                     Ghosts.Remove(state.ID);
                     return;
@@ -102,7 +99,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 !Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
                 level == null ||
                 session == null ||
-                (state.Channel != Channel || state.SID != session.Area.SID || state.Mode != session.Area.Mode);
+                (state.SID != session.Area.SID || state.Mode != session.Area.Mode);
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost == null ||
@@ -270,8 +267,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void SendState() {
             Client?.SendAndHandle(new DataPlayerState {
-                ID = Client.PlayerInfo.ID,
-                Channel = Channel,
+                Player = Client.PlayerInfo,
                 SID = Session?.Area.GetSID() ?? "",
                 Mode = Session?.Area.Mode ?? AreaMode.Normal,
                 Level = Session?.Level ?? "",

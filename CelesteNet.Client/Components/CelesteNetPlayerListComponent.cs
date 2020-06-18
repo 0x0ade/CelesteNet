@@ -25,8 +25,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private ListMode LastMode;
 
         public enum ListMode {
-            Players,
-            Channels
+            Channels,
+            Classic,
         }
 
         public CelesteNetPlayerListComponent(CelesteNetClientComponent context, Game game)
@@ -44,33 +44,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
 
             switch (Mode) {
-                case ListMode.Players:
+                case ListMode.Classic:
                     foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
                         if (string.IsNullOrWhiteSpace(player.FullName))
                             continue;
 
                         builder.Append(player.FullName);
 
-                        if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
-                            if (state.Channel != 0 && state.Channel != uint.MaxValue) {
-                                string name = state.Channel != uint.MaxValue ? "?" : (Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID))?.Name ?? "?");
-                                if (!string.IsNullOrEmpty(name)) {
-                                    builder
-                                        .Append(" #")
-                                        .Append(name);
-                                }
-                            }
-
-
-                            if (!string.IsNullOrWhiteSpace(state.SID))
-                                builder
-                                    .Append(" @ ")
-                                    .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
-                                    .Append(" ")
-                                    .Append((char) ('A' + (int) state.Mode))
-                                    .Append(" ")
-                                    .Append(state.Level);
+                        DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
+                        if (channel != null && !string.IsNullOrEmpty(channel.Name)) {
+                            builder
+                                .Append(" #")
+                                .Append(channel.Name);
                         }
+
+                        if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
+                            AppendState(builder, state);
 
                         builder.AppendLine();
                     }
@@ -90,16 +79,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                                     .Append("  ")
                                     .Append(player.FullName);
 
-                                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
-                                    if (!string.IsNullOrWhiteSpace(state.SID))
-                                        builder
-                                            .Append(" @ ")
-                                            .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
-                                            .Append(" ")
-                                            .Append((char) ('A' + (int) state.Mode))
-                                            .Append(" ")
-                                            .Append(state.Level);
-                                }
+                                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
+                                    AppendState(builder, state);
 
                                 builder.AppendLine();
 
@@ -112,9 +93,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     break;
             }
 
-
-
             ListText = builder.ToString().Trim();
+        }
+
+        private void AppendState(StringBuilder builder, DataPlayerState state) {
+            if (!string.IsNullOrWhiteSpace(state.SID))
+                builder
+                    .Append(" @ ")
+                    .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
+                    .Append(" ")
+                    .Append((char) ('A' + (int) state.Mode))
+                    .Append(" ")
+                    .Append(state.Level);
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {

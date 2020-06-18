@@ -23,6 +23,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly Channel Default;
         public readonly List<Channel> All = new List<Channel>();
         public readonly Dictionary<uint, Channel> ByID = new Dictionary<uint, Channel>();
+        public readonly Dictionary<CelesteNetPlayerSession, Channel> BySession = new Dictionary<CelesteNetPlayerSession, Channel>();
         public readonly Dictionary<string, Channel> ByName = new Dictionary<string, Channel>();
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
@@ -47,17 +48,16 @@ namespace Celeste.Mod.CelesteNet.Server {
         private void OnSessionStart(CelesteNetPlayerSession session) {
             Default.Add(session);
 
-            SendListTo(session);
+            BroadcastList();
         }
 
         public void SendListTo(CelesteNetPlayerSession session) {
-            uint ownID = 0;
-            if (!Server.Data.TryGetBoundRef(session.PlayerInfo, out DataPlayerState? state) && state != null)
-                ownID = state.Channel;
+            if (!BySession.TryGetValue(session, out Channel? own))
+                own = Default;
 
             lock (All)
                 session.Con.Send(new DataChannelList {
-                    List = All.Where(c => !c.IsPrivate || c.ID == ownID).Select(c => new DataChannelList.Channel {
+                    List = All.Where(c => !c.IsPrivate || c == own).Select(c => new DataChannelList.Channel {
                         Name = c.Name,
                         ID = c.ID,
                         Players = c.Players.Select(p => p.ID).ToArray()
@@ -73,10 +73,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public Channel Get(CelesteNetPlayerSession session) {
-            if (!Server.Data.TryGetBoundRef(session.PlayerInfo, out DataPlayerState? state) || state == null)
-                throw new Exception(session?.PlayerInfo == null ? "No player." : "No state.");
-
-            if (ByID.TryGetValue(state.Channel, out Channel? c))
+            if (BySession.TryGetValue(session, out Channel? c))
                 return c;
 
             return Default;
@@ -87,31 +84,30 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (name == NamePrivate)
                 throw new Exception("Invalid private channel name.");
 
-            if (!Server.Data.TryGetBoundRef(session.PlayerInfo, out DataPlayerState? state) || state == null)
-                throw new Exception(session?.PlayerInfo == null ? "No player." : "No state.");
-
             lock (All) {
                 Channel prev = Get(session);
-                prev.Remove(session);
                 
                 Channel c;
 
                 if (ByName.TryGetValue(name, out Channel? existing)) {
                     c = existing;
-                    if (state.Channel == c.ID)
+                    if (prev == c)
                         return Tuple.Create(c, c);
 
                 } else {
                     c = new Channel(this, name, NextID++);
                 }
 
-                state.Channel = c.ID;
+                prev.Remove(session);
                 c.Add(session);
 
-                session.Con.Send(state);
-                Server.Data.Handle(session.Con, state);
+                session.Con.Send(new DataChannelMove {
+                    ID = c.ID
+                });
 
                 BroadcastList();
+
+                session.ResendPlayerStates();
 
                 return Tuple.Create(prev, c);
             }
@@ -151,6 +147,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             lock (Players)
                 if (!Players.Add(session))
                     return;
+
+            Ctx.BySession[session] = this;
+
             session.OnEnd += RemoveByDC;
         }
 
@@ -158,6 +157,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             lock (Players)
                 if (!Players.Remove(session))
                     return;
+
+            Ctx.BySession.Remove(session);
+            session.OnEnd -= RemoveByDC;
 
             if (ID == 0)
                 return;

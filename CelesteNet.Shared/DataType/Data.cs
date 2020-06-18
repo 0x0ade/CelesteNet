@@ -47,7 +47,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
     public interface IDataRef {
 
-        uint ID { get; set; }
+        uint ID { get; }
         bool IsAliveRef { get; }
 
     }

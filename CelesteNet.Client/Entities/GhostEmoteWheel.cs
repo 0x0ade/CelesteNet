@@ -101,13 +101,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                             Rbut.SetRepeat(0f);
                             repeatSetR = false;
                         } else if (!repeatSetR && Rbut.Repeating) {
-                            Rbut.SetRepeat(0.000000000000000000000000000000000000000000000000000000000001f, 0.025f);
+                            Rbut.SetRepeat(0.000000000000001f, 0.025f);
                             repeatSetR = true;
                         } else if (repeatSetL && Lbut.Pressed && !Lbut.Repeating) {
                             Lbut.SetRepeat(0f);
                             repeatSetL = false;
                         } else if (!repeatSetL && Lbut.Repeating) {
-                            Lbut.SetRepeat(0.000000000000000000000000000000000000000000000000000000000001f, 0.025f);
+                            Lbut.SetRepeat(0.000000000000001f, 0.025f);
                         }
 
                         if (repeatSetR ? Rbut.Repeating : (Rbut.Pressed && !Rbut.Repeating)) {

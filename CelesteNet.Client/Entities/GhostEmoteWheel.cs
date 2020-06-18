@@ -83,7 +83,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                         VirtualButton Lbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button;
                         Selected = Selected < 0 ? 0 : Selected;
 
-                        if (!repeatSetR) {
+                        /*if (!repeatSetR) {
                             Rbut.SetRepeat(0.04f, 0.025f);
                             repeatSetR = true;
                         } else if (repeatSetR) {
@@ -95,7 +95,21 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                         } else if (repeatSetL) {
                             Lbut.SetRepeat(0f, 0f);
                             repeatSetL = false;
+                        }*/
+
+                        if (repeatSetR && Rbut.Pressed && !Rbut.Repeating) {
+                            Rbut.SetRepeat(0f);
+                            repeatSetR = false;
+                        } else if (!repeatSetR && Rbut.Repeating) {
+                            Rbut.SetRepeat(0.000000000000000000000000000000000000000000000000000000000001f, 0.025f);
+                            repeatSetR = true;
+                        } else if (repeatSetL && Lbut.Pressed && !Lbut.Repeating) {
+                            Lbut.SetRepeat(0f);
+                            repeatSetL = false;
+                        } else if (!repeatSetL && Lbut.Repeating) {
+                            Lbut.SetRepeat(0.000000000000000000000000000000000000000000000000000000000001f, 0.025f);
                         }
+
                         if (repeatSetR ? Rbut.Repeating : (Rbut.Pressed && !Rbut.Repeating)) {
                             Selected = Selected < emotes.Length - 1 ? Selected + 1 : 0;
                         } else if (repeatSetL ? Lbut.Repeating : (Lbut.Pressed && !Lbut.Repeating)) {

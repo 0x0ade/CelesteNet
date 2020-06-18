@@ -17,27 +17,26 @@ using WebSocketSharp.Server;
 using Celeste.Mod.Helpers;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
-    public class Frontend : IDisposable {
+    public class Frontend : CelesteNetServerModule<FrontendSettings> {
 
         public static readonly string COOKIE_SESSION = "celestenet-session";
 
-        public readonly CelesteNetServer Server;
         public readonly List<RCEndpoint> EndPoints = new List<RCEndpoint>();
         public readonly HashSet<string> CurrentSessionKeys = new HashSet<string>();
 
-        private HttpServer HTTPServer;
-        private WebSocketServiceHost WSHost;
+        private HttpServer? HTTPServer;
+        private WebSocketServiceHost? WSHost;
 
 #if NETCORE
-        private FileExtensionContentTypeProvider ContentTypeProvider = new FileExtensionContentTypeProvider();
+        private readonly FileExtensionContentTypeProvider ContentTypeProvider = new FileExtensionContentTypeProvider();
 #endif
 
         public JsonSerializer Serializer = new JsonSerializer() {
             Formatting = Formatting.Indented
         };
 
-        public Frontend(CelesteNetServer server) {
-            Server = server;
+        public override void Init(CelesteNetServerModuleWrapper wrapper) {
+            base.Init(wrapper);
 
             Logger.Log(LogLevel.VVV, "frontend", "Scanning for endpoints");
             foreach (Type t in CelesteNetUtils.GetTypes()) {
@@ -52,10 +51,15 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
         }
 
-        public void Start() {
-            Logger.Log(LogLevel.INF, "frontend", $"Startup on port {Server.Settings.ControlPort}");
+        public override void Start() {
+            if (Server == null)
+                return;
 
-            HTTPServer = new HttpServer(Server.Settings.ControlPort);
+            base.Start();
+
+            Logger.Log(LogLevel.INF, "frontend", $"Startup on port {Settings.Port}");
+
+            HTTPServer = new HttpServer(Settings.Port);
 
             HTTPServer.OnGet += HandleRequestRaw;
             HTTPServer.OnPost += HandleRequestRaw;
@@ -67,7 +71,46 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             HTTPServer.WebSocketServices.TryGetServiceHost("/ws", out WSHost);
         }
 
-        private void HandleRequestRaw(object sender, HttpRequestEventArgs c) {
+        public override void Dispose() {
+            base.Dispose();
+
+            Logger.Log(LogLevel.INF, "frontend", "Shutdown");
+
+            HTTPServer?.Stop();
+            HTTPServer = null;
+        }
+
+        public Stream? OpenContent(string path) {
+            try {
+                string dir = Path.GetFullPath(Settings.ContentRoot);
+                string pathFS = Path.GetFullPath(Path.Combine(dir, path));
+                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
+                    return File.OpenRead(pathFS);
+            } catch {
+            }
+
+#if DEBUG
+            try {
+                string dir = Path.GetFullPath(Path.Combine("..", "..", "..", "Content"));
+                string pathFS = Path.GetFullPath(Path.Combine(dir, path));
+                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
+                    return File.OpenRead(pathFS);
+            } catch {
+            }
+
+            try {
+                string dir = Path.GetFullPath(Path.Combine("..", "..", "..", "..", "CelesteNet.Server.FrontendModule", "Content"));
+                string pathFS = Path.GetFullPath(Path.Combine(dir, path));
+                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
+                    return File.OpenRead(pathFS);
+            } catch {
+            }
+#endif
+
+            return typeof(CelesteNetServer).Assembly.GetManifestResourceStream("Celeste.Mod.CelesteNet.Server.Content." + path.Replace("/", "."));
+        }
+
+        private void HandleRequestRaw(object? sender, HttpRequestEventArgs c) {
             try {
                 using (c.Request.InputStream)
                 using (c.Response) {
@@ -107,21 +150,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             endpoint.Handle(this, c);
         }
 
-        public void Dispose() {
-            Logger.Log(LogLevel.INF, "frontend", "Shutdown");
-
-            HTTPServer?.Stop();
-            HTTPServer = null;
-        }
-
         public bool IsAuthorized(HttpRequestEventArgs c)
-            => CurrentSessionKeys.Contains(c.Request.Cookies[Frontend.COOKIE_SESSION]?.Value);
+            => c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionKeys.Contains(session);
 
         public void BroadcastRawString(string data) {
-            WSHost.Sessions.Broadcast(data);
+            WSHost?.Sessions.Broadcast(data);
         }
 
         public void BroadcastRawObject(object obj) {
+            if (WSHost == null)
+                return;
+
             using (MemoryStream ms = new MemoryStream()) {
                 using (StreamWriter sw = new StreamWriter(ms, Encoding.UTF8, 1024, true))
                 using (JsonTextWriter jtw = new JsonTextWriter(sw))
@@ -167,7 +206,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public void RespondContent(HttpRequestEventArgs c, string id) {
             using (MemoryStream ms = new MemoryStream())
-            using (Stream s = Server.OpenContent(id)) {
+            using (Stream? s = OpenContent(id)) {
                 if (s == null) {
                     c.Response.StatusCode = (int) HttpStatusCode.NotFound;
                     RespondJSON(c, new {

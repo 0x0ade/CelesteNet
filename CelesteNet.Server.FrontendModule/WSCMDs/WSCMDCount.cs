@@ -9,10 +9,11 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
-    public class WSCMDEcho : WSCMD {
+    public class WSCMDCount : WSCMD {
         public override bool Auth => false;
-        public override object Run(object data) {
-            return data;
+        public int Counter;
+        public override object? Run(object? input) {
+            return ++Counter;
         }
     }
 }

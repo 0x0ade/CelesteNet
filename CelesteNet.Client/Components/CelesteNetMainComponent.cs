@@ -112,15 +112,24 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (level == null || outside)
                 return;
 
+            bool dead = false;
+
             if (ghost == null) {
                 Ghosts[frame.Player.ID] = ghost = new Ghost(frame.SpriteMode);
                 level.Add(ghost);
             }
 
+            dead = ghost.Dead;
+
             ghost.NameTag.Name = frame.Player.FullName;
             UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
             ghost.UpdateSprite(frame.Position, frame.Scale, frame.Facing, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
             ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
+            ghost.Dead = frame.Dead;
+
+            if (ghost.Dead != dead && ghost.Dead) {
+                ghost.HandleDeath();
+            }
         }
 
         public void UpdateIdleTag(Entity target, ref GhostEmote idleTag, bool idle) {
@@ -299,7 +308,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 DashColor = Player.StateMachine.State == Player.StDash ? Player.GetCurrentTrailColor() : (Color?) null,
                 DashDir = Player.DashDir,
-                DashWasB = Player.GetWasDashB()
+                DashWasB = Player.GetWasDashB(),
+
+                Dead = Player.Dead
             });
         }
 

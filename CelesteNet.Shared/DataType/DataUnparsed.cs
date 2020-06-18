@@ -17,9 +17,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "unparsed";
         }
 
-        public string InnerID;
+        public string InnerID = "";
         public DataFlags InnerFlags;
-        public byte[] InnerData;
+        public byte[] InnerData = Dummy<byte>.EmptyArray;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             InnerID = reader.ReadNullTerminatedString();

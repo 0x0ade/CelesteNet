@@ -19,8 +19,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public uint ID { get; set; }
         public bool IsAliveRef => !string.IsNullOrEmpty(FullName);
-        public string Name;
-        public string FullName;
+        public string Name = "";
+        public string FullName = "";
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             ID = reader.ReadUInt32();
@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
     public interface IDataPlayerUpdate {
 
-        DataPlayerInfo Player { get; set; }
+        DataPlayerInfo? Player { get; set; }
 
     }
 }

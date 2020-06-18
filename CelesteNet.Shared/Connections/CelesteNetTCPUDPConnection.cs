@@ -23,53 +23,57 @@ namespace Celeste.Mod.CelesteNet {
         public BinaryReader TCPReader;
         public BinaryWriter TCPWriter;
 
-        public UdpClient UDP;
+        public UdpClient? UDP;
 
         protected MemoryStream BufferStream;
         protected BinaryWriter BufferWriter;
 
-        protected Thread ReadTCPThread;
-        protected Thread ReadUDPThread;
+        protected Thread? ReadTCPThread;
+        protected Thread? ReadUDPThread;
 
         public override bool IsConnected => TCP?.Connected ?? false;
         public override string ID => "TCP/UDP " + (TCPRemoteEndPoint?.ToString() ?? $"?{GetHashCode()}");
 
-        protected IPEndPoint TCPLocalEndPoint;
-        protected IPEndPoint TCPRemoteEndPoint;
-        public IPEndPoint UDPLocalEndPoint;
-        public IPEndPoint UDPRemoteEndPoint;
+        protected IPEndPoint? TCPLocalEndPoint;
+        protected IPEndPoint? TCPRemoteEndPoint;
+        public IPEndPoint? UDPLocalEndPoint;
+        public IPEndPoint? UDPRemoteEndPoint;
 
-        private static TcpClient GetTCP(string host, int port) {
-            TcpClient client = new TcpClient(host, port);
-
-            client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
-
-            return client;
-        }
-
-        private static UdpClient GetUDP(string host, int port) {
-            UdpClient client = new UdpClient(host, port);
-
-            client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
-
-            return client;
+#pragma warning disable CS8618 // Every other ctor uses this ctor and initializes everything properly.
+        private CelesteNetTCPUDPConnection(DataContext data)
+#pragma warning restore CS8618
+            : base(data) {
+            BufferStream = new MemoryStream();
+            BufferWriter = new BinaryWriter(BufferStream, Encoding.UTF8);
         }
 
         public CelesteNetTCPUDPConnection(DataContext data, string host, int port)
-            : this(data, GetTCP(host, port), GetUDP(host, port)) {
+            : this(data) {
+            TcpClient tcp = new TcpClient(host, port);
+            tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
+
+            // Reuse TCP endpoint as - at least on Windows - TCP and UDP hostname
+            // lookups can result in IPv4 for TCP vs IPv6 for UDP in some cases.
+            UdpClient udp = tcp.Client.RemoteEndPoint is IPEndPoint tcpEP ?
+                new UdpClient(tcpEP.Address.ToString(), tcpEP.Port) :
+                new UdpClient(host, port);
+            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
+
+            InitTCPUDP(tcp, udp);
         }
 
-        public CelesteNetTCPUDPConnection(DataContext data, TcpClient tcp, UdpClient udp)
-            : base(data) {
+        public CelesteNetTCPUDPConnection(DataContext data, TcpClient tcp, UdpClient? udp)
+            : this(data) {
+            InitTCPUDP(tcp, udp);
+        }
+
+        private void InitTCPUDP(TcpClient tcp, UdpClient? udp) {
             TCP = tcp;
             TCPStream = tcp.GetStream();
             TCPReader = new BinaryReader(TCPStream, Encoding.UTF8, true);
             TCPWriter = new BinaryWriter(TCPStream, Encoding.UTF8, true);
 
             UDP = udp;
-
-            BufferStream = new MemoryStream();
-            BufferWriter = new BinaryWriter(BufferStream, Encoding.UTF8);
         }
 
         public void StartReadTCP() {
@@ -120,11 +124,13 @@ namespace Celeste.Mod.CelesteNet {
                 if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
                     // Missed updates aren't that bad...
                     if (UDP != null) {
-                        // mono is mono and mono likes to complain about things...
-                        if (UDPRemoteEndPoint != null && !UDP.Client.Connected) {
-                            UDP.Send(raw, length, UDPRemoteEndPoint);
-                        } else {
+                        // Make sure that we have a default address if sending it without an endpoint
+                        // UDP is a mess and the UdpClient can be shared.
+                        // UDP.Client.Connected is true on mono server...
+                        if (UDP.Client.Connected && ReadUDPThread != null) {
                             UDP.Send(raw, length);
+                        } else if (UDPRemoteEndPoint != null) {
+                            UDP.Send(raw, length, UDPRemoteEndPoint);
                         }
                     }
 
@@ -149,7 +155,7 @@ namespace Celeste.Mod.CelesteNet {
         protected virtual void ReadTCPLoop() {
             try {
                 while ((TCP?.Connected ?? false) && IsAlive) {
-                    Data.Handle(this, Data.Read(TCPReader));
+                    Receive(Data.Read(TCPReader));
                 }
 
             } catch (ThreadAbortException) {
@@ -170,7 +176,7 @@ namespace Celeste.Mod.CelesteNet {
                 using (MemoryStream stream = new MemoryStream())
                 using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
                     while (UDP != null && IsAlive) {
-                        IPEndPoint remote = null;
+                        IPEndPoint? remote = null;
                         byte[] raw = UDP.Receive(ref remote);
                         if (UDPRemoteEndPoint != null && !remote.Equals(UDPRemoteEndPoint))
                             continue;
@@ -179,7 +185,7 @@ namespace Celeste.Mod.CelesteNet {
                         stream.Write(raw, 0, raw.Length);
 
                         stream.Seek(0, SeekOrigin.Begin);
-                        Data.Handle(this, Data.Read(reader));
+                        Receive(Data.Read(reader));
                     }
                 }
 

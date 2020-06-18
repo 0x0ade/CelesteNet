@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public uint ID => Player?.ID ?? uint.MaxValue;
         public uint UpdateID { get; set; }
 
-        public DataPlayerInfo Player { get; set; }
+        public DataPlayerInfo? Player { get; set; }
 
         public Vector2 Position;
         public Vector2 Speed;
@@ -34,19 +34,21 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public float SpriteRate;
         public Vector2? SpriteJustify;
 
-        public string CurrentAnimationID;
+        public string CurrentAnimationID = "";
         public int CurrentAnimationFrame;
 
         public Color HairColor;
         public bool HairSimulateMotion;
 
         public byte HairCount;
-        public Color[] HairColors;
-        public string[] HairTextures;
+        public Color[] HairColors = Dummy<Color>.EmptyArray;
+        public string[] HairTextures = Dummy<string>.EmptyArray;
 
         public Color? DashColor;
         public Vector2 DashDir;
         public bool DashWasB;
+
+        public bool Dead;
 
         public override bool FilterHandle(DataContext ctx)
             => Player != null; // Can be RECEIVED BY CLIENT TOO EARLY because UDP is UDP.
@@ -87,6 +89,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DashColor = reader.ReadBoolean() ? (Color?) new Color(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte()) : null;
             DashDir = new Vector2(reader.ReadSingle(), reader.ReadSingle());
             DashWasB = reader.ReadBoolean();
+
+            Dead = reader.ReadBoolean();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
@@ -156,6 +160,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(DashDir.X);
             writer.Write(DashDir.Y);
             writer.Write(DashWasB);
+
+            writer.Write(Dead);
         }
 
     }

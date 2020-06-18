@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public abstract class DataHandshakeClient<T> : DataType<T> where T : DataHandshakeClient<T> {
 
-        public string Name;
+        public string Name = "";
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             Name = reader.ReadNullTerminatedString();

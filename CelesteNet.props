@@ -2,9 +2,33 @@
 
   <PropertyGroup>
     <LangVersion>8</LangVersion>
+    <Nullable Condition="'$(Nullable)' == ''">enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
+    <IsModule>$(AssemblyName.EndsWith('Module'))</IsModule>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
   </PropertyGroup>
+
+  <Choose>
+    <When Condition="$(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp'))">
+      <PropertyGroup>
+        <DefineConstants>NETCORE;$(DefineConstants)</DefineConstants>
+      </PropertyGroup>
+    </When>
+
+    <Otherwise>
+      <PropertyGroup>
+        <DefineConstants>NETFRAMEWORK;$(DefineConstants)</DefineConstants>
+      </PropertyGroup>
+      <ItemGroup>
+        <Reference Include="Microsoft.CSharp" />
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CelesteNet.Server\CelesteNet.Server.csproj" Private="false" Condition="$(IsModule)" />
+  </ItemGroup>
 
   <Choose>
     <When Condition="Exists('..\..\..\Celeste.exe')">
@@ -19,7 +43,7 @@
       <PropertyGroup>
         <CelesteDir>..\..\Celeste</CelesteDir>
         <InCelesteModDir>false</InCelesteModDir>
-        <CopyCeleste Condition="'$(CopyCeleste)' == ''">true</CopyCeleste>
+        <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
       </PropertyGroup>
     </When>
 
@@ -28,7 +52,7 @@
       <PropertyGroup>
         <CelesteDir></CelesteDir>
         <InCelesteModDir>false</InCelesteModDir>
-        <CopyCeleste Condition="'$(CopyCeleste)' == ''">true</CopyCeleste>
+        <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
       </PropertyGroup>
     </When>
   </Choose>
@@ -55,7 +79,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -67,7 +90,7 @@
   <Choose>
     <When Condition="!Exists('$(CelesteDir)\BuildIsXNA.txt') And ($(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp')))">
       <ItemGroup>
-        <Reference Include="FNA" HintPath="..\lib\netcoreapp3.1\FNA.dll" Private="true" />
+        <Reference Include="FNA" HintPath="..\lib\netcoreapp3.1\FNA.dll" Private="!$(IsModule)" />
       </ItemGroup>
     </When>
 
@@ -85,5 +108,14 @@
       </ItemGroup>
     </Otherwise>
   </Choose>
+
+  <Target Name="CopyModuleAssembly" AfterTargets="PostBuildEvent" Condition="$(IsModule)">
+    <ItemGroup>
+      <MainFiles Include="bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).*" Exclude="" />
+      <MiscFiles Include="bin\$(Configuration)\$(TargetFramework)\*" Exclude="@(MainFiles)" />
+    </ItemGroup>
+    <Copy SourceFiles="@(MiscFiles)" DestinationFolder="..\CelesteNet.Server\bin\$(Configuration)\$(TargetFramework)\Modules" SkipUnchangedFiles="true" ContinueOnError="true" Retries="1" />
+    <Copy SourceFiles="@(MainFiles)" DestinationFolder="..\CelesteNet.Server\bin\$(Configuration)\$(TargetFramework)\Modules" SkipUnchangedFiles="true" ContinueOnError="false" />
+  </Target>
 
 </Project>

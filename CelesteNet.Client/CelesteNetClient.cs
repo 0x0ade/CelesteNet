@@ -35,9 +35,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public DataPlayerInfo PlayerInfo;
 
-        private ManualResetEvent HandshakeEvent = new ManualResetEvent(false);
+        private readonly ManualResetEvent HandshakeEvent = new ManualResetEvent(false);
 
-        private object StartStopLock = new object();
+        private readonly object StartStopLock = new object();
 
         public CelesteNetClient()
             : this(new CelesteNetClientSettings()) {
@@ -86,13 +86,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                     default:
                         throw new NotSupportedException($"Unsupported connection type {Settings.ConnectionType}");
                 }
-
-                Logger.Log(LogLevel.INF, "main", "Waiting for server handshake.");
-                WaitHandle.WaitAny(new WaitHandle[] { HandshakeEvent });
-
-                Logger.Log(LogLevel.INF, "main", "Ready");
-                IsReady = true;
             }
+
+            Logger.Log(LogLevel.INF, "main", "Waiting for server handshake.");
+            WaitHandle.WaitAny(new WaitHandle[] { HandshakeEvent });
+
+            Logger.Log(LogLevel.INF, "main", "Ready");
+            IsReady = true;
         }
 
         public void Dispose() {

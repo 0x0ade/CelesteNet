@@ -28,7 +28,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         static DataType() {
             DataID = typeof(T).Name;
-            Source = typeof(T).Assembly.GetName().Name;
+            Source = typeof(T).Assembly.GetName().Name ?? DataID;
         }
 
         public T ReadT(DataContext ctx, BinaryReader reader) {

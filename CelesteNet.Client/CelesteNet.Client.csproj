@@ -4,16 +4,19 @@
     <TargetFrameworks>net452</TargetFrameworks>
     <AssemblyName>CelesteNet.Client</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Client</RootNamespace>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <Import Project="..\CelesteNet.props" />
 
   <ItemGroup>
-    <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
+    <Compile Remove="RPC\**" />
+    <EmbeddedResource Remove="RPC\**" />
+    <None Remove="RPC\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="RPC\" />
+    <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,4 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.Server.Control;
 using Mono.Options;
 using MonoMod.Utils;
 using System;
@@ -19,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetConnection Con;
         public readonly uint ID;
 
-        public DataPlayerInfo PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo value) ? value : null;
+        public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo? value) ? value : null;
 
         public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
             Server = server;
@@ -35,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Server.PlayersByCon[Con] = this;
                 Server.PlayersByID[ID] = this;
             }
-            Server.Control.BroadcastCMD("update", "/status");
+            // FIXME: Server.Control.BroadcastCMD("update", "/status");
 
             string name = handshake.Name;
             // TODO: Handle names starting with # as "keys"
@@ -50,18 +49,19 @@ namespace Celeste.Mod.CelesteNet.Server {
                 for (int i = 2; Server.PlayersByCon.Values.Any(other => other.PlayerInfo?.FullName == fullName); i++)
                     fullName = $"{name}#{i}";
 
-            Server.Data.SetRef(new DataPlayerInfo {
+            DataPlayerInfo playerInfo = new DataPlayerInfo {
                 ID = ID,
                 Name = name,
                 FullName = fullName
-            });
+            };
+            Server.Data.SetRef(playerInfo);
 
-            Logger.Log(LogLevel.INF, "playersession", PlayerInfo.ToString());
-            Server.Control.BroadcastCMD("update", "/players");
+            Logger.Log(LogLevel.INF, "playersession", playerInfo.ToString());
+            // FIXME: Server.Control.BroadcastCMD("update", "/players");
 
             Con.Send(new DataHandshakeServer {
                 Version = CelesteNetUtils.Version,
-                PlayerInfo = PlayerInfo
+                PlayerInfo = playerInfo
             });
 
             lock (Server.Connections) {
@@ -69,23 +69,28 @@ namespace Celeste.Mod.CelesteNet.Server {
                     if (other == this)
                         continue;
 
-                    other.Con.Send(PlayerInfo);
-                    Con.Send(other.PlayerInfo);
-                    foreach (DataType bound in Server.Data.GetBoundRefs(other.PlayerInfo))
+                    other.Con.Send(playerInfo);
+
+                    DataPlayerInfo? otherInfo = other.PlayerInfo;
+                    if (otherInfo == null)
+                        continue;
+
+                    Con.Send(otherInfo);
+                    foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
                         Con.Send(bound);
                 }
             }
 
-            Server.Chat.Broadcast(Server.Settings.MessageGreeting.InjectSingleValue("player", fullName));
-            Server.Chat.Send(this, Server.Settings.MessageMOTD);
+            // FIXME: Server.Chat.Broadcast(Server.Settings.MessageGreeting.InjectSingleValue("player", fullName));
+            // FIXME: Server.Chat.Send(this, Server.Settings.MessageMOTD);
         }
 
         public void Dispose() {
             Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{ID} {Con}");
 
-            string fullName = PlayerInfo?.FullName;
-            if (!string.IsNullOrEmpty(fullName))
-                Server.Chat.Broadcast(Server.Settings.MessageLeave.InjectSingleValue("player", fullName));
+            string? fullName = PlayerInfo?.FullName;
+            // FIXME: if (!string.IsNullOrEmpty(fullName))
+                // FIXME: Server.Chat.Broadcast(Server.Settings.MessageLeave.InjectSingleValue("player", fullName));
 
             lock (Server.Connections) {
                 Server.PlayersByCon.Remove(Con);
@@ -99,8 +104,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Data.FreeRef<DataPlayerInfo>(ID);
             Server.Data.FreeOrder<DataPlayerFrame>(ID);
 
-            Server.Control.BroadcastCMD("update", "/status");
-            Server.Control.BroadcastCMD("update", "/players");
+            // FIXME: Server.Control.BroadcastCMD("update", "/status");
+            // FIXME: Server.Control.BroadcastCMD("update", "/players");
+
+            Server.Data.UnregisterHandlersIn(this);
         }
 
 
@@ -111,7 +118,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (con != Con)
                 return true;
 
-            DataPlayerInfo old = PlayerInfo;
+            DataPlayerInfo? old = PlayerInfo;
             if (old == null)
                 return true;
 
@@ -153,11 +160,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (con != Con)
                 return;
 
-            if (PlayerInfo == null || !Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState state))
+            if (PlayerInfo == null || !Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state))
                 state = null;
 
             if (data is IDataBoundRef<DataPlayerInfo> ||
                 data is IDataPlayerUpdate) {
+                if (state == null)
+                    return;
+
                 lock (Server.Connections) {
                     foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
                         if (other == this)
@@ -165,7 +175,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                         if (data is IDataPlayerUpdate && (
                             other.PlayerInfo == null ||
-                            !Server.Data.TryGetBoundRef(other.PlayerInfo, out DataPlayerState otherState) ||
+                            !Server.Data.TryGetBoundRef(other.PlayerInfo, out DataPlayerState? otherState) ||
+                            otherState == null ||
                             otherState.Channel != state.Channel ||
                             otherState.SID != state.SID ||
                             otherState.Mode != state.Mode

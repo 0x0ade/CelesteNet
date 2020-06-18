@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet {
         public static LogLevel Level = LogLevel.INF;
         public static bool LogCelesteNetTag = false;
 
-        private static TextWriter _Writer;
+        private static TextWriter? _Writer;
         public static TextWriter Writer {
             get => _Writer ?? Console.Out;
             set => _Writer = value;
@@ -75,25 +75,28 @@ namespace Celeste.Mod.CelesteNet {
         /// <summary>
         /// Print the exception to the console, including extended loading / reflection data useful for mods.
         /// </summary>
-        public static void LogDetailedException(/*this*/ Exception e, string tag = null) {
+        public static void LogDetailedException(/*this*/ Exception? e, string? tag = null) {
+            if (e == null)
+                return;
+
             TextWriter w = Writer;
 
             if (tag == null) {
                 w.WriteLine("--------------------------------");
                 w.WriteLine("Detailed exception log:");
             }
-            for (Exception e_ = e; e_ != null; e_ = e_.InnerException) {
+            for (Exception? e_ = e; e_ != null; e_ = e_.InnerException) {
                 w.WriteLine("--------------------------------");
                 w.WriteLine(e_.GetType().FullName + ": " + e_.Message + "\n" + e_.StackTrace);
 
                 switch (e_) {
                     case ReflectionTypeLoadException rtle:
-                        for (int i = 0; i < rtle.Types.Length; i++) {
-                            w.WriteLine("ReflectionTypeLoadException.Types[" + i + "]: " + rtle.Types[i]);
-                        }
-                        for (int i = 0; i < rtle.LoaderExceptions.Length; i++) {
-                            LogDetailedException(rtle.LoaderExceptions[i], tag + (tag == null ? "" : ", ") + "rtle:" + i);
-                        }
+                        if (rtle.Types != null)
+                            for (int i = 0; i < rtle.Types.Length; i++)
+                                w.WriteLine("ReflectionTypeLoadException.Types[" + i + "]: " + rtle.Types[i]);
+                        if (rtle.LoaderExceptions != null)
+                            for (int i = 0; i < rtle.LoaderExceptions.Length; i++)
+                                LogDetailedException(rtle.LoaderExceptions[i], tag + (tag == null ? "" : ", ") + "rtle:" + i);
                         break;
 
                     case TypeLoadException tle:

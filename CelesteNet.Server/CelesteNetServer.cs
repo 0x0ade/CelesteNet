@@ -1,6 +1,7 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.Server.Control;
+using Mono.Cecil;
 using Mono.Options;
+using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -19,17 +20,23 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetServerSettings Settings;
 
         public readonly DataContext Data;
-        public readonly Frontend Control;
-        public readonly ChatServer Chat;
         public readonly TCPUDPServer TCPUDP;
 
         public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
+
+        public bool Initialized = false;
+        public readonly List<CelesteNetServerModuleWrapper> ModuleWrappers = new List<CelesteNetServerModuleWrapper>();
+        public readonly List<CelesteNetServerModule> Modules = new List<CelesteNetServerModule>();
+        public readonly Dictionary<Type, CelesteNetServerModule> ModuleMap = new Dictionary<Type, CelesteNetServerModule>();
+        public readonly FileSystemWatcher ModulesFSWatcher;
+
+        public readonly DetourModManager DetourModManager;
 
         public uint PlayerCounter = 1;
         public readonly Dictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new Dictionary<CelesteNetConnection, CelesteNetPlayerSession>();
         public readonly Dictionary<uint, CelesteNetPlayerSession> PlayersByID = new Dictionary<uint, CelesteNetPlayerSession>();
 
-        private ManualResetEvent ShutdownEvent = new ManualResetEvent(false);
+        private readonly ManualResetEvent ShutdownEvent = new ManualResetEvent(false);
 
         private bool _IsAlive;
         public bool IsAlive {
@@ -53,22 +60,81 @@ namespace Celeste.Mod.CelesteNet.Server {
         public CelesteNetServer(CelesteNetServerSettings settings) {
             Settings = settings;
 
+            DetourModManager = new DetourModManager();
+
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, args) => {
+                if (args.Name == null)
+                    return null;
+
+                AssemblyName name = new AssemblyName(args.Name);
+                if (ModuleWrappers.Any(wrapper => wrapper.ID == name.Name))
+                    return null;
+
+                string path = Path.Combine(Path.GetFullPath(Settings.ModuleRoot), name.Name + ".dll");
+                if (File.Exists(path))
+                    return Assembly.LoadFrom(path);
+
+                return null;
+            };
+
+            foreach (string file in Directory.GetFiles(Path.GetFullPath(Settings.ModuleRoot)))
+                if (Path.GetFileName(file).StartsWith("CelesteNet.Server.") && file.EndsWith("Module.dll"))
+                    RegisterModule(file);
+
             Data = new DataContext();
             Data.RegisterHandlersIn(this);
-            Control = new Frontend(this);
-            Chat = new ChatServer(this);
+
+            Initialized = true;
+            lock (Modules) {
+                foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers) {
+                    Logger.Log(LogLevel.INF, "module", $"Initializing {wrapper.ID}");
+                    wrapper.Module?.Init(wrapper);
+                }
+            }
+
+            ModulesFSWatcher = new FileSystemWatcher {
+                Path = Path.GetFullPath(Settings.ModuleRoot),
+                Filter = "*.dll",
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime
+            };
+
+            ModulesFSWatcher.Error += (sender, args) => {
+                Logger.Log(LogLevel.ERR, "module", $"Module file watcher error:\n{args.GetException()}");
+            };
+
+            ModulesFSWatcher.Created += OnModuleFileUpdate;
+            ModulesFSWatcher.Renamed += OnModuleFileUpdate;
+            ModulesFSWatcher.Changed += OnModuleFileUpdate;
+
+            ModulesFSWatcher.EnableRaisingEvents = true;
+
             TCPUDP = new TCPUDPServer(this);
+        }
+
+        private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
+            Logger.Log(LogLevel.VVV, "module", $"Module file changed: {args.FullPath}, {args.ChangeType}");
+            QueuedTaskHelper.Do("ReloadModuleAssembly:" + args.FullPath, () => {
+                lock (Modules)
+                    foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers)
+                        if (args.FullPath == wrapper.AssemblyPath)
+                            wrapper.Reload();
+            });
         }
 
         public void Start() {
             if (IsAlive)
                 return;
 
-            Logger.Log(LogLevel.CRI, "main", $"Startup");
+            Logger.Log(LogLevel.CRI, "main", "Startup");
             IsAlive = true;
 
-            Control.Start();
-            Chat.Start();
+            lock (Modules) {
+                foreach (CelesteNetServerModule module in Modules) {
+                    Logger.Log(LogLevel.INF, "module", $"Starting {module.Wrapper?.ID ?? module.ToString()}");
+                    module.Start();
+                }
+            }
+
             TCPUDP.Start();
 
             Logger.Log(LogLevel.CRI, "main", "Ready");
@@ -86,13 +152,50 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.CRI, "main", "Shutdown");
             IsAlive = false;
 
-            Control.Dispose();
-            Chat.Dispose();
+            ModulesFSWatcher.Dispose();
+
+            lock (Modules) {
+                foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers.ToArray()) {
+                    wrapper.Unload();
+                }
+            }
+
+            TCPUDP.Dispose();
         }
 
 
-        public DataPlayerInfo GetPlayerInfo(CelesteNetConnection con) {
-            CelesteNetPlayerSession player;
+        public void RegisterModule(string path) {
+            ModuleWrappers.Add(new CelesteNetServerModuleWrapper(this, path));
+
+            Reload:
+            foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers) {
+                if (wrapper.Module != null ||
+                    !wrapper.References.All(ModuleWrappers.Where(other => other.Module != null).Select(other => other.ID).Contains))
+                    continue;
+
+                wrapper.Load();
+                goto Reload;
+            }
+        }
+
+        public T Get<T>() where T : class {
+            lock (Modules) {
+                if (ModuleMap.TryGetValue(typeof(T), out CelesteNetServerModule? module))
+                    return module as T ?? throw new Exception($"Incompatible types: Requested {typeof(T).FullName}, got {module.GetType().FullName}");
+
+                foreach (CelesteNetServerModule other in Modules)
+                    if (other is T otherT) {
+                        ModuleMap[typeof(T)] = other;
+                        return otherT;
+                    }
+            }
+
+            throw new Exception($"Invalid module type: {typeof(T).FullName}");
+        }
+
+
+        public DataPlayerInfo? GetPlayerInfo(CelesteNetConnection con) {
+            CelesteNetPlayerSession? player;
             lock (Connections)
                 if (!PlayersByCon.TryGetValue(con, out player))
                     return null;
@@ -106,7 +209,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             lock (Connections)
                 Connections.Add(con);
             con.OnDisconnect += HandleDisconnect;
-            Control.BroadcastCMD("update", "/status");
+            // FIXME: Control.BroadcastCMD("update", "/status");
         }
 
         public void HandleDisconnect(CelesteNetConnection con) {
@@ -115,14 +218,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             lock (Connections)
                 Connections.Remove(con);
 
-            CelesteNetPlayerSession session;
+            CelesteNetPlayerSession? session;
             lock (Connections)
                 PlayersByCon.TryGetValue(con, out session);
 
             session?.Dispose();
 
-            if (session == null)
-                Control.BroadcastCMD("update", "/status");
+            // FIXME: if (session == null)
+                // FIXME: Control.BroadcastCMD("update", "/status");
         }
 
         public void Broadcast(DataType data) {
@@ -152,30 +255,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
         }
-
-
-        public Stream OpenContent(string path) {
-            try {
-                string dir = Path.GetFullPath(Settings.ContentRoot);
-                string pathFS = Path.GetFullPath(Path.Combine(dir, path));
-                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
-                    return File.OpenRead(pathFS);
-            } catch {
-            }
-
-#if DEBUG
-            try {
-                string dir = Path.GetFullPath(Path.Combine("..", "..", "..", "Content"));
-                string pathFS = Path.GetFullPath(Path.Combine(dir, path));
-                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
-                    return File.OpenRead(pathFS);
-            } catch {
-            }
-#endif
-
-            return typeof(CelesteNetServer).Assembly.GetManifestResourceStream("Celeste.Mod.CelesteNet.Server.Content." + path.Replace("/", "."));
-        }
-
 
         #region Handlers
 

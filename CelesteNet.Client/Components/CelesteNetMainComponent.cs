@@ -18,6 +18,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private Session Session;
         private bool WasIdle;
 
+        private uint OwnChannelID;
+
         public HashSet<string> ForceIdle = new HashSet<string>();
         public bool StateUpdated;
 
@@ -63,11 +65,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataChannelMove move) {
+            if (move.ID == OwnChannelID)
+                return;
+
             if (move.Player.ID == Client.PlayerInfo.ID) {
+                OwnChannelID = move.ID;
+
                 foreach (Ghost ghost in Ghosts.Values)
                     ghost?.RemoveSelf();
                 Ghosts.Clear();
-                // TODO: CLEAN UP STATES!
+
+                // The server resends all bound data anyway.
+                foreach (DataPlayerInfo other in Client.Data.GetRefs<DataPlayerInfo>()) {
+                    if (other.ID == Client.PlayerInfo.ID)
+                        continue;
+
+                    foreach (DataType data in Client.Data.GetBoundRefs(other))
+                        if (data is IDataPlayerState state)
+                            Client.Data.FreeRef(state.GetType(), state.ID);
+                }
 
             } else {
                 if (!Ghosts.TryGetValue(move.Player.ID, out Ghost ghost) ||
@@ -76,7 +92,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 ghost.NameTag.Name = "";
                 Ghosts.Remove(move.Player.ID);
-                // TODO: CLEAN UP STATES!
+
+                foreach (DataType data in Client.Data.GetBoundRefs(move.Player))
+                    if (data is IDataPlayerState state)
+                        Client.Data.FreeRef(state.GetType(), state.ID);
             }
         }
 

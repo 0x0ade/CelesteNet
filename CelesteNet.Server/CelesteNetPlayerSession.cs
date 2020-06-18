@@ -91,20 +91,22 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void ResendPlayerStates() {
             Channel channel = Channel;
-            if (!Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state))
-                state = null;
 
             lock (Server.Connections) {
                 foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
                     if (other == this)
                         continue;
 
+                    foreach (DataType bound in Server.Data.GetBoundRefs(PlayerInfo))
+                        if (!(bound is IDataPlayerState) || channel == other.Channel)
+                            other.Con.Send(bound);
+
                     DataPlayerInfo? otherInfo = other.PlayerInfo;
                     if (otherInfo == null)
                         continue;
 
                     foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        if (!(bound is IDataPlayerState) || IsSameArea(channel, state, other))
+                        if (!(bound is IDataPlayerState) || channel == other.Channel)
                             Con.Send(bound);
                 }
             }

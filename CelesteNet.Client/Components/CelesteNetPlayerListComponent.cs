@@ -66,34 +66,52 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     break;
 
                 case ListMode.Channels:
+                    HashSet<DataPlayerInfo> listed = new HashSet<DataPlayerInfo>();
+
                     foreach (DataChannelList.Channel channel in Channels.List) {
                         builder
                             .Append(channel.Name)
                             .AppendLine();
 
-                        foreach (uint playerID in channel.Players) {
-                            if (Client.Data.TryGetRef(playerID, out DataPlayerInfo player) &&
-                                !string.IsNullOrEmpty(player.FullName)) {
+                        foreach (uint playerID in channel.Players)
+                            listed.Add(ListPlayerUnderChannel(builder, playerID));
+                    }
 
-                                builder
-                                    .Append("  ")
-                                    .Append(player.FullName);
+                    bool wrotePrivate = false;
 
-                                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                                    AppendState(builder, state);
+                    foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
+                        if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.FullName))
+                            continue;
 
-                                builder.AppendLine();
-
-                            } else {
-                                builder.AppendLine("  ?");
-                            }
+                        if (!wrotePrivate) {
+                            wrotePrivate = true;
+                            builder.AppendLine();
                         }
 
+                        builder.AppendLine(player.FullName);
                     }
                     break;
             }
 
             ListText = builder.ToString().Trim();
+        }
+
+        private DataPlayerInfo ListPlayerUnderChannel(StringBuilder builder, uint playerID) {
+            if (Client.Data.TryGetRef(playerID, out DataPlayerInfo player) && !string.IsNullOrEmpty(player.FullName)) {
+                builder
+                    .Append("  ")
+                    .Append(player.FullName);
+
+                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
+                    AppendState(builder, state);
+
+                builder.AppendLine();
+                return player;
+
+            } else {
+                builder.AppendLine("  ?");
+                return null;
+            }
         }
 
         private void AppendState(StringBuilder builder, DataPlayerState state) {

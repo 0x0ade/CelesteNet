@@ -80,8 +80,15 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                         }
                     } else {
                         VirtualButton Rbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button;
+                        Rbut.SetRepeat(0.075f,0.025f);
                         VirtualButton Lbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button;
+                        Rbut.SetRepeat(0.075f, 0.025f);
                         Selected = Selected < 0 ? 0 : Selected;
+
+                        if (Rbut.Pressed || Rbut.Repeating)
+                            Selected = Selected < emotes.Length - 1 ? Selected + 1 : 0;
+                        else if (Lbut.Pressed || Lbut.Repeating)
+                            Selected = Selected > 0 ? Selected - 1 : emotes.Length - 1;
 
                         /*if (!repeatSetR) {
                             Rbut.SetRepeat(0.04f, 0.025f);
@@ -97,24 +104,25 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                             repeatSetL = false;
                         }*/
 
-                        if (repeatSetR && Rbut.Pressed && !Rbut.Repeating) {
+                        /*if (repeatSetR && Rbut.Pressed && !Rbut.Repeating) {
                             Rbut.SetRepeat(0f);
                             repeatSetR = false;
                         } else if (!repeatSetR && Rbut.Repeating) {
-                            Rbut.SetRepeat(0.000000000000001f, 0.025f);
+                            Rbut.SetRepeat(0.025f);
                             repeatSetR = true;
                         } else if (repeatSetL && Lbut.Pressed && !Lbut.Repeating) {
                             Lbut.SetRepeat(0f);
                             repeatSetL = false;
                         } else if (!repeatSetL && Lbut.Repeating) {
-                            Lbut.SetRepeat(0.000000000000001f, 0.025f);
+                            Lbut.SetRepeat(0.025f);
                         }
 
                         if (repeatSetR ? Rbut.Repeating : (Rbut.Pressed && !Rbut.Repeating)) {
                             Selected = Selected < emotes.Length - 1 ? Selected + 1 : 0;
                         } else if (repeatSetL ? Lbut.Repeating : (Lbut.Pressed && !Lbut.Repeating)) {
-                            Selected = Math.Max(Selected-1,0);
-                        }
+                            Selected = Selected >= 0 ? Selected-1 : emotes.Length - 1;
+                        }*/
+
                     }
                 }
             }

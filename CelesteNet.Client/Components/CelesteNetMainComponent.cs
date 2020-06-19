@@ -18,8 +18,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private Session Session;
         private bool WasIdle;
 
-        private uint OwnChannelID;
-
         public HashSet<string> ForceIdle = new HashSet<string>();
         public bool StateUpdated;
 
@@ -65,12 +63,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataChannelMove move) {
-            if (move.ID == OwnChannelID)
-                return;
-
             if (move.Player.ID == Client.PlayerInfo.ID) {
-                OwnChannelID = move.ID;
-
                 foreach (Ghost ghost in Ghosts.Values)
                     ghost?.RemoveSelf();
                 Ghosts.Clear();

@@ -102,8 +102,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 c.Add(session);
 
                 DataChannelMove move = new DataChannelMove {
-                    Player = session.PlayerInfo,
-                    ID = c.ID
+                    Player = session.PlayerInfo
                 };
                 session.Con.Send(move);
                 foreach (CelesteNetPlayerSession other in prev.Players)

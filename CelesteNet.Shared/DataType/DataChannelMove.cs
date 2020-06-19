@@ -18,16 +18,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public DataPlayerInfo? Player;
-        public uint ID;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             Player = ctx.ReadRef<DataPlayerInfo>(reader);
-            ID = reader.ReadUInt32();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             ctx.WriteRef(writer, Player);
-            writer.Write(ID);
         }
 
     }

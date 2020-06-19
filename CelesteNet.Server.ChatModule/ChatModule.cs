@@ -102,7 +102,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (PrepareAndLog(con, msg) == null)
                 return;
 
-            if (msg.Text.StartsWith(Settings.CommandPrefix)) {
+            if ((!msg.CreatedByServer || msg.Player == null) && msg.Text.StartsWith(Settings.CommandPrefix)) {
                 if (msg.Player != null) {
                     // Player should at least receive msg ack.
                     msg.Color = Settings.ColorCommand;

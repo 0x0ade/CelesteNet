@@ -136,15 +136,21 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public int IntRangeMin => Math.Min(IntRangeFrom, IntRangeTo);
         public int IntRangeMax => Math.Max(IntRangeFrom, IntRangeTo);
 
-        public CelesteNetPlayerSession Session {
+        public CelesteNetPlayerSession? Session {
             get {
-                if (Type != ChatCMDArgType.Int && Type != ChatCMDArgType.Long)
-                    throw new Exception("Argument not an ID.");
-                CelesteNetPlayerSession? session;
-                lock (Env.Chat.Server.Connections)
-                    if (!Env.Chat.Server.PlayersByID.TryGetValue((uint) Long, out session))
-                        throw new Exception("ID out of range.");
-                return session;
+                if (Type == ChatCMDArgType.Int || Type == ChatCMDArgType.Long) {
+                    lock (Env.Chat.Server.Connections)
+                        if (Env.Chat.Server.PlayersByID.TryGetValue((uint) Long, out CelesteNetPlayerSession? session))
+                            return session;
+                    return null;
+                }
+
+                if (Type == ChatCMDArgType.String) {
+                    lock (Env.Chat.Server.Connections)
+                        return Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName == String);
+                }
+
+                return null;
             }
         }
 

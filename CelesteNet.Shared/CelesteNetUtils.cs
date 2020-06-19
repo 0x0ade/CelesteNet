@@ -67,7 +67,7 @@ namespace Celeste.Mod.CelesteNet {
         public static readonly Regex SanitizeRegex = new Regex(@"[^\w\.@-_^°]", RegexOptions.None, TimeSpan.FromSeconds(1.5));
 
         public static string Sanitize(this string? value, bool space = false)
-            => value == null ? "" : string.Join("", value?.Trim().Where(c => (space || !char.IsWhiteSpace(c)) && EnglishFontChars.Contains(c)));
+            => value == null ? "" : string.Join("", value.Trim().Where(c => (space || !char.IsWhiteSpace(c)) && EnglishFontChars.Contains(c)));
 
     }
 }

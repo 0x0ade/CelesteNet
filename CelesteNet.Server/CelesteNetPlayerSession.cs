@@ -40,6 +40,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             // TODO: Handle names starting with # as "keys"
 
             name = name.Sanitize();
+            if (string.IsNullOrEmpty(name))
+                name = "Guest";
+
             if (name.Length > Server.Settings.MaxNameLength)
                 name = name.Substring(0, Server.Settings.MaxNameLength);
 

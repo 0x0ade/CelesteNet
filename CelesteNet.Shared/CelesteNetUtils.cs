@@ -10,10 +10,11 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet {
-    public static class CelesteNetUtils {
+    public static partial class CelesteNetUtils {
 
         public const ushort Version = 1;
         public static readonly ushort LoadedVersion = Version;
@@ -62,6 +63,11 @@ namespace Celeste.Mod.CelesteNet {
             .GetInterfaces()
             .FirstOrDefault(t => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDataBoundRef<>))
             ?.GetGenericArguments()[0];
+
+        public static readonly Regex SanitizeRegex = new Regex(@"[^\w\.@-_^°]", RegexOptions.None, TimeSpan.FromSeconds(1.5));
+
+        public static string Sanitize(this string? value, bool space = false)
+            => value == null ? "" : string.Join("", value?.Trim().Where(c => (space || !char.IsWhiteSpace(c)) && EnglishFontChars.Contains(c)));
 
     }
 }

@@ -39,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             string name = handshake.Name;
             // TODO: Handle names starting with # as "keys"
 
-            name = name.Replace("\r", "").Replace("\n", "").Trim();
+            name = name.Sanitize();
             if (name.Length > Server.Settings.MaxNameLength)
                 name = name.Substring(0, Server.Settings.MaxNameLength);
 

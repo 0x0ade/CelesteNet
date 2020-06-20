@@ -54,6 +54,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             Server.OnConnect += OnConnect;
             Server.OnSessionStart += OnSessionStart;
+            lock (Server.Connections)
+                foreach (CelesteNetPlayerSession session in Server.PlayersByCon.Values)
+                    session.OnEnd += OnSessionEnd;
             Server.OnDisconnect += OnDisconnect;
 
             Server.Channels.OnBroadcastList += OnBroadcastChannels;

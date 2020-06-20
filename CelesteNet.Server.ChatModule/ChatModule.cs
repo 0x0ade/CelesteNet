@@ -27,6 +27,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             Commands = new ChatCommands(this);
             Server.OnSessionStart += OnSessionStart;
+            lock (Server.Connections)
+                foreach (CelesteNetPlayerSession session in Server.PlayersByCon.Values)
+                    session.OnEnd += OnSessionEnd;
         }
 
         public override void Dispose() {

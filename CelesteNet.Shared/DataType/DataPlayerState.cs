@@ -11,24 +11,23 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataPlayerState : DataType<DataPlayerState>, IDataBoundRef<DataPlayerInfo> {
+    public class DataPlayerState : DataType<DataPlayerState>, IDataPlayerState {
 
         static DataPlayerState() {
             DataID = "playerState";
         }
 
-        public uint ID { get; set; }
+        public DataPlayerInfo? Player { get; set; }
+        public uint ID => Player?.ID ?? uint.MaxValue;
         public bool IsAliveRef => true;
 
-        public uint Channel;
         public string SID = "";
         public AreaMode Mode;
         public string Level = "";
         public bool Idle;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            ID = reader.ReadUInt32();
-            Channel = reader.ReadUInt32();
+            Player = ctx.ReadRef<DataPlayerInfo>(reader);
             SID = reader.ReadNullTerminatedString();
             Mode = (AreaMode) reader.ReadByte();
             Level = reader.ReadNullTerminatedString();
@@ -36,8 +35,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.Write(ID);
-            writer.Write(Channel);
+            ctx.WriteRef(writer, Player);
             writer.WriteNullTerminatedString(SID);
             writer.Write((byte) Mode);
             writer.WriteNullTerminatedString(Level);
@@ -45,7 +43,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override string ToString()
-            => $"#{ID}: {Channel}, {SID}, {Idle}";
+            => $"#{ID}: {SID}, {Idle}";
 
     }
 }

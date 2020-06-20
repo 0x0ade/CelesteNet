@@ -19,6 +19,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private string ListText;
 
+        public DataChannelList Channels;
+
+        public ListMode Mode => Settings.PlayerListMode;
+        private ListMode LastMode;
+
+        public enum ListMode {
+            Channels,
+            Classic,
+        }
+
         public CelesteNetPlayerListComponent(CelesteNetClientComponent context, Game game)
             : base(context, game) {
 
@@ -27,37 +37,92 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void RebuildList() {
-            if (MDraw.DefaultFont == null || Client == null)
+            if (MDraw.DefaultFont == null || Client == null || Channels == null)
                 return;
 
             StringBuilder builder = new StringBuilder();
-            foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
-                if (string.IsNullOrWhiteSpace(player.FullName))
-                    continue;
 
-                builder.Append(player.FullName);
 
-                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
-                    if (state.Channel != 0)
+            switch (Mode) {
+                case ListMode.Classic:
+                    foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
+                        if (string.IsNullOrWhiteSpace(player.FullName))
+                            continue;
+
+                        builder.Append(player.FullName);
+
+                        DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
+                        if (channel != null && !string.IsNullOrEmpty(channel.Name)) {
+                            builder
+                                .Append(" #")
+                                .Append(channel.Name);
+                        }
+
+                        if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
+                            AppendState(builder, state);
+
+                        builder.AppendLine();
+                    }
+                    break;
+
+                case ListMode.Channels:
+                    HashSet<DataPlayerInfo> listed = new HashSet<DataPlayerInfo>();
+
+                    foreach (DataChannelList.Channel channel in Channels.List) {
                         builder
-                            .Append(" >")
-                            .Append(state.Channel);
+                            .Append(channel.Name)
+                            .AppendLine();
 
+                        foreach (uint playerID in channel.Players)
+                            listed.Add(ListPlayerUnderChannel(builder, playerID));
+                    }
 
-                    if (!string.IsNullOrWhiteSpace(state.SID))
-                        builder
-                            .Append(" @ ")
-                            .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
-                            .Append(" ")
-                            .Append((char) ('A' + (int) state.Mode))
-                            .Append(" ")
-                            .Append(state.Level);
-                }
+                    bool wrotePrivate = false;
 
-                builder.AppendLine();
+                    foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
+                        if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.FullName))
+                            continue;
+
+                        if (!wrotePrivate) {
+                            wrotePrivate = true;
+                            builder.AppendLine();
+                        }
+
+                        builder.AppendLine(player.FullName);
+                    }
+                    break;
             }
 
             ListText = builder.ToString().Trim();
+        }
+
+        private DataPlayerInfo ListPlayerUnderChannel(StringBuilder builder, uint playerID) {
+            if (Client.Data.TryGetRef(playerID, out DataPlayerInfo player) && !string.IsNullOrEmpty(player.FullName)) {
+                builder
+                    .Append("  ")
+                    .Append(player.FullName);
+
+                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
+                    AppendState(builder, state);
+
+                builder.AppendLine();
+                return player;
+
+            } else {
+                builder.AppendLine("  ?");
+                return null;
+            }
+        }
+
+        private void AppendState(StringBuilder builder, DataPlayerState state) {
+            if (!string.IsNullOrWhiteSpace(state.SID))
+                builder
+                    .Append(" @ ")
+                    .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
+                    .Append(" ")
+                    .Append((char) ('A' + (int) state.Mode))
+                    .Append(" ")
+                    .Append(state.Level);
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
@@ -68,8 +133,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             RebuildList();
         }
 
+        public void Handle(CelesteNetConnection con, DataChannelList channels) {
+            Channels = channels;
+            RebuildList();
+        }
+
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
+
+            if (LastMode != Mode) {
+                LastMode = Mode;
+                RebuildList();
+            }
 
             if (!(Engine.Scene?.Paused ?? false) && Settings.ButtonPlayerList.Button.Pressed)
                 Active = !Active;

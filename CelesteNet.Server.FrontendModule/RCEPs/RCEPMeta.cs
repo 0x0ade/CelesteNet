@@ -27,13 +27,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/auth", null, null, "Authenticate", "Basic POST authentication endpoint.")]
         public static void Auth(Frontend f, HttpRequestEventArgs c) {
-            if (f.Server == null) {
-                f.RespondJSON(c, new {
-                    Error = "Not ready."
-                });
-                return;
-            }
-
             string? key = c.Request.Cookies[Frontend.COOKIE_SESSION]?.Value;
             string? pass;
 
@@ -109,13 +102,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(true, "/shutdown", null, null, "Shutdown", "Shut the server down.")]
         public static void Shutdown(Frontend f, HttpRequestEventArgs c) {
-            if (f.Server == null) {
-                f.RespondJSON(c, new {
-                    Error = "Not ready."
-                });
-                return;
-            }
-
             f.RespondJSON(c, "OK");
             f.Server.IsAlive = false;
         }
@@ -141,13 +127,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/status", null, null, "Server Status", "Basic server status information.")]
         public static void Status(Frontend f, HttpRequestEventArgs c) {
-            if (f.Server == null) {
-                f.RespondJSON(c, new {
-                    Error = "Not ready."
-                });
-                return;
-            }
-
             f.RespondJSON(c, new {
                 Connections = f.Server.Connections.Count,
                 PlayersByCon = f.Server.PlayersByCon.Count,
@@ -158,13 +137,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/players", null, null, "Player List", "Basic player list.")]
         public static void Players(Frontend f, HttpRequestEventArgs c) {
-            if (f.Server == null) {
-                f.RespondJSON(c, new {
-                    Error = "Not ready."
-                });
-                return;
-            }
-
             f.RespondJSON(c, f.Server.PlayersByID.Values.Select(p => new {
                 p.ID, p.PlayerInfo?.Name, p.PlayerInfo?.FullName,
                 Connection = f.IsAuthorized(c) ? p.Con.ID : null
@@ -173,13 +145,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/chatlog", "?count={count}", "?count=20", "Chat Log", "Basic chat log.")]
         public static void ChatLog(Frontend f, HttpRequestEventArgs c) {
-            if (f.Server == null) {
-                f.RespondJSON(c, new {
-                    Error = "Not ready."
-                });
-                return;
-            }
-
             bool auth = f.IsAuthorized(c);
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 

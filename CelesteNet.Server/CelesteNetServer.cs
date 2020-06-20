@@ -25,6 +25,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
 
+        public readonly Channels Channels;
+
         public bool Initialized = false;
         public readonly List<CelesteNetServerModuleWrapper> ModuleWrappers = new List<CelesteNetServerModuleWrapper>();
         public readonly List<CelesteNetServerModule> Modules = new List<CelesteNetServerModule>();
@@ -109,6 +111,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ModulesFSWatcher.EnableRaisingEvents = true;
 
+            Channels = new Channels(this);
             TCPUDP = new TCPUDPServer(this);
         }
 
@@ -136,6 +139,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
+            Channels.Start();
             TCPUDP.Start();
 
             Logger.Log(LogLevel.CRI, "main", "Ready");
@@ -161,6 +165,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
+            Channels.Dispose();
             TCPUDP.Dispose();
         }
 
@@ -201,14 +206,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             return false;
         }
 
-
-        public DataPlayerInfo? GetPlayerInfo(CelesteNetConnection con) {
-            CelesteNetPlayerSession? player;
-            lock (Connections)
-                if (!PlayersByCon.TryGetValue(con, out player))
-                    return null;
-            return player.PlayerInfo;
-        }
 
         public event Action<CelesteNetServer, CelesteNetConnection>? OnConnect;
 

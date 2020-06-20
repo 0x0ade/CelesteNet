@@ -14,15 +14,12 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetMainComponent : CelesteNetGameComponent {
 
-        private DataPlayerState LastState;
         private Player Player;
         private Session Session;
         private bool WasIdle;
 
         public HashSet<string> ForceIdle = new HashSet<string>();
         public bool StateUpdated;
-
-        public uint Channel;
 
         public GhostNameTag PlayerNameTag;
         public GhostEmote PlayerIdleTag;
@@ -65,6 +62,36 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        public void Handle(CelesteNetConnection con, DataChannelMove move) {
+            if (move.Player.ID == Client.PlayerInfo.ID) {
+                foreach (Ghost ghost in Ghosts.Values)
+                    ghost?.RemoveSelf();
+                Ghosts.Clear();
+
+                // The server resends all bound data anyway.
+                foreach (DataPlayerInfo other in Client.Data.GetRefs<DataPlayerInfo>()) {
+                    if (other.ID == Client.PlayerInfo.ID)
+                        continue;
+
+                    foreach (DataType data in Client.Data.GetBoundRefs(other))
+                        if (data is IDataPlayerState state)
+                            Client.Data.FreeRef(state.GetType(), state.ID);
+                }
+
+            } else {
+                if (!Ghosts.TryGetValue(move.Player.ID, out Ghost ghost) ||
+                    ghost == null)
+                    return;
+
+                ghost.NameTag.Name = "";
+                Ghosts.Remove(move.Player.ID);
+
+                foreach (DataType data in Client.Data.GetBoundRefs(move.Player))
+                    if (data is IDataPlayerState state)
+                        Client.Data.FreeRef(state.GetType(), state.ID);
+            }
+        }
+
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
             if (state.ID == Client.PlayerInfo.ID) {
                 if (Player == null)
@@ -78,7 +105,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
 
                 Session session = Session;
-                if (session != null && (state.Channel != Channel || state.SID != session.Area.SID || state.Mode != session.Area.Mode)) {
+                if (session != null && (state.SID != session.Area.SID || state.Mode != session.Area.Mode)) {
                     ghost.NameTag.Name = "";
                     Ghosts.Remove(state.ID);
                     return;
@@ -96,7 +123,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 !Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
                 level == null ||
                 session == null ||
-                (state.Channel != Channel || state.SID != session.Area.SID || state.Mode != session.Area.Mode);
+                (state.SID != session.Area.SID || state.Mode != session.Area.Mode);
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost == null ||
@@ -112,19 +139,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (level == null || outside)
                 return;
 
-            bool dead = false;
-
             if (ghost == null) {
                 Ghosts[frame.Player.ID] = ghost = new Ghost(frame.SpriteMode);
                 level.Add(ghost);
             }
 
-            dead = ghost.Dead;
-
             ghost.NameTag.Name = frame.Player.FullName;
             UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
             ghost.UpdateSprite(frame.Position, frame.Scale, frame.Facing, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
             ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
+            bool dead = ghost.Dead;
             ghost.Dead = frame.Dead;
 
             if (ghost.Dead != dead && ghost.Dead) {
@@ -266,9 +290,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #region Send
 
         public void SendState() {
-            Client?.SendAndHandle(LastState = new DataPlayerState {
-                ID = Client.PlayerInfo.ID,
-                Channel = Channel,
+            Client?.SendAndHandle(new DataPlayerState {
+                Player = Client.PlayerInfo,
                 SID = Session?.Area.GetSID() ?? "",
                 Mode = Session?.Area.Mode ?? AreaMode.Normal,
                 Level = Session?.Level ?? "",

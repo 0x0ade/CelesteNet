@@ -47,7 +47,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
     public interface IDataRef {
 
-        uint ID { get; set; }
+        uint ID { get; }
         bool IsAliveRef { get; }
 
     }
@@ -56,6 +56,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     }
 
     public interface IDataBoundRef<T> : IDataBoundRef where T : DataType<T>, IDataRef {
+    }
+
+    public interface IDataStatic {
     }
 
     [Flags]

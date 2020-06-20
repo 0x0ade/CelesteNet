@@ -11,22 +11,20 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public abstract class DataHandshakeClient<T> : DataType<T> where T : DataHandshakeClient<T> {
+    public class DataChannelMove : DataType<DataChannelMove> {
 
-        public ushort Version = CelesteNetUtils.Version;
+        static DataChannelMove() {
+            DataID = "channelMove";
+        }
 
-        public string Name = "";
+        public DataPlayerInfo? Player;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            Version = reader.ReadUInt16();
-
-            Name = reader.ReadNullTerminatedString();
+            Player = ctx.ReadRef<DataPlayerInfo>(reader);
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.Write(Version);
-
-            writer.WriteNullTerminatedString(Name);
+            ctx.WriteRef(writer, Player);
         }
 
     }

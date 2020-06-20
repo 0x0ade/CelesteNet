@@ -17,18 +17,21 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
+#pragma warning disable CS8618 // Set on init.
+        public ChatCommands Commands;
+#pragma warning restore CS8618
+
         public override void Init(CelesteNetServerModuleWrapper wrapper) {
             base.Init(wrapper);
-            if (Server == null)
-                return;
 
+            Commands = new ChatCommands(this);
             Server.OnSessionStart += OnSessionStart;
         }
 
         public override void Dispose() {
             base.Dispose();
-            if (Server == null)
-                return;
+
+            Commands.Dispose();
 
             Server.OnSessionStart -= OnSessionStart;
             lock (Server.Connections)
@@ -48,17 +51,17 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 Broadcast(Settings.MessageLeave.InjectSingleValue("player", fullName));
         }
 
-        public event Func<ChatModule, DataChat, bool>? OnReceive;
-
         public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {
-            if (Server == null)
-                return null;
-
             if (!msg.CreatedByServer) {
                 if (from == null)
                     return null;
 
-                msg.Player = Server.GetPlayerInfo(from);
+                CelesteNetPlayerSession? player;
+                lock (Server.Connections)
+                    if (!Server.PlayersByCon.TryGetValue(from, out player))
+                        return null;
+
+                msg.Player = player.PlayerInfo;
                 if (msg.Player == null)
                     return null;
 
@@ -93,14 +96,50 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             return msg;
         }
 
+        public event Func<ChatModule, DataChat, bool>? OnReceive;
 
         public void Handle(CelesteNetConnection? con, DataChat msg) {
-            if (Server == null ||
-                PrepareAndLog(con, msg) == null)
+            if (PrepareAndLog(con, msg) == null)
                 return;
 
             if (msg.Text.StartsWith(Settings.CommandPrefix)) {
-                // TODO: Handle commands separately!
+                if (msg.Player != null) {
+                    // Player should at least receive msg ack.
+                    msg.Color = Settings.ColorCommand;
+                    msg.Target = msg.Player;
+                    ForceSend(msg);
+                }
+
+                // TODO: Improve or rewrite. This comes from GhostNet, which adopted it from disbot (0x0ade's C# Discord bot).
+
+                ChatCMDEnv env = new ChatCMDEnv(this, msg);
+
+                string cmdName = env.FullText.Substring(Settings.CommandPrefix.Length);
+                cmdName = cmdName.Split(ChatCMD.NameDelimiters)[0].ToLowerInvariant();
+                if (cmdName.Length == 0)
+                    return;
+
+                ChatCMD? cmd = Commands.Get(cmdName);
+                if (cmd != null) {
+                    env.Cmd = cmd;
+                    Task.Run(() => {
+                        try {
+                            cmd.ParseAndRun(env);
+                        } catch (Exception e) {
+                            if (e.GetType() == typeof(Exception)) {
+                                env.Send($"Command {cmdName} failed: {e.Message}", color: Settings.ColorError);
+                                Logger.Log(LogLevel.VVV, "chatcmd", $"Command {cmdName} failed:\n{e}");
+                            } else {
+                                env.Send($"Command {cmdName} failed due to an internal error.", color: Settings.ColorError);
+                                Logger.Log(LogLevel.ERR, "chatcmd", $"Command {cmdName} failed:\n{e}");
+                            }
+                        }
+                    });
+
+                } else {
+                    env.Send($"Command {cmdName} not found!", color: Settings.ColorError);
+                }
+
                 return;
             }
 
@@ -119,14 +158,20 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             return msg;
         }
 
-        public DataChat Send(CelesteNetPlayerSession player, string text, string? tag = null, Color? color = null) {
-            Logger.Log(LogLevel.INF, "chat", $"Sending to {player.PlayerInfo}: {text}");
+        public DataChat? Send(CelesteNetPlayerSession? player, string text, string? tag = null, Color? color = null) {
             DataChat msg = new DataChat() {
-                Target = player.PlayerInfo,
+                Target = player?.PlayerInfo,
                 Text = text,
                 Tag = tag ?? "",
                 Color = color ?? Settings.ColorServer
             };
+            if (player == null || msg.Target == null) {
+                Logger.Log(LogLevel.INF, "chat", $"Sending to nobody: {text}");
+                PrepareAndLog(null, msg);
+                return null;
+            }
+
+            Logger.Log(LogLevel.INF, "chat", $"Sending to {msg.Target}: {text}");
             player.Con.Send(PrepareAndLog(null, msg));
             return msg;
         }
@@ -134,11 +179,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public event Action<ChatModule, DataChat>? OnForceSend;
 
         public void ForceSend(DataChat msg) {
-            if (Server == null)
-                return;
-
             Logger.Log(LogLevel.INF, "chatupd", msg.ToString());
             OnForceSend?.Invoke(this, msg);
+
             if (msg.Target == null) {
                 Server.Broadcast(msg);
                 return;

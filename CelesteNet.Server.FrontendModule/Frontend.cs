@@ -52,9 +52,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 }
             }
 
-            if (Server == null)
-                return;
-
             Server.OnConnect += OnConnect;
             Server.OnSessionStart += OnSessionStart;
             Server.OnDisconnect += OnDisconnect;
@@ -65,9 +62,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         public override void Start() {
-            if (Server == null)
-                return;
-
             base.Start();
 
             Logger.Log(LogLevel.INF, "frontend", $"Startup on port {Settings.Port}");
@@ -95,9 +89,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
             HTTPServer = null;
 
-            if (Server == null)
-                return;
-
             Server.OnConnect -= OnConnect;
             Server.OnSessionStart -= OnSessionStart;
             lock (Server.Connections)
@@ -105,7 +96,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     session.OnEnd -= OnSessionEnd;
             Server.OnDisconnect -= OnDisconnect;
 
-            if (Server.TryGet(out ChatModule chat)) {
+            if (Server.TryGet(out ChatModule? chat)) {
                 chat.OnReceive -= OnChatReceive;
                 chat.OnForceSend -= OnForceSend;
             }

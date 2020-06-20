@@ -87,6 +87,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             Data = new DataContext();
             Data.RegisterHandlersIn(this);
 
+            Channels = new Channels(this);
+
             Initialized = true;
             lock (Modules) {
                 foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers) {
@@ -111,7 +113,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ModulesFSWatcher.EnableRaisingEvents = true;
 
-            Channels = new Channels(this);
             TCPUDP = new TCPUDPServer(this);
         }
 

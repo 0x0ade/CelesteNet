@@ -143,7 +143,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
         if (data.PlayerID && data.PlayerID !== this.frontend.MAX_INT) {
           const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == data.PlayerID);
           if (!player)
-            FrontendPlayersPanel["instance"].refresh();
+            FrontendPlayersPanel["instance"].refresh().then(() => this.render(null)); // TODO: Render el only
           const name = player && player.FullName || ("#" + data.PlayerID);
 
           opts = [

@@ -47,6 +47,7 @@ export class Frontend {
     for (let id of [
       "status",
       "players",
+      "channels",
       "cmd",
       "chat",
       "assemblies",

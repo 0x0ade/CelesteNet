@@ -36,7 +36,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
     this.list = this.data.map(p => el => {
       el = mdcrd.list.item(el => rd$(el)`
         <span>
-        <b>#${p.ID}${": "}</b>${p.FullName}<br>
+        <b>${p.FullName}</b> <i>(#${p.ID})</i><br>
         ${p.Name}<br>
         ${p.Connection}
         </span>`

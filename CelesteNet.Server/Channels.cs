@@ -65,7 +65,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                 });
         }
 
+        public Action<Channels>? OnBroadcastList;
+
         public void BroadcastList() {
+            OnBroadcastList?.Invoke(this);
+
             lock (All)
                 lock (Server.Connections)
                     foreach (CelesteNetPlayerSession session in Server.PlayersByCon.Values)
@@ -86,7 +90,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             lock (All) {
                 Channel prev = Get(session);
-                
+
                 Channel c;
 
                 if (ByName.TryGetValue(name, out Channel? existing)) {

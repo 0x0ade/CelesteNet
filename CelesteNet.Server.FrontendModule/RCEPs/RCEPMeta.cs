@@ -143,6 +143,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }).ToArray());
         }
 
+        [RCEndpoint(false, "/channels", null, null, "Channel List", "Basic channel list.")]
+        public static void Channels(Frontend f, HttpRequestEventArgs c) {
+            IEnumerable<Channel> channels = f.Server.Channels.All;
+            if (!f.IsAuthorized(c))
+                channels = channels.Where(c => !c.IsPrivate);
+            f.RespondJSON(c, channels.Select(c => new {
+                c.ID, c.Name, c.IsPrivate,
+                Players = c.Players.Select(p => p.ID).ToArray()
+            }).ToArray());
+        }
+
         [RCEndpoint(false, "/chatlog", "?count={count}", "?count=20", "Chat Log", "Basic chat log.")]
         public static void ChatLog(Frontend f, HttpRequestEventArgs c) {
             bool auth = f.IsAuthorized(c);

@@ -56,6 +56,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             Server.OnSessionStart += OnSessionStart;
             Server.OnDisconnect += OnDisconnect;
 
+            Server.Channels.OnBroadcastList += OnBroadcastChannels;
+
             ChatModule chat = Server.Get<ChatModule>();
             chat.OnReceive += OnChatReceive;
             chat.OnForceSend += OnForceSend;
@@ -96,6 +98,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     session.OnEnd -= OnSessionEnd;
             Server.OnDisconnect -= OnDisconnect;
 
+            Server.Channels.OnBroadcastList -= OnBroadcastChannels;
+
             if (Server.TryGet(out ChatModule? chat)) {
                 chat.OnReceive -= OnChatReceive;
                 chat.OnForceSend -= OnForceSend;
@@ -120,6 +124,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private void OnDisconnect(CelesteNetServer server, CelesteNetConnection con, CelesteNetPlayerSession? session) {
             if (session == null)
                 BroadcastCMD("update", "/status");
+        }
+
+        private void OnBroadcastChannels(Channels obj) {
+            BroadcastCMD("update", "/channels");
         }
 
         private bool OnChatReceive(ChatModule chat, DataChat msg) {

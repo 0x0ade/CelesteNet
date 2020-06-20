@@ -24,7 +24,14 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         /// <summary>
         /// Server-internal field.
         /// </summary>
-        public DataPlayerInfo? Target;
+        public DataPlayerInfo[]? Targets;
+        /// <summary>
+        /// Server-internal field.
+        /// </summary>
+        public DataPlayerInfo? Target {
+            get => Targets != null && Targets.Length == 1 ? Targets[0] : null;
+            set => Targets = value == null ? null : new DataPlayerInfo[] { value };
+        }
 
         public DataPlayerInfo? Player;
 

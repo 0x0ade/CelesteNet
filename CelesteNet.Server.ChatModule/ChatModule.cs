@@ -186,16 +186,18 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             Logger.Log(LogLevel.INF, "chatupd", msg.ToString());
             OnForceSend?.Invoke(this, msg);
 
-            if (msg.Target == null) {
+            if (msg.Targets == null) {
                 Server.Broadcast(msg);
                 return;
             }
 
-            CelesteNetPlayerSession? player;
-            lock (Server.Connections)
-                if (!Server.PlayersByID.TryGetValue(msg.Target.ID, out player))
-                    return;
-            player.Con?.Send(msg);
+            foreach (DataPlayerInfo playerInfo in msg.Targets) {
+                CelesteNetPlayerSession? player;
+                lock (Server.Connections)
+                    if (!Server.PlayersByID.TryGetValue(playerInfo.ID, out player))
+                        continue;
+                player.Con?.Send(msg);
+            }
         }
 
     }

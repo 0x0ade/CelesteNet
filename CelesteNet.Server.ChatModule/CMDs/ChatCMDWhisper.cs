@@ -34,7 +34,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             string text = args[1].Rest;
 
-            if (env.Player != null) {
+            DataPlayerInfo? player = env.Player;
+            if (player != null) {
                 env.Msg.Tag = $"whisper @ {otherPlayer.FullName}";
                 env.Msg.Text = text;
                 env.Msg.Color = Chat.Settings.ColorWhisper;
@@ -42,8 +43,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             }
 
             other.Con.Send(Chat.PrepareAndLog(null, new DataChat {
-                CreatedByServer = true,
-                Player = env.Session?.PlayerInfo,
+                Player = player,
                 Target = otherPlayer,
                 Tag = "whisper",
                 Text = text,

@@ -23,7 +23,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public override string Info => "Switch to a different channel.";
         public override string Help =>
 $@"Switch to a different channel.
-Work in progress, might not work properly.
 To list all public channels, {Chat.Settings.CommandPrefix}{ID}
 To create / join a public channel, {Chat.Settings.CommandPrefix}{ID} channel
 To create / join a private channel, {Chat.Settings.CommandPrefix}{ID} {Channels.PrefixPrivate}channel
@@ -31,8 +30,7 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Chat.Serve
 
         public override void ParseAndRun(ChatCMDEnv env) {
             CelesteNetPlayerSession? session = env.Session;
-            DataPlayerState? state = env.State;
-            if (session == null || state == null)
+            if (session == null)
                 return;
 
             Channels channels = env.Server.Channels;

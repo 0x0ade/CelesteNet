@@ -26,6 +26,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 Press T to talk.
 Send /help for a list of all commands.";
         public string MessageLeave { get; set; } = "Cya, {player}!";
+        public string MessageKick { get; set; } = "{player} did an oopsie!";
+        public string MessageBan { get; set; } = "{player} won't come back.";
 
     }
 }

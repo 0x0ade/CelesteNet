@@ -1,5 +1,6 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
+using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -48,7 +49,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
             string? fullName = lastPlayerInfo?.FullName;
             if (!fullName.IsNullOrEmpty())
-                Broadcast(Settings.MessageLeave.InjectSingleValue("player", fullName));
+                Broadcast((new DynamicData(session).Get<string>("leaveReason") ?? Settings.MessageLeave).InjectSingleValue("player", fullName));
         }
 
         public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {

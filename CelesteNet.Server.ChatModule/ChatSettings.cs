@@ -19,6 +19,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public Color ColorCommand { get; set; } = Calc.HexToColor("#2e31f1");
         public Color ColorCommandReply { get; set; } = Calc.HexToColor("#e39dcc");
         public Color ColorWhisper { get; set; } = Calc.HexToColor("#888888");
+        public Color ColorLogEmote { get; set; } = Calc.HexToColor("#bbbb88");
 
         public string MessageGreeting { get; set; } = "Welcome {player}, to <insert server name here>!";
         public string MessageMOTD { get; set; } =

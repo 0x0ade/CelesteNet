@@ -74,6 +74,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         [YamlIgnore]
         public float UIScale => 0.5f + 0.5f * ((UISize - 1f) / (UISizeMax - 1f));
 
+        [SettingRange(1, 6)]
+        public int EmoteWheelScrollMultiplier { get; set; } = 3;
+
         #region Key Bindings
 
         [DefaultButtonBinding(Buttons.Back, Keys.Tab)]

@@ -24,7 +24,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected bool popupShown = false;
         protected float popupTime = 100f;
         protected bool timeRateSet = false;
-        protected bool repeatSetR, repeatSetL = false;
 
         public float Angle = 0f;
 
@@ -49,6 +48,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public override void Update() {
             // Update only runs while the level is "alive" (scene not paused or frozen).
+            // The new PauseUpdate Tag may invalidate part of the above comment, right?
 
             if (Shown && !timeRateSet) {
                 Engine.TimeRate = 0.25f;
@@ -79,50 +79,18 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                             }
                         }
                     } else {
-                        VirtualButton Rbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button;
-                        Rbut.SetRepeat(0.075f,0.025f);
-                        VirtualButton Lbut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button;
-                        Rbut.SetRepeat(0.075f, 0.025f);
-                        Selected = Selected < 0 ? 0 : Selected;
+                        // Why do constructors exist again? NullReferenceExceptions...
+                        VirtualButton RBut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button;
+                        VirtualButton LBut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button;
+                        int scrollMultiplier = -CelesteNetClientModule.Settings.EmoteWheelScrollMultiplier;
+                        RBut.SetRepeat(0.01875f * scrollMultiplier, 0.006225f * scrollMultiplier); // Getting these numbers juuuust right
+                        LBut.SetRepeat(0.01875f * scrollMultiplier, 0.006225f * scrollMultiplier); // took a lot longer then it should've
 
-                        if (Rbut.Pressed || Rbut.Repeating)
-                            Selected = Selected < emotes.Length - 1 ? Selected + 1 : 0;
-                        else if (Lbut.Pressed || Lbut.Repeating)
-                            Selected = Selected > 0 ? Selected - 1 : emotes.Length - 1;
-
-                        /*if (!repeatSetR) {
-                            Rbut.SetRepeat(0.04f, 0.025f);
-                            repeatSetR = true;
-                        } else if (repeatSetR) {
-                            Rbut.SetRepeat(0f, 0f);
-                            repeatSetR = false;
-                        } else if (!repeatSetL) {
-                            Lbut.SetRepeat(0.04f, 0.025f);
-                            repeatSetL = true;
-                        } else if (repeatSetL) {
-                            Lbut.SetRepeat(0f, 0f);
-                            repeatSetL = false;
-                        }*/
-
-                        /*if (repeatSetR && Rbut.Pressed && !Rbut.Repeating) {
-                            Rbut.SetRepeat(0f);
-                            repeatSetR = false;
-                        } else if (!repeatSetR && Rbut.Repeating) {
-                            Rbut.SetRepeat(0.025f);
-                            repeatSetR = true;
-                        } else if (repeatSetL && Lbut.Pressed && !Lbut.Repeating) {
-                            Lbut.SetRepeat(0f);
-                            repeatSetL = false;
-                        } else if (!repeatSetL && Lbut.Repeating) {
-                            Lbut.SetRepeat(0.025f);
-                        }
-
-                        if (repeatSetR ? Rbut.Repeating : (Rbut.Pressed && !Rbut.Repeating)) {
-                            Selected = Selected < emotes.Length - 1 ? Selected + 1 : 0;
-                        } else if (repeatSetL ? Lbut.Repeating : (Lbut.Pressed && !Lbut.Repeating)) {
-                            Selected = Selected >= 0 ? Selected-1 : emotes.Length - 1;
-                        }*/
-
+                        Selected = Selected < 0 ? 0 : Selected; // if -1 then 0
+                        if (RBut.Pressed || RBut.Repeating)
+                            Selected = Selected < emotes.Length - 1 ? Selected + 1 : 0; // if max then reset else ++
+                        else if (LBut.Pressed || LBut.Repeating)
+                            Selected = Selected > 0 ? Selected - 1 : emotes.Length - 1; // if min then reset else ++
                     }
                 }
             }

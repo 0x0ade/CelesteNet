@@ -57,7 +57,7 @@ export class FrontendChannelsPanel extends FrontendBasicPanel {
       )(el);
 
       this.frontend.dom.setContext(el,
-        [ "error_outline", `Dissolve ${c.Name}` ]
+        [ "error_outline", `Dissolve ${c.Name}`, () => this.frontend.sync.run("dissolve", c.ID) ]
       );
 
       return el;

@@ -34,10 +34,12 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             string text = args[1].Rest;
 
-            env.Msg.Tag = $"whisper @ {otherPlayer.FullName}";
-            env.Msg.Text = text;
-            env.Msg.Color = Chat.Settings.ColorWhisper;
-            Chat.ForceSend(env.Msg);
+            if (env.Player != null) {
+                env.Msg.Tag = $"whisper @ {otherPlayer.FullName}";
+                env.Msg.Text = text;
+                env.Msg.Color = Chat.Settings.ColorWhisper;
+                Chat.ForceSend(env.Msg);
+            }
 
             other.Con.Send(Chat.PrepareAndLog(null, new DataChat {
                 CreatedByServer = true,

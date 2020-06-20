@@ -42,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
             Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.FullName ?? "???"));
-            Send(session, Settings.MessageMOTD);
+            SendTo(session, Settings.MessageMOTD);
             session.OnEnd += OnSessionEnd;
         }
 
@@ -159,7 +159,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             return msg;
         }
 
-        public DataChat? Send(CelesteNetPlayerSession? player, string text, string? tag = null, Color? color = null) {
+        public DataChat? SendTo(CelesteNetPlayerSession? player, string text, string? tag = null, Color? color = null) {
             DataChat msg = new DataChat() {
                 Target = player?.PlayerInfo,
                 Text = text,

@@ -273,7 +273,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public string FullText => Msg.Text;
         public string Text => Cmd == null ? Msg.Text : Msg.Text.Substring(Chat.Settings.CommandPrefix.Length + Cmd.ID.Length);
 
-        public DataChat? Send(string text, string? tag = null, Color? color = null) => Chat.Send(Session, text, tag, color ?? Chat.Settings.ColorCommandReply);
+        public DataChat? Send(string text, string? tag = null, Color? color = null) => Chat.SendTo(Session, text, tag, color ?? Chat.Settings.ColorCommandReply);
 
     }
 

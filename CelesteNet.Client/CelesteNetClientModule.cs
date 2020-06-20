@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FMOD.Studio;
+using MonoMod.Utils;
+using System.Collections;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
@@ -35,6 +37,14 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override void Load() {
             Logger.LogCelesteNetTag = true;
+
+            // Dirty hackfix for Everest not reloading Monocle debug commands at runtime.
+            if (Engine.Commands != null) {
+                DynamicData cmds = new DynamicData(Engine.Commands);
+                cmds.Get<IDictionary>("commands").Clear();
+                cmds.Get<IList>("sorted").Clear();
+                cmds.Invoke("BuildCommandsList");
+            }
         }
 
         public override void Unload() {

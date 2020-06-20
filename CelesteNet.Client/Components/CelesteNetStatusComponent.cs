@@ -47,7 +47,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataServerStatus status) {
-            Set(status.Text, status.Time > 0f ? status.Time : timeTextMax, status.Spin);
+            Set(status.Text, status.Time > 0f ? status.Time : 3f, status.Spin);
         }
 
         public void Handle(CelesteNetConnection con, DataDisconnectReason reason) {

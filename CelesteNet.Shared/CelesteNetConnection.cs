@@ -75,7 +75,7 @@ namespace Celeste.Mod.CelesteNet {
         public void Send(DataType? data) {
             if (data == null)
                 return;
-            if (!data.FilterSend(Data))
+            if (!(data is DataInternalDisconnect) && !data.FilterSend(Data))
                 return;
             if (!IsAlive)
                 return;
@@ -110,6 +110,11 @@ namespace Celeste.Mod.CelesteNet {
                         DataType data;
                         lock (SendQueue)
                             data = SendQueue.Dequeue();
+
+                        if (data is DataInternalDisconnect) {
+                            Dispose();
+                            return;
+                        }
 
                         SendRaw(data);
 

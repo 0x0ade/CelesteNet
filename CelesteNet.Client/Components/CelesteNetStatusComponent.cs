@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
@@ -27,6 +28,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public string Text => show ? text : null;
         public float Time => show ? timeTextMax : timeText;
+        public bool Spin => spin;
 
         public CelesteNetStatusComponent(CelesteNetClientComponent context, Game game)
             : base(context, game) {
@@ -42,6 +44,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             base.LoadContent();
 
             texture = GFX.Gui["reloader/cogwheel"];
+        }
+
+        public void Handle(CelesteNetConnection con, DataServerStatus status) {
+            Set(status.Text, status.Time > 0f ? status.Time : timeTextMax, status.Spin);
+        }
+
+        public void Handle(CelesteNetConnection con, DataDisconnectReason reason) {
+            Set(reason.Text, 8f, false);
         }
 
         public void Set(string text, float timeText = timeTextMax, bool spin = true) {

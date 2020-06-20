@@ -94,8 +94,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (component.AutoDispose)
                     component.Dispose();
 
-            Status?.Set("Disconnected", 3f, false);
-            Status.AutoDispose = true;
+            if (Status != null) {
+                if (Status.Spin)
+                    Status.Set("Disconnected", 3f, false);
+                Status.AutoDispose = true;
+            }
         }
 
     }

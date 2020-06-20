@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -30,12 +31,12 @@ namespace Celeste.Mod.CelesteNet {
         private readonly Dictionary<object, List<Tuple<Type, DataHandler>>> RegisteredHandlers = new Dictionary<object, List<Tuple<Type, DataHandler>>>();
         private readonly Dictionary<object, List<Tuple<Type, DataFilter>>> RegisteredFilters = new Dictionary<object, List<Tuple<Type, DataFilter>>>();
 
-        protected readonly Dictionary<Type, IDataStatic> Static = new Dictionary<Type, IDataStatic>();
+        protected readonly ConcurrentDictionary<Type, IDataStatic> Static = new ConcurrentDictionary<Type, IDataStatic>();
 
-        protected readonly Dictionary<Type, Dictionary<uint, IDataRef>> References = new Dictionary<Type, Dictionary<uint, IDataRef>>();
-        protected readonly Dictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>> Bound = new Dictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>>();
+        protected readonly ConcurrentDictionary<Type, Dictionary<uint, IDataRef>> References = new ConcurrentDictionary<Type, Dictionary<uint, IDataRef>>();
+        protected readonly ConcurrentDictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>> Bound = new ConcurrentDictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>>();
 
-        protected readonly Dictionary<Type, Dictionary<uint, uint>> LastOrderedUpdate = new Dictionary<Type, Dictionary<uint, uint>>();
+        protected readonly ConcurrentDictionary<Type, Dictionary<uint, uint>> LastOrderedUpdate = new ConcurrentDictionary<Type, Dictionary<uint, uint>>();
 
         public DataContext() {
             RescanAllDataTypes();

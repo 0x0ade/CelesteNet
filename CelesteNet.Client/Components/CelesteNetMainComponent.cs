@@ -290,13 +290,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #region Send
 
         public void SendState() {
-            Client?.SendAndHandle(new DataPlayerState {
-                Player = Client.PlayerInfo,
-                SID = Session?.Area.GetSID() ?? "",
-                Mode = Session?.Area.Mode ?? AreaMode.Normal,
-                Level = Session?.Level ?? "",
-                Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null))
-            });
+            try {
+                Client?.SendAndHandle(new DataPlayerState {
+                    Player = Client.PlayerInfo,
+                    SID = Session?.Area.GetSID() ?? "",
+                    Mode = Session?.Area.Mode ?? AreaMode.Normal,
+                    Level = Session?.Level ?? "",
+                    Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null))
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");
+                Context.Dispose();
+            }
         }
 
         public void SendFrame() {
@@ -311,30 +316,35 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             for (int i = 0; i < hairCount; i++)
                 hairTextures[i] = Player.Hair.GetHairTexture(i).AtlasPath;
 
-            Client?.Send(new DataPlayerFrame {
-                Position = Player.Position,
-                Speed = Player.Speed,
-                Scale = Player.Sprite.Scale,
-                Color = Player.Sprite.Color,
-                Facing = Player.Facing,
+            try {
+                Client?.Send(new DataPlayerFrame {
+                    Position = Player.Position,
+                    Speed = Player.Speed,
+                    Scale = Player.Sprite.Scale,
+                    Color = Player.Sprite.Color,
+                    Facing = Player.Facing,
 
-                SpriteMode = Player.Sprite.Mode,
-                CurrentAnimationID = Player.Sprite.CurrentAnimationID,
-                CurrentAnimationFrame = Player.Sprite.CurrentAnimationFrame,
+                    SpriteMode = Player.Sprite.Mode,
+                    CurrentAnimationID = Player.Sprite.CurrentAnimationID,
+                    CurrentAnimationFrame = Player.Sprite.CurrentAnimationFrame,
 
-                HairColor = Player.Hair.Color,
-                HairSimulateMotion = Player.Hair.SimulateMotion,
+                    HairColor = Player.Hair.Color,
+                    HairSimulateMotion = Player.Hair.SimulateMotion,
 
-                HairCount = (byte) hairCount,
-                HairColors = hairColors,
-                HairTextures = hairTextures,
+                    HairCount = (byte) hairCount,
+                    HairColors = hairColors,
+                    HairTextures = hairTextures,
 
-                DashColor = Player.StateMachine.State == Player.StDash ? Player.GetCurrentTrailColor() : (Color?) null,
-                DashDir = Player.DashDir,
-                DashWasB = Player.GetWasDashB(),
+                    DashColor = Player.StateMachine.State == Player.StDash ? Player.GetCurrentTrailColor() : (Color?) null,
+                    DashDir = Player.DashDir,
+                    DashWasB = Player.GetWasDashB(),
 
-                Dead = Player.Dead
-            });
+                    Dead = Player.Dead
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-main", $"Error in SendFrame:\n{e}");
+                Context.Dispose();
+            }
         }
 
         #endregion

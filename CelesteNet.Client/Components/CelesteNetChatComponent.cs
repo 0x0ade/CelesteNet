@@ -135,6 +135,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Engine.Commands.Open = false;
 
                 if (MInput.Keyboard.Pressed(Keys.Enter)) {
+                    Repeat.Insert(1, Typing);
                     Send(Typing);
                     Active = false;
 
@@ -173,7 +174,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 // Backspace - trim.
                 if (Typing.Length > 0)
                     Typing = Typing.Substring(0, Typing.Length - 1);
-                RepeatIndex = 0;
+                _RepeatIndex = 0;
 
             } else if (c == (char) 127) {
                 // Delete - currenly not handled.
@@ -181,7 +182,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             } else if (!char.IsControl(c)) {
                 // Any other character - append.
                 Typing += c;
-                RepeatIndex = 0;
+                _RepeatIndex = 0;
             }
         }
 

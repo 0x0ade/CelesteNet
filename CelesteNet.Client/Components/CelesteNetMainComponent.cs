@@ -1,5 +1,6 @@
 ﻿using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
+using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -40,6 +41,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Everest.Events.Level.OnExit += OnExitLevel;
             On.Celeste.PlayerHair.GetHairColor += OnGetHairColor;
             On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
+            On.Celeste.Player.Play += OnPlayerPlayAudio;
         }
 
         public override void Start() {
@@ -123,7 +125,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 !Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
                 level == null ||
                 session == null ||
-                (state.SID != session.Area.SID || state.Mode != session.Area.Mode);
+                state.SID != session.Area.SID ||
+                state.Mode != session.Area.Mode;
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost == null ||
@@ -149,11 +152,30 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             ghost.UpdateSprite(frame.Position, frame.Scale, frame.Facing, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
             ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
             bool dead = ghost.Dead;
-            ghost.Dead = frame.Dead;
+            ghost.Dead = frame.Dead && state.Level == session.Level;
 
             if (ghost.Dead != dead && ghost.Dead) {
                 ghost.HandleDeath();
             }
+        }
+
+        public void Handle(CelesteNetConnection con, DataAudioPlay audio) {
+            if (audio.Position == null) {
+                Audio.Play(audio.Sound, audio.Param, audio.Value);
+                return;
+            }
+
+            if (audio.Player != null) {
+                Session session = Session;
+                if (!Client.Data.TryGetBoundRef(audio.Player, out DataPlayerState state) ||
+                    session == null ||
+                    state.SID != session.Area.SID ||
+                    state.Mode != session.Area.Mode ||
+                    state.Level != session.Level)
+                    return;
+            }
+
+            Audio.Play(audio.Sound, audio.Position.Value, audio.Param, audio.Value);
         }
 
         public void UpdateIdleTag(Entity target, ref GhostEmote idleTag, bool idle) {
@@ -224,6 +246,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             MainThreadHelper.Do(() => {
                 On.Celeste.Level.LoadLevel -= OnLoadLevel;
                 Everest.Events.Level.OnExit -= OnExitLevel;
+                On.Celeste.PlayerHair.GetHairColor -= OnGetHairColor;
+                On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
+                On.Celeste.Player.Play -= OnPlayerPlayAudio;
             });
 
             Cleanup();
@@ -282,6 +307,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (self.Entity is Ghost ghost && 0 <= index && index < ghost.HairTextures.Length && GFX.Game.Textures.TryGetValue(ghost.HairTextures[index], out MTexture tex))
                 return tex;
             return orig(self, index);
+        }
+
+        private EventInstance OnPlayerPlayAudio(On.Celeste.Player.orig_Play orig, Player self, string sound, string param, float value) {
+            SendAudioPlay(self.Center, sound, param, value);
+            return orig(self, sound, param, value);
         }
 
         #endregion
@@ -343,6 +373,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendFrame:\n{e}");
+                Context.Dispose();
+            }
+        }
+
+        public void SendAudioPlay(Vector2 pos, string sound, string param = null, float value = 0f) {
+            try {
+                Client?.Send(new DataAudioPlay {
+                    Player = Client.PlayerInfo,
+                    Sound = sound,
+                    Param = param ?? "",
+                    Value = value,
+                    Position = pos
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-main", $"Error in SendAudioPlay:\n{e}");
                 Context.Dispose();
             }
         }

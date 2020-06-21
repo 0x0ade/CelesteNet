@@ -115,6 +115,13 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
+        public bool IsSameChannel(CelesteNetPlayerSession other)
+            => Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state) && state != null && IsSameChannel(Channel, state, other);
+
+        public bool IsSameChannel(Channel channel, DataPlayerState? state, CelesteNetPlayerSession other)
+            =>  state != null &&
+                other.Channel == channel;
+
         public bool IsSameArea(CelesteNetPlayerSession other)
             => Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state) && state != null && IsSameArea(Channel, state, other);
 
@@ -213,7 +220,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                         if (other == this)
                             continue;
 
-                        if ((data is IDataPlayerState || data is IDataPlayerUpdate) && !IsSameArea(channel, state, other))
+                        if (data is IDataPlayerState && channel != other.Channel)
+                            continue;
+
+                        if (data is IDataPlayerUpdate && !IsSameArea(channel, state, other))
                             continue;
 
                         other.Con.Send(data);

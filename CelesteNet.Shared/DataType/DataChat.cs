@@ -55,8 +55,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ID = reader.ReadUInt32();
             Tag = reader.ReadNullTerminatedString();
             Text = reader.ReadNullTerminatedString();
-            Color = new Color(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), 255);
-            Date = DateTime.FromBinary(reader.ReadInt64());
+            Color = reader.ReadColorNoA();
+            Date = reader.ReadDateTime();
             ReceivedDate = DateTime.UtcNow;
         }
 
@@ -65,10 +65,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(ID);
             writer.WriteNullTerminatedString(Tag);
             writer.WriteNullTerminatedString(Text);
-            writer.Write(Color.R);
-            writer.Write(Color.G);
-            writer.Write(Color.B);
-            writer.Write(Date.ToBinary());
+            writer.WriteNoA(Color);
+            writer.Write(Date);
         }
 
         public override string ToString()

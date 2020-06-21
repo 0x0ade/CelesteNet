@@ -16,6 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetMainComponent : CelesteNetGameComponent {
 
         private Player Player;
+        private TrailManager TrailManager;
         private Session Session;
         private bool WasIdle;
 
@@ -42,6 +43,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             On.Celeste.PlayerHair.GetHairColor += OnGetHairColor;
             On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
             On.Celeste.Player.Play += OnPlayerPlayAudio;
+            On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
         }
 
         public override void Start() {
@@ -50,6 +52,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Engine.Instance != null && Engine.Scene is Level level)
                 OnLoadLevel(null, level, Player.IntroTypes.Transition, true);
         }
+
+        #region Handlers
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
             if (!Ghosts.TryGetValue(player.ID, out Ghost ghost) ||
@@ -149,14 +153,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             ghost.NameTag.Name = frame.Player.FullName;
             UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
-            ghost.UpdateSprite(frame.Position, frame.Scale, frame.Facing, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
+            ghost.UpdateSprite(frame.Position, frame.Speed, frame.Scale, frame.Facing, frame.Depth, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
             ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
-            bool dead = ghost.Dead;
-            ghost.Dead = frame.Dead && state.Level == session.Level;
-
-            if (ghost.Dead != dead && ghost.Dead) {
-                ghost.HandleDeath();
-            }
+            ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
+            ghost.UpdateDead(frame.Dead && state.Level == session.Level);
         }
 
         public void Handle(CelesteNetConnection con, DataAudioPlay audio) {
@@ -177,6 +177,50 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             Audio.Play(audio.Sound, audio.Position.Value, audio.Param, audio.Value);
         }
+
+        public void Handle(CelesteNetConnection con, DataDashTrail trail) {
+            Ghost ghost = null;
+
+            if (trail.Player != null) {
+                Session session = Session;
+                if (!Client.Data.TryGetBoundRef(trail.Player, out DataPlayerState state) ||
+                    session == null ||
+                    state.SID != session.Area.SID ||
+                    state.Mode != session.Area.Mode ||
+                    state.Level != session.Level ||
+                    !Ghosts.TryGetValue(trail.Player.ID, out ghost))
+                    return;
+            }
+
+            if (trail.Server) {
+                TrailManager.Add(
+                    trail.Position,
+                    trail.Sprite?.ToImage(),
+                    ghost?.Hair,
+                    trail.Scale,
+                    trail.Color,
+                    trail.Depth,
+                    trail.Duration,
+                    trail.FrozenUpdate,
+                    trail.UseRawDeltaTime
+                );
+
+            } else {
+                TrailManager.Add(
+                    trail.Position,
+                    ghost.Sprite,
+                    ghost.Hair,
+                    trail.Scale,
+                    trail.Color,
+                    ghost.Depth + 1,
+                    1f,
+                    false,
+                    false
+                );
+            }
+        }
+
+        #endregion
 
         public void UpdateIdleTag(Entity target, ref GhostEmote idleTag, bool idle) {
             if (idle && idleTag == null) {
@@ -206,6 +250,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     SendState();
                 }
                 return;
+            }
+
+            if (level.FrozenOrPaused || level.Overlay is PauseUpdateOverlay) {
+                level.Particles.Update();
+                level.ParticlesFG.Update();
+                level.ParticlesBG.Update();
+                if (TrailManager == null || TrailManager.Scene != Engine.Scene)
+                    TrailManager = Engine.Scene.Tracker.GetEntity<TrailManager>();
+                if (TrailManager != null)
+                    foreach (TrailManager.Snapshot snapshot in TrailManager.GetSnapshots())
+                        snapshot?.Update();
             }
 
             bool sendState = StateUpdated;
@@ -249,6 +304,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 On.Celeste.PlayerHair.GetHairColor -= OnGetHairColor;
                 On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
                 On.Celeste.Player.Play -= OnPlayerPlayAudio;
+                On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
             });
 
             Cleanup();
@@ -314,6 +370,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return orig(self, sound, param, value);
         }
 
+        private TrailManager.Snapshot OnDashTrailAdd(
+            On.Celeste.TrailManager.orig_Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool orig,
+            Vector2 position, Image sprite, PlayerHair hair, Vector2 scale, Color color, int depth, float duration, bool frozenUpdate, bool useRawDeltaTime
+        ) {
+            if (hair?.Entity is Player)
+                SendDashTrail(position, sprite, hair, scale, color, depth, duration, frozenUpdate, useRawDeltaTime);
+            return orig(position, sprite, hair, scale, color, depth, duration, frozenUpdate, useRawDeltaTime);
+        }
+
         #endregion
 
 
@@ -353,6 +418,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Scale = Player.Sprite.Scale,
                     Color = Player.Sprite.Color,
                     Facing = Player.Facing,
+                    Depth = Player.Depth,
 
                     SpriteMode = Player.Sprite.Mode,
                     CurrentAnimationID = Player.Sprite.CurrentAnimationID,
@@ -365,9 +431,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     HairColors = hairColors,
                     HairTextures = hairTextures,
 
-                    DashColor = Player.StateMachine.State == Player.StDash ? Player.GetCurrentTrailColor() : (Color?) null,
+                    // TODO: Get rid of this, sync particles separately!
+                    DashWasB = Player.StateMachine.State == Player.StDash ? Player.GetWasDashB() : (bool?) null,
                     DashDir = Player.DashDir,
-                    DashWasB = Player.GetWasDashB(),
 
                     Dead = Player.Dead
                 });
@@ -388,6 +454,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendAudioPlay:\n{e}");
+                Context.Dispose();
+            }
+        }
+
+        public void SendDashTrail(Vector2 position, Image sprite, PlayerHair hair, Vector2 scale, Color color, int depth, float duration, bool frozenUpdate, bool useRawDeltaTime) {
+            try {
+                Client?.Send(new DataDashTrail {
+                    Player = Client.PlayerInfo,
+                    Position = position,
+                    Sprite = new DataPartImage(sprite),
+                    Scale = scale,
+                    Color = color,
+                    Depth = depth,
+                    Duration = duration,
+                    FrozenUpdate = frozenUpdate,
+                    UseRawDeltaTime = useRawDeltaTime
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-main", $"Error in SendDashTrail:\n{e}");
                 Context.Dispose();
             }
         }

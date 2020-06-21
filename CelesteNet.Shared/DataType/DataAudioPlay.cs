@@ -41,10 +41,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 Value = reader.ReadSingle();
 
             if (reader.ReadBoolean())
-                Position = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+                Position = reader.ReadVector2();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
+            if (Player != null)
+                Server = false;
+
             writer.Write(Server);
             if (!Server)
                 ctx.WriteRef(writer, Player);
@@ -58,8 +61,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 writer.Write(false);
             } else {
                 writer.Write(true);
-                writer.Write(Position.Value.X);
-                writer.Write(Position.Value.Y);
+                writer.Write(Position.Value);
             }
         }
 

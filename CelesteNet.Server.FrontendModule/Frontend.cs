@@ -110,36 +110,36 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         private void OnConnect(CelesteNetServer server, CelesteNetConnection con) {
-            BroadcastCMD("update", "/status");
+            BroadcastCMD(false, "update", "/status");
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
-            BroadcastCMD("update", "/status");
-            BroadcastCMD("update", "/players");
+            BroadcastCMD(false, "update", "/status");
+            BroadcastCMD(false, "update", "/players");
             session.OnEnd += OnSessionEnd;
         }
 
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
-            BroadcastCMD("update", "/status");
-            BroadcastCMD("update", "/players");
+            BroadcastCMD(false, "update", "/status");
+            BroadcastCMD(false, "update", "/players");
         }
 
         private void OnDisconnect(CelesteNetServer server, CelesteNetConnection con, CelesteNetPlayerSession? session) {
             if (session == null)
-                BroadcastCMD("update", "/status");
+                BroadcastCMD(false, "update", "/status");
         }
 
         private void OnBroadcastChannels(Channels obj) {
-            BroadcastCMD("update", "/channels");
+            BroadcastCMD(false, "update", "/channels");
         }
 
         private bool OnChatReceive(ChatModule chat, DataChat msg) {
-            BroadcastCMD("chat", msg.ToFrontendChat());
+            BroadcastCMD(msg.Targets != null, "chat", msg.ToFrontendChat());
             return true;
         }
 
         private void OnForceSend(ChatModule chat, DataChat msg) {
-            BroadcastCMD("chat", msg.ToFrontendChat());
+            BroadcastCMD(msg.Targets != null, "chat", msg.ToFrontendChat());
         }
 
         public Stream? OpenContent(string path) {
@@ -215,11 +215,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public bool IsAuthorized(HttpRequestEventArgs c)
             => c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionKeys.Contains(session);
 
-        public void BroadcastRawString(string data) {
-            WSHost?.Sessions.Broadcast(data);
+        public void BroadcastRawString(bool authOnly, string data) {
+            // FIXME: Broadcast to auth'd only!
+            if (WSHost == null)
+                return;
+
+            foreach (FrontendWebSocket session in WSHost.Sessions.Sessions)
+                if (!authOnly || session.IsAuthorized)
+                    session.SendRawString(data);
         }
 
-        public void BroadcastRawObject(object obj) {
+        public void BroadcastRawObject(bool authOnly, object obj) {
             if (WSHost == null)
                 return;
 
@@ -231,14 +237,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 ms.Seek(0, SeekOrigin.Begin);
 
                 using (StreamReader sr = new StreamReader(ms, Encoding.UTF8, false, 1024, true))
-                    WSHost.Sessions.Broadcast(sr.ReadToEnd());
+                    BroadcastRawString(authOnly, sr.ReadToEnd());
             }
         }
 
-        public void BroadcastCMD(string id, object obj) {
-            BroadcastRawString("cmd");
-            BroadcastRawString(id);
-            BroadcastRawObject(obj);
+        public void BroadcastCMD(bool authOnly, string id, object obj) {
+            BroadcastRawString(authOnly, "cmd");
+            BroadcastRawString(authOnly, id);
+            BroadcastRawObject(authOnly, obj);
         }
 
         #region Read / Parse Helpers

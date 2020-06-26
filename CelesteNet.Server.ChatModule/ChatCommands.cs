@@ -275,6 +275,18 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public DataChat? Send(string text, string? tag = null, Color? color = null) => Chat.SendTo(Session, text, tag, color ?? Chat.Settings.ColorCommandReply);
 
+        public DataChat? Error(Exception e) {
+            string cmdName = Cmd?.ID ?? "?";
+
+            if (e.GetType() == typeof(Exception)) {
+                Logger.Log(LogLevel.VVV, "chatcmd", $"Command {cmdName} failed:\n{e}");
+                return Send($"Command {cmdName} failed: {e.Message}", color: Chat.Settings.ColorError);
+            }
+
+            Logger.Log(LogLevel.ERR, "chatcmd", $"Command {cmdName} failed:\n{e}");
+            return Send($"Command {cmdName} failed due to an internal error.", color: Chat.Settings.ColorError);
+        }
+
     }
 
 }

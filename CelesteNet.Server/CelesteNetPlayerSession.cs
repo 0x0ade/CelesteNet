@@ -92,6 +92,32 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.InvokeOnSessionStart(this);
         }
 
+        public Action WaitFor<T>(DataHandler<T> cb) where T : DataType<T>
+            => WaitFor(0, cb, null);
+
+        public Action WaitFor<T>(int timeout, DataHandler<T> cb, Action? cbTimeout = null) where T : DataType<T>
+            => Server.Data.WaitFor<T>(timeout, (con, data) => {
+                if (Con != con)
+                    return false;
+                cb(con, data);
+                return true;
+            }, cbTimeout);
+
+        public Action Request<T>(DataHandler<T> cb) where T : DataType<T>, IDataRequestable
+            => Request(0, Activator.CreateInstance(typeof(T).GetRequestType()) as DataType ?? throw new Exception($"Invalid requested type: {typeof(T).FullName}"), cb, null);
+
+        public Action Request<T>(int timeout, DataHandler<T> cb, Action? cbTimeout = null) where T : DataType<T>, IDataRequestable
+            => Request(timeout, Activator.CreateInstance(typeof(T).GetRequestType()) as DataType ?? throw new Exception($"Invalid requested type: {typeof(T).FullName}"), cb, cbTimeout);
+
+        public Action Request<T>(DataType req, DataHandler<T> cb) where T : DataType<T>, IDataRequestable
+            => Request(0, req, cb, null);
+
+        public Action Request<T>(int timeout, DataType req, DataHandler<T> cb, Action? cbTimeout = null) where T : DataType<T>, IDataRequestable {
+            Action cancel = WaitFor(timeout, cb, cbTimeout);
+            Con.Send(req);
+            return cancel;
+        }
+
         public void ResendPlayerStates() {
             Channel channel = Channel;
 

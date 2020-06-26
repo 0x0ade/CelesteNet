@@ -138,7 +138,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateServerEntry(TextMenu menu, bool inGame) {
             menu.Add(
-                (ServerEntry = new TextMenu.Button(("modoptions_celestenetclient_server".DialogClean()).Replace("(server)", Server)))
+                (ServerEntry = new TextMenu.Button(("modoptions_celestenetclient_server".DialogClean()).Replace("((server))", Server)))
                 .Pressed(() => {
                     Audio.Play("event:/ui/main/savefile_rename_start");
                     menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(
@@ -157,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 name = "########";
 
             menu.Add(
-                (NameEntry = new TextMenu.Button(("modoptions_celestenetclient_name".DialogClean()).Replace("(name)", name)))
+                (NameEntry = new TextMenu.Button(("modoptions_celestenetclient_name".DialogClean()).Replace("((name))", name)))
                 .Pressed(() => {
                     Audio.Play("event:/ui/main/savefile_rename_start");
                     menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(

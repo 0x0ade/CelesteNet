@@ -25,11 +25,11 @@ namespace Celeste.Mod.CelesteNet {
         public readonly Dictionary<string, Type> IDToTypeMap = new Dictionary<string, Type>();
         public readonly Dictionary<Type, string> TypeToIDMap = new Dictionary<Type, string>();
 
-        public readonly Dictionary<Type, DataHandler> Handlers = new Dictionary<Type, DataHandler>();
-        public readonly Dictionary<Type, DataFilter> Filters = new Dictionary<Type, DataFilter>();
+        public readonly ConcurrentDictionary<Type, DataHandler> Handlers = new ConcurrentDictionary<Type, DataHandler>();
+        public readonly ConcurrentDictionary<Type, DataFilter> Filters = new ConcurrentDictionary<Type, DataFilter>();
 
-        private readonly Dictionary<object, List<Tuple<Type, DataHandler>>> RegisteredHandlers = new Dictionary<object, List<Tuple<Type, DataHandler>>>();
-        private readonly Dictionary<object, List<Tuple<Type, DataFilter>>> RegisteredFilters = new Dictionary<object, List<Tuple<Type, DataFilter>>>();
+        private readonly ConcurrentDictionary<object, List<Tuple<Type, DataHandler>>> RegisteredHandlers = new ConcurrentDictionary<object, List<Tuple<Type, DataHandler>>>();
+        private readonly ConcurrentDictionary<object, List<Tuple<Type, DataFilter>>> RegisteredFilters = new ConcurrentDictionary<object, List<Tuple<Type, DataFilter>>>();
 
         protected readonly ConcurrentDictionary<Type, IDataStatic> Static = new ConcurrentDictionary<Type, IDataStatic>();
 
@@ -116,7 +116,7 @@ namespace Celeste.Mod.CelesteNet {
                 if (existing != null)
                     Handlers[type] = existing;
                 else
-                    Handlers.Remove(type);
+                    Handlers.TryRemove(type, out _);
             }
         }
 
@@ -129,7 +129,7 @@ namespace Celeste.Mod.CelesteNet {
                 if (existing != null)
                     Filters[type] = existing;
                 else
-                    Filters.Remove(type);
+                    Filters.TryRemove(type, out _);
             }
         }
 
@@ -175,6 +175,43 @@ namespace Celeste.Mod.CelesteNet {
 
             foreach (Tuple<Type, DataFilter> tuple in RegisteredFilters[owner])
                 UnregisterFilter(tuple.Item1, tuple.Item2);
+        }
+
+        public Action WaitFor<T>(DataFilter<T> cb) where T : DataType<T>
+            => WaitFor(0, cb, null);
+
+        public Action WaitFor<T>(int timeout, DataFilter<T> cb, Action? cbTimeout = null) where T : DataType<T> {
+            object key = new object();
+
+            DataHandler<T>? handler = null;
+            
+            handler = (con, data) => {
+                lock (key) {
+                    if (handler == null || !cb(con, data))
+                        return;
+                    UnregisterHandler(handler);
+                    handler = null;
+                }
+            };
+
+            RegisterHandler(handler);
+            if (timeout > 0)
+                Task.Run(async () => {
+                    await Task.Delay(timeout);
+                    lock (key) {
+                        if (handler == null)
+                            return;
+                        try {
+                            UnregisterHandler(handler);
+                            handler = null;
+                            cbTimeout?.Invoke();
+                        } catch (Exception e) {
+                            Logger.Log(LogLevel.CRI, "data", $"Error in WaitFor timeout callback:\n{typeof(T).FullName}\n{cb}\n{e}");
+                        }
+                    }
+                });
+
+            return () => UnregisterHandler(handler);
         }
 
         public DataType Read(BinaryReader reader) {
@@ -423,7 +460,7 @@ namespace Celeste.Mod.CelesteNet {
             }
 
             if (data is IDataBoundRef bound) {
-                Type? typeBoundTo = bound.GetTypeBoundTo();
+                Type? typeBoundTo = bound.GetBoundToType();
 
                 if (typeBoundTo != null) {
                     if (!TryGetRef(typeBoundTo, id, out _))
@@ -464,7 +501,7 @@ namespace Celeste.Mod.CelesteNet {
             }
 
             if (data is IDataBoundRef bound) {
-                Type? typeBoundTo = bound.GetTypeBoundTo();
+                Type? typeBoundTo = bound.GetBoundToType();
                 if (typeBoundTo != null &&
                     Bound.TryGetValue(typeBoundTo, out boundByID) &&
                     boundByID.TryGetValue(id, out boundByType)) {

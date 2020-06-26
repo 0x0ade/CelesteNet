@@ -19,6 +19,29 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public abstract void Read(DataContext ctx, BinaryReader reader);
         public abstract void Write(DataContext ctx, BinaryWriter writer);
 
+        public static byte PackBool(byte value, int index, bool set) {
+            int mask = 1 << index;
+            return set ? (byte) (value | mask) : (byte) (value & ~mask);
+        }
+
+        public static bool UnpackBool(byte value, int index) {
+            int mask = 1 << index;
+            return (value & mask) == mask;
+        }
+
+        public static byte PackBools(bool a = false, bool b = false, bool c = false, bool d = false, bool e = false, bool f = false, bool g = false, bool h = false) {
+            byte value = 0;
+            value = PackBool(value, 0, a);
+            value = PackBool(value, 1, b);
+            value = PackBool(value, 2, c);
+            value = PackBool(value, 3, d);
+            value = PackBool(value, 4, e);
+            value = PackBool(value, 5, f);
+            value = PackBool(value, 6, g);
+            value = PackBool(value, 7, h);
+            return value;
+        }
+
     }
 
     public abstract class DataType<T> : DataType where T : DataType<T> {
@@ -59,6 +82,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     }
 
     public interface IDataStatic {
+    }
+
+    public interface IDataRequestable {
+    }
+
+    public interface IDataRequestable<T> : IDataRequestable where T : DataType<T>, new() {
     }
 
     [Flags]

@@ -25,6 +25,9 @@ namespace Celeste.Mod.CelesteNet {
         public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
             => string.IsNullOrEmpty(value);
 
+        public static string? Nullify(this string? value)
+            => string.IsNullOrEmpty(value) ? null : value;
+
         public static Type[] GetTypes() {
             if (Everest.Modules.Count != 0)
                 return _GetTypes();
@@ -58,11 +61,18 @@ namespace Celeste.Mod.CelesteNet {
         public static string ToHex(this Color c)
             => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
-        public static Type? GetTypeBoundTo(this IDataBoundRef data)
+        public static Type? GetBoundToType(this IDataBoundRef data)
             => data.GetType()
             .GetInterfaces()
             .FirstOrDefault(t => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDataBoundRef<>))
             ?.GetGenericArguments()[0];
+
+        public static Type GetRequestType(this Type t)
+            => t
+            .GetInterfaces()
+            .FirstOrDefault(t => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDataRequestable<>))
+            ?.GetGenericArguments()[0]
+            ?? throw new Exception($"Invalid requested type: {t.FullName}");
 
         public static readonly Regex SanitizeRegex = new Regex(@"[^\w\.@-_^°]", RegexOptions.None, TimeSpan.FromSeconds(1.5));
 

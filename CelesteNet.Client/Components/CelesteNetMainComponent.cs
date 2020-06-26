@@ -56,6 +56,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #region Handlers
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
+            if (player.ID == Client.PlayerInfo.ID) {
+                if (PlayerNameTag != null)
+                    PlayerNameTag.Name = player.FullName;
+                return;
+            }
+
             if (!Ghosts.TryGetValue(player.ID, out Ghost ghost) ||
                 ghost == null)
                 return;
@@ -217,6 +223,127 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     false,
                     false
                 );
+            }
+        }
+
+        public void Handle(CelesteNetConnection con, DataMoveTo target) {
+            Session session = Session;
+
+            RunOnMainThread(() => {
+                if (SaveData.Instance == null)
+                    SaveData.InitializeDebugMode();
+            }, true);
+
+            AreaData area = AreaDataExt.Get(target.SID);
+
+            if (area == null) {
+                if (target.Force || string.IsNullOrEmpty(target.SID)) {
+                    RunOnMainThread(() => {
+                        OnExitLevel(null, null, LevelExit.Mode.SaveAndQuit, null, null);
+
+                        string message = Dialog.Get("postcard_levelgone");
+                        if (string.IsNullOrEmpty(target.SID))
+                            message = Dialog.Get("postcard_celestenetclient_backtomenu");
+
+                        message = message.Replace("((player))", SaveData.Instance.Name);
+                        message = message.Replace("((sid))", target.SID);
+
+                        LevelEnterExt.ErrorMessage = message;
+                        LevelEnter.Go(new Session(new AreaKey(1).SetSID("")), false);
+                    });
+                }
+                return;
+            }
+
+            if (session == null || session.Area.SID != target.SID) {
+                if (session != null)
+                    UserIO.SaveHandler(true, true);
+
+                session = new Session(area.ToKey(target.Mode));
+            }
+
+            if (!string.IsNullOrEmpty(target.Level) && session.MapData.Get(target.Level) != null) {
+                session.Level = target.Level;
+                session.FirstLevel = false;
+            }
+
+            if (target.Session != null && target.Session.InSession) {
+                DataSession data = target.Session;
+                session.Audio = data.Audio.ToState();
+                session.RespawnPoint = data.RespawnPoint;
+                session.Inventory = data.Inventory;
+                session.Flags = data.Flags;
+                session.LevelFlags = data.LevelFlags;
+                session.Strawberries = data.Strawberries;
+                session.DoNotLoad = data.DoNotLoad;
+                session.Keys = data.Keys;
+                session.Counters = data.Counters;
+                session.FurthestSeenLevel = data.FurthestSeenLevel;
+                session.StartCheckpoint = data.StartCheckpoint;
+                session.ColorGrade = data.ColorGrade;
+                session.SummitGems = data.SummitGems;
+                session.FirstLevel = data.FirstLevel;
+                session.Cassette = data.Cassette;
+                session.HeartGem = data.HeartGem;
+                session.Dreaming = data.Dreaming;
+                session.GrabbedGolden = data.GrabbedGolden;
+                session.HitCheckpoint = data.HitCheckpoint;
+                session.LightingAlphaAdd = data.LightingAlphaAdd;
+                session.BloomBaseAdd = data.BloomBaseAdd;
+                session.DarkRoomAlpha = data.DarkRoomAlpha;
+                session.Time = data.Time;
+                session.CoreMode = data.CoreMode;
+            }
+
+            if (target.Position != null)
+                session.RespawnPoint = target.Position.Value;
+
+            session.StartedFromBeginning = false;
+
+            RunOnMainThread(() => LevelEnter.Go(session, false));
+        }
+
+        #endregion
+
+        #region Request Handlers
+
+        public void Handle(CelesteNetConnection con, DataSessionRequest request) {
+            Session session = Session;
+
+            if (session == null) {
+                Client?.Send(new DataSession {
+                    InSession = false
+                });
+
+            } else {
+                Client?.Send(new DataSession {
+                    InSession = true,
+
+                    Audio = new DataPartAudioState(session.Audio),
+                    RespawnPoint = session.RespawnPoint,
+                    Inventory = session.Inventory,
+                    Flags = new HashSet<string>(session.Flags ?? new HashSet<string>()),
+                    LevelFlags = new HashSet<string>(session.LevelFlags ?? new HashSet<string>()),
+                    Strawberries = new HashSet<EntityID>(session.Strawberries ?? new HashSet<EntityID>()),
+                    DoNotLoad = new HashSet<EntityID>(session.DoNotLoad ?? new HashSet<EntityID>()),
+                    Keys = new HashSet<EntityID>(session.Keys ?? new HashSet<EntityID>()),
+                    Counters = new List<Session.Counter>(Session.Counters ?? new List<Session.Counter>()),
+                    FurthestSeenLevel = session.FurthestSeenLevel,
+                    StartCheckpoint = session.StartCheckpoint,
+                    ColorGrade = session.ColorGrade,
+                    SummitGems = session.SummitGems,
+                    FirstLevel = session.FirstLevel,
+                    Cassette = session.Cassette,
+                    HeartGem = session.HeartGem,
+                    Dreaming = session.Dreaming,
+                    GrabbedGolden = session.GrabbedGolden,
+                    HitCheckpoint = session.HitCheckpoint,
+                    LightingAlphaAdd = session.LightingAlphaAdd,
+                    BloomBaseAdd = session.BloomBaseAdd,
+                    DarkRoomAlpha = session.DarkRoomAlpha,
+                    Time = session.Time,
+                    CoreMode = session.CoreMode
+                });
             }
         }
 

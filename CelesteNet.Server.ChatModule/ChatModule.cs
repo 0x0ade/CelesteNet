@@ -130,13 +130,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                         try {
                             cmd.ParseAndRun(env);
                         } catch (Exception e) {
-                            if (e.GetType() == typeof(Exception)) {
-                                env.Send($"Command {cmdName} failed: {e.Message}", color: Settings.ColorError);
-                                Logger.Log(LogLevel.VVV, "chatcmd", $"Command {cmdName} failed:\n{e}");
-                            } else {
-                                env.Send($"Command {cmdName} failed due to an internal error.", color: Settings.ColorError);
-                                Logger.Log(LogLevel.ERR, "chatcmd", $"Command {cmdName} failed:\n{e}");
-                            }
+                            env.Error(e);
                         }
                     });
 

@@ -62,6 +62,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             set => Logger.Level = value;
         }
 
+        public bool Collision { get; set; } = true;
+        public bool Sounds { get; set; } = true;
+
         public CelesteNetPlayerListComponent.ListMode PlayerListMode { get; set; }
 
         [SettingIgnore]

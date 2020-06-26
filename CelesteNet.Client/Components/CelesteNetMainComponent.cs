@@ -153,7 +153,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             if (ghost == null) {
-                Ghosts[frame.Player.ID] = ghost = new Ghost(frame.SpriteMode);
+                Ghosts[frame.Player.ID] = ghost = new Ghost(Context, frame.SpriteMode);
                 level.Add(ghost);
             }
 
@@ -166,6 +166,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataAudioPlay audio) {
+            if (!Settings.Sounds || !(Engine.Scene is Level level) || level.Paused)
+                return;
+
             if (audio.Position == null) {
                 Audio.Play(audio.Sound, audio.Param, audio.Value);
                 return;
@@ -185,6 +188,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataDashTrail trail) {
+            if (!(Engine.Scene is Level level) || level.Paused)
+                return;
+
             Ghost ghost = null;
 
             if (trail.Player != null) {

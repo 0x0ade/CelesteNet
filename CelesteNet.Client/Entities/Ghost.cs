@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     public class Ghost : Actor {
 
+        public CelesteNetClientComponent Context;
+
         public float Alpha = 0.875f;
 
         public Vector2 Speed;
@@ -27,15 +29,20 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public bool Dead;
 
-        public Ghost(PlayerSpriteMode spriteMode)
+        public Ghost(CelesteNetClientComponent context, PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
+            Context = context;
+
             Depth = 0;
 
             Sprite = new PlayerSprite(spriteMode);
             Add(Hair = new PlayerHair(Sprite));
             Add(Sprite);
-
             Hair.Color = Player.NormalHairColor;
+
+            Collidable = true;
+            Collider = new Hitbox(8f, 11f, -4f, -11f);
+            Add(new PlayerCollider(OnPlayer));
 
             NameTag = new GhostNameTag(this, "");
 
@@ -55,6 +62,24 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             base.Removed(scene);
 
             NameTag.RemoveSelf();
+        }
+
+        public void OnPlayer(Player player) {
+            if (!CelesteNetClientModule.Settings.Collision)
+                return;
+
+            if (player.StateMachine.State == Player.StNormal &&
+                player.Speed.Y > 0f && player.Bottom <= Top + 3f) {
+
+                Dust.Burst(player.BottomCenter, -1.57079637f, 8);
+                (Scene as Level)?.DirectionalShake(Vector2.UnitY, 0.05f);
+                Input.Rumble(RumbleStrength.Light, RumbleLength.Medium);
+                player.Bounce(Top + 2f);
+                player.Play("event:/game/general/thing_booped");
+
+            } else if (player.Speed.Y <= 0f && Bottom <= player.Top + 5f) {
+                player.Speed.Y = Math.Max(player.Speed.Y, 16f);
+            }
         }
 
         public override void Update() {

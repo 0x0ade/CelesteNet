@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class FrontendSettings {
 
+        // Make sure to update your index.html as well!
+        public string CanonicalRoot { get; set; } = "https://celestenet.0x0ade.ga/";
+
         public int Port { get; set; } = 3800;
         public string Password { get; set; } = "actuallyHosts";
 

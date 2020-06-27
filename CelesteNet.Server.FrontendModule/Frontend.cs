@@ -142,12 +142,16 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             BroadcastCMD(msg.Targets != null, "chat", msg.ToFrontendChat());
         }
 
-        public Stream? OpenContent(string path) {
+        public Stream? OpenContent(string path, out string pathNew, out DateTime? lastMod) {
+            pathNew = path;
+
             try {
                 string dir = Path.GetFullPath(Settings.ContentRoot);
                 string pathFS = Path.GetFullPath(Path.Combine(dir, path));
-                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
+                if (pathFS.StartsWith(dir) && File.Exists(pathFS)) {
+                    lastMod = File.GetLastWriteTimeUtc(pathFS);
                     return File.OpenRead(pathFS);
+                }
             } catch {
             }
 
@@ -155,20 +159,34 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             try {
                 string dir = Path.GetFullPath(Path.Combine("..", "..", "..", "Content"));
                 string pathFS = Path.GetFullPath(Path.Combine(dir, path));
-                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
+                if (pathFS.StartsWith(dir) && File.Exists(pathFS)) {
+                    lastMod = File.GetLastWriteTimeUtc(pathFS);
                     return File.OpenRead(pathFS);
+                }
             } catch {
             }
 
             try {
                 string dir = Path.GetFullPath(Path.Combine("..", "..", "..", "..", "CelesteNet.Server.FrontendModule", "Content"));
                 string pathFS = Path.GetFullPath(Path.Combine(dir, path));
-                if (pathFS.StartsWith(dir) && File.Exists(pathFS))
+                if (pathFS.StartsWith(dir) && File.Exists(pathFS)) {
+                    lastMod = File.GetLastWriteTimeUtc(pathFS);
                     return File.OpenRead(pathFS);
+                }
             } catch {
             }
 #endif
 
+            if (!path.EndsWith("/index.html")) {
+                path = path.EndsWith("/") ? path : (path + "/");
+                Stream? index = OpenContent(path + "index.html", out _, out lastMod);
+                if (index != null) {
+                    pathNew = path;
+                    return index;
+                }
+            }
+
+            lastMod = null;
             return typeof(CelesteNetServer).Assembly.GetManifestResourceStream("Celeste.Mod.CelesteNet.Server.Content." + path.Replace("/", "."));
         }
 
@@ -202,6 +220,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 RespondContent(c, "frontend/" + url.Substring(1));
                 return;
             }
+
+            c.Response.Headers.Set("Cache-Control", "no-store, max-age=0, s-maxage=0, no-cache, no-transform");
 
             if (endpoint.Auth && !IsAuthorized(c)) {
                 RespondJSON(c, new {
@@ -274,7 +294,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public void RespondContent(HttpRequestEventArgs c, string id) {
             using (MemoryStream ms = new MemoryStream())
-            using (Stream? s = OpenContent(id)) {
+            using (Stream? s = OpenContent(id, out string pathNew, out DateTime? lastMod)) {
                 if (s == null) {
                     c.Response.StatusCode = (int) HttpStatusCode.NotFound;
                     RespondJSON(c, new {
@@ -282,6 +302,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     });
                     return;
                 }
+
+                if (id != pathNew && pathNew.StartsWith("frontend/")) {
+                    // c.Response.Redirect($"http://{c.Request.UserHostName}/{pathNew.Substring(9)}");
+                    c.Response.StatusCode = (int) HttpStatusCode.Moved;
+                    c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/{pathNew.Substring(9)}");
+                    Respond(c, $"Redirecting to /{pathNew.Substring(9)}");
+                    return;
+                }
+
+                if (lastMod != null)
+                    c.Response.Headers.Set("Last-Modified", lastMod.Value.ToString("r"));
 
                 s.CopyTo(ms);
 

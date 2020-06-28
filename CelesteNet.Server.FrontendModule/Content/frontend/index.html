@@ -77,17 +77,17 @@
                         </p>
                     </div>
 
-                    <div id="userpanel">
-                        <h2>User</h2>
-                        <noscript><p>You need to enable JavaScript to manage your profile, sorry.</p></noscript>
-                    </div>
-
                     <div id="status">
                         <h2>Status</h2>
                         <ul id="status-list">
-                            <li>The server is up, hopefully.</li>
-                            <noscript><li>You need to enable JavaScript for detailed status, sorry.</li></noscript>
+                            <li class="dummy">The server is up, hopefully.</li>
+                            <noscript class="dummy"><li>You need to enable JavaScript for detailed status, sorry.</li></noscript>
                         </ul>
+                    </div>
+
+                    <div id="userpanel">
+                        <h2>User</h2>
+                        <noscript><p>You need to enable JavaScript to manage your profile, sorry.</p></noscript>
                     </div>
                 </div>
 
@@ -110,6 +110,6 @@
         </div>
 
         <div id="dummy"></div>
-        <script src="/main/index.js"></script>
+        <script src="/main/index.js" type="module" async></script>
     </body>
 </html>

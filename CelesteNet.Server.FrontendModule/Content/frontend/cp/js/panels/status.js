@@ -1,5 +1,5 @@
 //@ts-check
-import { rd, rdom, rd$, escape$, RDOMListHelper } from "../utils/rdom.js";
+import { rd, rdom, rd$, escape$, RDOMListHelper } from "../../../js/rdom.js";
 import mdcrd from "../utils/mdcrd.js";
 import { FrontendBasicPanel } from "./basic.js";
 
@@ -20,6 +20,8 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
 
     this.data = {
       Alive: false,
+      StartupTime: 0,
+      PlayerCounter: 0,
       Connections: 0,
       PlayersByCon: 0,
       PlayersByID: 0,
@@ -42,7 +44,10 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
       // @ts-ignore
       this.list.push([
         el => rd$(el)`<span>
-          <b>${key}</b>:${" " + this.data[key]}
+          <b>${key}</b>:${" " + (
+            key === "StartupTime" ? new Date(this.data[key]) :
+            this.data[key]
+          )}
         </span>`
       ]);
     }

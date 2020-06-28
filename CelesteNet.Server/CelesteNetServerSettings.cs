@@ -12,6 +12,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public string ModuleRoot { get; set; } = "Modules";
         public string ModuleConfigRoot { get; set; } = "ModuleConfigs";
+        public string UserDataRoot { get; set; } = "UserData";
 
         public int MainPort { get; set; } = 3802;
 

@@ -106,10 +106,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/status", null, null, "Server Status", "Basic server status information.")]
         public static void Status(Frontend f, HttpRequestEventArgs c) {
+            bool auth = f.IsAuthorized(c);
             f.RespondJSON(c, new {
-                Connections = f.Server.Connections.Count,
-                PlayersByCon = f.Server.PlayersByCon.Count,
-                PlayersByID = f.Server.PlayersByID.Count,
+                StartupTime = f.Server.StartupTime.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds,
+                f.Server.PlayerCounter,
+                Connections = auth ? f.Server.Connections.Count : (int?) null,
+                PlayersByCon = auth ? f.Server.PlayersByCon.Count : (int?) null,
+                PlayersByID = auth ? f.Server.PlayersByID.Count : (int?) null,
                 PlayerRefs = f.Server.Data.GetRefs<DataPlayerInfo>().Length
             });
         }

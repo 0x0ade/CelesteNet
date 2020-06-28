@@ -38,14 +38,14 @@ body {
 #cogwheel {
     animation: cogwheel-spin 20s infinite linear;
     position: absolute;
-    top: -500px;
+    bottom: -500px;
     right: -200px;
     width: 900px;
     height: 900px;
     background: url("./cogwheel.png");
     background-size: 100%;
     pointer-events: none;
-    opacity: 0.2;
+    opacity: 0.4;
 }
 
 #front {
@@ -138,48 +138,6 @@ body {
 
 #about {
     max-width: 600px;
-}
-
-#overlay-wrap {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    backface-visibility: hidden;
-    overflow: hidden;
-    mix-blend-mode: hard-light;
-    opacity: 0.13;
-    filter: blur(16px);
-    z-index: 10000;
-}
-
-#overlay {
-    background: url(./overlay.png);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vw;
-    background-size: 77vw;
-    background-position: 20vh 10vh;
-}
-
-#noisefg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: url(./noisefg.png);
-    background-repeat: repeat;
-    background-size: 256px;
-    z-index: 100;
-    pointer-events: none;
-    opacity: 0.03;
-    mix-blend-mode: screen;
-    z-index: 10001;
 }
 
 .note {

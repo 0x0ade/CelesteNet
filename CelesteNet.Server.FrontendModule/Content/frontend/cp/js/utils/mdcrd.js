@@ -1,5 +1,5 @@
 //@ts-check
-import { rd, rdom, rd$, RDOMListHelper } from "./rdom.js";
+import { rd, rdom, rd$, RDOMListHelper } from "../../../js/rdom.js";
 
 /** @type {import("material-components-web")} */
 const mdc = window["mdc"]; // mdc

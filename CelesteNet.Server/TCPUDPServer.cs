@@ -142,7 +142,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 con.OnDisconnect += _ => UDPMap.Remove(con.UDPRemoteEndPoint);
             }
 
-            CelesteNetPlayerSession session = new CelesteNetPlayerSession(Server, con, Server.PlayerCounter++);
+            CelesteNetPlayerSession session = new CelesteNetPlayerSession(Server, con, ++Server.PlayerCounter);
             session.Start(handshake);
         }
 

@@ -42,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Dispose() {
-            Logger.Log(LogLevel.INF, "channels", $"Shutdown");
+            Logger.Log(LogLevel.INF, "channels", "Shutdown");
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {

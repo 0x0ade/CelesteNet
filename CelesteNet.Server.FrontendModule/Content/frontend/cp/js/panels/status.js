@@ -1,6 +1,7 @@
 //@ts-check
 import { rd, rdom, rd$, escape$, RDOMListHelper } from "../../../js/rdom.js";
 import mdcrd from "../utils/mdcrd.js";
+import { DateTime } from "../../../js/deps/luxon.js";
 import { FrontendBasicPanel } from "./basic.js";
 
 /**
@@ -22,6 +23,8 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
       Alive: false,
       StartupTime: 0,
       PlayerCounter: 0,
+      Registered: 0,
+      Banned: 0,
       Connections: 0,
       PlayersByCon: 0,
       PlayersByID: 0,
@@ -45,7 +48,7 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
       this.list.push([
         el => rd$(el)`<span>
           <b>${key}</b>:${" " + (
-            key === "StartupTime" ? new Date(this.data[key]) :
+            key === "StartupTime" ? DateTime.fromMillis(this.data[key]).setLocale("en-GB").toFormat("yyyy-MM-dd HH:mm:ss") :
             this.data[key]
           )}
         </span>`

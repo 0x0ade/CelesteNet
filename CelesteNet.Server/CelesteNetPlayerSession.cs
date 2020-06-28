@@ -17,6 +17,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
         public readonly uint ID;
+        public string UID;
 
         public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo? value) ? value : null;
         public Channel Channel => Server.Channels.Get(this);
@@ -25,6 +26,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server = server;
             Con = con;
             ID = id;
+
+            UID = $"guest-{con.UID}";
 
             Server.Data.RegisterHandlersIn(this);
         }
@@ -36,12 +39,43 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Server.PlayersByID[ID] = this;
             }
 
-            string name = handshake.Name;
-            // TODO: Handle names starting with # as "keys"
+            if (Server.UserData.TryLoad(UID, out BanInfo ban) && !string.IsNullOrEmpty(ban.Reason)) {
+                Con.Send(new DataDisconnectReason { Text = $"IP banned: {ban.Reason}" });
+                Con.Send(new DataInternalDisconnect());
+                return;
+            }
 
-            name = name.Sanitize();
-            if (string.IsNullOrEmpty(name))
-                name = "Guest";
+            string name = handshake.Name;
+            if (name.StartsWith("#")) {
+                string uid = Server.UserData.GetUID(name.Substring(1));
+                if (string.IsNullOrEmpty(uid)) {
+                    Con.Send(new DataDisconnectReason { Text = $"Invalid user key" });
+                    Con.Send(new DataInternalDisconnect());
+                    return;
+                }
+                UID = uid;
+
+                if (!Server.UserData.TryLoad(uid, out BasicUserInfo userinfo)) {
+                    Con.Send(new DataDisconnectReason { Text = $"User info missing" });
+                    Con.Send(new DataInternalDisconnect());
+                    return;
+                }
+
+                name = userinfo.Name.Sanitize();
+                if (string.IsNullOrEmpty(name))
+                    name = "Guest";
+
+                if (Server.UserData.TryLoad(UID, out ban) && !string.IsNullOrEmpty(ban.Reason)) {
+                    Con.Send(new DataDisconnectReason { Text = $"{name} banned: {ban.Reason}" });
+                    Con.Send(new DataInternalDisconnect());
+                    return;
+                }
+
+            } else {
+                name = name.Sanitize();
+                if (string.IsNullOrEmpty(name))
+                    name = "Guest";
+            }
 
             if (name.Length > Server.Settings.MaxNameLength)
                 name = name.Substring(0, Server.Settings.MaxNameLength);

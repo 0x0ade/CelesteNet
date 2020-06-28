@@ -25,6 +25,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly DataContext Data;
         public readonly TCPUDPServer TCPUDP;
 
+        public UserData UserData;
+
         public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
 
         public readonly Channels Channels;
@@ -92,6 +94,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             Data.RegisterHandlersIn(this);
 
             Channels = new Channels(this);
+
+            UserData = new FileSystemUserData(this);
 
             Initialized = true;
             lock (Modules) {

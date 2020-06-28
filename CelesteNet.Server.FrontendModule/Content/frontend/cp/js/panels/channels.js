@@ -1,5 +1,5 @@
 //@ts-check
-import { rd, rdom, rd$, escape$, RDOMListHelper } from "../utils/rdom.js";
+import { rd, rdom, rd$, escape$, RDOMListHelper } from "../../../js/rdom.js";
 import mdcrd from "../utils/mdcrd.js";
 import { FrontendBasicPanel } from "./basic.js";
 import { FrontendPlayersPanel } from "./players.js";

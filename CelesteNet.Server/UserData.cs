@@ -12,7 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server {
-    public class UserData : IDisposable {
+    public abstract class UserData {
 
         public readonly CelesteNetServer Server;
 
@@ -20,13 +20,29 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server = server;
         }
 
-        public void Start() {
-            Logger.Log(LogLevel.INF, "userdata", "Startup");
-        }
+        public abstract string GetUID(string key);
+        public abstract string GetKey(string uid);
 
-        public void Dispose() {
-            Logger.Log(LogLevel.INF, "userdata", "Shutdown");
-        }
+        public abstract bool TryLoad<T>(string uid, out T value) where T : new();
+        public T Load<T>(string uid) where T : new()
+            => TryLoad(uid, out T value) ? value : value;
+        public abstract void Save<T>(string uid, T value) where T : notnull;
 
+        public abstract void Delete<T>(string uid);
+        public abstract void DeleteAll(string uid);
+
+        public abstract string Create(string uid);
+
+    }
+
+    public class BasicUserInfo {
+        public string Name = "";
+        public HashSet<string> Tags = new HashSet<string>();
+    }
+
+    public class BanInfo {
+        public string Reason = "";
+        public DateTime? From = null;
+        public DateTime? To = null;
     }
 }

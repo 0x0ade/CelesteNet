@@ -236,7 +236,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             => c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionKeys.Contains(session);
 
         public void BroadcastRawString(bool authOnly, string data) {
-            // FIXME: Broadcast to auth'd only!
             if (WSHost == null)
                 return;
 

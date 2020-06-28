@@ -16,17 +16,17 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly object GlobalLock = new object();
 
-        public string GlobalMapPath => Path.Combine(Server.Settings.UserDataRoot, "globalmap.yaml");
+        public string GlobalPath => Path.Combine(Server.Settings.UserDataRoot, "Global.yaml");
 
         public FileSystemUserData(CelesteNetServer server)
             : base(server) {
         }
 
         public string GetUserDir(string uid)
-            => Path.Combine(Server.Settings.UserDataRoot, "user", uid);
+            => Path.Combine(Server.Settings.UserDataRoot, "User", uid);
 
         public string GetUserFilePath<T>(string uid)
-            => Path.Combine(Server.Settings.UserDataRoot, "user", uid, typeof(T).FullName);
+            => Path.Combine(Server.Settings.UserDataRoot, "User", uid, (typeof(T)?.FullName ?? "unknown") + ".yaml");
 
         public bool TryLoadRaw<T>(string path, out T value) where T : new() {
             lock (GlobalLock) {
@@ -48,7 +48,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void SaveRaw<T>(string path, T data) where T : notnull {
             lock (GlobalLock) {
-                string dir = Path.GetDirectoryName(path);
+                string? dir = Path.GetDirectoryName(path);
                 if (!Directory.Exists(dir))
                     Directory.CreateDirectory(dir);
 
@@ -78,7 +78,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override string GetUID(string key) {
             lock (GlobalLock) {
-                if (LoadRaw<GlobalMap>(GlobalMapPath).UIDs.TryGetValue(key, out string? uid))
+                if (LoadRaw<Global>(GlobalPath).UIDs.TryGetValue(key, out string? uid))
                     return uid;
                 return "";
             }
@@ -101,36 +101,35 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override string Create(string uid) {
             lock (GlobalLock) {
-                GlobalMap globalmap = LoadRaw<GlobalMap>(GlobalMapPath);
-                if (globalmap.UIDs.TryGetValue(uid, out string? key))
+                Global global = LoadRaw<Global>(GlobalPath);
+                if (global.UIDs.TryGetValue(uid, out string? key))
                     return key;
 
                 string keyFull;
                 do {
                     keyFull = Guid.NewGuid().ToString().Replace("-", "");
                     key = keyFull.Substring(0, 16);
-                } while (globalmap.UsedKeys.Contains(key));
-                globalmap.UsedKeys.Add(key);
+                } while (global.UIDs.ContainsKey(key));
+                global.UIDs[key] = uid;
 
                 Save(uid, new PrivateUserInfo {
                     Key = key,
                     KeyFull = keyFull
                 });
 
-                SaveRaw(GlobalMapPath, globalmap);
+                SaveRaw(GlobalPath, global);
 
                 return key;
             }
         }
 
-        public class GlobalMap {
-            public Dictionary<string, string> UIDs = new Dictionary<string, string>();
-            public HashSet<string> UsedKeys = new HashSet<string>();
+        public class Global {
+            public Dictionary<string, string> UIDs { get; set; } = new Dictionary<string, string>();
         }
 
         public class PrivateUserInfo {
-            public string Key = "";
-            public string KeyFull = "";
+            public string Key { get; set; } = "";
+            public string KeyFull { get; set; } = "";
         }
 
     }

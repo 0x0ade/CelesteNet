@@ -36,13 +36,16 @@ namespace Celeste.Mod.CelesteNet.Server {
     }
 
     public class BasicUserInfo {
-        public string Name = "";
-        public HashSet<string> Tags = new HashSet<string>();
+        public string Name { get; set; } = "";
+        // TODO: Move into separate Discord module!
+        public string Discrim { get; set; } = "";
+        public string Avatar { get; set; } = "";
+        public HashSet<string> Tags { get; set; } = new HashSet<string>();
     }
 
     public class BanInfo {
-        public string Reason = "";
-        public DateTime? From = null;
-        public DateTime? To = null;
+        public string Reason { get; set; } = "";
+        public DateTime? From { get; set; } = null;
+        public DateTime? To { get; set; } = null;
     }
 }

@@ -224,9 +224,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             c.Response.Headers.Set("Cache-Control", "no-store, max-age=0, s-maxage=0, no-cache, no-transform");
 
             if (endpoint.Auth && !IsAuthorized(c)) {
+                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                 RespondJSON(c, new {
                     Error = "Unauthorized."
                 });
+                return;
             }
 
             endpoint.Handle(this, c);

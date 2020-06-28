@@ -43,6 +43,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     return;
 
                 } else {
+                    c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                     f.RespondJSON(c, new {
                         Error = "Previous session expired."
                     });
@@ -51,6 +52,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
 
             if (pass == null) {
+                c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
                 f.RespondJSON(c, new {
                     Error = "Invalid data."
                 });
@@ -67,6 +69,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
+            c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
             f.RespondJSON(c, new {
                 Error = "Incorrect password."
             });
@@ -74,6 +77,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/ws", null, null, "WebSocket Connection", "Establish a WebSocket control panel connection.")]
         public static void WSPseudo(Frontend f, HttpRequestEventArgs c) {
+            c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
             f.RespondJSON(c, new {
                 Error = "Connect to this endpoint using WebSockets, not plain HTTP."
             });

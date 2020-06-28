@@ -79,5 +79,13 @@ namespace Celeste.Mod.CelesteNet {
         public static string Sanitize(this string? value, bool space = false)
             => value == null ? "" : string.Join("", value.Trim().Where(c => (space || !char.IsWhiteSpace(c)) && EnglishFontChars.Contains(c)));
 
+        public static T Await<T>(this Task<T> task) {
+            T result = default;
+            task.ContinueWith(_ => result = task.Result).Wait();
+            if (result is null)
+                throw new NullReferenceException("Task returned null: " + task);
+            return result;
+        }
+
     }
 }

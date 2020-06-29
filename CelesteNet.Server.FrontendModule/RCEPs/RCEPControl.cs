@@ -116,6 +116,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 GCMemory = GC.GetTotalMemory(false),
                 Modules = f.Server.Modules.Count,
                 f.Server.PlayerCounter,
+                Registered = f.Server.UserData.GetRegisteredCount(),
+                Banned = f.Server.UserData.LoadAll<BanInfo>().Count(ban => !string.IsNullOrEmpty(ban.Reason)),
                 Connections = auth ? f.Server.Connections.Count : (int?) null,
                 PlayersByCon = auth ? f.Server.PlayersByCon.Count : (int?) null,
                 PlayersByID = auth ? f.Server.PlayersByID.Count : (int?) null,

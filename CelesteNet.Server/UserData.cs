@@ -28,9 +28,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             => TryLoad(uid, out T value) ? value : value;
         public abstract void Save<T>(string uid, T value) where T : notnull;
 
+        public abstract T[] LoadRegistered<T>() where T : new();
+        public abstract T[] LoadAll<T>() where T : new();
+
+        public abstract int GetRegisteredCount();
+        public abstract int GetAllCount();
+
         public abstract void Delete<T>(string uid);
         public abstract void DeleteAll(string uid);
-
         public abstract string Create(string uid);
 
     }

@@ -16,6 +16,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly object GlobalLock = new object();
 
+        public string UserRoot => Path.Combine(Server.Settings.UserDataRoot, "User");
         public string GlobalPath => Path.Combine(Server.Settings.UserDataRoot, "Global.yaml");
 
         public FileSystemUserData(CelesteNetServer server)
@@ -23,10 +24,13 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public string GetUserDir(string uid)
-            => Path.Combine(Server.Settings.UserDataRoot, "User", uid);
+            => Path.Combine(UserRoot, uid);
 
         public string GetUserFilePath<T>(string uid)
-            => Path.Combine(Server.Settings.UserDataRoot, "User", uid, (typeof(T)?.FullName ?? "unknown") + ".yaml");
+            => Path.Combine(UserRoot, uid, GetFileName<T>());
+
+        public string GetFileName<T>()
+            => (typeof(T)?.FullName ?? "unknown") + ".yaml";
 
         public bool TryLoadRaw<T>(string path, out T value) where T : new() {
             lock (GlobalLock) {
@@ -92,6 +96,25 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override void Save<T>(string uid, T value)
             => SaveRaw(GetUserFilePath<T>(uid), value);
+
+        public override T[] LoadRegistered<T>() {
+            lock (GlobalLock) {
+                return LoadRaw<Global>(GlobalPath).UIDs.Values.Select(uid => Load<T>(uid)).ToArray();
+            }
+        }
+
+        public override T[] LoadAll<T>() {
+            lock (GlobalLock) {
+                string name = GetFileName<T>();
+                return Directory.GetDirectories(UserRoot).Select(dir => LoadRaw<T>(Path.Combine(dir, name))).ToArray();
+            }
+        }
+
+        public override int GetRegisteredCount()
+            => LoadRaw<Global>(GlobalPath).UIDs.Count;
+
+        public override int GetAllCount()
+            => Directory.GetDirectories(UserRoot).Length;
 
         public override void Delete<T>(string uid)
             => DeleteRaw(GetUserFilePath<T>(uid));

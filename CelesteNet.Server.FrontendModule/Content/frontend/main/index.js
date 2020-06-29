@@ -28,9 +28,9 @@ function fetchStatus() {
 		list.add("memory", li(`Memory used: ${mem}${memSuffix}`));
 		list.add("modules", li(`Modules loaded: ${status.Modules}`));
 		list.add("playersTotal", li(`Players since restart: ${status.PlayerCounter}`));
-		list.add("playersReg", li(`Registered: ${status.PlayerRegistered}`));
-		list.add("playersBan", li(`Banned: ${status.Bans}`));
-		list.add("players", li(`Currently online: ${status.PlayerRefs}`));
+		list.add("playersReg", li(`Registered: ${status.Registered}`));
+		list.add("playersBan", li(`Banned: ${status.Banned}`));
+		list.add("players", li(`Online: ${status.PlayerRefs}`));
 
 		list.end();
 	});

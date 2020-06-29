@@ -119,6 +119,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Con.Send(new DataHandshakeServer {
                 PlayerInfo = playerInfo
             });
+            Con.Send(AvatarEmoji);
 
             lock (Server.Connections) {
                 foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {

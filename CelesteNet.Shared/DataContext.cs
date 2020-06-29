@@ -184,7 +184,7 @@ namespace Celeste.Mod.CelesteNet {
             object key = new object();
 
             DataHandler<T>? handler = null;
-            
+
             handler = (con, data) => {
                 lock (key) {
                     if (handler == null || !cb(con, data))
@@ -217,7 +217,7 @@ namespace Celeste.Mod.CelesteNet {
         public DataType Read(BinaryReader reader) {
             string id = Calc.ReadNullTerminatedString(reader);
             DataFlags flags = (DataFlags) reader.ReadUInt16();
-            ushort length = reader.ReadUInt16();
+            int length = reader.ReadInt32();
 
             if (!IDToTypeMap.TryGetValue(id, out Type? type))
                 return new DataUnparsed() {
@@ -259,9 +259,9 @@ namespace Celeste.Mod.CelesteNet {
 
             writer.BaseStream.Seek(startData - 2, SeekOrigin.Begin);
             long length = end - startData;
-            if (length > ushort.MaxValue)
-                length = ushort.MaxValue;
-            writer.Write((ushort) length);
+            if (length > int.MaxValue)
+                length = int.MaxValue;
+            writer.Write((int) length);
             writer.Flush();
             writer.BaseStream.Seek(end, SeekOrigin.Begin);
 

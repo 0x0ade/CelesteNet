@@ -243,6 +243,10 @@ a.button:hover, a.button:focus, a.button:active {
     line-height: 64px;
 }
 
+.button-text {
+    text-align: center;
+}
+
 .button-icon {
     position: relative;
     width: 24px;

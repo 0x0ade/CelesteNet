@@ -26,6 +26,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public string GetUserDir(string uid)
             => Path.Combine(UserRoot, uid);
 
+        public string GetUserFilePath(string uid, string name)
+            => Path.Combine(UserRoot, uid, "data", name);
+
         public string GetUserFilePath<T>(string uid)
             => Path.Combine(UserRoot, uid, GetFileName<T>());
 
@@ -94,8 +97,37 @@ namespace Celeste.Mod.CelesteNet.Server {
         public override bool TryLoad<T>(string uid, out T value)
             => TryLoadRaw(GetUserFilePath<T>(uid), out value);
 
+        public override Stream? ReadFile(string uid, string name) {
+            string path = GetUserFilePath(uid, name);
+            if (!File.Exists(path))
+                return null;
+            return File.OpenRead(path);
+        }
+
         public override void Save<T>(string uid, T value)
             => SaveRaw(GetUserFilePath<T>(uid), value);
+
+        public override Stream WriteFile(string uid, string name) {
+            string path = GetUserFilePath(uid, name);
+            string? dir = Path.GetDirectoryName(path);
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            if (File.Exists(path))
+                File.Delete(path);
+            return File.OpenWrite(path);
+        }
+
+        public override void Delete<T>(string uid)
+            => DeleteRaw(GetUserFilePath<T>(uid));
+
+        public override void DeleteFile(string uid, string name) {
+            string path = GetUserFilePath(uid, name);
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+
+        public override void Wipe(string uid)
+            => DeleteRawAll(GetUserDir(uid));
 
         public override T[] LoadRegistered<T>() {
             lock (GlobalLock) {
@@ -115,12 +147,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override int GetAllCount()
             => Directory.GetDirectories(UserRoot).Length;
-
-        public override void Delete<T>(string uid)
-            => DeleteRaw(GetUserFilePath<T>(uid));
-
-        public override void DeleteAll(string uid)
-            => DeleteRawAll(GetUserDir(uid));
 
         public override string Create(string uid) {
             lock (GlobalLock) {

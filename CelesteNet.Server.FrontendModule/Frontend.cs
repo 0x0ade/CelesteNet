@@ -330,6 +330,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
         }
 
+        public void RespondContent(HttpRequestEventArgs c, Stream s) {
+            using (MemoryStream ms = new MemoryStream()) {
+                s.CopyTo(ms);
+                ms.Seek(0, SeekOrigin.Begin);
+                Respond(c, ms.ToArray());
+            }
+        }
+
         public void RespondJSON(HttpRequestEventArgs c, object obj) {
             using (MemoryStream ms = new MemoryStream()) {
                 using (StreamWriter sw = new StreamWriter(ms, Encoding.UTF8, 1024, true))

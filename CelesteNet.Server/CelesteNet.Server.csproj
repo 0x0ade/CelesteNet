@@ -36,12 +36,14 @@
     <When Condition="$(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp'))">
       <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+        <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
       </ItemGroup>
     </When>
 
     <Otherwise>
       <ItemGroup>
         <Reference Include="System.Web" />
+        <Reference Include="System.Drawing" />
       </ItemGroup>
     </Otherwise>
   </Choose>

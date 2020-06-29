@@ -63,8 +63,10 @@ function renderUser() {
 			Linked to:<br>
 			<a id="button-reauth" class="button" href="/discordauth">
 				<span class="button-icon"></span>
-				<span class="button-icon discord-avatar" style=${`background-image: url(https://cdn.discordapp.com/avatars/${info.UID}/${info.Avatar}.png)`}></span>
-				<span>${" " + info.Name}#${info.Discrim}</span>
+				<span class="button-text">
+					<span class="button-icon discord-avatar" style=${`background-image: url(/avatar?uid=${info.UID})`}></span>
+					${info.Name}#${info.Discrim}
+				</span>
 			</a>
 		</p>`);
 
@@ -73,7 +75,7 @@ function renderUser() {
 			Your key:<br>
 			<a id="button-copykey" class="button" onclick="copyFrom(this)">
 				<span class="button-icon"></span>
-				<span>#${info.Key}</span>
+				<span class="button-text">#${info.Key}</span>
 			</a>
 		</p>`);
 
@@ -92,7 +94,7 @@ function copyFrom(el) {
 	navigator.clipboard.writeText(el.textContent.trim());
 }
 
-setInterval(fetchStatus, 10000);
+setInterval(fetchStatus, 30000);
 fetchStatus();
 renderUser();
 

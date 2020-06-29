@@ -26,7 +26,12 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract bool TryLoad<T>(string uid, out T value) where T : new();
         public T Load<T>(string uid) where T : new()
             => TryLoad(uid, out T value) ? value : value;
+        public abstract Stream? ReadFile(string uid, string name);
         public abstract void Save<T>(string uid, T value) where T : notnull;
+        public abstract Stream WriteFile(string uid, string name);
+        public abstract void Delete<T>(string uid);
+        public abstract void DeleteFile(string uid, string name);
+        public abstract void Wipe(string uid);
 
         public abstract T[] LoadRegistered<T>() where T : new();
         public abstract T[] LoadAll<T>() where T : new();
@@ -34,8 +39,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract int GetRegisteredCount();
         public abstract int GetAllCount();
 
-        public abstract void Delete<T>(string uid);
-        public abstract void DeleteAll(string uid);
         public abstract string Create(string uid);
 
     }
@@ -44,7 +47,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         public string Name { get; set; } = "";
         // TODO: Move into separate Discord module!
         public string Discrim { get; set; } = "";
-        public string Avatar { get; set; } = "";
         public HashSet<string> Tags { get; set; } = new HashSet<string>();
     }
 

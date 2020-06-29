@@ -13,6 +13,9 @@ using Celeste.Mod.CelesteNet.Server.Chat;
 using Newtonsoft.Json;
 using WebSocketSharp.Net;
 using WebSocketSharp.Server;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Drawing.Drawing2D;
 
 #if NETCORE
 using System.Runtime.Loader;
@@ -62,7 +65,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             dynamic? userData;
 
             using (HttpClient client = new HttpClient()) {
-
                 using (Stream s = client.PostAsync("https://discord.com/api/oauth2/token", new FormUrlEncodedContent(new Dictionary<string, string>() {
                     { "client_id", f.Settings.DiscordOAuthClientID },
                     { "client_secret", f.Settings.DiscordOAuthClientSecret },
@@ -114,8 +116,27 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
             info.Name =  userData.username.ToString();
             info.Discrim =  userData.discriminator.ToString();
-            info.Avatar =  userData.avatar.ToString();
             f.Server.UserData.Save(uid, info);
+
+            Image avatarOrig;
+            using (HttpClient client = new HttpClient()) {
+                using (Stream s = client.GetAsync(
+                    $"https://cdn.discordapp.com/avatars/{uid}/{userData.avatar.ToString()}.png?size=64"
+                ).Await().Content.ReadAsStreamAsync().Await())
+                    avatarOrig = Image.FromStream(s);
+            }
+            using (avatarOrig)
+            using (Image avatar = new Bitmap(64, 64, PixelFormat.Format32bppArgb)) {
+                using (Graphics g = Graphics.FromImage(avatar)) {
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    using (TextureBrush tbr = new TextureBrush(avatarOrig)) {
+                        g.FillEllipse(tbr, 0, 0, 64, 64);
+                    }
+                }
+
+                using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.png"))
+                    avatar.Save(s, ImageFormat.Png);
+            }
 
             c.Response.StatusCode = (int) HttpStatusCode.Redirect;
             c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/");
@@ -170,10 +191,35 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 UID = uid,
                 info.Name,
                 info.Discrim,
-                info.Avatar,
                 info.Tags,
                 Key = auth ? f.Server.UserData.GetKey(uid) : null
             });
+        }
+
+        [RCEndpoint(false, "/avatar", "?uid={uid}", "", "Get Avatar", "Get a 64x64 round user avatar PNG.")]
+        public static void Avatar(Frontend f, HttpRequestEventArgs c) {
+            NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
+
+            string uid = args["uid"];
+            if (string.IsNullOrEmpty(uid)) {
+                c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
+                f.RespondJSON(c, new {
+                    Error = "No UID."
+                });
+                return;
+            }
+
+            Stream? data = f.Server.UserData.ReadFile(uid, "avatar.png");
+            if (data == null) {
+                c.Response.StatusCode = (int) HttpStatusCode.NotFound;
+                f.RespondJSON(c, new {
+                    Error = "Not found."
+                });
+                return;
+            }
+
+            c.Response.ContentType = "image/png";
+            f.RespondContent(c, data);
         }
 
     }

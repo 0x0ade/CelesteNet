@@ -58,7 +58,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
             if (player.ID == Client.PlayerInfo.ID) {
                 if (PlayerNameTag != null)
-                    PlayerNameTag.Name = player.FullName;
+                    PlayerNameTag.Name = player.DisplayName;
                 return;
             }
 
@@ -66,7 +66,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost == null)
                 return;
 
-            if (string.IsNullOrEmpty(player.FullName)) {
+            if (string.IsNullOrEmpty(player.DisplayName)) {
                 ghost.NameTag.Name = "";
                 Ghosts.Remove(player.ID);
                 Client.Data.FreeOrder<DataPlayerFrame>(player.ID);
@@ -157,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.Add(ghost);
             }
 
-            ghost.NameTag.Name = frame.Player.FullName;
+            ghost.NameTag.Name = frame.Player.DisplayName;
             UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
             ghost.UpdateSprite(frame.Position, frame.Speed, frame.Scale, frame.Facing, frame.Depth, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
             ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
@@ -422,7 +422,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (PlayerNameTag == null || PlayerNameTag.Tracking != Player) {
                 PlayerNameTag?.RemoveSelf();
-                level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.FullName));
+                level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName));
             }
 
             SendFrame();

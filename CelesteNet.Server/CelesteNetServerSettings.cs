@@ -18,7 +18,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public LogLevel LogLevel { get; set; } = Logger.Level;
 
-        public int MaxNameLength { get; set; } = 16;
+        public int MaxNameLength { get; set; } = 30;
+        public int MaxGuestNameLength { get; set; } = 16;
         public int MaxEmoteValueLength { get; set; } = 2048;
 
     }

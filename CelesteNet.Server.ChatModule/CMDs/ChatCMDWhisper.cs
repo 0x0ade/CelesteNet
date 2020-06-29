@@ -36,7 +36,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             DataPlayerInfo? player = env.Player;
             if (player != null) {
-                env.Msg.Tag = $"whisper @ {otherPlayer.FullName}";
+                env.Msg.Tag = $"whisper @ {otherPlayer.DisplayName}";
                 env.Msg.Text = text;
                 env.Msg.Color = Chat.Settings.ColorWhisper;
                 Chat.ForceSend(env.Msg);

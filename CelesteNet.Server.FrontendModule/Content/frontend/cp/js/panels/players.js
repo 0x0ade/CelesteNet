@@ -12,8 +12,10 @@ const mdc = window["mdc"]; // mdc
 /**
 @typedef {{
   ID: number,
+  UID: string,
   Name: string,
   FullName: string,
+  DisplayName: string,
   Connection: string
 }} PlayerData
  */
@@ -38,6 +40,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
         <span>
         <b>${p.FullName}</b> <i>(#${p.ID})</i><br>
         ${p.Name}<br>
+        ${p.UID}<br>
         ${p.Connection}
         </span>`
       )(el);

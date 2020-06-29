@@ -21,17 +21,20 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public bool IsAliveRef => !string.IsNullOrEmpty(FullName);
         public string Name = "";
         public string FullName = "";
+        public string DisplayName = "";
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             ID = reader.ReadUInt32();
             Name = reader.ReadNullTerminatedString();
             FullName = reader.ReadNullTerminatedString();
+            DisplayName = reader.ReadNullTerminatedString();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.Write(ID);
             writer.WriteNullTerminatedString(Name);
             writer.WriteNullTerminatedString(FullName);
+            writer.WriteNullTerminatedString(DisplayName);
         }
 
         public override string ToString()

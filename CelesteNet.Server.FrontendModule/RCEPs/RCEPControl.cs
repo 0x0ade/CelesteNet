@@ -127,9 +127,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/players", null, null, "Player List", "Basic player list.")]
         public static void Players(Frontend f, HttpRequestEventArgs c) {
+            bool auth = f.IsAuthorized(c);
             f.RespondJSON(c, f.Server.PlayersByID.Values.Select(p => new {
-                p.ID, p.PlayerInfo?.Name, p.PlayerInfo?.FullName,
-                Connection = f.IsAuthorized(c) ? p.Con.ID : null
+                p.ID,
+                UID = auth ? p.UID : null,
+                p.PlayerInfo?.Name,
+                p.PlayerInfo?.FullName,
+                p.PlayerInfo?.DisplayName,
+                Connection = auth ? p.Con.ID : null
             }).ToArray());
         }
 

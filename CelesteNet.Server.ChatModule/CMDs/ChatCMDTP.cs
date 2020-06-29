@@ -38,9 +38,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (!env.Server.Data.TryGetBoundRef(otherPlayer, out DataPlayerState? otherState) ||
                 otherState == null ||
                 string.IsNullOrEmpty(otherState.SID))
-                throw new Exception($"{otherPlayer.FullName} isn't in-game.");
+                throw new Exception($"{otherPlayer.DisplayName} isn't in-game.");
 
-            DataChat? msg = env.Send($"Teleporting to {otherPlayer.FullName}");
+            DataChat? msg = env.Send($"Teleporting to {otherPlayer.DisplayName}");
 
             other.Request<DataSession>(300,
                 (con, session) => other.WaitFor<DataPlayerFrame>(300,
@@ -62,7 +62,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             // TODO: Verify that client replies with updated state?
             if (msg != null) {
-                msg.Text = $"Teleported to {otherPlayer.FullName}";
+                msg.Text = $"Teleported to {otherPlayer.DisplayName}";
                 Chat.ForceSend(msg);
             }
         }

@@ -44,15 +44,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
-            Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.FullName ?? "???"));
+            Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.DisplayName ?? "???"));
             SendTo(session, Settings.MessageMOTD);
             session.OnEnd += OnSessionEnd;
         }
 
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
-            string? fullName = lastPlayerInfo?.FullName;
-            if (!fullName.IsNullOrEmpty())
-                Broadcast((new DynamicData(session).Get<string>("leaveReason") ?? Settings.MessageLeave).InjectSingleValue("player", fullName));
+            string? displayName = lastPlayerInfo?.DisplayName;
+            if (!displayName.IsNullOrEmpty())
+                Broadcast((new DynamicData(session).Get<string>("leaveReason") ?? Settings.MessageLeave).InjectSingleValue("player", displayName));
         }
 
         public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {

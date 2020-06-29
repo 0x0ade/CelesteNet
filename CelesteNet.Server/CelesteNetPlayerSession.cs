@@ -62,8 +62,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
 
                 name = userinfo.Name.Sanitize();
+                if (name.Length > Server.Settings.MaxNameLength)
+                    name = name.Substring(0, Server.Settings.MaxNameLength);
                 if (string.IsNullOrEmpty(name))
-                    name = "Guest";
+                    name = "Ghost";
 
                 if (Server.UserData.TryLoad(UID, out ban) && !string.IsNullOrEmpty(ban.Reason)) {
                     Con.Send(new DataDisconnectReason { Text = $"{name} banned: {ban.Reason}" });
@@ -73,6 +75,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             } else {
                 name = name.Sanitize();
+                if (name.Length > Server.Settings.MaxGuestNameLength)
+                    name = name.Substring(0, Server.Settings.MaxGuestNameLength);
                 if (string.IsNullOrEmpty(name))
                     name = "Guest";
             }
@@ -86,10 +90,20 @@ namespace Celeste.Mod.CelesteNet.Server {
                 for (int i = 2; Server.PlayersByCon.Values.Any(other => other.PlayerInfo?.FullName == fullName); i++)
                     fullName = $"{name}#{i}";
 
+            string displayName = fullName;
+
+            // FIXME FullName DisplayName
+            using (Stream? avatar = Server.UserData.ReadFile(UID, "avatar.png")) {
+                if (avatar != null) {
+                    displayName = $":glad:{fullName}";
+                }
+            }
+
             DataPlayerInfo playerInfo = new DataPlayerInfo {
                 ID = ID,
                 Name = name,
-                FullName = fullName
+                FullName = fullName,
+                DisplayName = displayName
             };
             Server.Data.SetRef(playerInfo);
 
@@ -233,6 +247,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             updated.ID = old.ID;
             updated.Name = old.Name;
             updated.FullName = old.FullName;
+            updated.DisplayName = old.DisplayName;
 
             return true;
         }

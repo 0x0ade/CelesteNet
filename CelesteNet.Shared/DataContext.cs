@@ -247,7 +247,7 @@ namespace Celeste.Mod.CelesteNet {
 
             writer.WriteNullTerminatedString(id);
             writer.Write((ushort) data.DataFlags);
-            writer.Write((int) 0); // Filled in later.
+            writer.Write(0); // Filled in later.
             writer.Flush();
 
             long startData = writer.BaseStream.Position;
@@ -257,7 +257,7 @@ namespace Celeste.Mod.CelesteNet {
 
             long end = writer.BaseStream.Position;
 
-            writer.BaseStream.Seek(startData - 2, SeekOrigin.Begin);
+            writer.BaseStream.Seek(startData - 4, SeekOrigin.Begin);
             long length = end - startData;
             if (length > int.MaxValue)
                 length = int.MaxValue;

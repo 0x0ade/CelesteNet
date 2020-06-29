@@ -191,6 +191,7 @@ a.button, a.button:visited {
     cursor: pointer;
     z-index: 1;
     text-shadow: none;
+    margin-bottom: 8px;
 }
 a.button:hover, a.button:focus, a.button:active {
     background: rgba(111, 83, 122, 0.8);
@@ -222,6 +223,7 @@ a.button:hover, a.button:focus, a.button:active {
 
 #userpanel > * > a.button {
     width: 100%;
+    text-align: center;
 }
 
 .toplink-icon {
@@ -268,15 +270,19 @@ a.button:hover, a.button:focus, a.button:active {
 #button-auth .button-icon {
     background-image: url("./link.png");
 }
+#button-reauth .button-icon {
+    background-image: url("./refresh.png");
+}
 #button-copykey .button-icon {
     background-image: url("./copy.png");
 }
-#button-reauth .button-icon {
-    background-image: url("./refresh.png");
+#button-sendkey .button-icon {
+    background-image: url("./sync.png");
 }
 
 .discord-avatar {
     border-radius: 100%;
+    float: right;
 }
 
 #footer {
@@ -308,6 +314,48 @@ a.button:hover, a.button:focus, a.button:active {
     padding: 8px 16px 8px 0;
 }
 
+
+#dim, #dialog {
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+#dim.loading, #dialog.loading {
+    transition: none;
+    display: none;
+}
+
+#dim.active, #dialog.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+#dim {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(31, 3, 25, 0.7);
+}
+
+#dialog {
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    max-width: 300px;
+    margin: auto;
+    background: #0e0024;
+    box-shadow: 0 0 48px rgba(0, 0, 0, 0.7);
+    border-radius: 3px;
+    padding: 16px;
+}
+
+#dialog-close {
+    text-align: center;
+    width: calc(100% - 16px);
+}
 
 @media only screen and (max-width: 900px) {
     #front {

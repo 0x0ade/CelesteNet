@@ -2,6 +2,12 @@
 import { rd, rdom, rd$, RDOMListHelper } from "../js/rdom.js";
 import { DateTime } from "../js/deps/luxon.js";
 
+const clientrc = `http://localhost:38038/`;
+
+const elDim = document.getElementById("dim");
+const elDialog = document.getElementById("dialog");
+const elDialogText = document.getElementById("dialog-text");
+
 function li(value) {
 	return el => rd$(el)`<li>${value}</li>`;
 }
@@ -76,6 +82,10 @@ function renderUser() {
 			<a id="button-copykey" class="button" onclick="copyFrom(this)">
 				<span class="button-icon"></span>
 				<span class="button-text">#${info.Key}</span>
+			</a><br>
+			<a id="button-sendkey" class="button" onclick=${() => sendKey(info.Key)}>
+				<span class="button-icon"></span>
+				<span class="button-text">Send to Client</span>
 			</a>
 		</p>`);
 
@@ -94,9 +104,33 @@ function copyFrom(el) {
 	navigator.clipboard.writeText(el.textContent.trim());
 }
 
+function dialog(content) {
+	if (!content) {
+		elDim.className = "";
+		elDialog.className = "";
+		return;
+	}
+
+	elDim.className = "active";
+	elDialog.className = "active";
+	elDialogText.innerHTML = content;
+}
+
+function sendKey(key) {
+	const controller = new AbortController();
+	setTimeout(() => controller.abort(), 500);
+	fetch(`${clientrc}setkeyx?value=${key}`, { signal: controller.signal }).then(
+		() => dialog("Sent. Check your mod options."),
+		() => dialog("Couldn't find client.<br>Is Everest running?<br>Is CelesteNet enabled?")
+	);
+}
+
 setInterval(fetchStatus, 30000);
 fetchStatus();
 renderUser();
+dialog();
+
+elDim.addEventListener("click", () => dialog());
 
 window["deauth"] = deauth;
-window["copyFrom"] = copyFrom;
+window["dialog"] = dialog;

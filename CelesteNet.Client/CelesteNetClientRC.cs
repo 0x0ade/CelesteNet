@@ -50,6 +50,15 @@ namespace Celeste.Mod.CelesteNet.Client {
                     while (Listener.IsListening) {
                         ThreadPool.QueueUserWorkItem(c => {
                             HttpListenerContext context = c as HttpListenerContext;
+
+                            if (context.Request.HttpMethod == "OPTIONS") {
+                                context.Response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-Requested-With");
+                                context.Response.AddHeader("Access-Control-Allow-Methods", "GET, POST");
+                                context.Response.AddHeader("Access-Control-Max-Age", "1728000");
+                                return;
+                            }
+                            context.Response.AppendHeader("Access-Control-Allow-Origin", "*");
+
                             try {
                                 using (context.Request.InputStream)
                                 using (context.Response) {
@@ -256,11 +265,11 @@ header {
                 },
 
                 new RCEndPoint {
-                    Path = "/setname",
-                    PathHelp = "/setname?value={name|#key} (Example: ?value=Guest)",
-                    PathExample = "/setname?value=Guest",
-                    Name = "Set Name",
-                    InfoHTML = "Set the client name for the next connection.",
+                    Path = "/setkey",
+                    PathHelp = "/setkey?value={key} (Example: ?value=1a2b3d4e)",
+                    PathExample = "/setkey?value=Guest",
+                    Name = "Set Key",
+                    InfoHTML = "Set the key as the client name for the next connection.",
                     Handle = c => {
                         NameValueCollection data = ParseQueryString(c.Request.RawUrl);
 
@@ -271,7 +280,7 @@ header {
                             return;
                         }
 
-                        CelesteNetClientModule.Settings.Name = name;
+                        CelesteNetClientModule.Settings.Name = "#" + name;
                         CelesteNetClientModule.Instance.SaveSettings();
                         Write(c, "OK");
                     }

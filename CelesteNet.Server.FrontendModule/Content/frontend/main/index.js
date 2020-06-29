@@ -34,7 +34,7 @@ function renderUser() {
 		const list = new RDOMListHelper(el);
 
 		list.add("login", el => rd$(el)`
-		<a id="toplink-discord" class="button" href="/discordauth">
+		<a id="toplink-auth" class="button" href="/discordauth">
 			<div class="toplink-icon"></div>
 			<div class="toplink-text">Link your account</div>
 		</a>`);

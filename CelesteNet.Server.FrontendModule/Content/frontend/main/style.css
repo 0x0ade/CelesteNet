@@ -153,7 +153,6 @@ a, a:visited {
     text-shadow: 0 0 0 rgba(150, 230, 255, 0);
     font-weight: 500;
     position: relative;
-    display: inline-block;
     border-color: none;
 }
 a:hover, a:focus, a:active {
@@ -234,15 +233,16 @@ a.button:hover, a.button:focus, a.button:active {
 }
 
 #toplink-auto .toplink-icon {
-    background-image: url("./download.png");
+    background-image: url("./everest.png");
 }
-
 #toplink-manual .toplink-icon {
     background-image: url("./download.png");
 }
-
 #toplink-discord .toplink-icon {
     background-image: url("./ext_discord.png");
+}
+#toplink-auth .toplink-icon {
+    background-image: url("./link.png");
 }
 
 #footer {

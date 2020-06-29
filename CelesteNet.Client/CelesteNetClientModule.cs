@@ -45,9 +45,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                 cmds.Get<IList>("sorted").Clear();
                 cmds.Invoke("BuildCommandsList");
             }
+
+            CelesteNetClientRC.Initialize();
         }
 
         public override void Unload() {
+            CelesteNetClientRC.Shutdown();
+
             Stop();
         }
 

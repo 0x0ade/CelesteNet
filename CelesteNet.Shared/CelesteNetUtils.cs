@@ -19,6 +19,9 @@ namespace Celeste.Mod.CelesteNet {
         public const ushort Version = 1;
         public static readonly ushort LoadedVersion = Version;
 
+        // Port MUST be fixed as the website expects it to be the same for everyone.
+        public static readonly int ClientRCPort = 38038;
+
         public static readonly string HTTPTeapot = "HTTP/1.1 418 I'm a teapot\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
 
         // See https://github.com/dotnet/runtime/blob/144e5145453ac3885ac20bc1f1f2641523c6fcea/src/libraries/System.Private.CoreLib/src/System/String.cs#L488

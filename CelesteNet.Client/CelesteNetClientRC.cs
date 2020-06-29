@@ -1,0 +1,285 @@
+﻿using MC = Mono.Cecil;
+using CIL = Mono.Cecil.Cil;
+
+using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.Helpers;
+using Microsoft.Xna.Framework;
+using Mono.Cecil;
+using Mono.Cecil.Cil;
+using Monocle;
+using MonoMod.Utils;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Net;
+using System.Collections.Specialized;
+
+namespace Celeste.Mod.CelesteNet.Client {
+    // Based off of Everest's own DebugRC.
+    public static class CelesteNetClientRC {
+
+        private static HttpListener Listener;
+
+        public static void Initialize() {
+            if (Listener != null)
+                return;
+
+            try {
+                Listener = new HttpListener();
+                // Port MUST be fixed as the website expects it to be the same for everyone.
+                Listener.Prefixes.Add($"http://localhost:{CelesteNetUtils.ClientRCPort}/");
+                Listener.Start();
+            } catch (Exception e) {
+                e.LogDetailed();
+                try {
+                    Listener?.Stop();
+                } catch { }
+                return;
+            }
+
+            ThreadPool.QueueUserWorkItem(_ => {
+                Logger.Log(LogLevel.INF, "rc", $"Started ClientRC thread, available via http://localhost:{CelesteNetUtils.ClientRCPort}/");
+                try {
+                    while (Listener.IsListening) {
+                        ThreadPool.QueueUserWorkItem(c => {
+                            HttpListenerContext context = c as HttpListenerContext;
+                            try {
+                                using (context.Request.InputStream)
+                                using (context.Response) {
+                                    HandleRequest(context);
+                                }
+                            } catch (ThreadAbortException) {
+                                throw;
+                            } catch (ThreadInterruptedException) {
+                                throw;
+                            } catch (Exception e) {
+                                Logger.Log(LogLevel.INF, "rc", $"ClientRC failed responding: {e}");
+                            }
+                        }, Listener.GetContext());
+                    }
+                } catch (ThreadAbortException) {
+                    throw;
+                } catch (ThreadInterruptedException) {
+                    throw;
+                } catch (HttpListenerException e) {
+                    // 500 = Listener closed.
+                    // 995 = I/O abort due to thread abort or application shutdown.
+                    if (e.ErrorCode != 500 &&
+                        e.ErrorCode != 995) {
+                        Logger.Log(LogLevel.INF, "rc", $"ClientRC failed listening ({e.ErrorCode}): {e}");
+                    }
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.INF, "rc", $"ClientRC failed listening: {e}");
+                }
+            });
+        }
+
+        public static void Shutdown() {
+            Listener?.Abort();
+            Listener = null;
+        }
+
+        private static void HandleRequest(HttpListenerContext c) {
+            Logger.Log(LogLevel.VVV, "rc", $"Requested: {c.Request.RawUrl}");
+
+            string url = c.Request.RawUrl;
+            int indexOfSplit = url.IndexOf('?');
+            if (indexOfSplit != -1)
+                url = url.Substring(0, indexOfSplit);
+
+            RCEndPoint endpoint =
+                EndPoints.FirstOrDefault(ep => ep.Path == c.Request.RawUrl) ??
+                EndPoints.FirstOrDefault(ep => ep.Path == url) ??
+                EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == c.Request.RawUrl.ToLowerInvariant()) ??
+                EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == url.ToLowerInvariant()) ??
+                EndPoints.FirstOrDefault(ep => ep.Path == "/404");
+            endpoint.Handle(c);
+        }
+
+
+        #region Read / Parse Helpers
+
+        public static NameValueCollection ParseQueryString(string url) {
+            NameValueCollection nvc = new NameValueCollection();
+
+            int indexOfSplit = url.IndexOf('?');
+            if (indexOfSplit == -1)
+                return nvc;
+            url = url.Substring(indexOfSplit + 1);
+
+            string[] args = url.Split('&');
+            foreach (string arg in args) {
+                indexOfSplit = arg.IndexOf('=');
+                if (indexOfSplit == -1)
+                    continue;
+                nvc[arg.Substring(0, indexOfSplit)] = arg.Substring(indexOfSplit + 1);
+            }
+
+            return nvc;
+        }
+
+        #endregion
+
+        #region Write Helpers
+
+        public static void WriteHTMLStart(HttpListenerContext c, StringBuilder builder) {
+            builder.Append(
+@"<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset=""utf-8"" />
+        <meta name=""viewport"" content=""width=device-width, initial-scale=1, user-scalable=no"" />
+        <title>CelesteNet ClientRC</title>
+        <style>
+@font-face {
+    font-family: Renogare;
+    src:
+    url(""https://everestapi.github.io/fonts/Renogare-Regular.woff"") format(""woff""),
+    url(""https://everestapi.github.io/fonts/Renogare-Regular.otf"") format(""opentype"");
+}
+body {
+    color: rgba(0, 0, 0, 0.87);
+    font-family: sans-serif;
+    padding: 0;
+    margin: 0;
+    line-height: 1.5em;
+}
+header {
+    background: #3b2d4a;
+    color: white;
+    font-family: Renogare, sans-serif;
+    font-size: 32px;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    line-height: 64px;
+    padding: 8px 48px;
+    z-index: 100;
+}
+#main {
+    position: relative;
+    margin: 8px;
+    min-height: 100vh;
+}
+#endpoints li h3 {
+    margin-bottom: 0;
+}
+#endpoints li p {
+    margin-top: 0;
+}
+        </style>
+    </head>
+    <body>
+"
+            );
+
+            builder.AppendLine(@"<header>CelesteNet ClientRC</header>");
+            builder.AppendLine(@"<div id=""main"">");
+        }
+
+        public static void WriteHTMLEnd(HttpListenerContext c, StringBuilder builder) {
+            builder.AppendLine(@"</div>");
+
+            builder.Append(
+@"
+    </body>
+</html>
+"
+            );
+        }
+
+        public static void Write(HttpListenerContext c, string str) {
+            byte[] buf = Encoding.UTF8.GetBytes(str);
+            c.Response.ContentLength64 = buf.Length;
+            c.Response.OutputStream.Write(buf, 0, buf.Length);
+        }
+
+        #endregion
+
+        #region Default RCEndPoint Handlers
+
+        public static List<RCEndPoint> EndPoints = new List<RCEndPoint> {
+
+                new RCEndPoint {
+                    Path = "/",
+                    Name = "Info",
+                    InfoHTML = "Basic CelesteNet ClientRC info.",
+                    Handle = c => {
+                        StringBuilder builder = new StringBuilder();
+
+                        WriteHTMLStart(c, builder);
+
+                        builder.AppendLine(
+@"<ul>
+<h2>Info</h2>
+<li>
+    This weird website exists so that the main CelesteNet website can give your clients special commands.<br>
+    For example, clicking on the ""send key to client"" button will send it to /setname.<br>
+    It's only accessible from your local machine, meaning that nobody else can see this.
+</li>
+</ul>"
+                        );
+
+                        builder.AppendLine(@"<ul id=""endpoints"">");
+                        builder.AppendLine(@"<h2>Endpoints</h2>");
+                        foreach (RCEndPoint ep in EndPoints) {
+                            builder.AppendLine(@"<li>");
+                            builder.AppendLine($@"<h3>{ep.Name}</h3>");
+                            builder.AppendLine($@"<p><a href=""{ep.PathExample ?? ep.Path}""><code>{ep.PathHelp ?? ep.Path}</code></a><br>{ep.InfoHTML}</p>");
+                            builder.AppendLine(@"</li>");
+                        }
+                        builder.AppendLine(@"</ul>");
+
+                        WriteHTMLEnd(c, builder);
+
+                        Write(c, builder.ToString());
+                    }
+                },
+
+                new RCEndPoint {
+                    Path = "/404",
+                    Name = "404",
+                    InfoHTML = "Basic 404.",
+                    Handle = c => {
+                        c.Response.StatusCode = (int) HttpStatusCode.NotFound;
+                        Write(c, "ERROR: Endpoint not found.");
+                    }
+                },
+
+                new RCEndPoint {
+                    Path = "/setname",
+                    PathHelp = "/setname?value={name|#key} (Example: ?value=Guest)",
+                    PathExample = "/setname?value=Guest",
+                    Name = "Set Name",
+                    InfoHTML = "Set the client name for the next connection.",
+                    Handle = c => {
+                        NameValueCollection data = ParseQueryString(c.Request.RawUrl);
+
+                        string name = data["value"].Trim();
+                        if (string.IsNullOrEmpty(name)) {
+                            c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
+                            Write(c, $"ERROR: No value given.");
+                            return;
+                        }
+
+                        CelesteNetClientModule.Settings.Name = name;
+                        CelesteNetClientModule.Instance.SaveSettings();
+                        Write(c, "OK");
+                    }
+                },
+
+            };
+
+        #endregion
+
+    }
+}

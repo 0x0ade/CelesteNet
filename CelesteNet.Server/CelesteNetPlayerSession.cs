@@ -49,14 +49,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (name.StartsWith("#")) {
                 string uid = Server.UserData.GetUID(name.Substring(1));
                 if (string.IsNullOrEmpty(uid)) {
-                    Con.Send(new DataDisconnectReason { Text = $"Invalid user key" });
+                    Con.Send(new DataDisconnectReason { Text = "Invalid user key" });
                     Con.Send(new DataInternalDisconnect());
                     return;
                 }
                 UID = uid;
 
                 if (!Server.UserData.TryLoad(uid, out BasicUserInfo userinfo)) {
-                    Con.Send(new DataDisconnectReason { Text = $"User info missing" });
+                    Con.Send(new DataDisconnectReason { Text = "User info missing" });
                     Con.Send(new DataInternalDisconnect());
                     return;
                 }
@@ -205,9 +205,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Server.PlayersByID.Remove(ID);
             }
 
-            Server.Broadcast(new DataPlayerInfo {
-                ID = ID
-            });
+            if (playerInfoLast != null)
+                Server.Broadcast(new DataPlayerInfo {
+                    ID = ID
+                });
 
             Server.Data.FreeRef<DataPlayerInfo>(ID);
             Server.Data.FreeOrder<DataPlayerFrame>(ID);

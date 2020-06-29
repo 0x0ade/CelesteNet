@@ -26,30 +26,40 @@ function fetchStatus() {
 }
 
 function renderUser() {
-	const el = document.getElementById("userpanel-list");
+	const el = document.getElementById("userpanel");
 	fetch("/userinfo").then(r => r.json()).then(info => {
 		for (let dummy of el.querySelectorAll(".dummy"))
 			dummy.remove();
 
 		const list = new RDOMListHelper(el);
 
+		list.add("login", el => rd$(el)`
+		<a id="toplink-discord" class="button" href="/discordauth">
+			<div class="toplink-icon"></div>
+			<div class="toplink-text">Link your account</div>
+		</a>`);
+
 		if (info.Error) {
 			// list.add("error", li(info.Error));
-			list.add("login", el => rd$(el)`
-				<a id="toplink-discord" class="button" href="/discordauth">
-					<div class="toplink-icon"></div>
-					<div class="toplink-text">Login via Discord</div>
-				</a>`);
 			list.end();
 			return;
 		}
 
-		list.add("logout", el => rd$(el)`<a class="button" href="/deauth">Logout</a>`);
+		list.add("userinfo", el => rd$(el)`<p>
+			Linked to:${" " + info.Name}#${info.Discrim}<br>
+			Your key: #${info.Key}
+		</p>`);
 
 		list.end();
 	});
 }
 
+function deauth() {
+	fetch("/deauth").then(() => window.location.reload());
+}
+
 setInterval(fetchStatus, 10000);
 fetchStatus();
 renderUser();
+
+window["deauth"] = deauth;

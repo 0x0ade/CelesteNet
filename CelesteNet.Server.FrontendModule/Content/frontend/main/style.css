@@ -206,7 +206,7 @@ a.button:hover, a.button:focus, a.button:active {
     z-index: 2;
 }
 
-#toplist li > a {
+#toplist > * > a.button {
     padding: 0;
     width: 280px;
     height: 64px;

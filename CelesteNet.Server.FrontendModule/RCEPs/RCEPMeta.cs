@@ -20,6 +20,16 @@ using System.Runtime.Loader;
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public static partial class RCEndpoints {
 
+        [RCEndpoint(false, "/deauth", "", "", "Deauthenticate", "Deauthenticate and force-unset all set cookies.")]
+        public static void Deauth(Frontend f, HttpRequestEventArgs c) {
+            c.Response.SetCookie(new Cookie(Frontend.COOKIE_SESSION, ""));
+            c.Response.SetCookie(new Cookie(COOKIE_KEY, ""));
+            c.Response.SetCookie(new Cookie(COOKIE_DISCORDAUTH, ""));
+            f.RespondJSON(c, new {
+                Info = "Success."
+            });
+        }
+
         [RCEndpoint(false, "/res", "?id={id}", "?id=frontend/cp/css/frontend.css", "Resource", "Obtain a resource.")]
         public static void Resource(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);

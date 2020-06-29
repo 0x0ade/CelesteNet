@@ -102,7 +102,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public override string Create(string uid) {
             lock (GlobalLock) {
                 Global global = LoadRaw<Global>(GlobalPath);
-                if (global.UIDs.TryGetValue(uid, out string? key))
+                string key = GetKey(uid);
+                if (!string.IsNullOrEmpty(key))
                     return key;
 
                 string keyFull;

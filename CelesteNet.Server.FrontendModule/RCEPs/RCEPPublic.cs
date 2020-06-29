@@ -153,7 +153,15 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
-            f.RespondJSON(c, f.Server.UserData.Load<BasicUserInfo>(uid));
+            BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
+
+            f.RespondJSON(c, new {
+                info.Name,
+                info.Discrim,
+                info.Avatar,
+                info.Tags,
+                Key = auth ? f.Server.UserData.GetKey(uid) : null
+            });
         }
 
     }

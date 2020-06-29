@@ -14,6 +14,8 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetPlayerSession : IDisposable {
 
+        public static readonly char[] IllegalNameChars = new char[] { ':', '#' };
+
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
         public readonly uint ID;
@@ -21,6 +23,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo? value) ? value : null;
         public Channel Channel => Server.Channels.Get(this);
+
+        public DataNetEmoji? AvatarEmoji;
 
         public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
             Server = server;
@@ -61,7 +65,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     return;
                 }
 
-                name = userinfo.Name.Sanitize();
+                name = userinfo.Name.Sanitize(IllegalNameChars);
                 if (name.Length > Server.Settings.MaxNameLength)
                     name = name.Substring(0, Server.Settings.MaxNameLength);
                 if (string.IsNullOrEmpty(name))
@@ -74,7 +78,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
 
             } else {
-                name = name.Sanitize();
+                name = name.Sanitize(IllegalNameChars);
                 if (name.Length > Server.Settings.MaxGuestNameLength)
                     name = name.Substring(0, Server.Settings.MaxGuestNameLength);
                 if (string.IsNullOrEmpty(name))
@@ -92,10 +96,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             string displayName = fullName;
 
-            // FIXME FullName DisplayName
             using (Stream? avatar = Server.UserData.ReadFile(UID, "avatar.png")) {
                 if (avatar != null) {
-                    displayName = $":glad:{fullName}";
+                    AvatarEmoji = new DataNetEmoji {
+                        ID = $"celestenet_avatar_{fullName}",
+                        Data = avatar.ToBytes()
+                    };
+                    displayName = $":{AvatarEmoji.ID}: {fullName}";
                 }
             }
 
@@ -119,12 +126,14 @@ namespace Celeste.Mod.CelesteNet.Server {
                         continue;
 
                     other.Con.Send(playerInfo);
+                    other.Con.Send(AvatarEmoji);
 
                     DataPlayerInfo? otherInfo = other.PlayerInfo;
                     if (otherInfo == null)
                         continue;
 
                     Con.Send(otherInfo);
+                    Con.Send(other.AvatarEmoji);
 
                     foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
                         if (!(bound is IDataPlayerState) || other.Channel.ID == 0)

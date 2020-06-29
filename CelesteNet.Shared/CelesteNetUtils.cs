@@ -79,8 +79,15 @@ namespace Celeste.Mod.CelesteNet {
 
         public static readonly Regex SanitizeRegex = new Regex(@"[^\w\.@-_^°]", RegexOptions.None, TimeSpan.FromSeconds(1.5));
 
-        public static string Sanitize(this string? value, bool space = false)
-            => value == null ? "" : string.Join("", value.Trim().Where(c => (space || !char.IsWhiteSpace(c)) && EnglishFontChars.Contains(c)));
+        public static string Sanitize(this string? value, char[]? illegal = null, bool space = false) {
+            value = value == null ? "" : string.Join("", value.Where(c => (space || !char.IsWhiteSpace(c)) && EnglishFontChars.Contains(c))).Trim();
+            if (illegal == null)
+                return value;
+
+            foreach (char c in illegal)
+                value = value.Replace(c, '\0');
+            return value.Replace("\0", "").Trim();
+        }
 
         public static T Await<T>(this Task<T> task) {
             T result = default;
@@ -88,6 +95,14 @@ namespace Celeste.Mod.CelesteNet {
             if (result is null)
                 throw new NullReferenceException("Task returned null: " + task);
             return result;
+        }
+
+        public static byte[] ToBytes(this Stream stream) {
+            using (MemoryStream ms = new MemoryStream()) {
+                stream.CopyTo(ms);
+                ms.Seek(0, SeekOrigin.Begin);
+                return ms.ToArray();
+            }
         }
 
     }

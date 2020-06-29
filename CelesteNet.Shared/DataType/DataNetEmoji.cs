@@ -17,16 +17,16 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "netemoji";
         }
 
-        public string Text = "";
+        public string ID = "";
         public byte[] Data = Dummy<byte>.EmptyArray;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            Text = reader.ReadNullTerminatedString();
+            ID = reader.ReadNullTerminatedString();
             Data = reader.ReadBytes(reader.ReadInt32());
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.WriteNullTerminatedString(Text);
+            writer.WriteNullTerminatedString(ID);
             writer.Write(Data.Length);
             writer.Write(Data);
         }

@@ -110,7 +110,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                     context.Init(Settings);
                     context.Status.Set("Connecting...");
                     context.Start();
-                    context.Status.Set("Connected", 1f);
+                    if (context.Status.Spin)
+                        context.Status.Set("Connected", 1f);
 
                 } catch (ThreadInterruptedException) {
                     Logger.Log(LogLevel.CRI, "clientmod", "Startup interrupted.");

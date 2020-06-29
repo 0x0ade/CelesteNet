@@ -22,6 +22,8 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
     this.data = {
       Alive: false,
       StartupTime: 0,
+      GCMemory: 0,
+      Modules: 0,
       PlayerCounter: 0,
       Registered: 0,
       Banned: 0,

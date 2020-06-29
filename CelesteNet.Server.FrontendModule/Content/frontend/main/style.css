@@ -125,19 +125,26 @@ body {
     z-index: -1;
 }
 
-#main {
+#main, #content  {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
 }
 
-#main > * {
-    display: block;
+#main > *, #content > * {
     margin-right: 32px;
 }
 
 #about {
     max-width: 600px;
+}
+
+#content {
+    flex-grow: 1;
+}
+
+#status {
+    flex-shrink: 1;
 }
 
 .note {
@@ -213,6 +220,10 @@ a.button:hover, a.button:focus, a.button:active {
     margin-bottom: 8px;
 }
 
+#userpanel > * > a.button {
+    width: 100%;
+}
+
 .toplink-icon {
     position: relative;
     width: 32px;
@@ -232,6 +243,15 @@ a.button:hover, a.button:focus, a.button:active {
     line-height: 64px;
 }
 
+.button-icon {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    margin: 0 4px -8px 4px;
+    float: left;
+    background-size: cover;
+}
+
 #toplink-auto .toplink-icon {
     background-image: url("./everest.png");
 }
@@ -241,8 +261,18 @@ a.button:hover, a.button:focus, a.button:active {
 #toplink-discord .toplink-icon {
     background-image: url("./ext_discord.png");
 }
-#toplink-auth .toplink-icon {
+#button-auth .button-icon {
     background-image: url("./link.png");
+}
+#button-copykey .button-icon {
+    background-image: url("./copy.png");
+}
+#button-reauth .button-icon {
+    background-image: url("./refresh.png");
+}
+
+.discord-avatar {
+    border-radius: 100%;
 }
 
 #footer {

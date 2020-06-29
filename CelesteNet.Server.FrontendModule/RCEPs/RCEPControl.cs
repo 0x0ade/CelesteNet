@@ -113,6 +113,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             bool auth = f.IsAuthorized(c);
             f.RespondJSON(c, new {
                 StartupTime = f.Server.StartupTime.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds,
+                GCMemory = GC.GetTotalMemory(false),
+                Modules = f.Server.Modules.Count,
                 f.Server.PlayerCounter,
                 Connections = auth ? f.Server.Connections.Count : (int?) null,
                 PlayersByCon = auth ? f.Server.PlayersByCon.Count : (int?) null,

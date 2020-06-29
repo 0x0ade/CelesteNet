@@ -38,6 +38,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
+            if (args["error"] == "access_denied") {
+                c.Response.StatusCode = (int) HttpStatusCode.Redirect;
+                c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/");
+                c.Response.SetCookie(new Cookie(COOKIE_KEY, ""));
+                c.Response.SetCookie(new Cookie(COOKIE_DISCORDAUTH, ""));
+                f.RespondJSON(c, new {
+                    Info = "Denied - redirecting to /"
+                });
+                return;
+            }
+
             string code = args["code"];
             if (string.IsNullOrEmpty(code)) {
                 c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
@@ -156,6 +167,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
 
             f.RespondJSON(c, new {
+                UID = uid,
                 info.Name,
                 info.Discrim,
                 info.Avatar,

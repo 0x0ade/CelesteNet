@@ -247,7 +247,7 @@ namespace Celeste.Mod.CelesteNet {
 
             writer.WriteNullTerminatedString(id);
             writer.Write((ushort) data.DataFlags);
-            writer.Write((ushort) 0); // Filled in later.
+            writer.Write((int) 0); // Filled in later.
             writer.Flush();
 
             long startData = writer.BaseStream.Position;

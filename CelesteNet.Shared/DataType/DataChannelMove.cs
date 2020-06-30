@@ -17,6 +17,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "channelMove";
         }
 
+        public override DataFlags DataFlags => DataFlags.Small;
+
         public DataPlayerInfo? Player;
 
         public override void Read(DataContext ctx, BinaryReader reader) {

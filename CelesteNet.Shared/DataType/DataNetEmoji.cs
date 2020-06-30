@@ -17,6 +17,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "netemoji";
         }
 
+        public override DataFlags DataFlags => DataFlags.Big;
+
         public string ID = "";
         public byte[] Data = Dummy<byte>.EmptyArray;
 

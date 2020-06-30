@@ -99,7 +99,17 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         ForceForward =
             0b0000000000000010,
 
-        Reserved =
+        Reserved4 =
+            0b0000100000000000,
+        Reserved3 =
+            0b0001000000000000,
+
+        Small =
+            0b0010000000000000,
+        Big =
+            0b0100000000000000,
+
+        Reserved1 =
             0b1000000000000000
     }
 }

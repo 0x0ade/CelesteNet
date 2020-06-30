@@ -217,13 +217,15 @@ namespace Celeste.Mod.CelesteNet {
         public DataType Read(BinaryReader reader) {
             string id = Calc.ReadNullTerminatedString(reader);
             DataFlags flags = (DataFlags) reader.ReadUInt16();
-            int length = reader.ReadInt32();
+            bool small = (flags & DataFlags.Small) == DataFlags.Small;
+            bool big = (flags & DataFlags.Big) == DataFlags.Big;
+            uint length = small ? reader.ReadByte() : big ? reader.ReadUInt32() : reader.ReadUInt16();
 
             if (!IDToTypeMap.TryGetValue(id, out Type? type))
                 return new DataUnparsed() {
                     InnerID = id,
                     InnerFlags = flags,
-                    InnerData = reader.ReadBytes(length)
+                    InnerData = reader.ReadBytes((int) length)
                 };
 
             DataType? data = (DataType?) Activator.CreateInstance(type);
@@ -244,10 +246,17 @@ namespace Celeste.Mod.CelesteNet {
                 throw new Exception($"Unknown data type {type} ({data})");
 
             long startAll = writer.BaseStream.Position;
+            bool small = (data.DataFlags & DataFlags.Small) == DataFlags.Small;
+            bool big = (data.DataFlags & DataFlags.Big) == DataFlags.Big;
 
             writer.WriteNullTerminatedString(id);
             writer.Write((ushort) data.DataFlags);
-            writer.Write(0); // Filled in later.
+            if (small)
+                writer.Write((byte) 0); // Filled in later.
+            else if (big)
+                writer.Write((uint) 0); // Filled in later.
+            else
+                writer.Write((ushort) 0); // Filled in later.
             writer.Flush();
 
             long startData = writer.BaseStream.Position;
@@ -256,12 +265,26 @@ namespace Celeste.Mod.CelesteNet {
             writer.Flush();
 
             long end = writer.BaseStream.Position;
-
-            writer.BaseStream.Seek(startData - 4, SeekOrigin.Begin);
             long length = end - startData;
-            if (length > int.MaxValue)
-                length = int.MaxValue;
-            writer.Write((int) length);
+
+            if (small) {
+                writer.BaseStream.Seek(startData - 1, SeekOrigin.Begin);
+                if (length > byte.MaxValue)
+                    length = byte.MaxValue;
+                writer.Write((byte) length);
+
+            } else if (big) {
+                writer.BaseStream.Seek(startData - 4, SeekOrigin.Begin);
+                if (length > uint.MaxValue)
+                    length = uint.MaxValue;
+                writer.Write((uint) length);
+
+            } else {
+                writer.BaseStream.Seek(startData - 2, SeekOrigin.Begin);
+                if (length > ushort.MaxValue)
+                    length = ushort.MaxValue;
+                writer.Write((ushort) length);
+            }
             writer.Flush();
             writer.BaseStream.Seek(end, SeekOrigin.Begin);
 

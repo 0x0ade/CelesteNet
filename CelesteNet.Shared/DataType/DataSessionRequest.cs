@@ -17,6 +17,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "sessionReq";
         }
 
+        public override DataFlags DataFlags => DataFlags.Small;
+
         public override void Read(DataContext ctx, BinaryReader reader) {
         }
 

@@ -52,6 +52,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Registered.Add(netemoji.ID);
                     RegisteredFiles.Add(path);
                     Emoji.Register(netemoji.ID, mt);
+                    Emoji.Fill(CelesteNetClientFont.Font);
                     registered = true;
 
                 } finally {

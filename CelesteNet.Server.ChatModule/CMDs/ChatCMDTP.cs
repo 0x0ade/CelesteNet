@@ -51,7 +51,23 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             );
         }
 
-        private void Teleport(ChatCMDEnv env, DataChat? msg, CelesteNetPlayerSession self, DataPlayerInfo otherPlayer, DataPlayerState otherState, DataSession? session, Vector2? pos) {
+        private bool Teleport(ChatCMDEnv env, DataChat? msg, CelesteNetPlayerSession self, DataPlayerInfo otherPlayer, DataPlayerState otherState, DataSession? session, Vector2? pos) {
+            if (msg != null) {
+                self.WaitFor<DataPlayerState>(500, (con, state) => {
+                    if (state.SID != otherState.SID ||
+                        state.Mode != otherState.Mode ||
+                        state.Level != otherState.Level)
+                        return false;
+
+                    msg.Text = $"Teleported to {otherPlayer.DisplayName}";
+                    Chat.ForceSend(msg);
+                    return true;
+                }, () => {
+                    msg.Text = $"Couldn't teleport to {otherPlayer.DisplayName} - maybe missing map?";
+                    Chat.ForceSend(msg);
+                });
+            }
+
             self.Con.Send(new DataMoveTo {
                 SID = otherState.SID,
                 Mode = otherState.Mode,
@@ -60,11 +76,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 Position = pos
             });
 
-            // TODO: Verify that client replies with updated state?
-            if (msg != null) {
-                msg.Text = $"Teleported to {otherPlayer.DisplayName}";
-                Chat.ForceSend(msg);
-            }
+            return true;
         }
 
     }

@@ -151,15 +151,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.InvokeOnSessionStart(this);
         }
 
-        public Action WaitFor<T>(DataHandler<T> cb) where T : DataType<T>
+        public Action WaitFor<T>(DataFilter<T> cb) where T : DataType<T>
             => WaitFor(0, cb, null);
 
-        public Action WaitFor<T>(int timeout, DataHandler<T> cb, Action? cbTimeout = null) where T : DataType<T>
+        public Action WaitFor<T>(int timeout, DataFilter<T> cb, Action? cbTimeout = null) where T : DataType<T>
             => Server.Data.WaitFor<T>(timeout, (con, data) => {
                 if (Con != con)
                     return false;
-                cb(con, data);
-                return true;
+                return cb(con, data);
             }, cbTimeout);
 
         public Action Request<T>(DataHandler<T> cb) where T : DataType<T>, IDataRequestable
@@ -172,7 +171,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             => Request(0, req, cb, null);
 
         public Action Request<T>(int timeout, DataType req, DataHandler<T> cb, Action? cbTimeout = null) where T : DataType<T>, IDataRequestable {
-            Action cancel = WaitFor(timeout, cb, cbTimeout);
+            Action cancel = WaitFor<T>(timeout, (con, data) => {
+                cb(con, data);
+                return true;
+            }, cbTimeout);
             Con.Send(req);
             return cancel;
         }

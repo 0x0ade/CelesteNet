@@ -13,7 +13,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public float Alpha = 0.875f;
 
-        public Vector2? ForcePosition;
         public Vector2 Speed;
 
         public PlayerSprite Sprite;
@@ -60,6 +59,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             NameTag = new GhostNameTag(this, "");
 
             Dead = false;
+            AllowPushing = false;
+            SquishCallback = null;
 
             Tag = Tags.Persistent | Tags.PauseUpdate;
         }
@@ -105,11 +106,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             Visible = !Dead;
 
-            if (ForcePosition != null)
-                Position = ForcePosition.Value;
             base.Update();
-            if (ForcePosition != null)
-                Position = ForcePosition.Value;
 
             if (!(Scene is Level level))
                 return;
@@ -145,7 +142,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void UpdateSprite(Vector2 position, Vector2 speed, Vector2 scale, Facings facing, int depth, Color color, float rate, Vector2? justify, string animationID, int animationFrame) {
-            ForcePosition = Position = position;
+            Position = position;
             Speed = speed;
 
             Sprite.Scale = scale;

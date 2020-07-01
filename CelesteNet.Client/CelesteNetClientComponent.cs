@@ -113,7 +113,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         protected override void Dispose(bool disposing) {
-            if (CelesteNetClientModule.Instance.Context == this) {
+            bool isMain = CelesteNetClientModule.Instance.Context == this;
+            if (isMain) {
                 CelesteNetClientModule.Instance.Context = null;
                 CelesteNetClientModule.Settings.Connected = false;
             }
@@ -130,8 +131,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                     component.Dispose();
 
             if (Status != null) {
-                if (Status.Spin)
+                if (Status.Spin) {
                     Status.Set("Disconnected", 3f, false);
+                    if (isMain && CelesteNetClientModule.Settings.AutoReconnect) {
+                        QueuedTaskHelper.Do("CelesteNetReconnect", () => CelesteNetClientModule.Instance.Start());
+                    }
+                }
                 Status.AutoDispose = true;
             }
         }

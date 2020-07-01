@@ -80,6 +80,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (realRT != null)
                 return realRT;
 
+            if (Engine.Instance != null && Engine.Scene is AssetReloadHelper)
+                return null;
+
             if (FakeRT != null && (FakeRT.Width != Engine.ViewWidth || FakeRT.Height != Engine.ViewHeight)) {
                 FakeRT.Dispose();
                 FakeRT = null;
@@ -126,6 +129,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             c.Emit(OpCodes.Ldloc, vd_tmpRealRT);
             c.EmitDelegate<Action<Viewport, RenderTarget2D>>((tmpRealVP, tmpRealRT) => {
                 Engine.SetViewport(tmpRealVP);
+
+                if (Engine.Instance != null && Engine.Scene is AssetReloadHelper)
+                    return;
 
                 if (FakeRT != null) {
                     const int blurrad = 16;
@@ -196,9 +202,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     MDraw.SpriteBatch.Draw(BlurYRT, new Vector2(0f, 0f), null, Color.White, 0f, Vector2.Zero, blurScaleInv, SpriteEffects.None, 0);
 
                     MDraw.SpriteBatch.End();
-                }
 
-                if (FakeRT != null) {
                     GraphicsDevice.SetRenderTarget(tmpRealRT);
                     GraphicsDevice.Viewport = Engine.Viewport;
                     GraphicsDevice.Clear(Engine.ClearColor);

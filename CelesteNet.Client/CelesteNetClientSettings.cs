@@ -28,12 +28,15 @@ namespace Celeste.Mod.CelesteNet.Client {
                     ServerEntry.Disabled = value || !(Engine.Scene is Overworld);
                 if (NameEntry != null)
                     NameEntry.Disabled = value || !(Engine.Scene is Overworld);
+
+                QueuedTaskHelper.Cancel("CelesteNetReconnect");
             }
         }
         [YamlIgnore]
         [SettingIgnore]
         public TextMenu.OnOff EnabledEntry { get; protected set; }
 
+        public bool AutoReconnect { get; set; } = true;
 
         public string Server { get; set; } = "celeste.0x0ade.ga";
         [YamlIgnore]

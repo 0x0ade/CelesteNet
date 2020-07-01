@@ -48,7 +48,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
             }
 
-            target.Scene?.Add(new GhostEmote(target, emoteData.Text) {
+            target?.Scene?.Add(new GhostEmote(target, emoteData.Text) {
                 PopIn = true,
                 FadeOut = true
             });

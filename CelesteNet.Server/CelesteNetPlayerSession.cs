@@ -66,7 +66,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     return;
                 }
 
-                name = userinfo.Name.Sanitize(IllegalNameChars);
+                name = userinfo.Name.Sanitize(IllegalNameChars, true);
                 if (name.Length > Server.Settings.MaxNameLength)
                     name = name.Substring(0, Server.Settings.MaxNameLength);
                 if (string.IsNullOrEmpty(name))

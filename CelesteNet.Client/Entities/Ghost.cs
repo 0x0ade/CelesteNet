@@ -21,7 +21,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public GhostNameTag NameTag;
         public GhostEmote IdleTag;
 
+        public static readonly Color[] FallbackHairColors = new Color[] { Color.Transparent };
         public Color[] HairColors;
+        public static readonly string[] FallbackHairTextures = new string[] { "characters/player/hair00" };
         public string[] HairTextures;
 
         public bool? DashWasB;
@@ -116,6 +118,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.Color = color * Alpha;
             Hair.Alpha = Alpha;
             Hair.SimulateMotion = simulateMotion;
+
+            if (count == 0) {
+                count = 1;
+                colors = FallbackHairColors;
+                textures = FallbackHairTextures;
+                Hair.Alpha = 0;
+            }
+
             Sprite.HairCount = count;
             while (Hair.Nodes.Count < count)
                 Hair.Nodes.Add(Hair.Nodes.LastOrDefault());

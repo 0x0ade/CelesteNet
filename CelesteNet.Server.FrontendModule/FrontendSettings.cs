@@ -19,7 +19,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public string ContentRoot { get; set; } = "Content";
 
         // TODO: Separate Discord auth module!
+        [YamlIgnore]
         public string DiscordOAuthURL => $"https://discord.com/oauth2/authorize?client_id={DiscordOAuthClientID}&redirect_uri={Uri.EscapeDataString(DiscordOAuthRedirectURL)}&response_type=code&scope=identify";
+        [YamlIgnore]
         public string DiscordOAuthRedirectURL => $"{CanonicalRoot}discordauth";
         public string DiscordOAuthClientID { get; set; } = "726786180598857788";
         public string DiscordOAuthClientSecret { get; set; } = "yOTVQCTDFbPj2RvQ_bfl_TpM8gZqDd_t";

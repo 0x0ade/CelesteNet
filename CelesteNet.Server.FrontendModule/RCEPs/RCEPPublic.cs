@@ -196,6 +196,36 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             });
         }
 
+        [RCEndpoint(false, "/revokekey", "?&key={key}", "", "Revoke Key", "Revoke the given key.")]
+        public static void RevokeKey(Frontend f, HttpRequestEventArgs c) {
+            NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
+
+            string key = args["key"];
+            if (string.IsNullOrEmpty(key))
+                key = c.Request.Cookies[COOKIE_KEY]?.Value ?? "";
+            if (string.IsNullOrEmpty(key)) {
+                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                f.RespondJSON(c, new {
+                    Error = "Unauthorized - no key."
+                });
+                return;
+            }
+
+            string uid = f.Server.UserData.GetUID(key);
+            if (string.IsNullOrEmpty(uid)) {
+                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                f.RespondJSON(c, new {
+                    Error = "Unauthorized - invalid key."
+                });
+            }
+
+            f.Server.UserData.RevokeKey(key);
+
+            f.RespondJSON(c, new {
+                Info = "Key revoked."
+            });
+        }
+
         [RCEndpoint(false, "/avatar", "?uid={uid}", "", "Get Avatar", "Get a 64x64 round user avatar PNG.")]
         public static void Avatar(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);

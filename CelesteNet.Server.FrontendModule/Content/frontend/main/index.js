@@ -79,13 +79,17 @@ function renderUser() {
 		list.add("key", el => rd$(el)`
 		<p>
 			Your key:<br>
-			<a id="button-copykey" class="button" onclick="copyFrom(this)">
+			<a id="button-copykey" class="button" onclick=${() => navigator.clipboard.writeText("#" + info.Key)}>
 				<span class="button-icon"></span>
 				<span class="button-text">#${info.Key}</span>
 			</a><br>
 			<a id="button-sendkey" class="button" onclick=${() => sendKey(info.Key)}>
 				<span class="button-icon"></span>
 				<span class="button-text">Send to Client</span>
+			</a><br>
+			<a id="button-revokekey" class="button" onclick=${() => revokeKey()}>
+				<span class="button-icon"></span>
+				<span class="button-text">Revoke Key</span>
 			</a>
 		</p>`);
 
@@ -97,11 +101,8 @@ function deauth() {
 	fetch("/deauth").then(() => window.location.reload());
 }
 
-/**
- * @param {HTMLElement} el
- */
-function copyFrom(el) {
-	navigator.clipboard.writeText(el.textContent.trim());
+function revokeKey() {
+	fetch("/revokekey").then(() => window.location.reload());
 }
 
 function dialog(content) {

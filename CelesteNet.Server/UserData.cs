@@ -43,6 +43,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract int GetAllCount();
 
         public abstract string Create(string uid);
+        public abstract void RevokeKey(string key);
 
     }
 

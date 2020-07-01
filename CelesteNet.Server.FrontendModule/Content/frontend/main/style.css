@@ -279,6 +279,9 @@ a.button:hover, a.button:focus, a.button:active {
 #button-sendkey .button-icon {
     background-image: url("./sync.png");
 }
+#button-revokekey .button-icon {
+    background-image: url("./lock.png");
+}
 
 .discord-avatar {
     border-radius: 100%;

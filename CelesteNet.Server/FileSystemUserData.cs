@@ -188,6 +188,19 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
+        public override void RevokeKey(string key) {
+            lock (GlobalLock) {
+                Global global = LoadRaw<Global>(GlobalPath);
+                if (!global.UIDs.TryGetValue(key, out string? uid))
+                    return;
+
+                global.UIDs.Remove(key);
+                SaveRaw(GlobalPath, global);
+
+                Delete<PrivateUserInfo>(uid);
+            }
+        }
+
         public class Global {
             public Dictionary<string, string> UIDs { get; set; } = new Dictionary<string, string>();
         }

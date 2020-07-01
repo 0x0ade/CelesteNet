@@ -22,5 +22,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 Text = msg.ToString()
             };
 
+        public static double ToUnixTime(this DateTime time)
+            => time.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+
     }
 }

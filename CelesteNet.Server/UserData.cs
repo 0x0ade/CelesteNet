@@ -36,6 +36,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract T[] LoadRegistered<T>() where T : new();
         public abstract T[] LoadAll<T>() where T : new();
 
+        public abstract string[] GetRegistered();
+        public abstract string[] GetAll();
+
         public abstract int GetRegisteredCount();
         public abstract int GetAllCount();
 

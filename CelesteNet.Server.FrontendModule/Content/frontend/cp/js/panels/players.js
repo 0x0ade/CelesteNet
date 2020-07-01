@@ -16,7 +16,8 @@ const mdc = window["mdc"]; // mdc
   Name: string,
   FullName: string,
   DisplayName: string,
-  Connection: string
+  Connection: string,
+  ConnectionUID: string
 }} PlayerData
  */
 
@@ -47,7 +48,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
 
       this.frontend.dom.setContext(el,
         [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.sync.run("kick", p.ID) ],
-        [ "gavel", `Ban ${p.FullName}` ]
+        [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ]
       );
 
       return el;

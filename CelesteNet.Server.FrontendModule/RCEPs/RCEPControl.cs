@@ -112,7 +112,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void Status(Frontend f, HttpRequestEventArgs c) {
             bool auth = f.IsAuthorized(c);
             f.RespondJSON(c, new {
-                StartupTime = f.Server.StartupTime.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds,
+                StartupTime = f.Server.StartupTime.ToUnixTime(),
                 GCMemory = GC.GetTotalMemory(false),
                 Modules = f.Server.Modules.Count,
                 f.Server.PlayerCounter,
@@ -125,6 +125,26 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             });
         }
 
+        [RCEndpoint(true, "/userinfos", "", "", "User Infos", "Get some basic information about ALL users.")]
+        public static void UserInfos(Frontend f, HttpRequestEventArgs c) {
+            f.RespondJSON(c, f.Server.UserData.GetAll().Select(uid => {
+                BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
+                BanInfo ban = f.Server.UserData.Load<BanInfo>(uid);
+                return new {
+                    UID = uid,
+                    info.Name,
+                    info.Discrim,
+                    info.Tags,
+                    Key = f.Server.UserData.GetKey(uid),
+                    Ban = string.IsNullOrEmpty(ban.Reason) ? null : new {
+                        ban.Reason,
+                        From = ban.From?.ToUnixTime() ?? 0,
+                        To = ban.To?.ToUnixTime() ?? 0
+                    }
+                };
+            }).ToArray());
+        }
+
         [RCEndpoint(false, "/players", null, null, "Player List", "Basic player list.")]
         public static void Players(Frontend f, HttpRequestEventArgs c) {
             bool auth = f.IsAuthorized(c);
@@ -134,7 +154,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 p.PlayerInfo?.Name,
                 p.PlayerInfo?.FullName,
                 p.PlayerInfo?.DisplayName,
-                Connection = auth ? p.Con.ID : null
+                Connection = auth ? p.Con.ID : null,
+                ConnectionUID = auth ? p.ConUID : null,
             }).ToArray());
         }
 

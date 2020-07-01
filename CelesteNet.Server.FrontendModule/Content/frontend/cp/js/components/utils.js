@@ -1,4 +1,5 @@
 //@ts-check
+import { DateTime } from "../../../js/deps/luxon.js";
 
 export class FrontendUtils {
   /**
@@ -43,6 +44,13 @@ export class FrontendUtils {
     if (key[0] === "#")
       key = key.slice(1);
     return parseInt(key, 16);
+  }
+
+  /**
+   * @param {number} millis
+   */
+  datetime(millis) {
+    return DateTime.fromMillis(millis).setLocale("en-GB").toFormat("yyyy-MM-dd HH:mm:ss")
   }
 
 }

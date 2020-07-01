@@ -19,6 +19,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
         public readonly uint ID;
+        public readonly string ConUID;
         public string UID;
 
         public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo? value) ? value : null;
@@ -31,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Con = con;
             ID = id;
 
-            UID = $"guest-{con.UID}";
+            ConUID = UID = $"con-{con.UID}";
 
             Server.Data.RegisterHandlersIn(this);
         }

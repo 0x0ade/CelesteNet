@@ -46,6 +46,7 @@ export class Frontend {
     // TODO: AAAAAAAAAAAAA
     for (let id of [
       "status",
+      "accounts",
       "players",
       "channels",
       "cmd",

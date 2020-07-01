@@ -117,13 +117,22 @@ namespace Celeste.Mod.CelesteNet.Server {
             return File.OpenWrite(path);
         }
 
-        public override void Delete<T>(string uid)
-            => DeleteRaw(GetUserFilePath<T>(uid));
+        public override void Delete<T>(string uid) {
+            DeleteRaw(GetUserFilePath<T>(uid));
+            CheckCleanup(uid);
+        }
 
         public override void DeleteFile(string uid, string name) {
             string path = GetUserFilePath(uid, name);
             if (File.Exists(path))
                 File.Delete(path);
+            CheckCleanup(uid);
+        }
+
+        private void CheckCleanup(string uid) {
+            string dir = GetUserDir(uid);
+            if (Directory.GetFiles(dir).Length == 0)
+                DeleteRawAll(dir);
         }
 
         public override void Wipe(string uid)
@@ -141,6 +150,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return Directory.GetDirectories(UserRoot).Select(dir => LoadRaw<T>(Path.Combine(dir, name))).ToArray();
             }
         }
+
+        public override string[] GetRegistered()
+            => LoadRaw<Global>(GlobalPath).UIDs.Values.ToArray();
+
+        public override string[] GetAll()
+            => Directory.GetDirectories(UserRoot).Select(name => Path.GetFileName(name)).ToArray();
 
         public override int GetRegisteredCount()
             => LoadRaw<Global>(GlobalPath).UIDs.Count;

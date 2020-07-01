@@ -26,6 +26,7 @@ namespace Celeste.Mod.CelesteNet.Client {
     public static class CelesteNetClientRC {
 
         private static HttpListener Listener;
+        private static Thread ListenerThread;
 
         public static void Initialize() {
             if (Listener != null)
@@ -44,55 +45,63 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return;
             }
 
-            ThreadPool.QueueUserWorkItem(_ => {
-                Logger.Log(LogLevel.INF, "rc", $"Started ClientRC thread, available via http://localhost:{CelesteNetUtils.ClientRCPort}/");
-                try {
-                    while (Listener.IsListening) {
-                        ThreadPool.QueueUserWorkItem(c => {
-                            HttpListenerContext context = c as HttpListenerContext;
-
-                            if (context.Request.HttpMethod == "OPTIONS") {
-                                context.Response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-Requested-With");
-                                context.Response.AddHeader("Access-Control-Allow-Methods", "GET, POST");
-                                context.Response.AddHeader("Access-Control-Max-Age", "1728000");
-                                return;
-                            }
-                            context.Response.AppendHeader("Access-Control-Allow-Origin", "*");
-
-                            try {
-                                using (context.Request.InputStream)
-                                using (context.Response) {
-                                    HandleRequest(context);
-                                }
-                            } catch (ThreadAbortException) {
-                                throw;
-                            } catch (ThreadInterruptedException) {
-                                throw;
-                            } catch (Exception e) {
-                                Logger.Log(LogLevel.INF, "rc", $"ClientRC failed responding: {e}");
-                            }
-                        }, Listener.GetContext());
-                    }
-                } catch (ThreadAbortException) {
-                    throw;
-                } catch (ThreadInterruptedException) {
-                    throw;
-                } catch (HttpListenerException e) {
-                    // 500 = Listener closed.
-                    // 995 = I/O abort due to thread abort or application shutdown.
-                    if (e.ErrorCode != 500 &&
-                        e.ErrorCode != 995) {
-                        Logger.Log(LogLevel.INF, "rc", $"ClientRC failed listening ({e.ErrorCode}): {e}");
-                    }
-                } catch (Exception e) {
-                    Logger.Log(LogLevel.INF, "rc", $"ClientRC failed listening: {e}");
-                }
-            });
+            ListenerThread = new Thread(ListenerLoop) {
+                IsBackground = true,
+                Priority = ThreadPriority.BelowNormal
+            };
+            ListenerThread.Start();
         }
 
         public static void Shutdown() {
             Listener?.Abort();
+            ListenerThread?.Abort();
             Listener = null;
+            ListenerThread = null;
+        }
+
+        private static void ListenerLoop() {
+            Logger.Log(LogLevel.INF, "rc", $"Started ClientRC thread, available via http://localhost:{CelesteNetUtils.ClientRCPort}/");
+            try {
+                while (Listener?.IsListening ?? false) {
+                    ThreadPool.QueueUserWorkItem(c => {
+                        HttpListenerContext context = c as HttpListenerContext;
+
+                        if (context.Request.HttpMethod == "OPTIONS") {
+                            context.Response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-Requested-With");
+                            context.Response.AddHeader("Access-Control-Allow-Methods", "GET, POST");
+                            context.Response.AddHeader("Access-Control-Max-Age", "1728000");
+                            return;
+                        }
+                        context.Response.AppendHeader("Access-Control-Allow-Origin", "*");
+
+                        try {
+                            using (context.Request.InputStream)
+                            using (context.Response) {
+                                HandleRequest(context);
+                            }
+                        } catch (ThreadAbortException) {
+                            throw;
+                        } catch (ThreadInterruptedException) {
+                            throw;
+                        } catch (Exception e) {
+                            Logger.Log(LogLevel.INF, "rc", $"ClientRC failed responding: {e}");
+                        }
+                    }, Listener.GetContext());
+                }
+            } catch (ThreadAbortException) {
+                throw;
+            } catch (ThreadInterruptedException) {
+                throw;
+            } catch (HttpListenerException e) {
+                // 500 = Listener closed.
+                // 995 = I/O abort due to thread abort or application shutdown.
+                if (e.ErrorCode != 500 &&
+                    e.ErrorCode != 995) {
+                    Logger.Log(LogLevel.INF, "rc", $"ClientRC failed listening ({e.ErrorCode}): {e}");
+                }
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "rc", $"ClientRC failed listening: {e}");
+            }
         }
 
         private static void HandleRequest(HttpListenerContext c) {

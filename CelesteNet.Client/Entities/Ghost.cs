@@ -35,7 +35,17 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             Depth = 0;
 
-            Sprite = new PlayerSprite(spriteMode);
+            RetryPlayerSprite:
+            try {
+                Sprite = new PlayerSprite(spriteMode);
+            } catch (Exception) {
+                if (spriteMode != PlayerSpriteMode.Madeline) {
+                    spriteMode = PlayerSpriteMode.Madeline;
+                    goto RetryPlayerSprite;
+                }
+                throw;
+            }
+
             Add(Hair = new PlayerHair(Sprite));
             Add(Sprite);
             Hair.Color = Player.NormalHairColor;

@@ -28,6 +28,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Dictionary<uint, Ghost> Ghosts = new Dictionary<uint, Ghost>();
         public Dictionary<uint, uint> FrameIDs = new Dictionary<uint, uint>();
 
+        public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new HashSet<PlayerSpriteMode>();
+
         public CelesteNetMainComponent(CelesteNetClientComponent context, Game game)
             : base(context, game) {
 
@@ -138,6 +140,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 state.SID != session.Area.SID ||
                 state.Mode != session.Area.Mode;
 
+            if (UnsupportedSpriteModes.Contains(frame.SpriteMode))
+                frame.SpriteMode = PlayerSpriteMode.Madeline;
+
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost == null ||
                 ghost.Scene != level ||
@@ -154,7 +159,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (ghost == null) {
                 Ghosts[frame.Player.ID] = ghost = new Ghost(Context, frame.SpriteMode);
-                level.Add(ghost);
+                if (ghost.Sprite.Mode != frame.SpriteMode)
+                    UnsupportedSpriteModes.Add(frame.SpriteMode);
+                RunOnMainThread(() => level.Add(ghost));
             }
 
             ghost.NameTag.Name = frame.Player.DisplayName;
@@ -422,7 +429,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (PlayerNameTag == null || PlayerNameTag.Tracking != Player) {
                 PlayerNameTag?.RemoveSelf();
-                level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName));
+                RunOnMainThread(() => level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName)));
             }
 
             SendFrame();

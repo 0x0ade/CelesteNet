@@ -47,10 +47,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
 
             CelesteNetClientRC.Initialize();
+            Everest.Events.Celeste.OnShutdown += CelesteNetClientRC.Shutdown;
         }
 
         public override void Unload() {
             CelesteNetClientRC.Shutdown();
+            Everest.Events.Celeste.OnShutdown -= CelesteNetClientRC.Shutdown;
 
             Stop();
         }

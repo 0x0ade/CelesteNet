@@ -214,7 +214,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     if (Active)
                         y -= 105f * scale;
 
-                    for (int i = 0; i < count && i < Settings.ChatLogLength; i++) {
+                    float logLength = Settings.ChatLogLength;
+                    for (int i = 0; i < count && i < logLength; i++) {
                         DataChat msg = Log[count - 1 - i];
 
                         float alpha = 1f;
@@ -225,6 +226,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             continue;
 
                         string text = msg.ToString();
+                        logLength -= Math.Max(0, text.Count(c => c == '\n') - 1) * 0.75f;
 
                         int lineScaleTry = 0;
                         float lineScale = scale;

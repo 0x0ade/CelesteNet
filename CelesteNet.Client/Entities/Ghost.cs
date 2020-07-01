@@ -13,6 +13,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public float Alpha = 0.875f;
 
+        public Vector2? ForcePosition;
         public Vector2 Speed;
 
         public PlayerSprite Sprite;
@@ -89,7 +90,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 player.Bounce(Top + 2f);
                 player.Play("event:/game/general/thing_booped");
 
-            } else if (player.Speed.Y <= 0f && Bottom <= player.Top + 5f) {
+            } else if (player.StateMachine.State != Player.StDash &&
+                player.StateMachine.State != Player.StRedDash &&
+                player.StateMachine.State != Player.StDreamDash &&
+                player.StateMachine.State != Player.StBirdDashTutorial &&
+                player.Speed.Y <= 0f && Bottom <= player.Top + 5f) {
                 player.Speed.Y = Math.Max(player.Speed.Y, 16f);
             }
         }
@@ -100,7 +105,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             Visible = !Dead;
 
+            if (ForcePosition != null)
+                Position = ForcePosition.Value;
             base.Update();
+            if (ForcePosition != null)
+                Position = ForcePosition.Value;
 
             if (!(Scene is Level level))
                 return;
@@ -136,7 +145,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void UpdateSprite(Vector2 position, Vector2 speed, Vector2 scale, Facings facing, int depth, Color color, float rate, Vector2? justify, string animationID, int animationFrame) {
-            Position = position;
+            ForcePosition = Position = position;
             Speed = speed;
 
             Sprite.Scale = scale;
@@ -173,7 +182,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void HandleDeath() {
-            Scene.Add(new GhostDeadBody(this, Vector2.Zero));
+            if (!(Scene is Level level) ||
+                level.Paused || level.Overlay != null)
+                return;
+            level.Add(new GhostDeadBody(this, Vector2.Zero));
         }
 
     }

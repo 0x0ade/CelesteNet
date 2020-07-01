@@ -20,7 +20,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public override void Run(ChatCMDEnv env, params ChatCMDArg[] args) {
             if (args.Length == 1) {
                 if (args[0].Type == ChatCMDArgType.Int) {
-                    env.Send(GetCommandPage(env, args[0].Int));
+                    env.Send(GetCommandPage(env, args[0].Int - 1));
                     return;
                 }
 

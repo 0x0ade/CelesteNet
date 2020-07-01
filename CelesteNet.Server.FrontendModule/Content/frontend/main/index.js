@@ -119,7 +119,7 @@ function dialog(content) {
 function sendKey(key) {
 	const controller = new AbortController();
 	setTimeout(() => controller.abort(), 500);
-	fetch(`${clientrc}setkeyx?value=${key}`, { signal: controller.signal }).then(
+	fetch(`${clientrc}setkey?value=${key}`, { signal: controller.signal }).then(
 		() => dialog("Sent. Check your mod options."),
 		() => dialog("Couldn't find client.<br>Is Everest running?<br>Is CelesteNet enabled?")
 	);

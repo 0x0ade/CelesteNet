@@ -147,7 +147,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
                 if (Type == ChatCMDArgType.String) {
                     lock (Env.Chat.Server.Connections)
-                        return Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName == String);
+                        return
+                            Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName == String) ??
+                            Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String) ?? false);
                 }
 
                 return null;

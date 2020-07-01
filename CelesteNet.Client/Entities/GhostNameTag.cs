@@ -48,6 +48,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             pos -= level.Camera.Position;
             pos *= 6f; // 1920 / 320
 
+            if (SaveData.Instance?.Assists.MirrorMode ?? false)
+                pos.X = 1920f - pos.X;
+
             Vector2 size = CelesteNetClientFont.Measure(Name);
             pos = pos.Clamp(
                 0f + size.X * 0.5f, 0f + size.Y * 1f,

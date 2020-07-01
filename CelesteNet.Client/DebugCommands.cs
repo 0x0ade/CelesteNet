@@ -26,12 +26,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (!string.IsNullOrWhiteSpace(server)) {
                 CelesteNetClientModule.Settings.Server = server;
             }
-            CelesteNetClientModule.Instance.Start();
+            CelesteNetClientModule.Settings.Connected = true;
         }
 
         [Command("dc", "disconnect from celestenet")]
         public static void DC() {
-            CelesteNetClientModule.Instance.Stop();
+            CelesteNetClientModule.Settings.Connected = false;
         }
 
     }

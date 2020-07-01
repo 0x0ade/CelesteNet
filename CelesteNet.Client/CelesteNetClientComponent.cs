@@ -113,8 +113,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         protected override void Dispose(bool disposing) {
-            bool isMain = CelesteNetClientModule.Instance.Context == this;
-            if (isMain) {
+            bool reconnect = false;
+            if (CelesteNetClientModule.Instance.Context == this) {
+                reconnect = CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected;
                 CelesteNetClientModule.Instance.Context = null;
                 CelesteNetClientModule.Settings.Connected = false;
             }
@@ -133,8 +134,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (Status != null) {
                 if (Status.Spin) {
                     Status.Set("Disconnected", 3f, false);
-                    if (isMain && CelesteNetClientModule.Settings.AutoReconnect) {
-                        QueuedTaskHelper.Do("CelesteNetReconnect", () => CelesteNetClientModule.Instance.Start());
+                    if (reconnect) {
+                        QueuedTaskHelper.Do("CelesteNetAutoReconnect", () => CelesteNetClientModule.Settings.Connected = true);
                     }
                 }
                 Status.AutoDispose = true;

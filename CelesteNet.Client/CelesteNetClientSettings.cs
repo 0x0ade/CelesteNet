@@ -13,10 +13,16 @@ namespace Celeste.Mod.CelesteNet.Client {
     [SettingName("modoptions_celestenetclient_title")]
     public class CelesteNetClientSettings : EverestModuleSettings {
 
+        [SettingIgnore]
+        [YamlIgnore]
+        public bool WantsToBeConnected { get; protected set; }
+
         [YamlIgnore]
         public bool Connected {
             get => CelesteNetClientModule.Instance.IsAlive;
             set {
+                WantsToBeConnected = value;
+
                 if (value)
                     CelesteNetClientModule.Instance.Start();
                 else
@@ -28,8 +34,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                     ServerEntry.Disabled = value || !(Engine.Scene is Overworld);
                 if (NameEntry != null)
                     NameEntry.Disabled = value || !(Engine.Scene is Overworld);
-
-                QueuedTaskHelper.Cancel("CelesteNetReconnect");
             }
         }
         [YamlIgnore]

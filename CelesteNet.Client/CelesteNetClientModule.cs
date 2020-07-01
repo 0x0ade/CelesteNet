@@ -54,6 +54,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             CelesteNetClientRC.Shutdown();
             Everest.Events.Celeste.OnShutdown -= CelesteNetClientRC.Shutdown;
 
+            Settings.Connected = false;
             Stop();
         }
 
@@ -146,6 +147,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Stop() {
+            QueuedTaskHelper.Cancel("CelesteNetAutoReconnect");
+
             if (_StartThread?.IsAlive ?? false)
                 _StartThread.Join();
 

@@ -33,10 +33,10 @@ namespace Celeste.Mod.CelesteNet {
 
         protected readonly ConcurrentDictionary<Type, IDataStatic> Static = new ConcurrentDictionary<Type, IDataStatic>();
 
-        protected readonly ConcurrentDictionary<Type, Dictionary<uint, IDataRef>> References = new ConcurrentDictionary<Type, Dictionary<uint, IDataRef>>();
-        protected readonly ConcurrentDictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>> Bound = new ConcurrentDictionary<Type, Dictionary<uint, Dictionary<Type, IDataBoundRef>>>();
+        protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, IDataRef>> References = new ConcurrentDictionary<Type, ConcurrentDictionary<uint, IDataRef>>();
+        protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, ConcurrentDictionary<Type, IDataBoundRef>>> Bound = new ConcurrentDictionary<Type, ConcurrentDictionary<uint, ConcurrentDictionary<Type, IDataBoundRef>>>();
 
-        protected readonly ConcurrentDictionary<Type, Dictionary<uint, uint>> LastOrderedUpdate = new ConcurrentDictionary<Type, Dictionary<uint, uint>>();
+        protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>> LastOrderedUpdate = new ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>>();
 
         public DataContext() {
             RescanAllDataTypes();
@@ -325,8 +325,8 @@ namespace Celeste.Mod.CelesteNet {
                 return;
 
             if (data is IDataOrderedUpdate update) {
-                if (!LastOrderedUpdate.TryGetValue(type, out Dictionary<uint, uint>? updateIDs)) {
-                    updateIDs = new Dictionary<uint, uint>();
+                if (!LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, uint>? updateIDs)) {
+                    updateIDs = new ConcurrentDictionary<uint, uint>();
                     LastOrderedUpdate[type] = updateIDs;
                 }
 
@@ -395,7 +395,7 @@ namespace Celeste.Mod.CelesteNet {
                 return true;
             }
 
-            if (References.TryGetValue(type, out Dictionary<uint, IDataRef>? refs) &&
+            if (References.TryGetValue(type, out ConcurrentDictionary<uint, IDataRef>? refs) &&
                 refs.TryGetValue(id, out value)) {
                 return true;
             }
@@ -428,8 +428,8 @@ namespace Celeste.Mod.CelesteNet {
                 return true;
             }
 
-            if (Bound.TryGetValue(typeBoundTo, out Dictionary<uint, Dictionary<Type, IDataBoundRef>>? boundByID) &&
-                boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRef>? boundByType) &&
+            if (Bound.TryGetValue(typeBoundTo, out ConcurrentDictionary<uint, ConcurrentDictionary<Type, IDataBoundRef>>? boundByID) &&
+                boundByID.TryGetValue(id, out ConcurrentDictionary<Type, IDataBoundRef>? boundByType) &&
                 boundByType.TryGetValue(type, out value)) {
                 return true;
             }
@@ -442,7 +442,7 @@ namespace Celeste.Mod.CelesteNet {
             => GetRefs(typeof(T)).Cast<T>().ToArray();
 
         public IDataRef[] GetRefs(Type type) {
-            if (References.TryGetValue(type, out Dictionary<uint, IDataRef>? refs))
+            if (References.TryGetValue(type, out ConcurrentDictionary<uint, IDataRef>? refs))
                 return refs.Values.ToArray();
             return new IDataRef[0];
         }
@@ -454,8 +454,8 @@ namespace Celeste.Mod.CelesteNet {
             => GetBoundRefs(typeof(TBoundTo), id);
 
         public IDataBoundRef[] GetBoundRefs(Type typeBoundTo, uint id) {
-            if (Bound.TryGetValue(typeBoundTo, out Dictionary<uint, Dictionary<Type, IDataBoundRef>>? boundByID) &&
-                boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRef>? boundByType))
+            if (Bound.TryGetValue(typeBoundTo, out ConcurrentDictionary<uint, ConcurrentDictionary<Type, IDataBoundRef>>? boundByID) &&
+                boundByID.TryGetValue(id, out ConcurrentDictionary<Type, IDataBoundRef>? boundByType))
                 return boundByType.Values.ToArray();
             return new IDataBoundRef[0];
         }
@@ -477,8 +477,8 @@ namespace Celeste.Mod.CelesteNet {
                 return null;
             }
 
-            if (!References.TryGetValue(type, out Dictionary<uint, IDataRef>? refs)) {
-                refs = new Dictionary<uint, IDataRef>();
+            if (!References.TryGetValue(type, out ConcurrentDictionary<uint, IDataRef>? refs)) {
+                refs = new ConcurrentDictionary<uint, IDataRef>();
                 References[type] = refs;
             }
 
@@ -489,13 +489,13 @@ namespace Celeste.Mod.CelesteNet {
                     if (!TryGetRef(typeBoundTo, id, out _))
                         throw new Exception($"Cannot bind {type.FullName} to unknown reference {typeBoundTo.FullName} ID {id}");
 
-                    if (!Bound.TryGetValue(typeBoundTo, out Dictionary<uint, Dictionary<Type, IDataBoundRef>>? boundByID)) {
-                        boundByID = new Dictionary<uint, Dictionary<Type, IDataBoundRef>>();
+                    if (!Bound.TryGetValue(typeBoundTo, out ConcurrentDictionary<uint, ConcurrentDictionary<Type, IDataBoundRef>>? boundByID)) {
+                        boundByID = new ConcurrentDictionary<uint, ConcurrentDictionary<Type, IDataBoundRef>>();
                         Bound[typeBoundTo] = boundByID;
                     }
 
-                    if (!boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRef>? boundByType)) {
-                        boundByType = new Dictionary<Type, IDataBoundRef>();
+                    if (!boundByID.TryGetValue(id, out ConcurrentDictionary<Type, IDataBoundRef>? boundByType)) {
+                        boundByType = new ConcurrentDictionary<Type, IDataBoundRef>();
                         boundByID[id] = boundByType;
                     }
 
@@ -511,14 +511,14 @@ namespace Celeste.Mod.CelesteNet {
 
         public void FreeRef(Type type, uint id) {
             IDataRef? data = null;
-            if (References.TryGetValue(type, out Dictionary<uint, IDataRef>? refs) &&
+            if (References.TryGetValue(type, out ConcurrentDictionary<uint, IDataRef>? refs) &&
                 refs.TryGetValue(id, out data)) {
-                refs.Remove(id);
+                refs.TryRemove(id, out _);
             }
 
-            if (Bound.TryGetValue(type, out Dictionary<uint, Dictionary<Type, IDataBoundRef>>? boundByID) &&
-                boundByID.TryGetValue(id, out Dictionary<Type, IDataBoundRef>? boundByType)) {
-                boundByID.Remove(id);
+            if (Bound.TryGetValue(type, out ConcurrentDictionary<uint, ConcurrentDictionary<Type, IDataBoundRef>>? boundByID) &&
+                boundByID.TryGetValue(id, out ConcurrentDictionary<Type, IDataBoundRef>? boundByType)) {
+                boundByID.TryRemove(id, out _);
                 foreach (Type typeBound in boundByType.Keys)
                     FreeRef(typeBound, id);
             }
@@ -528,7 +528,7 @@ namespace Celeste.Mod.CelesteNet {
                 if (typeBoundTo != null &&
                     Bound.TryGetValue(typeBoundTo, out boundByID) &&
                     boundByID.TryGetValue(id, out boundByType)) {
-                    boundByID.Remove(id);
+                    boundByID.TryRemove(id, out _);
                     foreach (Type typeBound in boundByType.Keys)
                         FreeRef(typeBound, id);
                 }
@@ -539,8 +539,8 @@ namespace Celeste.Mod.CelesteNet {
             => FreeOrder(typeof(T), id);
 
         public void FreeOrder(Type type, uint id) {
-            if (LastOrderedUpdate.TryGetValue(type, out Dictionary<uint, uint>? updateIDs)) {
-                updateIDs.Remove(id);
+            if (LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, uint>? updateIDs)) {
+                updateIDs.TryRemove(id, out _);
             }
         }
 

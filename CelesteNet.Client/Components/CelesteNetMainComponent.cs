@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -363,12 +364,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #endregion
 
         public void UpdateIdleTag(Entity target, ref GhostEmote idleTag, bool idle) {
-            if (target == null || !(Engine.Scene is Level level) || target.Scene != level) {
+            if (!(Engine.Scene is Level level)) {
                 idle = false;
+                level = null;
             }
 
+            if (target == null || target.Scene != level)
+                idle = false;
+
             if (idle && idleTag == null) {
-                Engine.Scene.Add(idleTag = new GhostEmote(target, "i:hover/idle") {
+                level.Add(idleTag = new GhostEmote(target, "i:hover/idle") {
                     PopIn = true,
                     Float = true
                 });

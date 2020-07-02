@@ -363,6 +363,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #endregion
 
         public void UpdateIdleTag(Entity target, ref GhostEmote idleTag, bool idle) {
+            if (target == null || !(Engine.Scene is Level level) || target.Scene != level) {
+                idle = false;
+            }
+
             if (idle && idleTag == null) {
                 Engine.Scene.Add(idleTag = new GhostEmote(target, "i:hover/idle") {
                     PopIn = true,

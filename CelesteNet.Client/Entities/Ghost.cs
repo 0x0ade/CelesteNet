@@ -136,13 +136,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 Hair.Alpha = 0;
             }
 
-            Sprite.HairCount = count;
             while (Hair.Nodes.Count < count)
                 Hair.Nodes.Add(Hair.Nodes.LastOrDefault());
             while (Hair.Nodes.Count > count)
                 Hair.Nodes.RemoveAt(Hair.Nodes.Count - 1);
             HairColors = colors;
             HairTextures = textures;
+            Sprite.HairCount = count;
         }
 
         public void UpdateSprite(Vector2 position, Vector2 speed, Vector2 scale, Facings facing, int depth, Color color, float rate, Vector2? justify, string animationID, int animationFrame) {

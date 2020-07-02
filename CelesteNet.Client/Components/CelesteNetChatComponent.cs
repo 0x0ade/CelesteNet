@@ -139,7 +139,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Engine.Commands.Open = false;
 
                 if (MInput.Keyboard.Pressed(Keys.Enter)) {
-                    Repeat.Insert(1, Typing);
+                    if (!string.IsNullOrWhiteSpace(Typing))
+                        Repeat.Insert(1, Typing);
                     Send(Typing);
                     Active = false;
 

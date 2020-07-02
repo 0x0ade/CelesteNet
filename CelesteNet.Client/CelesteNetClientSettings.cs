@@ -14,8 +14,7 @@ namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientSettings : EverestModuleSettings {
 
         [SettingIgnore]
-        [YamlIgnore]
-        public bool WantsToBeConnected { get; protected set; }
+        public bool WantsToBeConnected { get; set; }
 
         [YamlIgnore]
         public bool Connected {
@@ -23,9 +22,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             set {
                 WantsToBeConnected = value;
 
-                if (value)
+                if (value && !Connected)
                     CelesteNetClientModule.Instance.Start();
-                else
+                else if (!value && Connected)
                     CelesteNetClientModule.Instance.Stop();
 
                 if (!value && EnabledEntry != null && Engine.Scene != null)

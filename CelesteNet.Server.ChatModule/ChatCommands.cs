@@ -146,10 +146,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 }
 
                 if (Type == ChatCMDArgType.String) {
+                    string stringLower = String.ToLowerInvariant();
                     lock (Env.Chat.Server.Connections)
                         return
                             Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName == String) ??
-                            Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String) ?? false);
+                            Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName.ToLowerInvariant().StartsWith(stringLower) ?? false);
                 }
 
                 return null;

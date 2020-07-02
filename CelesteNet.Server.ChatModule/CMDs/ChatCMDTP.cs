@@ -53,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         private bool Teleport(ChatCMDEnv env, DataChat? msg, CelesteNetPlayerSession self, DataPlayerInfo otherPlayer, DataPlayerState otherState, DataSession? session, Vector2? pos) {
             if (msg != null) {
-                self.WaitFor<DataPlayerState>(500, (con, state) => {
+                self.WaitFor<DataPlayerState>(2000, (con, state) => {
                     if (state.SID != otherState.SID ||
                         state.Mode != otherState.Mode ||
                         state.Level != otherState.Level)

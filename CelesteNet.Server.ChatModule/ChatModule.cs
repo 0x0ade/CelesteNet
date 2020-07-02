@@ -92,7 +92,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             msg.Date = DateTime.UtcNow;
 
             if (!msg.CreatedByServer)
-                Logger.Log(LogLevel.INF, "chatmsg", msg.ToString());
+                Logger.Log(LogLevel.INF, "chatmsg", msg.ToString(false, true));
 
             if (!(OnReceive?.InvokeWhileTrue(this, msg) ?? true))
                 return null;
@@ -199,7 +199,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public event Action<ChatModule, DataChat>? OnForceSend;
 
         public void ForceSend(DataChat msg) {
-            Logger.Log(LogLevel.INF, "chatupd", msg.ToString());
+            Logger.Log(LogLevel.INF, "chatupd", msg.ToString(false, true));
             OnForceSend?.Invoke(this, msg);
 
             if (msg.Targets == null) {

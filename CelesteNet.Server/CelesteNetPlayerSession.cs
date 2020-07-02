@@ -305,6 +305,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 state = null;
 
             if (data is IDataBoundRef<DataPlayerInfo> ||
+                data is IDataPlayerPublicState ||
                 data is IDataPlayerState ||
                 data is IDataPlayerUpdate) {
                 Channel channel = Channel;

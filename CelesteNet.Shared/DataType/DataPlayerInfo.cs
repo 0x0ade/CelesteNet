@@ -42,12 +42,21 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
     }
 
+    [DataBehavior("playerPubState")]
+    public interface IDataPlayerPublicState : IDataBoundRef<DataPlayerInfo> {
+
+        DataPlayerInfo? Player { get; set; }
+
+    }
+
+    [DataBehavior("playerState")]
     public interface IDataPlayerState : IDataBoundRef<DataPlayerInfo> {
 
         DataPlayerInfo? Player { get; set; }
 
     }
 
+    [DataBehavior("playerUpdate")]
     public interface IDataPlayerUpdate {
 
         DataPlayerInfo? Player { get; set; }

@@ -47,11 +47,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public abstract class DataType<T> : DataType where T : DataType<T> {
 
         public static string DataID;
-        public static string Source;
+        public static string DataSource;
 
         static DataType() {
             DataID = typeof(T).Name;
-            Source = typeof(T).Assembly.GetName().Name ?? DataID;
+            DataSource = typeof(T).Assembly.GetName().Name ?? DataID;
         }
 
         public T ReadT(DataContext ctx, BinaryReader reader) {
@@ -60,9 +60,23 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
     }
-    
+
+    [AttributeUsage(AttributeTargets.Interface)]
+    public class DataBehaviorAttribute : Attribute {
+
+        public string? ID { get; protected set; }
+
+        public DataBehaviorAttribute() {
+        }
+
+        public DataBehaviorAttribute(string id) {
+            ID = id;
+        }
+
+    }
+
     public interface IDataOrderedUpdate {
-    
+
         uint ID { get; }
         uint UpdateID { get; set; }
 
@@ -101,7 +115,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         Reserved4 =
             0b0000100000000000,
-        Reserved3 =
+
+        Modded =
             0b0001000000000000,
 
         Small =

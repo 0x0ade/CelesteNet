@@ -132,12 +132,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                     if (other == this)
                         continue;
 
-                    other.Con.Send(playerInfo);
-                    other.Con.Send(AvatarEmoji);
-
                     DataPlayerInfo? otherInfo = other.PlayerInfo;
                     if (otherInfo == null)
                         continue;
+
+                    other.Con.Send(playerInfo);
+                    other.Con.Send(AvatarEmoji);
 
                     Con.Send(otherInfo);
                     Con.Send(other.AvatarEmoji);

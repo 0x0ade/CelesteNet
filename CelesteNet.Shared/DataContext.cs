@@ -29,6 +29,8 @@ namespace Celeste.Mod.CelesteNet {
         public readonly Dictionary<Type, string> TypeToBehaviorMap = new Dictionary<Type, string>();
         public readonly Dictionary<string, Type> BehaviorToTypeMap = new Dictionary<string, Type>();
 
+        public readonly HashSet<Type> BuiltinTypes = new HashSet<Type>();
+
         public readonly ConcurrentDictionary<Type, DataHandler> Handlers = new ConcurrentDictionary<Type, DataHandler>();
         public readonly ConcurrentDictionary<Type, DataFilter> Filters = new ConcurrentDictionary<Type, DataFilter>();
 
@@ -91,18 +93,21 @@ namespace Celeste.Mod.CelesteNet {
                 List<string> behaviors = new List<string>();
 
                 foreach (Type interf in type.GetInterfaces()) {
-                    DataBehaviorAttribute behavior = interf.GetCustomAttribute<DataBehaviorAttribute>();
+                    DataBehaviorAttribute? behavior = interf?.GetCustomAttribute<DataBehaviorAttribute>();
                     if (behavior == null)
                         continue;
                     string? bid = behavior.ID;
                     if (bid.IsNullOrEmpty())
-                        bid = interf.FullName;
+                        bid = interf.FullName ?? throw new NullReferenceException($"Typeless name: {interf}");
                     behaviors.Add(bid);
                     TypeToBehaviorMap[interf] = bid;
                     BehaviorToTypeMap[bid] = interf;
                 }
 
                 TypeToBehaviorsMap[type] = behaviors.ToArray();
+
+                if (type.Assembly == typeof(DataContext).Assembly)
+                    BuiltinTypes.Add(type);
             }
         }
 
@@ -251,7 +256,7 @@ namespace Celeste.Mod.CelesteNet {
 
             string source = "";
             string[] behaviors = Dummy<string>.EmptyArray;
-            if ((flags & DataFlags.Modded) == DataFlags.Modded) {
+            if ((flags & DataFlags.ModdedType) == DataFlags.ModdedType) {
                 source = Calc.ReadNullTerminatedString(reader);
                 behaviors = new string[reader.ReadByte()];
                 for (int i = 0; i < behaviors.Length; i++)
@@ -284,12 +289,16 @@ namespace Celeste.Mod.CelesteNet {
             if (!TypeToIDMap.TryGetValue(type, out string? id))
                 throw new Exception($"Unknown data type {type} ({data})");
 
+            DataFlags flags = data.DataFlags;
+            if (!BuiltinTypes.Contains(type))
+                flags |= DataFlags.ModdedType;
+
             long startAll = writer.BaseStream.Position;
-            bool small = (data.DataFlags & DataFlags.Small) == DataFlags.Small;
-            bool big = (data.DataFlags & DataFlags.Big) == DataFlags.Big;
+            bool small = (flags & DataFlags.Small) == DataFlags.Small;
+            bool big = (flags & DataFlags.Big) == DataFlags.Big;
 
             writer.WriteNullTerminatedString(id);
-            writer.Write((ushort) data.DataFlags);
+            writer.Write((ushort) flags);
             if (small)
                 writer.Write((byte) 0); // Filled in later.
             else if (big)
@@ -300,7 +309,7 @@ namespace Celeste.Mod.CelesteNet {
 
             long startData = writer.BaseStream.Position;
 
-            if ((data.DataFlags & DataFlags.Modded) == DataFlags.Modded) {
+            if ((flags & DataFlags.ModdedType) == DataFlags.ModdedType) {
                 writer.WriteNullTerminatedString(TypeToSourceMap[type]);
                 string[] behaviors = TypeToBehaviorsMap[type];
                 writer.Write((byte) behaviors.Length);

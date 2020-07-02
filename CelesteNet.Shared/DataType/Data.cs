@@ -116,7 +116,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         Reserved4 =
             0b0000100000000000,
 
-        Modded =
+        ModdedType =
             0b0001000000000000,
 
         Small =

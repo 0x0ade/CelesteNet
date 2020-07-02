@@ -53,8 +53,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             Vector2 size = CelesteNetClientFont.Measure(Name);
             pos = pos.Clamp(
-                0f + size.X * 0.5f, 0f + size.Y * 1f,
-                1920f - size.X * 0.5f, 1080f
+                0f + size.X * 0.25f + 32f, 0f + size.Y * 0.5f + 32f,
+                1920f - size.X * 0.25f - 32f, 1080f - 32f
             );
 
             CelesteNetClientFont.DrawOutline(

@@ -62,7 +62,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             AllowPushing = false;
             SquishCallback = null;
 
-            Tag = Tags.Persistent | Tags.PauseUpdate;
+            Tag = Tags.Persistent | Tags.PauseUpdate | Tags.TransitionUpdate;
         }
 
         public override void Added(Scene scene) {

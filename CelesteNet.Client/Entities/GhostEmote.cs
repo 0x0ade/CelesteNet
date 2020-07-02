@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             : base(Vector2.Zero) {
             Tracking = tracking;
 
-            Tag = TagsExt.SubHUD | Tags.Persistent | Tags.PauseUpdate;
+            Tag = TagsExt.SubHUD | Tags.Persistent | Tags.PauseUpdate | Tags.TransitionUpdate;
         }
 
         public GhostEmote(Entity tracking, string value)
@@ -103,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             Position = Tracking.Position;
             // - name offset - popup offset
-            Position.Y -= 16f + 4f;
+            Position.Y -= 16f + 6f;
         }
 
         public override void Render() {
@@ -145,8 +145,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 size *= scale;
 
                 pos = pos.Clamp(
-                    0f + size.X * 0.5f, 0f + size.Y * 1f,
-                    1920f - size.X * 0.5f, 1080f
+                    0f + size.X * 0.5f + 64f, 0f + size.Y * 1f + 64f,
+                    1920f - size.X * 0.5f - 64f, 1080f - 64f
                 );
 
                 icon.DrawJustified(

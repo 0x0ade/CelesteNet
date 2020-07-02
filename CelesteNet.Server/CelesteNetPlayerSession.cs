@@ -89,13 +89,18 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (name.Length > Server.Settings.MaxNameLength)
                 name = name.Substring(0, Server.Settings.MaxNameLength);
 
+            string nameSpace = name;
+            name = name.Replace(" ", "");
+            string fullNameSpace = nameSpace;
             string fullName = name;
 
             lock (Server.Connections)
-                for (int i = 2; Server.PlayersByCon.Values.Any(other => other.PlayerInfo?.FullName == fullName); i++)
+                for (int i = 2; Server.PlayersByCon.Values.Any(other => other.PlayerInfo?.FullName == fullName); i++) {
+                    fullNameSpace = $"{nameSpace}#{i}";
                     fullName = $"{name}#{i}";
+                }
 
-            string displayName = fullName;
+            string displayName = fullNameSpace;
 
             using (Stream? avatar = Server.UserData.ReadFile(UID, "avatar.png")) {
                 if (avatar != null) {
@@ -103,7 +108,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         ID = $"celestenet_avatar_{fullName}_",
                         Data = avatar.ToBytes()
                     };
-                    displayName = $":{AvatarEmoji.ID}: {fullName}";
+                    displayName = $":{AvatarEmoji.ID}: {fullNameSpace}";
                 }
             }
 

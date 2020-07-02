@@ -147,18 +147,21 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public uint ReadTeapot() {
-            using (StreamReader reader = new StreamReader(TCPStream, Encoding.UTF8, false, 1024, true))
-                while (!string.IsNullOrWhiteSpace(reader.ReadLine())) {
+            uint token = 0;
+            using (StreamReader reader = new StreamReader(TCPStream, Encoding.UTF8, false, 1024, true)) {
+                for (string line; !string.IsNullOrWhiteSpace(line = reader.ReadLine());) {
+                    if (line.StartsWith(CelesteNetUtils.HTTPTeapotConToken)) {
+                        token = uint.Parse(line.Substring(CelesteNetUtils.HTTPTeapotConToken.Length).Trim());
+                    }
                 }
-            using (BinaryReader reader = new BinaryReader(TCPStream, Encoding.UTF8, true))
-                return reader.ReadUInt32();
+            }
+            return token;
         }
 
         public void WriteTeapot(uint token) {
             using (StreamWriter writer = new StreamWriter(TCPStream, Encoding.UTF8, 1024, true))
-                writer.Write(CelesteNetUtils.HTTPTeapot);
-            using (BinaryWriter writer = new BinaryWriter(TCPStream, Encoding.UTF8, true))
-                writer.Write(token);
+                writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, token));
+            TCPStream.Flush();
         }
 
         public void WriteToken(uint token) {

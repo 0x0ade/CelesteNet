@@ -117,6 +117,11 @@ namespace Celeste.Mod.CelesteNet {
                     return;
                 }
 
+                if (data is DataUDPConnectionToken token) {
+                    WriteToken(token.Value);
+                    return;
+                }
+
                 BufferStream.Seek(0, SeekOrigin.Begin);
 
                 int length = Data.Write(BufferWriter, data);
@@ -154,6 +159,16 @@ namespace Celeste.Mod.CelesteNet {
                 writer.Write(CelesteNetUtils.HTTPTeapot);
             using (BinaryWriter writer = new BinaryWriter(TCPStream, Encoding.UTF8, true))
                 writer.Write(token);
+        }
+
+        public void WriteToken(uint token) {
+            if (UDP == null)
+                return;
+            if (UDP.Client.Connected && ReadUDPThread != null) {
+                UDP.Send(BitConverter.GetBytes(token), 4);
+            } else if (UDPRemoteEndPoint != null) {
+                UDP.Send(BitConverter.GetBytes(token), 4, UDPRemoteEndPoint);
+            }
         }
 
         protected virtual void ReadTCPLoop() {

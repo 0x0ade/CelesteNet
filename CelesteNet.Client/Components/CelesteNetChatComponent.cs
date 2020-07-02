@@ -122,13 +122,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             _Time += Engine.RawDeltaTime;
 
-            if (!(Engine.Scene?.Paused ?? true)) {
+            bool isRebinding = Engine.Scene == null ||
+                Engine.Scene.Entities.FindFirst<KeyboardConfigUI>() != null ||
+                Engine.Scene.Entities.FindFirst<ButtonConfigUI>() != null;
+
+            if (!(Engine.Scene?.Paused ?? true) || isRebinding) {
                 string typing = Typing;
                 Active = false;
                 Typing = typing;
             }
 
-            if (!Active && Settings.ButtonChat.Button.Pressed) {
+            if (!Active && !isRebinding && Settings.ButtonChat.Button.Pressed) {
                 Active = true;
 
             } else if (Active) {

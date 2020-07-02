@@ -21,7 +21,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Tracking = tracking;
             Name = name;
 
-            Tag = TagsExt.SubHUD | Tags.Persistent;
+            Tag = TagsExt.SubHUD | Tags.Persistent | Tags.PauseUpdate | Tags.TransitionUpdate;
+        }
+
+        public override void Update() {
+            base.Update();
+
+            if (Tracking.Scene == null)
+                RemoveSelf();
         }
 
         public override void Render() {

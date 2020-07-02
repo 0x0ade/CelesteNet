@@ -437,8 +437,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             if (PlayerNameTag == null || PlayerNameTag.Tracking != Player) {
-                PlayerNameTag?.RemoveSelf();
-                RunOnMainThread(() => level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName)));
+                RunOnMainThread(() => {
+                    PlayerNameTag?.RemoveSelf();
+                    level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName));
+                });
             }
 
             SendFrame();

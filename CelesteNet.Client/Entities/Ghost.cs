@@ -69,7 +69,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             base.Added(scene);
 
             Hair.Start();
-            Scene.Add(NameTag);
         }
 
         public override void Removed(Scene scene) {
@@ -101,8 +100,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public override void Update() {
-            if (string.IsNullOrEmpty(NameTag.Name))
+            if (string.IsNullOrEmpty(NameTag.Name)) {
                 RemoveSelf();
+                return;
+            }
+
+            if (NameTag.Scene != Scene)
+                Scene.Add(NameTag);
 
             Visible = !Dead;
 

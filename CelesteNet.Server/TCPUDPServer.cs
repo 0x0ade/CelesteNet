@@ -134,6 +134,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                                         UDPMap[con.UDPRemoteEndPoint] = con;
                                         con.OnDisconnect += RemoveUDPMap;
+                                        continue;
                                     }
                                 }
                             }

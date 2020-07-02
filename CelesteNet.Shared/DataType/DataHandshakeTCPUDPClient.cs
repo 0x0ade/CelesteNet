@@ -17,18 +17,21 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "hsTUC";
         }
 
-        public int UDPPort;
+        public override DataFlags DataFlags => base.DataFlags | (IsUDP ? DataFlags.Update : 0);
+
+        public bool IsUDP;
+        public uint ConnectionToken;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             base.Read(ctx, reader);
 
-            UDPPort = reader.ReadInt32();
+            ConnectionToken = reader.ReadUInt32();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             base.Write(ctx, writer);
 
-            writer.Write(UDPPort);
+            writer.Write(ConnectionToken);
         }
 
     }

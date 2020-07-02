@@ -36,6 +36,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public DataPlayerInfo PlayerInfo;
 
         private readonly ManualResetEvent HandshakeEvent = new ManualResetEvent(false);
+        private DataType HandshakeClient;
 
         private readonly object StartStopLock = new object();
 
@@ -71,16 +72,18 @@ namespace Celeste.Mod.CelesteNet.Client {
                         Logger.Log(LogLevel.INF, "main", $"Local endpoints: {con.TCP.Client.LocalEndPoint} / {con.UDP.Client.LocalEndPoint}");
 
                         // Server replies with a dummy HTTP response to filter out dumb port sniffers.
-                        con.ReadTeapot();
+                        uint token = con.ReadTeapot();
 
                         con.SendKeepAlive = true;
                         con.StartReadTCP();
                         con.StartReadUDP();
 
-                        con.Send(new DataHandshakeTCPUDPClient {
+                        HandshakeClient = new DataHandshakeTCPUDPClient {
                             Name = Settings.Name,
-                            UDPPort = ((IPEndPoint) con.UDP.Client.LocalEndPoint).Port
-                        });
+                            ConnectionToken = token
+                        };
+
+                        con.Send(HandshakeClient);
                         break;
 
                     default:
@@ -156,6 +159,14 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (handshake.Version != CelesteNetUtils.Version) {
                 Dispose();
                 throw new Exception($"Version mismatch - client {CelesteNetUtils.Version} vs server {handshake.Version}");
+            }
+
+            // Needed because while the server knows the client's TCP endpoint, the UDP endpoint is ambiguous.
+            if (con is CelesteNetTCPUDPConnection && HandshakeClient is DataHandshakeTCPUDPClient hsClient) {
+                hsClient.IsUDP = true;
+                con.Send(new DataUDPConnectionToken {
+                    Value = hsClient.ConnectionToken
+                });
             }
 
             Data.Handle(con, handshake.PlayerInfo);

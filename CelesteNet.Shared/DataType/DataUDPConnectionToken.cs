@@ -11,11 +11,11 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataTCPHTTPTeapot : DataType<DataTCPHTTPTeapot> {
+    public class DataUDPConnectionToken : DataType<DataUDPConnectionToken> {
 
         // Handled specially by CelesteNetTCPUDPConnection.
 
-        public uint ConnectionToken;
+        public uint Value;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             throw new NotSupportedException();

@@ -126,10 +126,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     avatarOrig = Image.FromStream(s);
             }
             using (avatarOrig)
+            using (Image avatarScale = avatarOrig.Width == 64 && avatarOrig.Height == 64 ? avatarOrig : new Bitmap(64, 64, PixelFormat.Format32bppArgb))
             using (Image avatar = new Bitmap(64, 64, PixelFormat.Format32bppArgb)) {
+                if (avatarScale != avatarOrig) {
+                    using (Graphics g = Graphics.FromImage(avatar)) {
+                        g.DrawImage(avatarOrig, 0, 0, 64, 64);
+                    }
+                }
+
                 using (Graphics g = Graphics.FromImage(avatar)) {
                     g.SmoothingMode = SmoothingMode.AntiAlias;
-                    using (TextureBrush tbr = new TextureBrush(avatarOrig)) {
+                    using (TextureBrush tbr = new TextureBrush(avatarScale)) {
                         g.FillEllipse(tbr, 0, 0, 64, 64);
                     }
                 }
@@ -172,6 +179,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     f.RespondJSON(c, new {
                         Error = "Unauthorized - invalid key."
                     });
+                    return;
                 }
 
                 auth = true;

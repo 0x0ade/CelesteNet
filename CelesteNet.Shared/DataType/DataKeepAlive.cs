@@ -21,6 +21,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public bool IsUpdate;
 
+        public override bool FilterHandle(DataContext ctx)
+            => false;
+
         public override void Read(DataContext ctx, BinaryReader reader) {
         }
 

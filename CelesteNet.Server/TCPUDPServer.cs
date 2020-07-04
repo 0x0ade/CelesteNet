@@ -1,6 +1,7 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Mono.Options;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -23,7 +24,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         private Thread? TCPListenerThread;
         private Thread? UDPReadThread;
 
-        private readonly Dictionary<IPEndPoint, CelesteNetTCPUDPConnection> UDPMap = new Dictionary<IPEndPoint, CelesteNetTCPUDPConnection>();
+        private uint UDPNextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
+        private readonly Dictionary<UDPPendingKey, CelesteNetTCPUDPConnection> UDPPending = new Dictionary<UDPPendingKey, CelesteNetTCPUDPConnection>();
+        private readonly Dictionary<CelesteNetTCPUDPConnection, UDPPendingKey> UDPPendingKeys = new Dictionary<CelesteNetTCPUDPConnection, UDPPendingKey>();
+        private readonly ConcurrentDictionary<IPEndPoint, CelesteNetTCPUDPConnection> UDPMap = new ConcurrentDictionary<IPEndPoint, CelesteNetTCPUDPConnection>();
 
         public TCPUDPServer(CelesteNetServer server) {
             Server = server;
@@ -70,7 +74,19 @@ namespace Celeste.Mod.CelesteNet.Server {
                     client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
                     CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Server.Data, client, null);
-                    con.Send(new DataTCPHTTPTeapot());
+                    lock (UDPPending) {
+                        uint token = UDPNextID++;
+                        UDPPendingKey key = new UDPPendingKey {
+                            IPHash = ((IPEndPoint) client.Client.RemoteEndPoint).Address.GetHashCode(),
+                            Token = token
+                        };
+                        UDPPending[key] = con;
+                        UDPPendingKeys[con] = key;
+                        con.OnDisconnect += RemoveUDPPending;
+                        con.Send(new DataTCPHTTPTeapot() {
+                            ConnectionToken = token
+                        });
+                    }
                     con.StartReadTCP();
                     Server.HandleConnect(con);
                 }
@@ -95,8 +111,37 @@ namespace Celeste.Mod.CelesteNet.Server {
                         } catch (SocketException) {
                             continue;
                         }
-                        if (!UDPMap.TryGetValue(remote, out CelesteNetTCPUDPConnection? con))
+
+                        if (remote == null)
                             continue;
+
+                        if (!UDPMap.TryGetValue(remote, out CelesteNetTCPUDPConnection? con)) {
+                            if (raw.Length == 4) {
+                                lock (UDPPending) {
+                                    UDPPendingKey key = new UDPPendingKey {
+                                        IPHash = remote.Address.GetHashCode(),
+                                        Token = BitConverter.ToUInt32(raw, 0)
+                                    };
+                                    if (UDPPending.TryGetValue(key, out con)) {
+                                        Logger.Log(LogLevel.CRI, "tcpudp", $"New UDP connection: {remote}");
+                                        con.OnDisconnect -= RemoveUDPPending;
+                                        UDPPendingKeys.Remove(con);
+                                        UDPPending.Remove(key);
+
+                                        con.UDP = UDP;
+                                        con.UDPLocalEndPoint = (IPEndPoint) UDP.Client.LocalEndPoint;
+                                        con.UDPRemoteEndPoint = remote;
+
+                                        UDPMap[con.UDPRemoteEndPoint] = con;
+                                        con.OnDisconnect += RemoveUDPMap;
+                                        continue;
+                                    }
+                                }
+                            }
+
+                            if (con == null)
+                                continue;
+                        }
 
                         try {
                             stream.Seek(0, SeekOrigin.Begin);
@@ -119,29 +164,45 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
+        private void RemoveUDPPending(CelesteNetConnection _con) {
+            CelesteNetTCPUDPConnection con = (CelesteNetTCPUDPConnection) _con;
+            lock (UDPPending) {
+                if (UDPPendingKeys.TryGetValue(con, out UDPPendingKey key)) {
+                    UDPPendingKeys.Remove(con);
+                    UDPPending.Remove(key);
+                }
+            }
+        }
+
+        private void RemoveUDPMap(CelesteNetConnection con) {
+            IPEndPoint? ep = ((CelesteNetTCPUDPConnection) con).UDPRemoteEndPoint;
+            if (ep != null)
+                UDPMap.TryRemove(ep, out _);
+        }
+
 
         #region Handlers
 
         public void Handle(CelesteNetTCPUDPConnection con, DataHandshakeTCPUDPClient handshake) {
+            if (handshake.Version != CelesteNetUtils.Version) {
+                con.Dispose();
+                return;
+            }
+
             lock (Server.Connections)
                 if (Server.PlayersByCon.ContainsKey(con))
                     return;
 
-            if (UDP != null) {
-                IPEndPoint ep = (IPEndPoint) con.TCP.Client.RemoteEndPoint;
-                con.UDP = UDP;
-                con.UDPLocalEndPoint = (IPEndPoint) UDP.Client.LocalEndPoint;
-                con.UDPRemoteEndPoint = new IPEndPoint(ep.Address, handshake.UDPPort);
-
-                UDPMap[con.UDPRemoteEndPoint] = con;
-                con.OnDisconnect += _ => UDPMap.Remove(con.UDPRemoteEndPoint);
-            }
-
-            CelesteNetPlayerSession session = new CelesteNetPlayerSession(Server, con, Server.PlayerCounter++);
+            CelesteNetPlayerSession session = new CelesteNetPlayerSession(Server, con, ++Server.PlayerCounter);
             session.Start(handshake);
         }
 
         #endregion
+
+        private struct UDPPendingKey {
+            public int IPHash;
+            public uint Token;
+        }
 
     }
 }

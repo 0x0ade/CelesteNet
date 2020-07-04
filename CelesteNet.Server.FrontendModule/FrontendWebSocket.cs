@@ -20,9 +20,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         // Each connection creates one instance of this.
 
-        public Frontend? Frontend;
+        public Frontend Frontend;
 
         public string SessionKey = "";
+        public bool IsAuthorized => Frontend.CurrentSessionKeys.Contains(SessionKey);
 
         public WSCommands Commands;
 
@@ -31,13 +32,19 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private new EState State = EState.Invalid;
         private WSCMD? CurrentCommand;
 
+#pragma warning disable CS8618 // Fully initialized after construction.
         public FrontendWebSocket() {
+#pragma warning restore CS8618
             Commands = new WSCommands(this);
         }
 
         private void Close(string reason) {
             State = EState.Invalid;
             Context.WebSocket.Close(CloseStatusCode.Normal, reason);
+        }
+
+        public void SendRawString(string data) {
+            Send(data);
         }
 
         private void RunCommand(object? input) {
@@ -116,7 +123,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         break;
                     }
 
-                    if (cmd.Auth && !Frontend.CurrentSessionKeys.Contains(SessionKey)) {
+                    if (cmd.Auth && !IsAuthorized) {
                         Close("unauthorized");
                         break;
                     }

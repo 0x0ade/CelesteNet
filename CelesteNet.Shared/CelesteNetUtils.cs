@@ -10,19 +10,27 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet {
-    public static class CelesteNetUtils {
+    public static partial class CelesteNetUtils {
 
         public const ushort Version = 1;
         public static readonly ushort LoadedVersion = Version;
 
-        public static readonly string HTTPTeapot = "HTTP/1.1 418 I'm a teapot\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+        // Port MUST be fixed as the website expects it to be the same for everyone.
+        public static readonly int ClientRCPort = 38038;
+
+        public static readonly string HTTPTeapotConToken = "CelesteNet-ConnectionToken: ";
+        public static readonly string HTTPTeapot = $"HTTP/1.1 418 I'm a teapot\r\nContent-Length: 0\r\n{HTTPTeapotConToken}{{0}}\r\nConnection: close\r\n\r\n";
 
         // See https://github.com/dotnet/runtime/blob/144e5145453ac3885ac20bc1f1f2641523c6fcea/src/libraries/System.Private.CoreLib/src/System/String.cs#L488
         public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
             => string.IsNullOrEmpty(value);
+
+        public static string? Nullify(this string? value)
+            => string.IsNullOrEmpty(value) ? null : value;
 
         public static Type[] GetTypes() {
             if (Everest.Modules.Count != 0)
@@ -57,11 +65,40 @@ namespace Celeste.Mod.CelesteNet {
         public static string ToHex(this Color c)
             => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
-        public static Type? GetTypeBoundTo(this IDataBoundRef data)
-            => data.GetType()
+        public static Type GetRequestType(this Type t)
+            => t
             .GetInterfaces()
-            .FirstOrDefault(t => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDataBoundRef<>))
-            ?.GetGenericArguments()[0];
+            .FirstOrDefault(t => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDataRequestable<>))
+            ?.GetGenericArguments()[0]
+            ?? throw new Exception($"Invalid requested type: {t.FullName}");
+
+        public static readonly Regex SanitizeRegex = new Regex(@"[^\w\.@-_^°]", RegexOptions.None, TimeSpan.FromSeconds(1.5));
+
+        public static string Sanitize(this string? value, char[]? illegal = null, bool space = false) {
+            value = value == null ? "" : string.Join("", value.Where(c => (space || !char.IsWhiteSpace(c)) && EnglishFontChars.Contains(c))).Trim();
+            if (illegal == null)
+                return value;
+
+            foreach (char c in illegal)
+                value = value.Replace(c, '\0');
+            return value.Replace("\0", "").Trim();
+        }
+
+        public static T Await<T>(this Task<T> task) {
+            T result = default;
+            task.ContinueWith(_ => result = task.Result).Wait();
+            if (result is null)
+                throw new NullReferenceException("Task returned null: " + task);
+            return result;
+        }
+
+        public static byte[] ToBytes(this Stream stream) {
+            using (MemoryStream ms = new MemoryStream()) {
+                stream.CopyTo(ms);
+                ms.Seek(0, SeekOrigin.Begin);
+                return ms.ToArray();
+            }
+        }
 
     }
 }

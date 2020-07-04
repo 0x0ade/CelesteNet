@@ -18,12 +18,18 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetServer : IDisposable {
 
+        public readonly DateTime StartupTime;
+
         public readonly CelesteNetServerSettings Settings;
 
         public readonly DataContext Data;
         public readonly TCPUDPServer TCPUDP;
 
+        public UserData UserData;
+
         public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
+
+        public readonly Channels Channels;
 
         public bool Initialized = false;
         public readonly List<CelesteNetServerModuleWrapper> ModuleWrappers = new List<CelesteNetServerModuleWrapper>();
@@ -33,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly DetourModManager DetourModManager;
 
-        public uint PlayerCounter = 1;
+        public uint PlayerCounter = 0;
         public readonly Dictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new Dictionary<CelesteNetConnection, CelesteNetPlayerSession>();
         public readonly Dictionary<uint, CelesteNetPlayerSession> PlayersByID = new Dictionary<uint, CelesteNetPlayerSession>();
 
@@ -59,6 +65,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public CelesteNetServer(CelesteNetServerSettings settings) {
+            StartupTime = DateTime.UtcNow;
+
             Settings = settings;
 
             DetourModManager = new DetourModManager();
@@ -84,6 +92,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Data = new DataContext();
             Data.RegisterHandlersIn(this);
+
+            Channels = new Channels(this);
+
+            UserData = new FileSystemUserData(this);
 
             Initialized = true;
             lock (Modules) {
@@ -136,6 +148,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
+            Channels.Start();
             TCPUDP.Start();
 
             Logger.Log(LogLevel.CRI, "main", "Ready");
@@ -161,6 +174,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
+            Channels.Dispose();
             TCPUDP.Dispose();
         }
 
@@ -201,14 +215,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             return false;
         }
 
-
-        public DataPlayerInfo? GetPlayerInfo(CelesteNetConnection con) {
-            CelesteNetPlayerSession? player;
-            lock (Connections)
-                if (!PlayersByCon.TryGetValue(con, out player))
-                    return null;
-            return player.PlayerInfo;
-        }
 
         public event Action<CelesteNetServer, CelesteNetConnection>? OnConnect;
 

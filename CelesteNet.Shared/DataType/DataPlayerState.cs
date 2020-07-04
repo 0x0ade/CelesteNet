@@ -11,24 +11,31 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataPlayerState : DataType<DataPlayerState>, IDataBoundRef<DataPlayerInfo> {
+    public class DataPlayerState : DataType<DataPlayerState> {
 
         static DataPlayerState() {
             DataID = "playerState";
         }
 
-        public uint ID { get; set; }
-        public bool IsAliveRef => true;
+        public DataPlayerInfo? Player;
 
-        public uint Channel;
         public string SID = "";
         public AreaMode Mode;
         public string Level = "";
         public bool Idle;
 
+        public override MetaType[] GenerateMeta(DataContext ctx)
+            => new MetaType[] {
+                new MetaPlayerPrivateState(Player),
+                new MetaBoundRef(DataPlayerInfo.DataID, Player?.ID ?? uint.MaxValue, true)
+            };
+
+        public override void FixupMeta(DataContext ctx) {
+            Player = Get<MetaPlayerPrivateState>(ctx);
+            Get<MetaBoundRef>(ctx).ID = Player?.ID ?? uint.MaxValue;
+        }
+
         public override void Read(DataContext ctx, BinaryReader reader) {
-            ID = reader.ReadUInt32();
-            Channel = reader.ReadUInt32();
             SID = reader.ReadNullTerminatedString();
             Mode = (AreaMode) reader.ReadByte();
             Level = reader.ReadNullTerminatedString();
@@ -36,8 +43,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.Write(ID);
-            writer.Write(Channel);
             writer.WriteNullTerminatedString(SID);
             writer.Write((byte) Mode);
             writer.WriteNullTerminatedString(Level);
@@ -45,7 +50,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override string ToString()
-            => $"#{ID}: {Channel}, {SID}, {Idle}";
+            => $"#{Player?.ID ?? uint.MaxValue}: {SID}, {Idle}";
 
     }
 }

@@ -24,7 +24,14 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         /// <summary>
         /// Server-internal field.
         /// </summary>
-        public DataPlayerInfo? Target;
+        public DataPlayerInfo[]? Targets;
+        /// <summary>
+        /// Server-internal field.
+        /// </summary>
+        public DataPlayerInfo? Target {
+            get => Targets != null && Targets.Length == 1 ? Targets[0] : null;
+            set => Targets = value == null ? null : new DataPlayerInfo[] { value };
+        }
 
         public DataPlayerInfo? Player;
 
@@ -48,24 +55,26 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ID = reader.ReadUInt32();
             Tag = reader.ReadNullTerminatedString();
             Text = reader.ReadNullTerminatedString();
-            Color = new Color(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), 255);
-            Date = DateTime.FromBinary(reader.ReadInt64());
+            Color = reader.ReadColorNoA();
+            Date = reader.ReadDateTime();
             ReceivedDate = DateTime.UtcNow;
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            ctx.WriteRef(writer, Player);
+            ctx.WriteOptRef(writer, Player);
             writer.Write(ID);
             writer.WriteNullTerminatedString(Tag);
             writer.WriteNullTerminatedString(Text);
-            writer.Write(Color.R);
-            writer.Write(Color.G);
-            writer.Write(Color.B);
-            writer.Write(Date.ToBinary());
+            writer.WriteNoA(Color);
+            writer.Write(Date);
         }
 
         public override string ToString()
-            => $"[{Date.ToLocalTime().ToLongTimeString()}]{(string.IsNullOrEmpty(Tag) ? "" : $"[{Tag}]")} {Player?.FullName ?? "**SERVER**"}{(Target != null ? " @ " + Target.FullName : "")}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
+            => ToString(true, false);
+
+        public string ToString(bool displayName, bool id)
+            => $"{(id ? $"{{{ID}}}" : "")}[{Date.ToLocalTime().ToLongTimeString()}]{(string.IsNullOrEmpty(Tag) ? "" : $"[{Tag}]")} {(displayName ? Player?.DisplayName : Player?.FullName) ?? "**SERVER**"}{(Target != null ? " @ " + Target.DisplayName : "")}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
+
 
     }
 }

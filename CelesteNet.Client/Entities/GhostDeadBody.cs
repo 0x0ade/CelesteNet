@@ -32,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             initialHairColor = hair.Color;
             bounce = direction;
             Add(new Coroutine(DeathRoutine()));
-            Tag = Tags.PauseUpdate;
+            Tag = Tags.PauseUpdate | Tags.TransitionUpdate;
         }
 
         private IEnumerator DeathRoutine() {

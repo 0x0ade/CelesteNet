@@ -122,19 +122,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             _Time += Engine.RawDeltaTime;
 
-            if (!(Engine.Scene?.Paused ?? true)) {
+            bool isRebinding = Engine.Scene == null ||
+                Engine.Scene.Entities.FindFirst<KeyboardConfigUI>() != null ||
+                Engine.Scene.Entities.FindFirst<ButtonConfigUI>() != null;
+
+            if (!(Engine.Scene?.Paused ?? true) || isRebinding) {
                 string typing = Typing;
                 Active = false;
                 Typing = typing;
             }
 
-            if (!Active && Settings.ButtonChat.Button.Pressed) {
+            if (!Active && !isRebinding && Settings.ButtonChat.Button.Pressed) {
                 Active = true;
 
             } else if (Active) {
                 Engine.Commands.Open = false;
 
                 if (MInput.Keyboard.Pressed(Keys.Enter)) {
+                    if (!string.IsNullOrWhiteSpace(Typing))
+                        Repeat.Insert(1, Typing);
                     Send(Typing);
                     Active = false;
 
@@ -173,7 +179,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 // Backspace - trim.
                 if (Typing.Length > 0)
                     Typing = Typing.Substring(0, Typing.Length - 1);
-                RepeatIndex = 0;
+                _RepeatIndex = 0;
 
             } else if (c == (char) 127) {
                 // Delete - currenly not handled.
@@ -181,7 +187,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             } else if (!char.IsControl(c)) {
                 // Any other character - append.
                 Typing += c;
-                RepeatIndex = 0;
+                _RepeatIndex = 0;
             }
         }
 
@@ -213,7 +219,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     if (Active)
                         y -= 105f * scale;
 
-                    for (int i = 0; i < count && i < Settings.ChatLogLength; i++) {
+                    float logLength = Settings.ChatLogLength;
+                    for (int i = 0; i < count && i < logLength; i++) {
                         DataChat msg = Log[count - 1 - i];
 
                         float alpha = 1f;
@@ -224,6 +231,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             continue;
 
                         string text = msg.ToString();
+                        logLength -= Math.Max(0, text.Count(c => c == '\n') - 1) * 0.75f;
 
                         int lineScaleTry = 0;
                         float lineScale = scale;

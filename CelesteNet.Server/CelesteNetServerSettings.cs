@@ -12,13 +12,17 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public string ModuleRoot { get; set; } = "Modules";
         public string ModuleConfigRoot { get; set; } = "ModuleConfigs";
+        public string UserDataRoot { get; set; } = "UserData";
 
         public int MainPort { get; set; } = 3802;
 
         public LogLevel LogLevel { get; set; } = Logger.Level;
 
-        public int MaxNameLength { get; set; } = 16;
+        public int MaxNameLength { get; set; } = 30;
+        public int MaxGuestNameLength { get; set; } = 16;
         public int MaxEmoteValueLength { get; set; } = 2048;
+
+        public bool AuthOnly { get; set; } = false;
 
     }
 }

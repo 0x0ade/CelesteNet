@@ -15,6 +15,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public Color ColorBroadcast { get; set; } = Calc.HexToColor("#00adee");
         public Color ColorServer { get; set; } = Calc.HexToColor("#9e24f5");
+        public Color ColorError { get; set; } = Calc.HexToColor("#c71585");
+        public Color ColorCommand { get; set; } = Calc.HexToColor("#2e31f1");
+        public Color ColorCommandReply { get; set; } = Calc.HexToColor("#e39dcc");
+        public Color ColorWhisper { get; set; } = Calc.HexToColor("#888888");
+        public Color ColorLogEmote { get; set; } = Calc.HexToColor("#bbbb88");
 
         public string MessageGreeting { get; set; } = "Welcome {player}, to <insert server name here>!";
         public string MessageMOTD { get; set; } =
@@ -22,6 +27,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 Press T to talk.
 Send /help for a list of all commands.";
         public string MessageLeave { get; set; } = "Cya, {player}!";
+        public string MessageKick { get; set; } = "{player} did an oopsie!";
+        public string MessageBan { get; set; } = "{player} won't come back.";
 
     }
 }

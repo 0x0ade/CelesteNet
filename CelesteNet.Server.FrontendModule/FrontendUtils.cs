@@ -19,8 +19,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 msg.ID,
                 PlayerID = msg.Player?.ID ?? uint.MaxValue,
                 Color = msg.Color.ToHex(),
-                Text = msg.ToString()
+                Text = msg.ToString(false, false)
             };
+
+        public static double ToUnixTime(this DateTime time)
+            => time.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
 
     }
 }

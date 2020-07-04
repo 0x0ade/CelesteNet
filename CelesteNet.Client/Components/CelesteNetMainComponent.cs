@@ -1,11 +1,13 @@
 ﻿using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
+using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,20 +16,20 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetMainComponent : CelesteNetGameComponent {
 
-        private DataPlayerState LastState;
         private Player Player;
+        private TrailManager TrailManager;
         private Session Session;
         private bool WasIdle;
+        private uint FrameNextID = 0;
 
         public HashSet<string> ForceIdle = new HashSet<string>();
         public bool StateUpdated;
 
-        public uint Channel;
-
         public GhostNameTag PlayerNameTag;
         public GhostEmote PlayerIdleTag;
         public Dictionary<uint, Ghost> Ghosts = new Dictionary<uint, Ghost>();
-        public Dictionary<uint, uint> FrameIDs = new Dictionary<uint, uint>();
+
+        public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new HashSet<PlayerSpriteMode>();
 
         public CelesteNetMainComponent(CelesteNetClientComponent context, Game game)
             : base(context, game) {
@@ -43,21 +45,24 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Everest.Events.Level.OnExit += OnExitLevel;
             On.Celeste.PlayerHair.GetHairColor += OnGetHairColor;
             On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
+            On.Celeste.Player.Play += OnPlayerPlayAudio;
+            On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
         }
 
-        public override void Start() {
-            base.Start();
-
-            if (Engine.Instance != null && Engine.Scene is Level level)
-                OnLoadLevel(null, level, Player.IntroTypes.Transition, true);
-        }
+        #region Handlers
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
+            if (player.ID == Client.PlayerInfo.ID) {
+                if (PlayerNameTag != null)
+                    PlayerNameTag.Name = player.DisplayName;
+                return;
+            }
+
             if (!Ghosts.TryGetValue(player.ID, out Ghost ghost) ||
                 ghost == null)
                 return;
 
-            if (string.IsNullOrEmpty(player.FullName)) {
+            if (string.IsNullOrEmpty(player.DisplayName)) {
                 ghost.NameTag.Name = "";
                 Ghosts.Remove(player.ID);
                 Client.Data.FreeOrder<DataPlayerFrame>(player.ID);
@@ -65,22 +70,53 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        public void Handle(CelesteNetConnection con, DataChannelMove move) {
+            if (move.Player.ID == Client.PlayerInfo.ID) {
+                foreach (Ghost ghost in Ghosts.Values)
+                    ghost?.RemoveSelf();
+                Ghosts.Clear();
+
+                // The server resends all bound data anyway.
+                foreach (DataPlayerInfo other in Client.Data.GetRefs<DataPlayerInfo>()) {
+                    if (other.ID == Client.PlayerInfo.ID)
+                        continue;
+
+                    foreach (DataType data in Client.Data.GetBoundRefs(other))
+                        if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
+                            Client.Data.FreeBoundRef(state);
+                }
+
+            } else {
+                if (!Ghosts.TryGetValue(move.Player.ID, out Ghost ghost) ||
+                    ghost == null)
+                    return;
+
+                ghost.NameTag.Name = "";
+                Ghosts.Remove(move.Player.ID);
+
+                foreach (DataType data in Client.Data.GetBoundRefs(move.Player))
+                    if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
+                        Client.Data.FreeBoundRef(state);
+            }
+        }
+
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
-            if (state.ID == Client.PlayerInfo.ID) {
+            uint id = state.Player?.ID ?? uint.MaxValue;
+            if (id == (Client?.PlayerInfo?.ID ?? uint.MaxValue)) {
                 if (Player == null)
                     return;
 
                 UpdateIdleTag(Player, ref PlayerIdleTag, state.Idle);
 
             } else {
-                if (!Ghosts.TryGetValue(state.ID, out Ghost ghost) ||
+                if (!Ghosts.TryGetValue(id, out Ghost ghost) ||
                     ghost == null)
                     return;
 
                 Session session = Session;
-                if (session != null && (state.Channel != Channel || state.SID != session.Area.SID || state.Mode != session.Area.Mode)) {
+                if (session != null && (state.SID != session.Area.SID || state.Mode != session.Area.Mode)) {
                     ghost.NameTag.Name = "";
-                    Ghosts.Remove(state.ID);
+                    Ghosts.Remove(id);
                     return;
                 }
 
@@ -96,11 +132,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 !Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
                 level == null ||
                 session == null ||
-                (state.Channel != Channel || state.SID != session.Area.SID || state.Mode != session.Area.Mode);
+                state.SID != session.Area.SID ||
+                state.Mode != session.Area.Mode;
+
+            if (UnsupportedSpriteModes.Contains(frame.SpriteMode))
+                frame.SpriteMode = PlayerSpriteMode.Madeline;
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost == null ||
-                ghost.Scene != level ||
+                (ghost.Scene != null && ghost.Scene != level) ||
                 ghost.Sprite.Mode != frame.SpriteMode ||
                 outside) {
                 if (ghost != null)
@@ -112,29 +152,222 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (level == null || outside)
                 return;
 
-            bool dead = false;
-
             if (ghost == null) {
-                Ghosts[frame.Player.ID] = ghost = new Ghost(frame.SpriteMode);
-                level.Add(ghost);
+                Ghosts[frame.Player.ID] = ghost = new Ghost(Context, frame.SpriteMode);
+                if (ghost.Sprite.Mode != frame.SpriteMode)
+                    UnsupportedSpriteModes.Add(frame.SpriteMode);
+                RunOnMainThread(() => level.Add(ghost));
             }
 
-            dead = ghost.Dead;
-
-            ghost.NameTag.Name = frame.Player.FullName;
+            ghost.NameTag.Name = frame.Player.DisplayName;
             UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
-            ghost.UpdateSprite(frame.Position, frame.Scale, frame.Facing, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
+            ghost.UpdateSprite(frame.Position, frame.Speed, frame.Scale, frame.Facing, frame.Depth, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
             ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
-            ghost.Dead = frame.Dead;
+            ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
+            ghost.UpdateDead(frame.Dead && state.Level == session.Level);
+        }
 
-            if (ghost.Dead != dead && ghost.Dead) {
-                ghost.HandleDeath();
+        public void Handle(CelesteNetConnection con, DataAudioPlay audio) {
+            if (!Settings.Sounds || !(Engine.Scene is Level level) || level.Paused)
+                return;
+
+            if (audio.Position == null) {
+                Audio.Play(audio.Sound, audio.Param, audio.Value);
+                return;
+            }
+
+            if (audio.Player != null) {
+                Session session = Session;
+                if (!Client.Data.TryGetBoundRef(audio.Player, out DataPlayerState state) ||
+                    session == null ||
+                    state.SID != session.Area.SID ||
+                    state.Mode != session.Area.Mode ||
+                    state.Level != session.Level)
+                    return;
+            }
+
+            Audio.Play(audio.Sound, audio.Position.Value, audio.Param, audio.Value);
+        }
+
+        public void Handle(CelesteNetConnection con, DataDashTrail trail) {
+            if (!(Engine.Scene is Level level) || level.Paused)
+                return;
+
+            Ghost ghost = null;
+
+            if (trail.Player != null) {
+                Session session = Session;
+                if (!Client.Data.TryGetBoundRef(trail.Player, out DataPlayerState state) ||
+                    session == null ||
+                    state.SID != session.Area.SID ||
+                    state.Mode != session.Area.Mode ||
+                    state.Level != session.Level ||
+                    !Ghosts.TryGetValue(trail.Player.ID, out ghost))
+                    return;
+            }
+
+            if (trail.Server) {
+                TrailManager.Add(
+                    trail.Position,
+                    trail.Sprite?.ToImage(),
+                    ghost?.Hair,
+                    trail.Scale,
+                    trail.Color,
+                    trail.Depth,
+                    trail.Duration,
+                    trail.FrozenUpdate,
+                    trail.UseRawDeltaTime
+                );
+
+            } else {
+                TrailManager.Add(
+                    trail.Position,
+                    ghost.Sprite,
+                    ghost.Hair,
+                    trail.Scale,
+                    trail.Color,
+                    ghost.Depth + 1,
+                    1f,
+                    false,
+                    false
+                );
             }
         }
 
+        public void Handle(CelesteNetConnection con, DataMoveTo target) {
+            Session session = Session;
+
+            RunOnMainThread(() => {
+                if (SaveData.Instance == null)
+                    SaveData.InitializeDebugMode();
+            }, true);
+
+            AreaData area = AreaDataExt.Get(target.SID);
+
+            if (area == null) {
+                if (target.Force || string.IsNullOrEmpty(target.SID)) {
+                    RunOnMainThread(() => {
+                        OnExitLevel(null, null, LevelExit.Mode.SaveAndQuit, null, null);
+
+                        string message = Dialog.Get("postcard_levelgone");
+                        if (string.IsNullOrEmpty(target.SID))
+                            message = Dialog.Get("postcard_celestenetclient_backtomenu");
+
+                        message = message.Replace("((player))", SaveData.Instance.Name);
+                        message = message.Replace("((sid))", target.SID);
+
+                        LevelEnterExt.ErrorMessage = message;
+                        LevelEnter.Go(new Session(new AreaKey(1).SetSID("")), false);
+                    });
+                }
+                return;
+            }
+
+            if (session == null || session.Area.SID != target.SID) {
+                if (session != null)
+                    UserIO.SaveHandler(true, true);
+
+                session = new Session(area.ToKey(target.Mode));
+            }
+
+            if (!string.IsNullOrEmpty(target.Level) && session.MapData.Get(target.Level) != null) {
+                session.Level = target.Level;
+                session.FirstLevel = false;
+            }
+
+            if (target.Session != null && target.Session.InSession) {
+                DataSession data = target.Session;
+                session.Audio = data.Audio.ToState();
+                session.RespawnPoint = data.RespawnPoint;
+                session.Inventory = data.Inventory;
+                session.Flags = data.Flags;
+                session.LevelFlags = data.LevelFlags;
+                session.Strawberries = data.Strawberries;
+                session.DoNotLoad = data.DoNotLoad;
+                session.Keys = data.Keys;
+                session.Counters = data.Counters;
+                session.FurthestSeenLevel = data.FurthestSeenLevel;
+                session.StartCheckpoint = data.StartCheckpoint;
+                session.ColorGrade = data.ColorGrade;
+                session.SummitGems = data.SummitGems;
+                session.FirstLevel = data.FirstLevel;
+                session.Cassette = data.Cassette;
+                session.HeartGem = data.HeartGem;
+                session.Dreaming = data.Dreaming;
+                session.GrabbedGolden = data.GrabbedGolden;
+                session.HitCheckpoint = data.HitCheckpoint;
+                session.LightingAlphaAdd = data.LightingAlphaAdd;
+                session.BloomBaseAdd = data.BloomBaseAdd;
+                session.DarkRoomAlpha = data.DarkRoomAlpha;
+                session.Time = data.Time;
+                session.CoreMode = data.CoreMode;
+            }
+
+            if (target.Position != null)
+                session.RespawnPoint = target.Position.Value;
+
+            session.StartedFromBeginning = false;
+
+            RunOnMainThread(() => LevelEnter.Go(session, false));
+        }
+
+        #endregion
+
+        #region Request Handlers
+
+        public void Handle(CelesteNetConnection con, DataSessionRequest request) {
+            Session session = Session;
+
+            if (session == null) {
+                Client?.Send(new DataSession {
+                    InSession = false
+                });
+
+            } else {
+                Client?.Send(new DataSession {
+                    InSession = true,
+
+                    Audio = new DataPartAudioState(session.Audio),
+                    RespawnPoint = session.RespawnPoint,
+                    Inventory = session.Inventory,
+                    Flags = new HashSet<string>(session.Flags ?? new HashSet<string>()),
+                    LevelFlags = new HashSet<string>(session.LevelFlags ?? new HashSet<string>()),
+                    Strawberries = new HashSet<EntityID>(session.Strawberries ?? new HashSet<EntityID>()),
+                    DoNotLoad = new HashSet<EntityID>(session.DoNotLoad ?? new HashSet<EntityID>()),
+                    Keys = new HashSet<EntityID>(session.Keys ?? new HashSet<EntityID>()),
+                    Counters = new List<Session.Counter>(Session.Counters ?? new List<Session.Counter>()),
+                    FurthestSeenLevel = session.FurthestSeenLevel,
+                    StartCheckpoint = session.StartCheckpoint,
+                    ColorGrade = session.ColorGrade,
+                    SummitGems = session.SummitGems,
+                    FirstLevel = session.FirstLevel,
+                    Cassette = session.Cassette,
+                    HeartGem = session.HeartGem,
+                    Dreaming = session.Dreaming,
+                    GrabbedGolden = session.GrabbedGolden,
+                    HitCheckpoint = session.HitCheckpoint,
+                    LightingAlphaAdd = session.LightingAlphaAdd,
+                    BloomBaseAdd = session.BloomBaseAdd,
+                    DarkRoomAlpha = session.DarkRoomAlpha,
+                    Time = session.Time,
+                    CoreMode = session.CoreMode
+                });
+            }
+        }
+
+        #endregion
+
         public void UpdateIdleTag(Entity target, ref GhostEmote idleTag, bool idle) {
+            if (!(Engine.Scene is Level level)) {
+                idle = false;
+                level = null;
+            }
+
+            if (target == null || target.Scene != level)
+                idle = false;
+
             if (idle && idleTag == null) {
-                Engine.Scene.Add(idleTag = new GhostEmote(target, "i:hover/idle") {
+                level.Add(idleTag = new GhostEmote(target, "i:hover/idle") {
                     PopIn = true,
                     Float = true
                 });
@@ -149,17 +382,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
-            if (Client == null || !Client.IsReady)
-                return;
-
-            if (!(Engine.Scene is Level level)) {
-                if (Player != null && Engine.Scene != Player.Scene) {
+            bool ready = Client != null && Client.IsReady && Client.PlayerInfo != null;
+            if (!(Engine.Scene is Level level) || !ready) {
+                if (Player != null) {
                     Player = null;
                     Session = null;
                     WasIdle = false;
                     SendState();
                 }
                 return;
+            }
+
+            if (level.FrozenOrPaused || level.Overlay is PauseUpdateOverlay) {
+                level.Particles.Update();
+                level.ParticlesFG.Update();
+                level.ParticlesBG.Update();
+                if (TrailManager == null || TrailManager.Scene != Engine.Scene)
+                    TrailManager = Engine.Scene.Tracker.GetEntity<TrailManager>();
+                if (TrailManager != null)
+                    foreach (TrailManager.Snapshot snapshot in TrailManager.GetSnapshots())
+                        snapshot?.Update();
             }
 
             bool sendState = StateUpdated;
@@ -187,8 +429,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             if (PlayerNameTag == null || PlayerNameTag.Tracking != Player) {
-                PlayerNameTag?.RemoveSelf();
-                level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.FullName));
+                RunOnMainThread(() => {
+                    PlayerNameTag?.RemoveSelf();
+                    level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName));
+                });
             }
 
             SendFrame();
@@ -200,6 +444,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             MainThreadHelper.Do(() => {
                 On.Celeste.Level.LoadLevel -= OnLoadLevel;
                 Everest.Events.Level.OnExit -= OnExitLevel;
+                On.Celeste.PlayerHair.GetHairColor -= OnGetHairColor;
+                On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
+                On.Celeste.Player.Play -= OnPlayerPlayAudio;
+                On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
             });
 
             Cleanup();
@@ -226,7 +474,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #region Hooks
 
         public void OnLoadLevel(On.Celeste.Level.orig_LoadLevel orig, Level level, Player.IntroTypes playerIntro, bool isFromLoader = false) {
-            orig?.Invoke(level, playerIntro, isFromLoader);
+            orig(level, playerIntro, isFromLoader);
 
             Session = level.Session;
             WasIdle = false;
@@ -260,20 +508,38 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return orig(self, index);
         }
 
+        private EventInstance OnPlayerPlayAudio(On.Celeste.Player.orig_Play orig, Player self, string sound, string param, float value) {
+            SendAudioPlay(self.Center, sound, param, value);
+            return orig(self, sound, param, value);
+        }
+
+        private TrailManager.Snapshot OnDashTrailAdd(
+            On.Celeste.TrailManager.orig_Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool orig,
+            Vector2 position, Image sprite, PlayerHair hair, Vector2 scale, Color color, int depth, float duration, bool frozenUpdate, bool useRawDeltaTime
+        ) {
+            if (hair?.Entity is Player)
+                SendDashTrail(position, sprite, hair, scale, color, depth, duration, frozenUpdate, useRawDeltaTime);
+            return orig(position, sprite, hair, scale, color, depth, duration, frozenUpdate, useRawDeltaTime);
+        }
+
         #endregion
 
 
         #region Send
 
         public void SendState() {
-            Client?.SendAndHandle(LastState = new DataPlayerState {
-                ID = Client.PlayerInfo.ID,
-                Channel = Channel,
-                SID = Session?.Area.GetSID() ?? "",
-                Mode = Session?.Area.Mode ?? AreaMode.Normal,
-                Level = Session?.Level ?? "",
-                Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null))
-            });
+            try {
+                Client?.SendAndHandle(new DataPlayerState {
+                    Player = Client.PlayerInfo,
+                    SID = Session?.Area.GetSID() ?? "",
+                    Mode = Session?.Area.Mode ?? AreaMode.Normal,
+                    Level = Session?.Level ?? "",
+                    Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null))
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");
+                Context.Dispose();
+            }
         }
 
         public void SendFrame() {
@@ -288,30 +554,74 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             for (int i = 0; i < hairCount; i++)
                 hairTextures[i] = Player.Hair.GetHairTexture(i).AtlasPath;
 
-            Client?.Send(new DataPlayerFrame {
-                Position = Player.Position,
-                Speed = Player.Speed,
-                Scale = Player.Sprite.Scale,
-                Color = Player.Sprite.Color,
-                Facing = Player.Facing,
+            try {
+                Client?.Send(new DataPlayerFrame {
+                    UpdateID = FrameNextID++,
 
-                SpriteMode = Player.Sprite.Mode,
-                CurrentAnimationID = Player.Sprite.CurrentAnimationID,
-                CurrentAnimationFrame = Player.Sprite.CurrentAnimationFrame,
+                    Player = Client.PlayerInfo,
 
-                HairColor = Player.Hair.Color,
-                HairSimulateMotion = Player.Hair.SimulateMotion,
+                    Position = Player.Position,
+                    Speed = Player.Speed,
+                    Scale = Player.Sprite.Scale,
+                    Color = Player.Sprite.Color,
+                    Facing = Player.Facing,
+                    Depth = Player.Depth,
 
-                HairCount = (byte) hairCount,
-                HairColors = hairColors,
-                HairTextures = hairTextures,
+                    SpriteMode = Player.Sprite.Mode,
+                    CurrentAnimationID = Player.Sprite.CurrentAnimationID,
+                    CurrentAnimationFrame = Player.Sprite.CurrentAnimationFrame,
 
-                DashColor = Player.StateMachine.State == Player.StDash ? Player.GetCurrentTrailColor() : (Color?) null,
-                DashDir = Player.DashDir,
-                DashWasB = Player.GetWasDashB(),
+                    HairColor = Player.Hair.Color,
+                    HairSimulateMotion = Player.Hair.SimulateMotion,
 
-                Dead = Player.Dead
-            });
+                    HairCount = (byte) hairCount,
+                    HairColors = hairColors,
+                    HairTextures = hairTextures,
+
+                    // TODO: Get rid of this, sync particles separately!
+                    DashWasB = Player.StateMachine.State == Player.StDash ? Player.GetWasDashB() : (bool?) null,
+                    DashDir = Player.DashDir,
+
+                    Dead = Player.Dead
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-main", $"Error in SendFrame:\n{e}");
+                Context.Dispose();
+            }
+        }
+
+        public void SendAudioPlay(Vector2 pos, string sound, string param = null, float value = 0f) {
+            try {
+                Client?.Send(new DataAudioPlay {
+                    Player = Client.PlayerInfo,
+                    Sound = sound,
+                    Param = param ?? "",
+                    Value = value,
+                    Position = pos
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-main", $"Error in SendAudioPlay:\n{e}");
+                Context.Dispose();
+            }
+        }
+
+        public void SendDashTrail(Vector2 position, Image sprite, PlayerHair hair, Vector2 scale, Color color, int depth, float duration, bool frozenUpdate, bool useRawDeltaTime) {
+            try {
+                Client?.Send(new DataDashTrail {
+                    Player = Client.PlayerInfo,
+                    Position = position,
+                    Sprite = new DataPartImage(sprite),
+                    Scale = scale,
+                    Color = color,
+                    Depth = depth,
+                    Duration = duration,
+                    FrozenUpdate = frozenUpdate,
+                    UseRawDeltaTime = useRawDeltaTime
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-main", $"Error in SendDashTrail:\n{e}");
+                Context.Dispose();
+            }
         }
 
         #endregion

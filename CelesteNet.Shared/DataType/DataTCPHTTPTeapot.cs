@@ -15,6 +15,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         // Handled specially by CelesteNetTCPUDPConnection.
 
+        public uint ConnectionToken;
+
         public override void Read(DataContext ctx, BinaryReader reader) {
             throw new NotSupportedException();
         }

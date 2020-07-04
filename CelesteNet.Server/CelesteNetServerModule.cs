@@ -16,8 +16,10 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public abstract class CelesteNetServerModule : IDisposable {
 
-        public CelesteNetServer? Server;
-        public CelesteNetServerModuleWrapper? Wrapper;
+#pragma warning disable CS8618 // Set on init.
+        public CelesteNetServer Server;
+        public CelesteNetServerModuleWrapper Wrapper;
+#pragma warning restore CS8618
 
         public virtual void Init(CelesteNetServerModuleWrapper wrapper) {
             Server = wrapper.Server;
@@ -40,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public virtual void Dispose() {
             SaveSettings();
 
-            Server?.Data.UnregisterHandlersIn(this);
+            Server.Data.UnregisterHandlersIn(this);
         }
 
     }
@@ -50,9 +52,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         public TSettings Settings = new TSettings();
 
         public override void LoadSettings() {
-            if (Server == null || Wrapper == null)
-                return;
-
             string path = Path.Combine(Path.GetFullPath(Server.Settings.ModuleConfigRoot), $"{Wrapper.ID}.yaml");
             if (!File.Exists(path)) {
                 SaveSettings();
@@ -64,9 +63,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override void SaveSettings() {
-            if (Server == null || Wrapper == null)
-                return;
-
             string path = Path.Combine(Path.GetFullPath(Server.Settings.ModuleConfigRoot), $"{Wrapper.ID}.yaml");
             if (File.Exists(path))
                 File.Delete(path);

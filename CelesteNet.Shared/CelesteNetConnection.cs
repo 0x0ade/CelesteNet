@@ -45,6 +45,7 @@ namespace Celeste.Mod.CelesteNet {
         public virtual bool IsAlive { get; protected set; } = true;
         public abstract bool IsConnected { get; }
         public abstract string ID { get; }
+        public abstract string UID { get; }
 
         public bool SendKeepAlive;
 
@@ -75,7 +76,8 @@ namespace Celeste.Mod.CelesteNet {
         public void Send(DataType? data) {
             if (data == null)
                 return;
-            if (!data.FilterSend(Data))
+            data.Meta = data.GenerateMeta(Data);
+            if (!(data is DataInternalDisconnect) && !data.FilterSend(Data))
                 return;
             if (!IsAlive)
                 return;
@@ -110,6 +112,11 @@ namespace Celeste.Mod.CelesteNet {
                         DataType data;
                         lock (SendQueue)
                             data = SendQueue.Dequeue();
+
+                        if (data is DataInternalDisconnect) {
+                            Dispose();
+                            return;
+                        }
 
                         SendRaw(data);
 

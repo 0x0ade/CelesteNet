@@ -8,7 +8,6 @@
     pointer-events: none;
     backface-visibility: hidden;
     z-index: 10000;
-    animation: foreground 0.3s 0.0s 1 ease-in-out forwards;
 }
 
 #overlay-wrap {
@@ -18,7 +17,6 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    mix-blend-mode: hard-light;
     opacity: 0.13;
     filter: blur(16px);
     z-index: 10000;
@@ -30,10 +28,11 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 200vw;
-    height: 200vw;
-    background-size: 100vw;
-    background-position: 0 0;
+    width: 100vw;
+    height: 100vh;
+    background-size: 77vw;
+    background-position: 20vh 10vh;
+    background-repeat: repeat;
 }
 
 #noisefg {
@@ -48,48 +47,12 @@
     z-index: 100;
     pointer-events: none;
     opacity: 0.03;
-    animation: noisemove 1s forwards infinite linear;
-    mix-blend-mode: screen;
     z-index: 10001;
-}
-
-@keyframes foreground {
-    0% {
-        opacity: 0;
-    }
-
-    100% {
-        opacity: 1;
-    }
-}
-
-@keyframes overlay {
-    0% {
-        transform: translate(-50%, -50%);
-    }
-
-    100% {
-        transform: translate(0, 0);
-    }
-}
-
-@keyframes noisemove {
-    0% {
-        background-position-x: -3357px;
-        background-position-y: -4489px;
-    }
-
-    100% {
-        background-position-x: 3231px;
-        background-position-y: 5821px;
-    }
 }
 
 @media screen and (orientation: portrait) {
     #overlay {
-        width: 200vh;
-        height: 200vh;
-        background-size: 100vh;
+        background-size: 77vh;
     }
 }
 

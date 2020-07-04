@@ -102,5 +102,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             Client?.Data.UnregisterHandlersIn(this);
         }
 
+        protected void RunOnMainThread(Action action, bool wait = false)
+            => Context._RunOnMainThread(action, wait);
+
     }
 }

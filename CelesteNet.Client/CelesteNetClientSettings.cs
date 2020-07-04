@@ -1,4 +1,5 @@
-﻿using Celeste.Mod.UI;
+﻿using Celeste.Mod.CelesteNet.Client.Components;
+using Celeste.Mod.UI;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
@@ -12,13 +13,18 @@ namespace Celeste.Mod.CelesteNet.Client {
     [SettingName("modoptions_celestenetclient_title")]
     public class CelesteNetClientSettings : EverestModuleSettings {
 
+        [SettingIgnore]
+        public bool WantsToBeConnected { get; set; }
+
         [YamlIgnore]
         public bool Connected {
             get => CelesteNetClientModule.Instance.IsAlive;
             set {
-                if (value)
+                WantsToBeConnected = value;
+
+                if (value && !Connected)
                     CelesteNetClientModule.Instance.Start();
-                else
+                else if (!value && Connected)
                     CelesteNetClientModule.Instance.Stop();
 
                 if (!value && EnabledEntry != null && Engine.Scene != null)
@@ -33,6 +39,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore]
         public TextMenu.OnOff EnabledEntry { get; protected set; }
 
+        public bool AutoReconnect { get; set; } = true;
 
         public string Server { get; set; } = "celeste.0x0ade.ga";
         [YamlIgnore]
@@ -61,6 +68,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             set => Logger.Level = value;
         }
 
+        public bool Collision { get; set; } = true;
+        public bool Sounds { get; set; } = true;
+
+        public CelesteNetPlayerListComponent.ListMode PlayerListMode { get; set; }
+
         [SettingIgnore]
         [SettingRange(4, 16)]
         public int ChatLogLength { get; set; } = 8;
@@ -76,6 +88,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         [SettingRange(1, 6)]
         public int EmoteWheelScrollMultiplier { get; set; } = 3;
+
+        public CelesteNetBlurHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetBlurHelperComponent.BlurQuality.HQ;
 
         #region Key Bindings
 
@@ -150,7 +164,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateServerEntry(TextMenu menu, bool inGame) {
             menu.Add(
-                (ServerEntry = new TextMenu.Button(("modoptions_celestenetclient_server".DialogClean()).Replace("(server)", Server)))
+                (ServerEntry = new TextMenu.Button(("modoptions_celestenetclient_server".DialogClean()).Replace("((server))", Server)))
                 .Pressed(() => {
                     Audio.Play("event:/ui/main/savefile_rename_start");
                     menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(
@@ -169,7 +183,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 name = "########";
 
             menu.Add(
-                (NameEntry = new TextMenu.Button(("modoptions_celestenetclient_name".DialogClean()).Replace("(name)", name)))
+                (NameEntry = new TextMenu.Button(("modoptions_celestenetclient_name".DialogClean()).Replace("((name))", name)))
                 .Pressed(() => {
                     Audio.Play("event:/ui/main/savefile_rename_start");
                     menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(

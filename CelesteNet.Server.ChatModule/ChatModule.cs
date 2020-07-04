@@ -1,5 +1,6 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
+using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -17,18 +18,24 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
+#pragma warning disable CS8618 // Set on init.
+        public ChatCommands Commands;
+#pragma warning restore CS8618
+
         public override void Init(CelesteNetServerModuleWrapper wrapper) {
             base.Init(wrapper);
-            if (Server == null)
-                return;
 
+            Commands = new ChatCommands(this);
             Server.OnSessionStart += OnSessionStart;
+            lock (Server.Connections)
+                foreach (CelesteNetPlayerSession session in Server.PlayersByCon.Values)
+                    session.OnEnd += OnSessionEnd;
         }
 
         public override void Dispose() {
             base.Dispose();
-            if (Server == null)
-                return;
+
+            Commands.Dispose();
 
             Server.OnSessionStart -= OnSessionStart;
             lock (Server.Connections)
@@ -37,28 +44,28 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
-            Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.FullName ?? "???"));
-            Send(session, Settings.MessageMOTD);
+            Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.DisplayName ?? "???"));
+            SendTo(session, Settings.MessageMOTD);
             session.OnEnd += OnSessionEnd;
         }
 
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
-            string? fullName = lastPlayerInfo?.FullName;
-            if (!fullName.IsNullOrEmpty())
-                Broadcast(Settings.MessageLeave.InjectSingleValue("player", fullName));
+            string? displayName = lastPlayerInfo?.DisplayName;
+            if (!displayName.IsNullOrEmpty())
+                Broadcast((new DynamicData(session).Get<string>("leaveReason") ?? Settings.MessageLeave).InjectSingleValue("player", displayName));
         }
 
-        public event Func<ChatModule, DataChat, bool>? OnReceive;
-
         public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {
-            if (Server == null)
-                return null;
-
             if (!msg.CreatedByServer) {
                 if (from == null)
                     return null;
 
-                msg.Player = Server.GetPlayerInfo(from);
+                CelesteNetPlayerSession? player;
+                lock (Server.Connections)
+                    if (!Server.PlayersByCon.TryGetValue(from, out player))
+                        return null;
+
+                msg.Player = player.PlayerInfo;
                 if (msg.Player == null)
                     return null;
 
@@ -85,7 +92,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             msg.Date = DateTime.UtcNow;
 
             if (!msg.CreatedByServer)
-                Logger.Log(LogLevel.INF, "chatmsg", msg.ToString());
+                Logger.Log(LogLevel.INF, "chatmsg", msg.ToString(false, true));
 
             if (!(OnReceive?.InvokeWhileTrue(this, msg) ?? true))
                 return null;
@@ -93,18 +100,70 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             return msg;
         }
 
+        public event Func<ChatModule, DataChat, bool>? OnReceive;
 
         public void Handle(CelesteNetConnection? con, DataChat msg) {
-            if (Server == null ||
-                PrepareAndLog(con, msg) == null)
+            if (PrepareAndLog(con, msg) == null)
                 return;
 
-            if (msg.Text.StartsWith(Settings.CommandPrefix)) {
-                // TODO: Handle commands separately!
+            if ((!msg.CreatedByServer || msg.Player == null) && msg.Text.StartsWith(Settings.CommandPrefix)) {
+                if (msg.Player != null) {
+                    // Player should at least receive msg ack.
+                    msg.Color = Settings.ColorCommand;
+                    msg.Target = msg.Player;
+                    ForceSend(msg);
+                }
+
+                // TODO: Improve or rewrite. This comes from GhostNet, which adopted it from disbot (0x0ade's C# Discord bot).
+
+                ChatCMDEnv env = new ChatCMDEnv(this, msg);
+
+                string cmdName = env.FullText.Substring(Settings.CommandPrefix.Length);
+                cmdName = cmdName.Split(ChatCMD.NameDelimiters)[0].ToLowerInvariant();
+                if (cmdName.Length == 0)
+                    return;
+
+                ChatCMD? cmd = Commands.Get(cmdName);
+                if (cmd != null) {
+                    env.Cmd = cmd;
+                    Task.Run(() => {
+                        try {
+                            cmd.ParseAndRun(env);
+                        } catch (Exception e) {
+                            env.Error(e);
+                        }
+                    });
+
+                } else {
+                    env.Send($"Command {cmdName} not found!", color: Settings.ColorError);
+                }
+
                 return;
             }
 
             Server.Broadcast(msg);
+        }
+
+        public void Handle(CelesteNetConnection con, DataEmote emote) {
+            if (con == null)
+                return;
+
+            CelesteNetPlayerSession? player;
+            lock (Server.Connections)
+                if (!Server.PlayersByCon.TryGetValue(con, out player))
+                    return;
+
+            DataPlayerInfo? playerInfo = player.PlayerInfo;
+            if (playerInfo == null)
+                return;
+
+            PrepareAndLog(con, new DataChat {
+                Player = playerInfo,
+                Targets = new DataPlayerInfo[0],
+                Text = emote.Text,
+                Tag = "emote",
+                Color = Settings.ColorLogEmote
+            });
         }
 
 
@@ -119,14 +178,20 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             return msg;
         }
 
-        public DataChat Send(CelesteNetPlayerSession player, string text, string? tag = null, Color? color = null) {
-            Logger.Log(LogLevel.INF, "chat", $"Sending to {player.PlayerInfo}: {text}");
+        public DataChat? SendTo(CelesteNetPlayerSession? player, string text, string? tag = null, Color? color = null) {
             DataChat msg = new DataChat() {
-                Target = player.PlayerInfo,
+                Target = player?.PlayerInfo,
                 Text = text,
                 Tag = tag ?? "",
                 Color = color ?? Settings.ColorServer
             };
+            if (player == null || msg.Target == null) {
+                Logger.Log(LogLevel.INF, "chat", $"Sending to nobody: {text}");
+                PrepareAndLog(null, msg);
+                return null;
+            }
+
+            Logger.Log(LogLevel.INF, "chat", $"Sending to {msg.Target}: {text}");
             player.Con.Send(PrepareAndLog(null, msg));
             return msg;
         }
@@ -134,21 +199,21 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public event Action<ChatModule, DataChat>? OnForceSend;
 
         public void ForceSend(DataChat msg) {
-            if (Server == null)
-                return;
-
-            Logger.Log(LogLevel.INF, "chatupd", msg.ToString());
+            Logger.Log(LogLevel.INF, "chatupd", msg.ToString(false, true));
             OnForceSend?.Invoke(this, msg);
-            if (msg.Target == null) {
+
+            if (msg.Targets == null) {
                 Server.Broadcast(msg);
                 return;
             }
 
-            CelesteNetPlayerSession? player;
-            lock (Server.Connections)
-                if (!Server.PlayersByID.TryGetValue(msg.Target.ID, out player))
-                    return;
-            player.Con?.Send(msg);
+            foreach (DataPlayerInfo playerInfo in msg.Targets) {
+                CelesteNetPlayerSession? player;
+                lock (Server.Connections)
+                    if (!Server.PlayersByID.TryGetValue(playerInfo.ID, out player))
+                        continue;
+                player.Con?.Send(msg);
+            }
         }
 
     }

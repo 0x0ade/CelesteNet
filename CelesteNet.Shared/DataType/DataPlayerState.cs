@@ -32,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override void FixupMeta(DataContext ctx) {
             Player = Get<MetaPlayerPrivateState>(ctx);
-            Get<MetaBoundRef>(ctx).ID = Player.ID;
+            Get<MetaBoundRef>(ctx).ID = Player?.ID ?? uint.MaxValue;
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {

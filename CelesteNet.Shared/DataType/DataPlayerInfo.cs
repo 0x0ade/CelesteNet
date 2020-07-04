@@ -50,24 +50,24 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public MetaPlayerBaseType() {
         }
         public MetaPlayerBaseType(DataPlayerInfo? player) {
-            Opt = player;
+            Player = player;
         }
 
-        public DataPlayerInfo? Opt;
-        public DataPlayerInfo Player {
-            get => Opt ?? throw new Exception($"{GetType().Name} with actual player expected.");
-            set => Opt = value ?? throw new Exception($"{GetType().Name} with actual player expected.");
+        public DataPlayerInfo? Player;
+        public DataPlayerInfo ForcePlayer {
+            get => Player ?? throw new Exception($"{GetType().Name} with actual player expected.");
+            set => Player = value ?? throw new Exception($"{GetType().Name} with actual player expected.");
         }
 
         public override void Read(DataContext ctx, MetaTypeWrap data) {
-            ctx.TryGetRef(uint.Parse(data["ID"]), out Opt);
+            ctx.TryGetRef(uint.Parse(data["ID"]), out Player);
         }
 
         public override void Write(DataContext ctx, MetaTypeWrap data) {
-            data["ID"] = (Opt?.ID ?? uint.MaxValue).ToString();
+            data["ID"] = (Player?.ID ?? uint.MaxValue).ToString();
         }
 
-        public static implicit operator DataPlayerInfo(MetaPlayerBaseType<T> meta)
+        public static implicit operator DataPlayerInfo?(MetaPlayerBaseType<T> meta)
             => meta.Player;
 
     }

@@ -60,10 +60,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             };
 
         public override void FixupMeta(DataContext ctx) {
-            Get<MetaOrderedUpdate>(ctx).ID = Get<MetaPlayerUpdate>(ctx).Opt?.ID ?? uint.MaxValue;
+            Get<MetaOrderedUpdate>(ctx).ID = Get<MetaPlayerUpdate>(ctx).Player?.ID ?? uint.MaxValue;
 
             UpdateID = Get<MetaOrderedUpdate>(ctx).UpdateID;
-            Player = Get<MetaPlayerUpdate>(ctx).Opt;
+            Player = Get<MetaPlayerUpdate>(ctx);
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {

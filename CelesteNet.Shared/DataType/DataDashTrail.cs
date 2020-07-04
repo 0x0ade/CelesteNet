@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             => (Server || Player != null) && !(Server && Sprite == null); // Can be RECEIVED BY CLIENT TOO EARLY because UDP is UDP.
 
         public override void FixupMeta(DataContext ctx) {
-            Player = Get<MetaPlayerUpdate>(ctx).Opt;
+            Player = Get<MetaPlayerUpdate>(ctx);
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {

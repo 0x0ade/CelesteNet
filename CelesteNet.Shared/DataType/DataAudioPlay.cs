@@ -37,7 +37,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             };
 
         public override void FixupMeta(DataContext ctx) {
-            Player = Get<MetaPlayerUpdate>(ctx).Opt;
+            Player = Get<MetaPlayerUpdate>(ctx);
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {

@@ -275,17 +275,17 @@ namespace Celeste.Mod.CelesteNet.Server {
             bool fixup = false;
 
             if (data.TryGet(Server.Data, out MetaPlayerUpdate? update)) {
-                update.Opt = PlayerInfo;
+                update.Player = PlayerInfo;
                 fixup = true;
             }
 
             if (data.TryGet(Server.Data, out MetaPlayerPrivateState? state)) {
-                state.Opt = PlayerInfo;
+                state.Player = PlayerInfo;
                 fixup = true;
             }
 
             if (data.TryGet(Server.Data, out MetaPlayerPublicState? statePub)) {
-                statePub.Opt = PlayerInfo;
+                statePub.Player = PlayerInfo;
                 fixup = true;
             }
 

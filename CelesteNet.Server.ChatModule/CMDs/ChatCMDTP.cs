@@ -13,9 +13,9 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDTP : ChatCMD {
 
-        public override string Args => "<user>";
+        public override string Args => "<player>";
 
-        public override string Info => "Teleport to another user.";
+        public override string Info => "Teleport to another player.";
 
         public override void Run(ChatCMDEnv env, params ChatCMDArg[] args) {
             CelesteNetPlayerSession? self = env.Session;
@@ -32,8 +32,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             CelesteNetPlayerSession? other = args[0].Session;
             DataPlayerInfo otherPlayer = other?.PlayerInfo ?? throw new Exception("Invalid username or ID.");
 
+            if (!env.Server.UserData.Load<TPSettings>(other.UID).Enabled)
+                throw new Exception($"{otherPlayer.DisplayName} has blocked teleports.");
+
             if (env.Server.Channels.Get(self) != env.Server.Channels.Get(other))
-                throw new Exception("Different channel.");
+                throw new Exception($"{otherPlayer.DisplayName} is in a different channel.");
 
             if (!env.Server.Data.TryGetBoundRef(otherPlayer, out DataPlayerState? otherState) ||
                 otherState == null ||
@@ -79,5 +82,51 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             return true;
         }
 
+    }
+
+    public class ChatCMDTPOn : ChatCMD {
+
+        public override string Args => "";
+
+        public override string Info => "Allow others to teleport to you.";
+
+        public override void ParseAndRun(ChatCMDEnv env) {
+            if (env.Session == null)
+                return;
+
+            if (env.Server.UserData.GetKey(env.Session.UID).IsNullOrEmpty())
+                throw new Exception("You must be registered to enable / disable teleports!");
+
+            env.Server.UserData.Save(env.Session.UID, new TPSettings {
+                Enabled = true
+            });
+            env.Send("Others can teleport to you now.");
+        }
+
+    }
+
+    public class ChatCMDTPOff : ChatCMD {
+
+        public override string Args => "";
+
+        public override string Info => "Prevent others from teleporting to you.";
+
+        public override void ParseAndRun(ChatCMDEnv env) {
+            if (env.Session == null)
+                return;
+
+            if (env.Server.UserData.GetKey(env.Session.UID).IsNullOrEmpty())
+                throw new Exception("You must be registered to enable / disable teleports!");
+
+            env.Server.UserData.Save(env.Session.UID, new TPSettings {
+                Enabled = false
+            });
+            env.Send("Others can't teleport to you anymore.");
+        }
+
+    }
+
+    public class TPSettings {
+        public bool Enabled { get; set; } = true;
     }
 }

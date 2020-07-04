@@ -140,7 +140,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost == null ||
-                ghost.Scene != level ||
+                (ghost.Scene != null && ghost.Scene != level) ||
                 ghost.Sprite.Mode != frame.SpriteMode ||
                 outside) {
                 if (ghost != null)

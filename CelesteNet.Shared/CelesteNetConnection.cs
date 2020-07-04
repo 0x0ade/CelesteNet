@@ -76,7 +76,7 @@ namespace Celeste.Mod.CelesteNet {
         public void Send(DataType? data) {
             if (data == null)
                 return;
-            data.GenerateMeta(Data);
+            data.Meta = data.GenerateMeta(Data);
             if (!(data is DataInternalDisconnect) && !data.FilterSend(Data))
                 return;
             if (!IsAlive)

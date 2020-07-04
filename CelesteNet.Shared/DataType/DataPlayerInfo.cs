@@ -74,6 +74,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public static implicit operator DataPlayerInfo?(MetaPlayerBaseType<T> meta)
             => meta.Player;
 
+        public static implicit operator uint(MetaPlayerBaseType<T> meta)
+            => meta.Player?.ID ?? uint.MaxValue;
+
     }
 
 

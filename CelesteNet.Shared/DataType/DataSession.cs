@@ -54,7 +54,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if (reader.ReadBoolean()) {
                 Audio = new DataPartAudioState();
-                Audio.Read(ctx, reader);
+                Audio.ReadAll(ctx, reader);
             }
 
             if (reader.ReadBoolean())
@@ -143,7 +143,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if (Audio != null) {
                 writer.Write(true);
-                Audio.Write(ctx, writer);
+                Audio.WriteAll(ctx, writer);
             } else {
                 writer.Write(false);
             }

@@ -25,6 +25,16 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public virtual void FixupMeta(DataContext ctx) {
         }
 
+        public virtual void ReadAll(DataContext ctx, BinaryReader reader) {
+            UnwrapMeta(ctx, ctx.ReadMeta(reader));
+            Read(ctx, reader);
+        }
+
+        public virtual void WriteAll(DataContext ctx, BinaryWriter writer) {
+            ctx.WriteMeta(writer, WrapMeta(ctx));
+            Write(ctx, writer);
+        }
+
         public abstract void Read(DataContext ctx, BinaryReader reader);
         public abstract void Write(DataContext ctx, BinaryWriter writer);
 
@@ -110,6 +120,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public T ReadT(DataContext ctx, BinaryReader reader) {
             Read(ctx, reader);
+            return (T) this;
+        }
+
+        public T ReadAllT(DataContext ctx, BinaryReader reader) {
+            ReadAll(ctx, reader);
             return (T) this;
         }
 

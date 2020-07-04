@@ -248,6 +248,13 @@ namespace Celeste.Mod.CelesteNet {
             return () => UnregisterHandler(handler);
         }
 
+        public MetaTypeWrap[] ReadMeta(BinaryReader reader) {
+            MetaTypeWrap[] metas = new MetaTypeWrap[reader.ReadByte()];
+            for (int i = 0; i < metas.Length; i++)
+                metas[i] = new MetaTypeWrap().Read(reader);
+            return metas;
+        }
+
         public DataType Read(BinaryReader reader) {
             string id = Calc.ReadNullTerminatedString(reader);
             DataFlags flags = (DataFlags) reader.ReadUInt16();
@@ -257,9 +264,7 @@ namespace Celeste.Mod.CelesteNet {
 
             string source = Calc.ReadNullTerminatedString(reader);
 
-            MetaTypeWrap[] metas = new MetaTypeWrap[reader.ReadByte()];
-            for (int i = 0; i < metas.Length; i++)
-                metas[i] = new MetaTypeWrap().Read(reader);
+            MetaTypeWrap[] metas = ReadMeta(reader);
 
             if (!IDToDataType.TryGetValue(id, out Type? type))
                 return new DataUnparsed() {
@@ -276,6 +281,12 @@ namespace Celeste.Mod.CelesteNet {
             data.UnwrapMeta(this, metas);
             data.Read(this, reader);
             return data;
+        }
+
+        public void WriteMeta(BinaryWriter writer, MetaTypeWrap[] metas) {
+            writer.Write((byte) metas.Length);
+            foreach (MetaTypeWrap meta in metas)
+                meta.Write(writer);
         }
 
         public int Write(BinaryWriter writer, DataType data) {
@@ -301,11 +312,7 @@ namespace Celeste.Mod.CelesteNet {
 
             writer.WriteNullTerminatedString(data.GetSource(this));
 
-            MetaTypeWrap[] metas = data.WrapMeta(this);
-            writer.Write((byte) metas.Length);
-            foreach (MetaTypeWrap meta in metas)
-                meta.Write(writer);
-
+            WriteMeta(writer, data.WrapMeta(this));
             data.Write(this, writer);
             writer.Flush();
 

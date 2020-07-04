@@ -53,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if (Server) {
                 Sprite = new DataPartImage();
-                Sprite.Read(ctx, reader);
+                Sprite.ReadAll(ctx, reader);
                 Depth = reader.ReadInt32();
                 Duration = reader.ReadSingle();
                 FrozenUpdate = reader.ReadBoolean();
@@ -79,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(Color);
 
             if (Server) {
-                Sprite?.Write(ctx, writer);
+                Sprite?.WriteAll(ctx, writer);
                 writer.Write(Depth);
                 writer.Write(Duration);
                 writer.Write(FrozenUpdate);

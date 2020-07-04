@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if (reader.ReadBoolean()) {
                 Session = new DataSession();
-                Session.Read(ctx, reader);
+                Session.ReadAll(ctx, reader);
             } else {
                 Session = null;
             }
@@ -53,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 writer.Write(false);
             } else {
                 writer.Write(true);
-                Session.Write(ctx, writer);
+                Session.WriteAll(ctx, writer);
             }
 
             if (Position == null) {

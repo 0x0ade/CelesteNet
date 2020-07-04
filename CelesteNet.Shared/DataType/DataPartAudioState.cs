@@ -31,14 +31,14 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override void Read(DataContext ctx, BinaryReader reader) {
             if (reader.ReadBoolean()) {
                 Music = new DataPartAudioTrackState();
-                Music.Read(ctx, reader);
+                Music.ReadAll(ctx, reader);
             } else {
                 Music = null;
             }
 
             if (reader.ReadBoolean()) {
                 Ambience = new DataPartAudioTrackState();
-                Ambience.Read(ctx, reader);
+                Ambience.ReadAll(ctx, reader);
             } else {
                 Ambience = null;
             }
@@ -47,14 +47,14 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override void Write(DataContext ctx, BinaryWriter writer) {
             if (Music != null) {
                 writer.Write(true);
-                Music.Write(ctx, writer);
+                Music.WriteAll(ctx, writer);
             } else {
                 writer.Write(false);
             }
 
             if (Ambience != null) {
                 writer.Write(true);
-                Ambience.Write(ctx, writer);
+                Ambience.WriteAll(ctx, writer);
             } else {
                 writer.Write(false);
             }

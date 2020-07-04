@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 pass = null;
             }
 
-            if (string.IsNullOrEmpty(pass) && !key.IsNullOrEmpty()) {
+            if (pass.IsNullOrEmpty() && !key.IsNullOrEmpty()) {
                 if (f.CurrentSessionKeys.Contains(key)) {
                     f.RespondJSON(c, new {
                         Key = key,
@@ -117,7 +117,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 Modules = f.Server.Modules.Count,
                 f.Server.PlayerCounter,
                 Registered = f.Server.UserData.GetRegisteredCount(),
-                Banned = f.Server.UserData.LoadAll<BanInfo>().Count(ban => !string.IsNullOrEmpty(ban.Reason)),
+                Banned = f.Server.UserData.LoadAll<BanInfo>().Count(ban => !ban.Reason.IsNullOrEmpty()),
                 Connections = auth ? f.Server.Connections.Count : (int?) null,
                 PlayersByCon = auth ? f.Server.PlayersByCon.Count : (int?) null,
                 PlayersByID = auth ? f.Server.PlayersByID.Count : (int?) null,
@@ -136,7 +136,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     info.Discrim,
                     info.Tags,
                     Key = f.Server.UserData.GetKey(uid),
-                    Ban = string.IsNullOrEmpty(ban.Reason) ? null : new {
+                    Ban = ban.Reason.IsNullOrEmpty() ? null : new {
                         ban.Reason,
                         From = ban.From?.ToUnixTime() ?? 0,
                         To = ban.To?.ToUnixTime() ?? 0
@@ -192,6 +192,57 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
 
             f.RespondJSON(c, log);
+        }
+
+        [RCEndpoint(true, "/settings", "?module={id}", "?module=CelesteNet.Server", "Server Settings", "Get the settings of any server module as YAML.")]
+        public static void Settings(Frontend f, HttpRequestEventArgs c) {
+            NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
+            string moduleID = args["module"];
+            if (moduleID.IsNullOrEmpty()) {
+                c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
+                f.RespondJSON(c, new {
+                    Error = "No ID."
+                });
+                return;
+            }
+
+            CelesteNetServerModuleSettings? settings;
+            if (moduleID == "CelesteNet.Server") {
+                settings = f.Server.Settings;
+            } else {
+                lock (f.Server.Modules)
+                    settings = f.Server.Modules.FirstOrDefault(m => m.Wrapper.ID == moduleID)?.GetSettings();
+            }
+
+            if (settings == null) {
+                c.Response.StatusCode = (int) HttpStatusCode.NotFound;
+                f.RespondJSON(c, new {
+                    Error = $"Module {moduleID} not loaded or doesn't have settings."
+                });
+                return;
+            }
+
+            if (c.Request.HttpMethod == "POST") {
+                try {
+                    using (StreamReader sr = new StreamReader(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
+                        settings.Load(sr);
+                    settings.Save();
+                    f.RespondJSON(c, new {
+                        Info = "Success."
+                    });
+                    return;
+                } catch (Exception e) {
+                    f.RespondJSON(c, new {
+                        Error = e.ToString()
+                    });
+                    return;
+                }
+            }
+
+            StringBuilder sb = new StringBuilder();
+            using (StringWriter sw = new StringWriter(sb))
+                settings.Save(sw);
+            f.Respond(c, sb.ToString());
         }
 
     }

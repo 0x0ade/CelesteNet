@@ -14,7 +14,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDUnban : WSCMD<string> {
         public override bool Auth => true;
         public override object? Run(string uid) {
-            if (string.IsNullOrEmpty(uid = uid?.Trim() ?? ""))
+            if ((uid = uid?.Trim() ?? "").IsNullOrEmpty())
                 return null;
 
             Frontend.Server.UserData.Delete<BanInfo>(uid);

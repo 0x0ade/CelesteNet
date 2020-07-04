@@ -24,7 +24,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override MetaType[] GenerateMeta(DataContext ctx)
             => new MetaType[] {
-                new MetaRef(ID, !string.IsNullOrEmpty(FullName))
+                new MetaRef(ID, !FullName.IsNullOrEmpty())
             };
 
         public override void FixupMeta(DataContext ctx) {

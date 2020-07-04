@@ -397,8 +397,7 @@ var mdcrd = {
         <div class="mdc-dialog__surface">
         <h2 class="mdc-dialog__title" id="my-dialog-title">${title}</h2>
         <div class="mdc-dialog__content" id="my-dialog-content">${body}</div>
-        <footer class="mdc-dialog__actions" rdom-get="buttons">
-        </footer>
+        <footer class="mdc-dialog__actions" rdom-get="buttons"></footer>
         </div>
       </div>
       <div class="mdc-dialog__scrim"></div>

@@ -53,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
 
             string code = args["code"];
-            if (string.IsNullOrEmpty(code)) {
+            if (code.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
                 f.RespondJSON(c, new {
                     Error = "No code specified."
@@ -79,8 +79,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
                 if (!(tokenData?.access_token?.ToString() is string token) ||
                     !(tokenData?.token_type?.ToString() is string tokenType) ||
-                    string.IsNullOrEmpty(token) ||
-                    string.IsNullOrEmpty(tokenType)) {
+                    token.IsNullOrEmpty() ||
+                    tokenType.IsNullOrEmpty()) {
                     Logger.Log(LogLevel.CRI, "frontend-discordauth", $"Failed to obtain token: {tokenData}");
                     c.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                     f.RespondJSON(c, new {
@@ -103,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
 
             if (!(userData?.id?.ToString() is string uid) ||
-                string.IsNullOrEmpty(uid)) {
+                uid.IsNullOrEmpty()) {
                 Logger.Log(LogLevel.CRI, "frontend-discordauth", $"Failed to obtain ID: {userData}");
                 c.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                 f.RespondJSON(c, new {
@@ -161,11 +161,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
             string uid = args["uid"];
-            if (string.IsNullOrEmpty(uid)) {
+            if (uid.IsNullOrEmpty()) {
                 string key = args["key"];
-                if (string.IsNullOrEmpty(key))
+                if (key.IsNullOrEmpty())
                     key = c.Request.Cookies[COOKIE_KEY]?.Value ?? "";
-                if (string.IsNullOrEmpty(key)) {
+                if (key.IsNullOrEmpty()) {
                     c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                     f.RespondJSON(c, new {
                         Error = "Unauthorized - no key or uid."
@@ -174,7 +174,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 }
 
                 uid = f.Server.UserData.GetUID(key);
-                if (string.IsNullOrEmpty(uid)) {
+                if (uid.IsNullOrEmpty()) {
                     c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                     f.RespondJSON(c, new {
                         Error = "Unauthorized - invalid key."
@@ -185,7 +185,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 auth = true;
             }
 
-            if (string.IsNullOrEmpty(uid)) {
+            if (uid.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                 f.RespondJSON(c, new {
                     Error = "Unauthorized - invalid uid."
@@ -209,9 +209,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
             string key = args["key"];
-            if (string.IsNullOrEmpty(key))
+            if (key.IsNullOrEmpty())
                 key = c.Request.Cookies[COOKIE_KEY]?.Value ?? "";
-            if (string.IsNullOrEmpty(key)) {
+            if (key.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                 f.RespondJSON(c, new {
                     Error = "Unauthorized - no key."
@@ -220,7 +220,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
 
             string uid = f.Server.UserData.GetUID(key);
-            if (string.IsNullOrEmpty(uid)) {
+            if (uid.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                 f.RespondJSON(c, new {
                     Error = "Unauthorized - invalid key."
@@ -239,7 +239,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
             string uid = args["uid"];
-            if (string.IsNullOrEmpty(uid)) {
+            if (uid.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
                 f.RespondJSON(c, new {
                     Error = "No UID."

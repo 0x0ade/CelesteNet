@@ -45,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             Sound = reader.ReadNullTerminatedString();
             Param = reader.ReadNullTerminatedString();
-            if (!string.IsNullOrEmpty(Param))
+            if (!Param.IsNullOrEmpty())
                 Value = reader.ReadSingle();
 
             if (reader.ReadBoolean())
@@ -60,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             writer.WriteNullTerminatedString(Sound);
             writer.WriteNullTerminatedString(Param);
-            if (!string.IsNullOrEmpty(Param))
+            if (!Param.IsNullOrEmpty())
                 writer.Write(Value);
 
             if (Position == null) {

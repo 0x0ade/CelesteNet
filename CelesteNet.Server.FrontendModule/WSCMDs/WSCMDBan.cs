@@ -16,8 +16,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public override object? Run(dynamic? input) {
             string? uid = (string?) input?.UID;
             string? reason = (string?) input?.Reason;
-            if (string.IsNullOrEmpty(uid = uid?.Trim() ?? "") ||
-                string.IsNullOrEmpty(reason = reason?.Trim() ?? ""))
+            if ((uid = uid?.Trim() ?? "").IsNullOrEmpty() ||
+                (reason = reason?.Trim() ?? "").IsNullOrEmpty())
                 return null;
 
             Frontend.Server.UserData.Save(uid, new BanInfo {

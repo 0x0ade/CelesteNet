@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "material-components-web": "^6.0.0"
+    "material-components-web": "^6.0.0",
+    "monaco-editor": "^0.20.0"
   }
 }

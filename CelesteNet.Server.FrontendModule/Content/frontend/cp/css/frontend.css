@@ -230,10 +230,10 @@ main {
     flex-direction: column;
 }
 
-.panel > h1 {
+.panel > h2 {
     position: relative;
 }
-.panel > h1 > .actions {
+.panel > h2 > .actions {
     position: absolute;
     top: -4px;
     right: 0;
@@ -281,4 +281,11 @@ main {
 .panel-cmd > .panel-input > .mdc-text-field,
 .panel-chat > .panel-input > .mdc-text-field {
     width: 100%;
+}
+
+.dialog-fullscreen.mdc-dialog .mdc-dialog__surface {
+    width: calc(100vw - 64px);
+    height: calc(100vh - 64px);
+    max-width: none;
+    max-height: none;
 }

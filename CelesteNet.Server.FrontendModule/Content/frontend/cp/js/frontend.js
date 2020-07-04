@@ -98,21 +98,16 @@ export class Frontend {
     let dialog = el["MDCDialog"];
 
     if (!dismissable) {
-      // @ts-ignore Outdated .d.ts
       dialog.escapeKeyAction = "";
-      // @ts-ignore Outdated .d.ts
       dialog.scrimClickAction = "";
     } else {
-      // @ts-ignore Outdated .d.ts
       dialog.escapeKeyAction = "close";
-      // @ts-ignore Outdated .d.ts
       dialog.scrimClickAction = "close";
     }
 
-    // @ts-ignore Outdated .d.ts
     dialog.open();
 
-    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"].action)));
+    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"].action), { once: true }));
     dialog["then"] = promise.then.bind(promise);
     dialog["catch"] = promise.catch.bind(promise);
 
@@ -151,7 +146,7 @@ export class Frontend {
       setTimeout(() => {
         el.remove();
       }, 2000);
-    });
+    }, { once: true });
     snackbar["then"] = promise.then.bind(promise);
     snackbar["catch"] = promise.catch.bind(promise);
 

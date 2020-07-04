@@ -37,7 +37,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             if (!env.Server.Data.TryGetBoundRef(otherPlayer, out DataPlayerState? otherState) ||
                 otherState == null ||
-                string.IsNullOrEmpty(otherState.SID))
+                otherState.SID.IsNullOrEmpty())
                 throw new Exception($"{otherPlayer.DisplayName} isn't in-game.");
 
             DataChat? msg = env.Send($"Teleporting to {otherPlayer.DisplayName}");

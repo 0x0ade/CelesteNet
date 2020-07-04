@@ -33,6 +33,7 @@ export class FrontendChannelsPanel extends FrontendBasicPanel {
 
   async update() {
     this.data = await fetch(this.ep).then(r => r.json());
+
     // @ts-ignore
     this.list = this.data.map(c => el => {
       el = mdcrd.list.item(el => rd$(el)`

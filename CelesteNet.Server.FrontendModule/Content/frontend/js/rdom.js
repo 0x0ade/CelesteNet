@@ -518,7 +518,7 @@ export var rd = {
         el.addEventListener(ev, s.v = v.bind(el), false);
         return;
       }
-      
+
       el.setAttribute(s.name, v);
     }
   },

@@ -34,6 +34,7 @@ export class FrontendDOM {
     this.started = false;
     /** @type {import("material-components-web").menu[]} */
     this.menus = [];
+    this.onContextMenu = this.onContextMenu.bind(this);
   }
 
   async start() {
@@ -180,19 +181,31 @@ export class FrontendDOM {
     if (!prevEl) {
       document.body.appendChild(ctx);
       this.menus.push(menu);
+      el.addEventListener("contextmenu", this.onContextMenu);
     }
+  }
 
-    el.addEventListener("contextmenu", e => {
-      e.preventDefault();
+  /**
+   * @param {MouseEvent} e
+   */
+  onContextMenu(e) {
+    const ctx = e.currentTarget["frontendctx"];
+    const menu = ctx && ctx["MDCMenu"];
+    if (!menu)
+      return true;
 
-      for (let other of this.menus)
-        other.open = other === menu && items.length !== 0;
+    e.preventDefault();
 
-      menu.setAbsolutePosition(e.clientX, e.clientY);
-      menu.setFixedPosition(true);
+    menu.open = false;
 
-      return false;
-    });
+    const count = ctx.childElementCount;
+    for (let other of this.menus)
+      other.open = other === menu && count !== 0;
+
+    menu.setAbsolutePosition(e.clientX, e.clientY);
+    menu.setFixedPosition(true);
+
+    return false;
   }
 
   render() {
@@ -203,7 +216,11 @@ export class FrontendDOM {
       ${mdcrd.topAppBar([
         mdcrd.topAppBarTitle("CelesteNet")
       ], [
-        mdcrd.topAppBarAction("Settings", "settings")
+        this.renderSettingsButton = el => {
+          this.elSettingsButton = el =
+            mdcrd.topAppBarAction("Settings", "settings", this.onContextMenu)(el || this.elSettingsButton);
+          return el;
+        }
       ])}
 
       ${el => {

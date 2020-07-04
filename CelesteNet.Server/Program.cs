@@ -51,22 +51,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             Thread.CurrentThread.Name = "Main Thread";
 
             CelesteNetServerSettings settings = new CelesteNetServerSettings();
-            string settingsPath = Path.GetFullPath("celestenet-config.yaml");
-
-            if (File.Exists(settingsPath))
-                using (Stream stream = File.OpenRead(settingsPath))
-                using (StreamReader reader = new StreamReader(stream))
-                    YamlHelper.DeserializerUsing(settings).Deserialize(reader, typeof(CelesteNetServerSettings));
-
-            Directory.CreateDirectory(Path.GetDirectoryName(settingsPath));
-
-            using (Stream stream = File.OpenWrite(settingsPath + ".tmp"))
-            using (StreamWriter writer = new StreamWriter(stream))
-                YamlHelper.Serializer.Serialize(writer, settings, typeof(CelesteNetServerSettings));
-
-            if (File.Exists(settingsPath))
-                File.Delete(settingsPath);
-            File.Move(settingsPath + ".tmp", settingsPath);
+            settings.Load();
+            settings.Save();
 
 
             bool showHelp = false;

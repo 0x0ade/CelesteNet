@@ -22,10 +22,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public string Text = "";
 
         public override bool FilterHandle(DataContext ctx)
-            => Player != null && !string.IsNullOrEmpty(Text);
+            => Player != null && !Text.IsNullOrEmpty();
 
         public override bool FilterSend(DataContext ctx)
-            => !string.IsNullOrEmpty(Text);
+            => !Text.IsNullOrEmpty();
 
         public override MetaType[] GenerateMeta(DataContext ctx)
             => new MetaType[] {

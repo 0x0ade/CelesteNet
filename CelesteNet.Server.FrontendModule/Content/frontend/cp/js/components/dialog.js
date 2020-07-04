@@ -8,6 +8,9 @@ import mdcrd from "../utils/mdcrd.js";
 /** @type {import("material-components-web")} */
 const mdc = window["mdc"]; // mdc
 
+/** @type {typeof import("monaco-editor")} */
+const monaco = window["monaco"]; // monaco-editor
+
 export class FrontendDialog {
   /**
    * @param {import("../frontend.js").Frontend} frontend
@@ -17,6 +20,78 @@ export class FrontendDialog {
   }
 
   async start() {
+  }
+
+  settings(module) {
+    if (!module)
+      module = "CelesteNet.Server";
+
+    /** @type {import("monaco-editor").editor.IStandaloneCodeEditor} */
+    let editor;
+
+    let el = this.elPopupSettings = mdcrd.dialog({
+      title: `Settings: ${module}`,
+      body: el => {
+        el = rd$(el)`<div id="settings-container" style="width: 100%; height: calc(100% - 25px);"></div>`;
+
+        editor = el["MonacoEditor"];
+        if (!editor) {
+          el["MonacoEditor"] = editor = monaco.editor.create(el, {
+            value: "",
+            language: "yaml"
+          });
+          window.addEventListener("resize", () => editor.layout());
+        }
+        setTimeout(() => editor.layout(), 0);
+
+        editor.setValue("# Loading...");
+        fetch(`/settings?module=${encodeURIComponent(module)}`).then(r => r.text()).then(
+          value => editor.setValue(value),
+          e => editor.setValue(`# Error: ${e}`)
+        );
+
+        return el;
+      },
+      defaultButton: "yes",
+      buttons: ["Cancel", "OK"],
+    })(this.elPopupSettings);
+
+    el.classList.add("dialog-fullscreen");
+
+    document.body.appendChild(el);
+
+    /** @type {import("@material/dialog").MDCDialog & Promise<string>} */
+    let dialog = el["MDCDialog"];
+
+    dialog.escapeKeyAction = "";
+    dialog.scrimClickAction = "";
+
+    dialog.open();
+
+    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"].action), { once: true }));
+    dialog["then"] = promise.then.bind(promise);
+    dialog["catch"] = promise.catch.bind(promise);
+
+    dialog.then(
+      action => {
+        if (action !== "1")
+          return;
+        fetch(`/settings?module=${encodeURIComponent(module)}`, {
+          method: "post",
+          body: editor.getValue()
+        }).then(r => r.json()).then(r => {
+          if (!r || r.Error) {
+            this.frontend.snackbar({ text: `Failed to change settings${r ? ": " + r.Error : "."}` });
+          } else {
+            this.frontend.snackbar({ text: `Changed settings successfully.` });
+          }
+        }, e => {
+          this.frontend.snackbar({ text: `Failed to change settings: ${e}` });
+        });
+      }
+    );
+
+    return dialog;
   }
 
   ban(...uids) {
@@ -78,7 +153,7 @@ export class FrontendDialog {
     let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
         uids: Array.from(el.querySelectorAll("input.ban-uid")).map(el => el["checked"] ? el["value"] : null).filter(uid => uid),
         reason: el.querySelector("input#ban-reason")["value"],
-    })));
+    }), { once: true }));
     dialog["then"] = promise.then.bind(promise);
     dialog["catch"] = promise.catch.bind(promise);
 

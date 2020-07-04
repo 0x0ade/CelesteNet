@@ -44,6 +44,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
         return -1;
       return a.Name.localeCompare(b.Name);
     });
+
     // @ts-ignore
     this.list = this.data.map(p => el => {
       el = mdcrd.list.item(el => {

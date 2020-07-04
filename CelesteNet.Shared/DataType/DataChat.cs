@@ -44,10 +44,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public DateTime ReceivedDate = DateTime.UtcNow;
 
         public override bool FilterHandle(DataContext ctx)
-            => !string.IsNullOrEmpty(Text);
+            => !Text.IsNullOrEmpty();
 
         public override bool FilterSend(DataContext ctx)
-            => !string.IsNullOrEmpty(Text);
+            => !Text.IsNullOrEmpty();
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             CreatedByServer = false;
@@ -73,7 +73,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             => ToString(true, false);
 
         public string ToString(bool displayName, bool id)
-            => $"{(id ? $"{{{ID}}}" : "")}[{Date.ToLocalTime().ToLongTimeString()}]{(string.IsNullOrEmpty(Tag) ? "" : $"[{Tag}]")} {(displayName ? Player?.DisplayName : Player?.FullName) ?? "**SERVER**"}{(Target != null ? " @ " + Target.DisplayName : "")}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
+            => $"{(id ? $"{{{ID}}}" : "")}[{Date.ToLocalTime().ToLongTimeString()}]{(Tag.IsNullOrEmpty() ? "" : $"[{Tag}]")} {(displayName ? Player?.DisplayName : Player?.FullName) ?? "**SERVER**"}{(Target != null ? " @ " + Target.DisplayName : "")}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
 
 
     }

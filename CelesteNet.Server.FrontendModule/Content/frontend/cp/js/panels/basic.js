@@ -87,7 +87,7 @@ export class FrontendBasicPanel {
 
   renderHeader(el) {
     return this.elHeader = rd$(el || this.elHeader)`
-    <h1>
+    <h2>
       ${this.header}
       ${el => {
         el = rd$(el)`<div class="actions"></div>`;
@@ -101,7 +101,7 @@ export class FrontendBasicPanel {
 
         return el;
       }}
-    </h1>`;
+    </h2>`;
   }
 
   renderBody(el) {
@@ -110,7 +110,7 @@ export class FrontendBasicPanel {
       <div class="panel-list">
         ${mdcrd.list.list(...this.list)}
       </div>`
-    
+
     return this.elBody = null;
   }
 

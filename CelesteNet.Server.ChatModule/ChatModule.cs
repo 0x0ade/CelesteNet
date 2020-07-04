@@ -70,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     return null;
 
                 msg.Text = msg.Text.Trim();
-                if (string.IsNullOrEmpty(msg.Text))
+                if (msg.Text.IsNullOrEmpty())
                     return null;
 
                 msg.Text.Replace("\r", "").Replace("\n", "");

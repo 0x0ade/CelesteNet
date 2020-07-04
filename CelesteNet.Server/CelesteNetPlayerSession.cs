@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Server.PlayersByID[ID] = this;
             }
 
-            if (Server.UserData.TryLoad(UID, out BanInfo ban) && !string.IsNullOrEmpty(ban.Reason)) {
+            if (Server.UserData.TryLoad(UID, out BanInfo ban) && !ban.Reason.IsNullOrEmpty()) {
                 Con.Send(new DataDisconnectReason { Text = $"IP banned: {ban.Reason}" });
                 Con.Send(new DataInternalDisconnect());
                 return;
@@ -53,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             string name = handshake.Name;
             if (name.StartsWith("#")) {
                 string uid = Server.UserData.GetUID(name.Substring(1));
-                if (string.IsNullOrEmpty(uid)) {
+                if (uid.IsNullOrEmpty()) {
                     Con.Send(new DataDisconnectReason { Text = "Invalid user key" });
                     Con.Send(new DataInternalDisconnect());
                     return;
@@ -69,10 +69,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 name = userinfo.Name.Sanitize(IllegalNameChars, true);
                 if (name.Length > Server.Settings.MaxNameLength)
                     name = name.Substring(0, Server.Settings.MaxNameLength);
-                if (string.IsNullOrEmpty(name))
+                if (name.IsNullOrEmpty())
                     name = "Ghost";
 
-                if (Server.UserData.TryLoad(UID, out ban) && !string.IsNullOrEmpty(ban.Reason)) {
+                if (Server.UserData.TryLoad(UID, out ban) && !ban.Reason.IsNullOrEmpty()) {
                     Con.Send(new DataDisconnectReason { Text = $"{name} banned: {ban.Reason}" });
                     Con.Send(new DataInternalDisconnect());
                     return;
@@ -88,7 +88,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 name = name.Sanitize(IllegalNameChars);
                 if (name.Length > Server.Settings.MaxGuestNameLength)
                     name = name.Substring(0, Server.Settings.MaxGuestNameLength);
-                if (string.IsNullOrEmpty(name))
+                if (name.IsNullOrEmpty())
                     name = "Guest";
             }
 

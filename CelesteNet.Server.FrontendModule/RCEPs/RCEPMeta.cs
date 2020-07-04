@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
             string id = args["id"];
-            if (string.IsNullOrEmpty(id)) {
+            if (id.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.NotFound;
                 f.RespondJSON(c, new {
                     Error = "No id specified."

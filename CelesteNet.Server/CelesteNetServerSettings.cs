@@ -1,14 +1,29 @@
 ﻿using Microsoft.Xna.Framework;
 using Mono.Options;
 using Monocle;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Server {
-    public class CelesteNetServerSettings {
+    public class CelesteNetServerSettings : CelesteNetServerModuleSettings {
+
+        [YamlIgnore]
+        [JsonIgnore]
+        public static string DefaultFilePath = "celestenet-config.yaml";
+
+        public override void Load(string path = "") {
+            base.Load(path.Nullify() ?? FilePath.Nullify() ?? DefaultFilePath);
+        }
+
+        public override void Save(string path = "") {
+            base.Save(path.Nullify() ?? FilePath.Nullify() ?? DefaultFilePath);
+        }
 
         public string ModuleRoot { get; set; } = "Modules";
         public string ModuleConfigRoot { get; set; } = "ModuleConfigs";

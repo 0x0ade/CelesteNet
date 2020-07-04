@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
-    public class ChatSettings {
+    public class ChatSettings : CelesteNetServerModuleSettings {
 
         public int MaxChatTextLength { get; set; } = 256;
 

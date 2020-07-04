@@ -101,7 +101,7 @@ export class FrontendAuth {
     dialog.scrimClickAction = "";
     dialog.open();
 
-    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(el.querySelector("input").value)));
+    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(el.querySelector("input").value), { once: true }));
     dialog["then"] = promise.then.bind(promise);
     dialog["catch"] = promise.catch.bind(promise);
 

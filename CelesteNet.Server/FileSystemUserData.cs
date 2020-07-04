@@ -167,7 +167,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             lock (GlobalLock) {
                 Global global = LoadRaw<Global>(GlobalPath);
                 string key = GetKey(uid);
-                if (!string.IsNullOrEmpty(key))
+                if (!key.IsNullOrEmpty())
                     return key;
 
                 string keyFull;

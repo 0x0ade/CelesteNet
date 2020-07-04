@@ -20,6 +20,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private TrailManager TrailManager;
         private Session Session;
         private bool WasIdle;
+        private uint FrameNextID = 0;
 
         public HashSet<string> ForceIdle = new HashSet<string>();
         public bool StateUpdated;
@@ -27,7 +28,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public GhostNameTag PlayerNameTag;
         public GhostEmote PlayerIdleTag;
         public Dictionary<uint, Ghost> Ghosts = new Dictionary<uint, Ghost>();
-        public Dictionary<uint, uint> FrameIDs = new Dictionary<uint, uint>();
 
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new HashSet<PlayerSpriteMode>();
 
@@ -556,6 +556,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             try {
                 Client?.Send(new DataPlayerFrame {
+                    UpdateID = FrameNextID++,
+
+                    Player = Client.PlayerInfo,
+
                     Position = Player.Position,
                     Speed = Player.Speed,
                     Scale = Player.Sprite.Scale,

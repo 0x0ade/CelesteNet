@@ -62,7 +62,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public virtual MetaTypeWrap[] WrapMeta(DataContext ctx) {
-            MetaType[] metas = Meta = GenerateMeta(ctx);
+            MetaType[] metas = Meta;
             MetaTypeWrap[] wraps = new MetaTypeWrap[metas.Length];
             for (int i = 0; i < metas.Length; i++)
                 wraps[i] = new MetaTypeWrap().Wrap(ctx, metas[i]);

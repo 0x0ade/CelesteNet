@@ -382,7 +382,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
-            bool ready = Client != null && Client.IsAlive && Client.PlayerInfo != null;
+            bool ready = Client != null && Client.IsReady && Client.PlayerInfo != null;
             if (!(Engine.Scene is Level level) || !ready) {
                 if (Player != null) {
                     Player = null;

@@ -17,11 +17,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "emote";
         }
 
-        public override MetaType[] GenerateMeta(DataContext ctx)
-            => new MetaType[] {
-                new MetaPlayerUpdate(Player)
-            };
-
         public DataPlayerInfo? Player;
 
         public string Text = "";
@@ -31,6 +26,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override bool FilterSend(DataContext ctx)
             => !string.IsNullOrEmpty(Text);
+
+        public override MetaType[] GenerateMeta(DataContext ctx)
+            => new MetaType[] {
+                new MetaPlayerUpdate(Player)
+            };
 
         public override void FixupMeta(DataContext ctx) {
             Player = Get<MetaPlayerUpdate>(ctx);

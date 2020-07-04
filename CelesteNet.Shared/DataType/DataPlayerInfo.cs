@@ -17,15 +17,19 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "playerInfo";
         }
 
+        public uint ID;
+        public string Name = "";
+        public string FullName = "";
+        public string DisplayName = "";
+
         public override MetaType[] GenerateMeta(DataContext ctx)
             => new MetaType[] {
                 new MetaRef(ID, !string.IsNullOrEmpty(FullName))
             };
 
-        public uint ID;
-        public string Name = "";
-        public string FullName = "";
-        public string DisplayName = "";
+        public override void FixupMeta(DataContext ctx) {
+            ID = Get<MetaRef>(ctx);
+        }
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             Name = reader.ReadNullTerminatedString();

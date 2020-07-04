@@ -35,5 +35,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             data["IsAlive"] = IsAlive.ToString();
         }
 
+        public static implicit operator uint(MetaRef meta)
+            => meta.ID;
+
     }
 }

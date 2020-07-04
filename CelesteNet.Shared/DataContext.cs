@@ -407,10 +407,10 @@ namespace Celeste.Mod.CelesteNet {
             => TryGetRef(reader.ReadUInt32(), out T? value) ? value : null;
 
         public void WriteRef<T>(BinaryWriter writer, T? data) where T : DataType<T>
-            => writer.Write((data ?? throw new Exception($"Expected {DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(this)?.ID ?? uint.MaxValue);
+            => writer.Write((data ?? throw new Exception($"Expected {DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(this) ?? uint.MaxValue);
 
         public void WriteOptRef<T>(BinaryWriter writer, T? data) where T : DataType<T>
-            => writer.Write(data?.GetOpt<MetaRef>(this)?.ID ?? uint.MaxValue);
+            => writer.Write(data?.GetOpt<MetaRef>(this) ?? uint.MaxValue);
 
 
         public T? GetRef<T>(uint id) where T : DataType<T>
@@ -453,13 +453,13 @@ namespace Celeste.Mod.CelesteNet {
             => (T?) GetBoundRef(DataTypeToID[typeof(TBoundTo)], DataTypeToID[typeof(T)], id);
 
         public T? GetBoundRef<TBoundTo, T>(TBoundTo? boundTo) where TBoundTo : DataType<TBoundTo> where T : DataType<T>
-            => (T?) GetBoundRef(DataTypeToID[typeof(TBoundTo)], DataTypeToID[typeof(T)], boundTo?.Get<MetaRef>(this).ID ?? uint.MaxValue);
+            => (T?) GetBoundRef(DataTypeToID[typeof(TBoundTo)], DataTypeToID[typeof(T)], boundTo?.Get<MetaRef>(this) ?? uint.MaxValue);
 
         public DataType? GetBoundRef(string typeBoundTo, string type, uint id)
             => TryGetBoundRef(typeBoundTo, type, id, out DataType? value) ? value : throw new Exception($"Unknown reference {typeBoundTo} bound to {type} ID {id}");
 
         public bool TryGetBoundRef<TBoundTo, T>(TBoundTo? boundTo, out T? value) where TBoundTo : DataType<TBoundTo> where T : DataType<T>
-            => TryGetBoundRef<TBoundTo, T>(boundTo?.Get<MetaRef>(this).ID ?? uint.MaxValue, out value);
+            => TryGetBoundRef<TBoundTo, T>(boundTo?.Get<MetaRef>(this) ?? uint.MaxValue, out value);
 
         public bool TryGetBoundRef<TBoundTo, T>(uint id, out T? value) where TBoundTo : DataType<TBoundTo> where T : DataType<T> {
             bool rv = TryGetBoundRef(DataTypeToID[typeof(TBoundTo)], DataTypeToID[typeof(T)], id, out DataType? value_);
@@ -485,7 +485,7 @@ namespace Celeste.Mod.CelesteNet {
 
 
         public DataType[] GetBoundRefs<TBoundTo>(TBoundTo? boundTo) where TBoundTo : DataType<TBoundTo>
-            => GetBoundRefs<TBoundTo>(boundTo?.Get<MetaRef>(this).ID ?? uint.MaxValue);
+            => GetBoundRefs<TBoundTo>(boundTo?.Get<MetaRef>(this) ?? uint.MaxValue);
 
         public DataType[] GetBoundRefs<TBoundTo>(uint id) where TBoundTo : DataType<TBoundTo>
             => GetBoundRefs(DataTypeToID[typeof(TBoundTo)], id);
@@ -506,7 +506,7 @@ namespace Celeste.Mod.CelesteNet {
                 return null;
 
             MetaRef metaRef = data.Get<MetaRef>(this);
-            uint id = metaRef.ID;
+            uint id = metaRef;
 
             if (!metaRef.IsAlive) {
                 FreeRef(type, id);
@@ -558,7 +558,7 @@ namespace Celeste.Mod.CelesteNet {
             => FreeRef(DataTypeToID[typeof(T)], id);
 
         public void FreeRef(DataType data)
-            => FreeRef(data.GetTypeID(this), data.Get<MetaRef>(this).ID);
+            => FreeRef(data.GetTypeID(this), data.Get<MetaRef>(this));
 
         public void FreeRef(string type, uint id) {
             if (References.TryGetValue(type, out ConcurrentDictionary<uint, DataType>? refs))

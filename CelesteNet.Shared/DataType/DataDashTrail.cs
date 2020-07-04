@@ -19,11 +19,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override DataFlags DataFlags => DataFlags.Update;
 
-        public override MetaType[] GenerateMeta(DataContext ctx)
-            => new MetaType[] {
-                new MetaPlayerUpdate(Player)
-            };
-
         public bool Server;
         public DataPlayerInfo? Player;
 
@@ -39,6 +34,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override bool FilterHandle(DataContext ctx)
             => (Server || Player != null) && !(Server && Sprite == null); // Can be RECEIVED BY CLIENT TOO EARLY because UDP is UDP.
+
+        public override MetaType[] GenerateMeta(DataContext ctx)
+            => new MetaType[] {
+                new MetaPlayerUpdate(Player)
+            };
 
         public override void FixupMeta(DataContext ctx) {
             Player = Get<MetaPlayerUpdate>(ctx);

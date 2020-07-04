@@ -49,13 +49,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
         }
 
-        public override void Start() {
-            base.Start();
-
-            if (Engine.Instance != null && Engine.Scene is Level level)
-                OnLoadLevel(null, level, Player.IntroTypes.Transition, true);
-        }
-
         #region Handlers
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
@@ -389,11 +382,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
-            if (Client == null || !Client.IsReady)
-                return;
-
-            if (!(Engine.Scene is Level level)) {
-                if (Player != null && Engine.Scene != Player.Scene) {
+            bool ready = Client != null && Client.IsAlive && Client.PlayerInfo != null;
+            if (!(Engine.Scene is Level level) || !ready) {
+                if (Player != null) {
                     Player = null;
                     Session = null;
                     WasIdle = false;
@@ -483,7 +474,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #region Hooks
 
         public void OnLoadLevel(On.Celeste.Level.orig_LoadLevel orig, Level level, Player.IntroTypes playerIntro, bool isFromLoader = false) {
-            orig?.Invoke(level, playerIntro, isFromLoader);
+            orig(level, playerIntro, isFromLoader);
 
             Session = level.Session;
             WasIdle = false;

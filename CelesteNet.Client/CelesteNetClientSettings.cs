@@ -77,6 +77,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetPlayerListComponent.ListMode PlayerListMode { get; set; }
 
+        [SettingRange(1, 4)]
+        public int NameOpacity { get; set; } = 4;
+
         [SettingIgnore]
         [SettingRange(4, 16)]
         public int ChatLogLength { get; set; } = 8;

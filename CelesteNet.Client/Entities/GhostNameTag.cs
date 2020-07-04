@@ -34,7 +34,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Render() {
             base.Render();
 
-            if (Alpha <= 0f || string.IsNullOrWhiteSpace(Name))
+            float a = Alpha * (CelesteNetClientModule.Settings.NameOpacity / 4f);
+
+            if (a <= 0f || string.IsNullOrWhiteSpace(Name))
                 return;
 
             if (Tracking == null)
@@ -69,9 +71,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 pos,
                 new Vector2(0.5f, 1f),
                 Vector2.One * 0.5f,
-                Color.White * Alpha,
+                Color.White * a,
                 2f,
-                Color.Black * (Alpha * Alpha * Alpha)
+                Color.Black * (a * a * a)
             );
         }
 

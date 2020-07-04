@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            ctx.WriteRef(writer, Player);
+            ctx.WriteOptRef(writer, Player);
             writer.Write(ID);
             writer.WriteNullTerminatedString(Tag);
             writer.WriteNullTerminatedString(Text);

@@ -400,7 +400,10 @@ namespace Celeste.Mod.CelesteNet {
             => TryGetRef(reader.ReadUInt32(), out T? value) ? value : null;
 
         public void WriteRef<T>(BinaryWriter writer, T? data) where T : DataType<T>
-            => writer.Write(data?.Get<MetaRef>(this).ID ?? uint.MaxValue);
+            => writer.Write((data ?? throw new Exception($"Expected {DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(this)?.ID ?? uint.MaxValue);
+
+        public void WriteOptRef<T>(BinaryWriter writer, T? data) where T : DataType<T>
+            => writer.Write(data?.GetOpt<MetaRef>(this)?.ID ?? uint.MaxValue);
 
 
         public T? GetRef<T>(uint id) where T : DataType<T>

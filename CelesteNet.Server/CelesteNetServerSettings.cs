@@ -22,5 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int MaxGuestNameLength { get; set; } = 16;
         public int MaxEmoteValueLength { get; set; } = 2048;
 
+        public bool AuthOnly { get; set; } = false;
+
     }
 }

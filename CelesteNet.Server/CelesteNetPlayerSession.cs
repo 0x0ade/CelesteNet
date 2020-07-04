@@ -273,19 +273,25 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return true;
 
             bool fixup = false;
+            DataPlayerInfo? player = null;
 
             if (data.TryGet(Server.Data, out MetaPlayerUpdate? update)) {
-                update.Player = PlayerInfo;
+                update.Player = player ??= PlayerInfo;
                 fixup = true;
             }
 
             if (data.TryGet(Server.Data, out MetaPlayerPrivateState? state)) {
-                state.Player = PlayerInfo;
+                state.Player = player ??= PlayerInfo;
                 fixup = true;
             }
 
             if (data.TryGet(Server.Data, out MetaPlayerPublicState? statePub)) {
-                statePub.Player = PlayerInfo;
+                statePub.Player = player ??= PlayerInfo;
+                fixup = true;
+            }
+
+            if (data.TryGet(Server.Data, out MetaBoundRef? boundRef) && boundRef.TypeBoundTo == DataPlayerInfo.DataID) {
+                boundRef.ID = (player ?? PlayerInfo)?.ID ?? uint.MaxValue;
                 fixup = true;
             }
 

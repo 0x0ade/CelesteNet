@@ -79,6 +79,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
 
             } else {
+                if (Server.Settings.AuthOnly) {
+                    Con.Send(new DataDisconnectReason { Text = "Server doesn't allow anonymous guests" });
+                    Con.Send(new DataInternalDisconnect());
+                    return;
+                }
+
                 name = name.Sanitize(IllegalNameChars);
                 if (name.Length > Server.Settings.MaxGuestNameLength)
                     name = name.Substring(0, Server.Settings.MaxGuestNameLength);

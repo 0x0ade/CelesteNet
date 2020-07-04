@@ -36,7 +36,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            Player = ctx.ReadRef<DataPlayerInfo>(reader);
             SID = reader.ReadNullTerminatedString();
             Mode = (AreaMode) reader.ReadByte();
             Level = reader.ReadNullTerminatedString();
@@ -44,7 +43,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            ctx.WriteRef(writer, Player);
             writer.WriteNullTerminatedString(SID);
             writer.Write((byte) Mode);
             writer.WriteNullTerminatedString(Level);

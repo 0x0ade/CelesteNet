@@ -41,6 +41,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool AutoReconnect { get; set; } = true;
 
+#if !DEBUG
+        [SettingIgnore]
+#endif
+        [SettingSubText("modoptions_celestenetclient_devonlyhint")]
         public string Server { get; set; } = "celeste.0x0ade.ga";
         [YamlIgnore]
         [SettingIgnore]
@@ -148,6 +152,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void CreateServerEntry(TextMenu menu, bool inGame) {
+#if !DEBUG
             menu.Add(
                 (ServerEntry = new TextMenu.Button(("modoptions_celestenetclient_server".DialogClean()).Replace("((server))", Server)))
                 .Pressed(() => {
@@ -160,6 +165,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 })
             );
             ServerEntry.Disabled = inGame || Connected;
+            ServerEntry.AddDescription(menu, "modoptions_celestenetclient_devonlyhint".DialogClean());
+#endif
         }
 
         public void CreateNameEntry(TextMenu menu, bool inGame) {

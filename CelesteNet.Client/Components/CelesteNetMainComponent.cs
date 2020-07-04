@@ -83,7 +83,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     foreach (DataType data in Client.Data.GetBoundRefs(other))
                         if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
-                            Client.Data.FreeBoundRef(state);
+                            Client.Data.FreeBoundRef(data);
                 }
 
             } else {
@@ -96,7 +96,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 foreach (DataType data in Client.Data.GetBoundRefs(move.Player))
                     if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
-                        Client.Data.FreeBoundRef(state);
+                        Client.Data.FreeBoundRef(data);
             }
         }
 
@@ -140,7 +140,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost == null ||
-                (ghost.Scene != null && ghost.Scene != level) ||
+                (ghost.Active && ghost.Scene != level) ||
                 ghost.Sprite.Mode != frame.SpriteMode ||
                 outside) {
                 if (ghost != null)
@@ -154,9 +154,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (ghost == null) {
                 Ghosts[frame.Player.ID] = ghost = new Ghost(Context, frame.SpriteMode);
+                ghost.Active = false;
                 if (ghost.Sprite.Mode != frame.SpriteMode)
                     UnsupportedSpriteModes.Add(frame.SpriteMode);
-                RunOnMainThread(() => level.Add(ghost));
+                RunOnMainThread(() => {
+                    level.Add(ghost);
+                    ghost.Active = true;
+                });
             }
 
             ghost.NameTag.Name = frame.Player.DisplayName;

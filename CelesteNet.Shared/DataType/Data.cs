@@ -36,7 +36,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public virtual T Get<T>(DataContext ctx) where T : MetaType<T>
-            => TryGet(ctx, out T? value) ? value : throw new Exception($"DataType {ctx.DataTypeToID[GetType()]} doesn't have MetaRef {ctx.MetaTypeToID[typeof(T)]}.");
+            => TryGet(ctx, out T? value) ? value : throw new Exception($"DataType {ctx.DataTypeToID[GetType()]} doesn't have MetaType {ctx.MetaTypeToID[typeof(T)]}.");
 
         public virtual bool TryGet<T>(DataContext ctx, [NotNullWhen(true)] out T? value) where T : MetaType<T> {
             foreach (MetaType meta in Meta)

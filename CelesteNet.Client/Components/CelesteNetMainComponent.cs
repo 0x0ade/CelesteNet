@@ -109,7 +109,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
             uint id = state.Player?.ID ?? uint.MaxValue;
-            if (id == Client.PlayerInfo.ID) {
+            if (id == (Client?.PlayerInfo?.ID ?? uint.MaxValue)) {
                 if (Player == null)
                     return;
 

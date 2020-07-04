@@ -118,6 +118,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 FullName = fullName,
                 DisplayName = displayName
             };
+            playerInfo.Meta = playerInfo.GenerateMeta(Server.Data);
             Server.Data.SetRef(playerInfo);
 
             Logger.Log(LogLevel.INF, "playersession", playerInfo.ToString());

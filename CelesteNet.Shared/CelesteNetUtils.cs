@@ -65,12 +65,6 @@ namespace Celeste.Mod.CelesteNet {
         public static string ToHex(this Color c)
             => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
-        public static Type? GetBoundToType(this IDataBoundRef data)
-            => data.GetType()
-            .GetInterfaces()
-            .FirstOrDefault(t => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDataBoundRef<>))
-            ?.GetGenericArguments()[0];
-
         public static Type GetRequestType(this Type t)
             => t
             .GetInterfaces()

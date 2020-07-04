@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataAudioPlay : DataType<DataAudioPlay>, IDataPlayerUpdate {
+    public class DataAudioPlay : DataType<DataAudioPlay> {
 
         static DataAudioPlay() {
             DataID = "audioPlay";
@@ -20,7 +20,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override DataFlags DataFlags => DataFlags.Update;
 
         public bool Server;
-        public DataPlayerInfo? Player { get; set; }
+        public DataPlayerInfo? Player;
 
         public string Sound = "";
         public string Param = "";
@@ -31,9 +31,17 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override bool FilterHandle(DataContext ctx)
             => Server || Player != null; // Can be RECEIVED BY CLIENT TOO EARLY because UDP is UDP.
 
+        public override MetaType[] GenerateMeta(DataContext ctx)
+            => new MetaType[] {
+                new MetaPlayerUpdate(Player)
+            };
+
+        public override void FixupMeta(DataContext ctx) {
+            Player = Get<MetaPlayerUpdate>(ctx).Opt;
+        }
+
         public override void Read(DataContext ctx, BinaryReader reader) {
-            if (!(Server = reader.ReadBoolean()))
-                Player = ctx.ReadOptRef<DataPlayerInfo>(reader);
+            Server = reader.ReadBoolean();
 
             Sound = reader.ReadNullTerminatedString();
             Param = reader.ReadNullTerminatedString();
@@ -49,8 +57,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 Server = false;
 
             writer.Write(Server);
-            if (!Server)
-                ctx.WriteRef(writer, Player);
 
             writer.WriteNullTerminatedString(Sound);
             writer.WriteNullTerminatedString(Param);

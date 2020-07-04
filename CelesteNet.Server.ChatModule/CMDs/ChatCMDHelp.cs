@@ -39,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             int pages = (int) Math.Ceiling(Chat.Commands.All.Count / (float) pageSize);
             if (page < 0 || pages <= page)
-                throw new Exception("Page out of range!");
+                throw new Exception("Page out of range.");
 
             for (int i = page * pageSize; i < (page + 1) * pageSize && i < Chat.Commands.All.Count; i++) {
                 ChatCMD cmd = Chat.Commands.All[i];
@@ -63,7 +63,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public string GetCommandSnippet(ChatCMDEnv env, string cmdName) {
             ChatCMD? cmd = Chat.Commands.Get(cmdName);
             if (cmd == null)
-                throw new Exception($"Command {cmdName} not found!");
+                throw new Exception($"Command {cmdName} not found.");
 
             return Help_GetCommandSnippet(env, cmd);
         }

@@ -2,6 +2,7 @@
 using Monocle;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -13,48 +14,54 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataUnparsed : DataType<DataUnparsed> {
 
-        static DataUnparsed() {
-            DataID = "unparsed";
-        }
-
-        public override DataFlags DataFlags => InnerFlags & (DataFlags.Update);
+        public override DataFlags DataFlags => (InnerFlags & ~DataFlags.Small) | DataFlags.Big;
 
         public string InnerID = "";
         public string InnerSource = "";
         public DataFlags InnerFlags;
-        public string[] Behaviors = Dummy<string>.EmptyArray;
+        public MetaTypeWrap[] InnerMeta = Dummy<MetaTypeWrap>.EmptyArray;
         public byte[] InnerData = Dummy<byte>.EmptyArray;
 
+        public override bool Is<T>(DataContext ctx) {
+            string id = ctx.MetaTypeToID[typeof(T)];
+            foreach (MetaTypeWrap meta in InnerMeta)
+                if (meta.ID == id)
+                    return true;
+            return false;
+        }
+
+        // Stupid Roslyn "bug": [NotNullWhen(true)] doesn't work as the ? needed for it requires when T :, but this is override.
+        public override bool TryGet<T>(DataContext ctx, [MaybeNullWhen(false)] out T value) {
+            string id = ctx.MetaTypeToID[typeof(T)];
+            foreach (MetaTypeWrap metaWrap in InnerMeta)
+                if (metaWrap.ID == id) {
+                    value = (T) metaWrap.Unwrap(ctx);
+                    return true;
+                }
+            value = null;
+            return false;
+        }
+
         public override void Read(DataContext ctx, BinaryReader reader) {
-            InnerID = reader.ReadNullTerminatedString();
-            InnerSource = reader.ReadNullTerminatedString();
-            InnerFlags = (DataFlags) reader.ReadUInt16();
-            Behaviors = new string[reader.ReadByte()];
-
-            for (int i = 0; i < Behaviors.Length; i++)
-                Behaviors[i] = reader.ReadNullTerminatedString();
-
-            InnerData = reader.ReadBytes(reader.ReadUInt16());
+            reader.ReadBytes(reader.ReadUInt16());
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.WriteNullTerminatedString(InnerID);
-            writer.WriteNullTerminatedString(InnerSource);
-            writer.Write((ushort) InnerFlags);
-
-            writer.Write((byte) Behaviors.Length);
-            foreach (string behavior in Behaviors)
-                writer.WriteNullTerminatedString(behavior);
-
             writer.Write((ushort) InnerData.Length);
             writer.Write(InnerData);
         }
 
-        public bool HasBehavior<T>(DataContext ctx) {
-            if (!ctx.TypeToBehaviorMap.TryGetValue(typeof(T), out string? behavior))
-                return false;
-            return Behaviors.Contains(behavior);
-        }
+        public override MetaTypeWrap[] WrapMeta(DataContext ctx)
+            => InnerMeta;
+
+        public override void UnwrapMeta(DataContext ctx, MetaTypeWrap[] wraps)
+            => InnerMeta = wraps;
+
+        public override string GetTypeID(DataContext ctx)
+            => InnerID;
+
+        public override string GetSource(DataContext ctx)
+            => InnerSource;
 
     }
 }

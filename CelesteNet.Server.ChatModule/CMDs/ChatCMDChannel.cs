@@ -51,7 +51,7 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Chat.Serve
 
                 int pages = (int) Math.Ceiling(channels.All.Count / (float) pageSize);
                 if (page < 0 || pages <= page)
-                    throw new Exception("Page out of range!");
+                    throw new Exception("Page out of range.");
 
                 if (page == 0)
                     builder

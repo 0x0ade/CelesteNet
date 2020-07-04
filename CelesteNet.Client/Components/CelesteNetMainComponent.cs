@@ -89,8 +89,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         continue;
 
                     foreach (DataType data in Client.Data.GetBoundRefs(other))
-                        if (data is IDataPlayerState state)
-                            Client.Data.FreeRef(state.GetType(), state.ID);
+                        if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
+                            Client.Data.FreeBoundRef(state);
                 }
 
             } else {
@@ -102,27 +102,28 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Ghosts.Remove(move.Player.ID);
 
                 foreach (DataType data in Client.Data.GetBoundRefs(move.Player))
-                    if (data is IDataPlayerState state)
-                        Client.Data.FreeRef(state.GetType(), state.ID);
+                    if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
+                        Client.Data.FreeBoundRef(state);
             }
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
-            if (state.ID == Client.PlayerInfo.ID) {
+            uint id = state.Player?.ID ?? uint.MaxValue;
+            if (id == Client.PlayerInfo.ID) {
                 if (Player == null)
                     return;
 
                 UpdateIdleTag(Player, ref PlayerIdleTag, state.Idle);
 
             } else {
-                if (!Ghosts.TryGetValue(state.ID, out Ghost ghost) ||
+                if (!Ghosts.TryGetValue(id, out Ghost ghost) ||
                     ghost == null)
                     return;
 
                 Session session = Session;
                 if (session != null && (state.SID != session.Area.SID || state.Mode != session.Area.Mode)) {
                     ghost.NameTag.Name = "";
-                    Ghosts.Remove(state.ID);
+                    Ghosts.Remove(id);
                     return;
                 }
 

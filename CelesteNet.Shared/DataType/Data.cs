@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -13,11 +14,61 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public virtual DataFlags DataFlags => DataFlags.None;
 
+        public virtual MetaType[] Meta { get; set; } = Dummy<MetaType>.EmptyArray;
+
         public virtual bool FilterHandle(DataContext ctx) => true;
         public virtual bool FilterSend(DataContext ctx) => true;
 
+        public virtual MetaType[] GenerateMeta(DataContext ctx)
+            => Meta;
+
+        public virtual void FixupMeta(DataContext ctx) {
+        }
+
         public abstract void Read(DataContext ctx, BinaryReader reader);
         public abstract void Write(DataContext ctx, BinaryWriter writer);
+
+        public virtual bool Is<T>(DataContext ctx) where T : MetaType<T> {
+            foreach (MetaType meta in Meta)
+                if (meta is T)
+                    return true;
+            return false;
+        }
+
+        public virtual T Get<T>(DataContext ctx) where T : MetaType<T>
+            => TryGet(ctx, out T? value) ? value : throw new Exception($"DataType {ctx.DataTypeToID[GetType()]} doesn't have MetaRef {ctx.MetaTypeToID[typeof(T)]}.");
+
+        public virtual bool TryGet<T>(DataContext ctx, [NotNullWhen(true)] out T? value) where T : MetaType<T> {
+            foreach (MetaType meta in Meta)
+                if (meta is T cast) {
+                    value = cast;
+                    return true;
+                }
+            value = null;
+            return false;
+        }
+
+        public virtual MetaTypeWrap[] WrapMeta(DataContext ctx) {
+            MetaType[] metas = Meta = GenerateMeta(ctx);
+            MetaTypeWrap[] wraps = new MetaTypeWrap[metas.Length];
+            for (int i = 0; i < metas.Length; i++)
+                wraps[i] = new MetaTypeWrap().Wrap(ctx, metas[i]);
+            return wraps;
+        }
+
+        public virtual void UnwrapMeta(DataContext ctx, MetaTypeWrap[] wraps) {
+            MetaType[] metas = new MetaType[wraps.Length];
+            for (int i = 0; i < wraps.Length; i++)
+                metas[i] = wraps[i].Unwrap(ctx);
+            Meta = metas;
+            FixupMeta(ctx);
+        }
+
+        public virtual string GetTypeID(DataContext ctx)
+            => ctx.DataTypeToID[GetType()];
+
+        public virtual string GetSource(DataContext ctx)
+            => ctx.DataTypeToSource[GetType()];
 
         public static byte PackBool(byte value, int index, bool set) {
             int mask = 1 << index;
@@ -59,48 +110,17 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             return (T) this;
         }
 
-    }
+        public override string GetTypeID(DataContext ctx)
+            => DataID;
 
-    [AttributeUsage(AttributeTargets.Interface)]
-    public class DataBehaviorAttribute : Attribute {
-
-        public string? ID { get; protected set; }
-
-        public DataBehaviorAttribute() {
-        }
-
-        public DataBehaviorAttribute(string id) {
-            ID = id;
-        }
+        public override string GetSource(DataContext ctx)
+            => DataSource;
 
     }
 
-    public interface IDataOrderedUpdate {
-
-        uint ID { get; }
-        uint UpdateID { get; set; }
-
-    }
-
-    public interface IDataRef {
-
-        uint ID { get; }
-        bool IsAliveRef { get; }
-
-    }
-
-    public interface IDataBoundRef : IDataRef {
-    }
-
-    public interface IDataBoundRef<T> : IDataBoundRef where T : DataType<T>, IDataRef {
-    }
-
-    public interface IDataStatic {
-    }
-
+    // Used for compile time verification and to make getting the request type easier to obtain.
     public interface IDataRequestable {
     }
-
     public interface IDataRequestable<T> : IDataRequestable where T : DataType<T>, new() {
     }
 
@@ -113,10 +133,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         ForceForward =
             0b0000000000000010,
 
-        Reserved4 =
+        Reserved3 =
             0b0000100000000000,
-
-        ModdedType =
+        Reserved2 =
             0b0001000000000000,
 
         Small =

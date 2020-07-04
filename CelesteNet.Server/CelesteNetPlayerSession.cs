@@ -143,15 +143,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                     Con.Send(other.AvatarEmoji);
 
                     foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        if (!(bound is IDataPlayerState) || other.Channel.ID == 0)
+                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || other.Channel.ID == 0)
                             Con.Send(bound);
                 }
             }
 
             ResendPlayerStates();
-
-            foreach (DataType data in Server.Data.GetAllStatic())
-                Con.Send(data);
 
             Server.InvokeOnSessionStart(this);
         }
@@ -193,7 +190,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         continue;
 
                     foreach (DataType bound in Server.Data.GetBoundRefs(PlayerInfo))
-                        if (!(bound is IDataPlayerState) || channel == other.Channel)
+                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || channel == other.Channel)
                             other.Con.Send(bound);
 
                     DataPlayerInfo? otherInfo = other.PlayerInfo;
@@ -201,7 +198,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         continue;
 
                     foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        if (!(bound is IDataPlayerState) || channel == other.Channel)
+                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || channel == other.Channel)
                             Con.Send(bound);
                 }
             }
@@ -274,11 +271,25 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (con != Con)
                 return true;
 
-            if (data is IDataPlayerState bound)
-                bound.Player = PlayerInfo;
+            bool fixup = false;
 
-            if (data is IDataPlayerUpdate update)
-                update.Player = PlayerInfo;
+            if (data.TryGet(Server.Data, out MetaPlayerUpdate? update)) {
+                update.Opt = PlayerInfo;
+                fixup = true;
+            }
+
+            if (data.TryGet(Server.Data, out MetaPlayerPrivateState? state)) {
+                state.Opt = PlayerInfo;
+                fixup = true;
+            }
+
+            if (data.TryGet(Server.Data, out MetaPlayerPublicState? statePub)) {
+                statePub.Opt = PlayerInfo;
+                fixup = true;
+            }
+
+            if (fixup)
+                data.FixupMeta(Server.Data);
 
             return true;
         }
@@ -304,10 +315,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (!Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state))
                 state = null;
 
-            if (data is IDataBoundRef<DataPlayerInfo> ||
-                data is IDataPlayerPublicState ||
-                data is IDataPlayerState ||
-                data is IDataPlayerUpdate) {
+            if (data.Is<MetaPlayerPublicState>(Server.Data) ||
+                data.Is<MetaPlayerPrivateState>(Server.Data) ||
+                data.Is<MetaPlayerUpdate>(Server.Data)) {
                 Channel channel = Channel;
 
                 lock (Server.Connections) {
@@ -315,10 +325,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                         if (other == this)
                             continue;
 
-                        if (data is IDataPlayerState && channel != other.Channel)
+                        if (data.Is<MetaPlayerPrivateState>(Server.Data) && channel != other.Channel)
                             continue;
 
-                        if (data is IDataPlayerUpdate && !IsSameArea(channel, state, other))
+                        if (data.Is<MetaPlayerUpdate>(Server.Data) && !IsSameArea(channel, state, other))
                             continue;
 
                         other.Con.Send(data);

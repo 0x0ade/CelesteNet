@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataPlayerFrame : DataType<DataPlayerFrame>, IDataOrderedUpdate, IDataPlayerUpdate {
+    public class DataPlayerFrame : DataType<DataPlayerFrame> {
 
         static DataPlayerFrame() {
             DataID = "playerFrame";
@@ -19,10 +19,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override DataFlags DataFlags => DataFlags.Update;
 
-        public uint ID => Player?.ID ?? uint.MaxValue;
-        public uint UpdateID { get; set; }
+        public uint UpdateID;
 
-        public DataPlayerInfo? Player { get; set; }
+        public DataPlayerInfo? Player;
 
         public Vector2 Position;
         public Vector2 Speed;
@@ -54,11 +53,20 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override bool FilterHandle(DataContext ctx)
             => Player != null; // Can be RECEIVED BY CLIENT TOO EARLY because UDP is UDP.
 
+        public override MetaType[] GenerateMeta(DataContext ctx)
+            => new MetaType[] {
+                new MetaPlayerUpdate(Player),
+                new MetaOrderedUpdate(Player?.ID ?? uint.MaxValue, UpdateID)
+            };
+
+        public override void FixupMeta(DataContext ctx) {
+            Get<MetaOrderedUpdate>(ctx).ID = Get<MetaPlayerUpdate>(ctx).Opt?.ID ?? uint.MaxValue;
+
+            UpdateID = Get<MetaOrderedUpdate>(ctx).UpdateID;
+            Player = Get<MetaPlayerUpdate>(ctx).Opt;
+        }
+
         public override void Read(DataContext ctx, BinaryReader reader) {
-            UpdateID = reader.ReadUInt32();
-
-            Player = ctx.ReadOptRef<DataPlayerInfo>(reader);
-
             Position = reader.ReadVector2();
             Speed = reader.ReadVector2();
             Scale = reader.ReadVector2();
@@ -100,10 +108,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.Write(UpdateID);
-
-            ctx.WriteRef(writer, Player);
-
             writer.Write(Position);
             writer.Write(Speed);
             writer.Write(Scale);

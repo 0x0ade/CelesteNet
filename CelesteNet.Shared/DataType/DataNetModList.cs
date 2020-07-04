@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataNetModList : DataType<DataNetModList>, IDataBoundRef<DataPlayerInfo> {
+    public class DataNetModList : DataType<DataNetModList> {
 
         static DataNetModList() {
             DataID = "netmods";
@@ -19,11 +19,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override DataFlags DataFlags => DataFlags.Big;
 
-        public DataPlayerInfo? Player { get; set; }
-        public uint ID => Player?.ID ?? uint.MaxValue;
-        public bool IsAliveRef => true;
-
         public string[] List = Dummy<string>.EmptyArray;
+
+        // TODO: Bind to player?
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             List = new string[reader.ReadUInt16()];

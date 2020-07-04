@@ -22,14 +22,12 @@ namespace Celeste.Mod.CelesteNet {
     public delegate bool DataFilter<T>(CelesteNetConnection con, T data) where T : DataType<T>;
     public class DataContext {
 
-        public readonly Dictionary<string, Type> IDToTypeMap = new Dictionary<string, Type>();
-        public readonly Dictionary<Type, string> TypeToIDMap = new Dictionary<Type, string>();
-        public readonly Dictionary<Type, string> TypeToSourceMap = new Dictionary<Type, string>();
-        public readonly Dictionary<Type, string[]> TypeToBehaviorsMap = new Dictionary<Type, string[]>();
-        public readonly Dictionary<Type, string> TypeToBehaviorMap = new Dictionary<Type, string>();
-        public readonly Dictionary<string, Type> BehaviorToTypeMap = new Dictionary<string, Type>();
+        public readonly Dictionary<string, Type> IDToDataType = new Dictionary<string, Type>();
+        public readonly Dictionary<Type, string> DataTypeToID = new Dictionary<Type, string>();
+        public readonly Dictionary<Type, string> DataTypeToSource = new Dictionary<Type, string>();
 
-        public readonly HashSet<Type> BuiltinTypes = new HashSet<Type>();
+        public readonly Dictionary<string, Type> IDToMetaType = new Dictionary<string, Type>();
+        public readonly Dictionary<Type, string> MetaTypeToID = new Dictionary<Type, string>();
 
         public readonly ConcurrentDictionary<Type, DataHandler> Handlers = new ConcurrentDictionary<Type, DataHandler>();
         public readonly ConcurrentDictionary<Type, DataFilter> Filters = new ConcurrentDictionary<Type, DataFilter>();
@@ -37,9 +35,7 @@ namespace Celeste.Mod.CelesteNet {
         private readonly ConcurrentDictionary<object, List<Tuple<Type, DataHandler>>> RegisteredHandlers = new ConcurrentDictionary<object, List<Tuple<Type, DataHandler>>>();
         private readonly ConcurrentDictionary<object, List<Tuple<Type, DataFilter>>> RegisteredFilters = new ConcurrentDictionary<object, List<Tuple<Type, DataFilter>>>();
 
-        protected readonly ConcurrentDictionary<Type, IDataStatic> Static = new ConcurrentDictionary<Type, IDataStatic>();
-
-        protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, IDataRef>> References = new ConcurrentDictionary<string, ConcurrentDictionary<uint, IDataRef>>();
+        protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>> References = new ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>>();
         protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>> Bound = new ConcurrentDictionary<string, ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>>();
 
         protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>> LastOrderedUpdate = new ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>>();
@@ -50,75 +46,80 @@ namespace Celeste.Mod.CelesteNet {
 
         public void RescanAllDataTypes() {
             Logger.Log(LogLevel.INF, "data", "Rescanning all data types");
-            IDToTypeMap.Clear();
-            TypeToIDMap.Clear();
+            IDToDataType.Clear();
+            DataTypeToID.Clear();
 
             RescanDataTypes(CelesteNetUtils.GetTypes());
         }
 
         public void RescanDataTypes(Type[] types) {
             foreach (Type type in types) {
-                if (!typeof(DataType).IsAssignableFrom(type) || type.IsAbstract)
+                if (type.IsAbstract)
                     continue;
 
-                RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+                if (typeof(DataType).IsAssignableFrom(type)) {
+                    RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 
-                string? id = null;
-                string? source = null;
-                for (Type parent = type; parent != typeof(object) && id.IsNullOrEmpty() && source.IsNullOrEmpty(); parent = parent.BaseType ?? typeof(object)) {
-                    id = parent.GetField("DataID", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string;
-                    source = parent.GetField("DataSource", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string;
-                }
+                    string? id = null;
+                    string? source = null;
+                    for (Type parent = type; parent != typeof(object) && id.IsNullOrEmpty() && source.IsNullOrEmpty(); parent = parent.BaseType ?? typeof(object)) {
+                        id = parent.GetField("DataID", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string;
+                        source = parent.GetField("DataSource", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string;
+                    }
 
-                if (id.IsNullOrEmpty()) {
-                    Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but no DataID");
-                    continue;
-                }
-
-                if (source.IsNullOrEmpty()) {
-                    Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but no DataSource");
-                    continue;
-                }
-
-                if (IDToTypeMap.ContainsKey(id)) {
-                    Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but conflicting ID {id}");
-                    continue;
-                }
-
-                Logger.Log(LogLevel.INF, "data", $"Found data type {type.FullName} with ID {id}");
-                IDToTypeMap[id] = type;
-                TypeToIDMap[type] = id;
-                TypeToSourceMap[type] = source;
-
-                List<string> behaviors = new List<string>();
-
-                foreach (Type interf in type.GetInterfaces()) {
-                    DataBehaviorAttribute? behavior = interf?.GetCustomAttribute<DataBehaviorAttribute>();
-                    if (behavior == null)
+                    if (id.IsNullOrEmpty()) {
+                        Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but no DataID");
                         continue;
-                    string? bid = behavior.ID;
-                    if (bid.IsNullOrEmpty())
-                        bid = interf.FullName ?? throw new NullReferenceException($"Typeless name: {interf}");
-                    behaviors.Add(bid);
-                    TypeToBehaviorMap[interf] = bid;
-                    BehaviorToTypeMap[bid] = interf;
+                    }
+
+                    if (source.IsNullOrEmpty()) {
+                        Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but no DataSource");
+                        continue;
+                    }
+
+                    if (IDToDataType.ContainsKey(id)) {
+                        Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but conflicting ID {id}");
+                        continue;
+                    }
+
+                    Logger.Log(LogLevel.INF, "data", $"Found data type {type.FullName} with ID {id}");
+                    IDToDataType[id] = type;
+                    DataTypeToID[type] = id;
+                    DataTypeToSource[type] = source;
+
+                } else if (typeof(MetaType).IsAssignableFrom(type)) {
+                    RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+
+                    string? id = null;
+                    for (Type parent = type; parent != typeof(object) && id.IsNullOrEmpty(); parent = parent.BaseType ?? typeof(object)) {
+                        id = parent.GetField("MetaID", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string;
+                    }
+
+                    if (id.IsNullOrEmpty()) {
+                        Logger.Log(LogLevel.WRN, "data", $"Found meta type {type.FullName} but no MetaID");
+                        continue;
+                    }
+
+                    if (IDToMetaType.ContainsKey(id)) {
+                        Logger.Log(LogLevel.WRN, "data", $"Found meta type {type.FullName} but conflicting ID {id}");
+                        continue;
+                    }
+
+                    Logger.Log(LogLevel.INF, "data", $"Found meta type {type.FullName} with ID {id}");
+                    IDToMetaType[id] = type;
+                    MetaTypeToID[type] = id;
                 }
-
-                TypeToBehaviorsMap[type] = behaviors.ToArray();
-
-                if (type.Assembly == typeof(DataContext).Assembly)
-                    BuiltinTypes.Add(type);
             }
         }
 
         public void RemoveDataTypes(Type[] types) {
             foreach (Type type in types) {
-                if (!TypeToIDMap.TryGetValue(type, out string? id))
+                if (!DataTypeToID.TryGetValue(type, out string? id))
                     continue;
 
                 Logger.Log(LogLevel.INF, "data", $"Removing data type {type.FullName} with ID {id}");
-                IDToTypeMap.Remove(id);
-                TypeToIDMap.Remove(type);
+                IDToDataType.Remove(id);
+                DataTypeToID.Remove(type);
             }
         }
 
@@ -254,50 +255,39 @@ namespace Celeste.Mod.CelesteNet {
             bool big = (flags & DataFlags.Big) == DataFlags.Big;
             uint length = small ? reader.ReadByte() : big ? reader.ReadUInt32() : reader.ReadUInt16();
 
-            string source = "";
-            string[] behaviors = Dummy<string>.EmptyArray;
-            if ((flags & DataFlags.ModdedType) == DataFlags.ModdedType) {
-                source = Calc.ReadNullTerminatedString(reader);
-                behaviors = new string[reader.ReadByte()];
-                for (int i = 0; i < behaviors.Length; i++)
-                    behaviors[i] = Calc.ReadNullTerminatedString(reader);
-            }
+            string source = Calc.ReadNullTerminatedString(reader);
 
-            if (!IDToTypeMap.TryGetValue(id, out Type? type))
+            MetaTypeWrap[] metas = new MetaTypeWrap[reader.ReadByte()];
+            for (int i = 0; i < metas.Length; i++)
+                metas[i] = new MetaTypeWrap().Read(reader);
+
+            if (!IDToDataType.TryGetValue(id, out Type? type))
                 return new DataUnparsed() {
                     InnerID = id,
                     InnerSource = source,
                     InnerFlags = flags,
-                    Behaviors = behaviors,
+                    InnerMeta = metas,
                     InnerData = reader.ReadBytes((int) length)
                 };
 
             DataType? data = (DataType?) Activator.CreateInstance(type);
             if (data == null)
                 throw new Exception($"Cannot create instance of data type {type.FullName}");
+            data.UnwrapMeta(this, metas);
             data.Read(this, reader);
             return data;
         }
 
-        public int Write(BinaryWriter writer, DataType data)
-            => Write(writer, data.GetType(), data);
-
-        public int Write<T>(BinaryWriter writer, T data) where T : DataType<T>
-            => Write(writer, typeof(T), data);
-
-        protected int Write(BinaryWriter writer, Type type, DataType data) {
-            if (!TypeToIDMap.TryGetValue(type, out string? id))
-                throw new Exception($"Unknown data type {type} ({data})");
+        public int Write(BinaryWriter writer, DataType data) {
+            string type = data.GetTypeID(this);
 
             DataFlags flags = data.DataFlags;
-            if (!BuiltinTypes.Contains(type))
-                flags |= DataFlags.ModdedType;
 
             long startAll = writer.BaseStream.Position;
             bool small = (flags & DataFlags.Small) == DataFlags.Small;
             bool big = (flags & DataFlags.Big) == DataFlags.Big;
 
-            writer.WriteNullTerminatedString(id);
+            writer.WriteNullTerminatedString(type);
             writer.Write((ushort) flags);
             if (small)
                 writer.Write((byte) 0); // Filled in later.
@@ -309,13 +299,12 @@ namespace Celeste.Mod.CelesteNet {
 
             long startData = writer.BaseStream.Position;
 
-            if ((flags & DataFlags.ModdedType) == DataFlags.ModdedType) {
-                writer.WriteNullTerminatedString(TypeToSourceMap[type]);
-                string[] behaviors = TypeToBehaviorsMap[type];
-                writer.Write((byte) behaviors.Length);
-                foreach (string behavior in behaviors)
-                    writer.WriteNullTerminatedString(behavior);
-            }
+            writer.WriteNullTerminatedString(data.GetSource(this));
+
+            MetaTypeWrap[] metas = data.WrapMeta(this);
+            writer.Write((byte) metas.Length);
+            foreach (MetaTypeWrap meta in metas)
+                meta.Write(writer);
 
             data.Write(this, writer);
             writer.Flush();
@@ -347,16 +336,10 @@ namespace Celeste.Mod.CelesteNet {
             return (int) (end - startAll);
         }
 
-        public byte[] ToBytes(DataType data)
-            => ToBytes(data.GetType(), data);
-
-        public byte[] ToBytes<T>(T data) where T : DataType<T>
-            => ToBytes(typeof(T), data);
-
-        protected byte[] ToBytes(Type type, DataType data) {
+        public byte[] ToBytes(DataType data) {
             using (MemoryStream stream = new MemoryStream())
             using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8)) {
-                Write(writer, type, data);
+                Write(writer, data);
                 writer.Flush();
                 return stream.ToArray();
             }
@@ -380,7 +363,7 @@ namespace Celeste.Mod.CelesteNet {
             if (!data.FilterHandle(this))
                 return;
 
-            if (data is IDataOrderedUpdate update) {
+            if (data.TryGet(this, out MetaOrderedUpdate? update)) {
                 if (!LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, uint>? updateIDs)) {
                     updateIDs = new ConcurrentDictionary<uint, uint>();
                     LastOrderedUpdate[type] = updateIDs;
@@ -398,63 +381,47 @@ namespace Celeste.Mod.CelesteNet {
                 updateIDs[id] = updateID;
             }
 
-            if (data is IDataRef dataRef)
-                SetRef(dataRef);
+            if (data.Is<MetaRef>(this))
+                SetRef(data);
+
+            if (data.Is<MetaBoundRef>(this))
+                SetBoundRef(data);
 
             for (Type btype = type; btype != typeof(object); btype = btype.BaseType ?? typeof(object))
                 if (Handlers.TryGetValue(btype, out DataHandler? handler))
                     handler(con, data);
         }
 
-        public IDataStatic[] GetAllStatic()
-            => Static.Values.ToArray();
 
-        public T GetStatic<T>() where T : DataType<T>, IDataStatic
-            => (T) GetStatic(typeof(T));
-
-        public IDataStatic GetStatic(Type type)
-            => Static.TryGetValue(type, out IDataStatic? value) ? value : throw new Exception($"Unknown Static {type.FullName}");
-
-        public void SetStatic(IDataStatic data)
-            => SetStatic(data.GetType(), data);
-
-        public T SetStatic<T>(T data) where T : DataType<T>, IDataStatic
-            => (T) SetStatic(typeof(T), data);
-
-        public IDataStatic SetStatic(Type type, IDataStatic data)
-            => Static[type] = data;
-
-        public T? ReadRef<T>(BinaryReader reader) where T : DataType<T>, IDataRef
+        public T? ReadRef<T>(BinaryReader reader) where T : DataType<T>
             => GetRef<T>(reader.ReadUInt32());
 
-        public T? ReadOptRef<T>(BinaryReader reader) where T : DataType<T>, IDataRef
+        public T? ReadOptRef<T>(BinaryReader reader) where T : DataType<T>
             => TryGetRef(reader.ReadUInt32(), out T? value) ? value : null;
 
-        public void WriteRef<T>(BinaryWriter writer, T? data) where T : DataType<T>, IDataRef
-            => writer.Write(data?.ID ?? uint.MaxValue);
+        public void WriteRef<T>(BinaryWriter writer, T? data) where T : DataType<T>
+            => writer.Write(data?.Get<MetaRef>(this).ID ?? uint.MaxValue);
 
-        public T? GetRef<T>(uint id) where T : DataType<T>, IDataRef
-            => (T?) GetRef(typeof(T), id);
 
-        public IDataRef? GetRef(Type type, uint id)
-            => TryGetRef(type, id, out IDataRef? value) ? value : throw new Exception($"Unknown reference {type.FullName} ID {id}");
+        public T? GetRef<T>(uint id) where T : DataType<T>
+            => (T?) GetRef(DataTypeToID[typeof(T)], id);
 
-        public bool TryGetRef<T>(uint id, out T? value) where T : DataType<T>, IDataRef {
-            bool rv = TryGetRef(typeof(T), id, out IDataRef? value_);
+        public DataType? GetRef(string type, uint id)
+            => TryGetRef(type, id, out DataType? value) ? value : throw new Exception($"Unknown reference {type} ID {id}");
+
+        public bool TryGetRef<T>(uint id, out T? value) where T : DataType<T> {
+            bool rv = TryGetRef(DataTypeToID[typeof(T)], id, out DataType? value_);
             value = (T?) value_;
             return rv;
         }
 
-        public bool TryGetRef(Type type, uint id, out IDataRef? value)
-            => TryGetRef(TypeToIDMap[type], id, out value);
-
-        public bool TryGetRef(string type, uint id, out IDataRef? value) {
+        public bool TryGetRef(string type, uint id, out DataType? value) {
             if (id == uint.MaxValue) {
                 value = null;
                 return true;
             }
 
-            if (References.TryGetValue(type, out ConcurrentDictionary<uint, IDataRef>? refs) &&
+            if (References.TryGetValue(type, out ConcurrentDictionary<uint, DataType>? refs) &&
                 refs.TryGetValue(id, out value)) {
                 return true;
             }
@@ -463,38 +430,32 @@ namespace Celeste.Mod.CelesteNet {
             return false;
         }
 
-        public T[] GetRefs<T>() where T : DataType<T>, IDataRef
-            => GetRefs(typeof(T)).Cast<T>().ToArray();
+        public T[] GetRefs<T>() where T : DataType<T>
+            => GetRefs(DataTypeToID[typeof(T)]).Cast<T>().ToArray();
 
-        public IDataRef[] GetRefs(Type type)
-            => GetRefs(TypeToIDMap[type]);
-
-        public IDataRef[] GetRefs(string type) {
-            if (References.TryGetValue(type, out ConcurrentDictionary<uint, IDataRef>? refs))
+        public DataType[] GetRefs(string type) {
+            if (References.TryGetValue(type, out ConcurrentDictionary<uint, DataType>? refs))
                 return refs.Values.ToArray();
-            return new IDataRef[0];
+            return Dummy<DataType>.EmptyArray;
         }
 
-        public T? GetBoundRef<TBoundTo, T>(uint id) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
-            => (T?) GetBoundRef(typeof(TBoundTo), typeof(T), id);
+        public T? GetBoundRef<TBoundTo, T>(uint id) where TBoundTo : DataType<TBoundTo> where T : DataType<T>
+            => (T?) GetBoundRef(DataTypeToID[typeof(TBoundTo)], DataTypeToID[typeof(T)], id);
 
-        public T? GetBoundRef<TBoundTo, T>(TBoundTo? boundTo) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
-            => (T?) GetBoundRef(typeof(TBoundTo), typeof(T), boundTo?.ID ?? uint.MaxValue);
+        public T? GetBoundRef<TBoundTo, T>(TBoundTo? boundTo) where TBoundTo : DataType<TBoundTo> where T : DataType<T>
+            => (T?) GetBoundRef(DataTypeToID[typeof(TBoundTo)], DataTypeToID[typeof(T)], boundTo?.Get<MetaRef>(this).ID ?? uint.MaxValue);
 
-        public DataType? GetBoundRef(Type typeBoundTo, Type type, uint id)
-            => TryGetBoundRef(typeBoundTo, type, id, out DataType? value) ? value : throw new Exception($"Unknown reference {typeBoundTo.FullName} bound to {type.FullName} ID {id}");
+        public DataType? GetBoundRef(string typeBoundTo, string type, uint id)
+            => TryGetBoundRef(typeBoundTo, type, id, out DataType? value) ? value : throw new Exception($"Unknown reference {typeBoundTo} bound to {type} ID {id}");
 
-        public bool TryGetBoundRef<TBoundTo, T>(TBoundTo? boundTo, out T? value) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo>
-            => TryGetBoundRef<TBoundTo, T>(boundTo?.ID ?? uint.MaxValue, out value);
+        public bool TryGetBoundRef<TBoundTo, T>(TBoundTo? boundTo, out T? value) where TBoundTo : DataType<TBoundTo> where T : DataType<T>
+            => TryGetBoundRef<TBoundTo, T>(boundTo?.Get<MetaRef>(this).ID ?? uint.MaxValue, out value);
 
-        public bool TryGetBoundRef<TBoundTo, T>(uint id, out T? value) where TBoundTo : DataType<TBoundTo>, IDataRef where T : DataType<T>, IDataBoundRef<TBoundTo> {
-            bool rv = TryGetBoundRef(typeof(TBoundTo), typeof(T), id, out DataType? value_);
+        public bool TryGetBoundRef<TBoundTo, T>(uint id, out T? value) where TBoundTo : DataType<TBoundTo> where T : DataType<T> {
+            bool rv = TryGetBoundRef(DataTypeToID[typeof(TBoundTo)], DataTypeToID[typeof(T)], id, out DataType? value_);
             value = (T?) value_;
             return rv;
         }
-
-        public bool TryGetBoundRef(Type typeBoundTo, Type type, uint id, out DataType? value)
-            => TryGetBoundRef(TypeToIDMap[typeBoundTo], TypeToIDMap[type], id, out value);
 
         public bool TryGetBoundRef(string typeBoundTo, string type, uint id, out DataType? value) {
             if (id == uint.MaxValue) {
@@ -513,84 +474,85 @@ namespace Celeste.Mod.CelesteNet {
         }
 
 
-        public DataType[] GetBoundRefs<TBoundTo>(TBoundTo? boundTo) where TBoundTo : DataType<TBoundTo>, IDataRef
-            => GetBoundRefs<TBoundTo>(boundTo?.ID ?? uint.MaxValue);
+        public DataType[] GetBoundRefs<TBoundTo>(TBoundTo? boundTo) where TBoundTo : DataType<TBoundTo>
+            => GetBoundRefs<TBoundTo>(boundTo?.Get<MetaRef>(this).ID ?? uint.MaxValue);
 
-        public DataType[] GetBoundRefs<TBoundTo>(uint id) where TBoundTo : DataType<TBoundTo>, IDataRef
-            => GetBoundRefs(typeof(TBoundTo), id);
-
-        public DataType[] GetBoundRefs(Type typeBoundTo, uint id)
-            => GetBoundRefs(TypeToIDMap[typeBoundTo], id);
+        public DataType[] GetBoundRefs<TBoundTo>(uint id) where TBoundTo : DataType<TBoundTo>
+            => GetBoundRefs(DataTypeToID[typeof(TBoundTo)], id);
 
         public DataType[] GetBoundRefs(string typeBoundTo, uint id) {
             if (Bound.TryGetValue(typeBoundTo, out ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>? boundByID) &&
                 boundByID.TryGetValue(id, out ConcurrentDictionary<string, DataType>? boundByType))
                 return boundByType.Values.ToArray();
-            return new DataType[0];
+            return Dummy<DataType>.EmptyArray;
         }
 
-        public void SetRef(IDataRef? data)
-            => SetRef(data == null ? "" : TypeToIDMap[data.GetType()], data);
-
-        public T? SetRef<T>(T? data) where T : DataType<T>, IDataRef
-            => (T?) SetRef(typeof(T), data);
-
-        public IDataRef? SetRef(Type type, IDataRef? data)
-            => SetRef(TypeToIDMap[type], data);
-
-        public IDataRef? SetRef(string type, IDataRef? data) {
-            if (type.IsNullOrEmpty() || data == null)
+        public DataType? SetRef(DataType? data) {
+            if (data == null)
                 return null;
 
-            uint id = data.ID;
+            string type = data.GetTypeID(this);
+            if (type.IsNullOrEmpty())
+                return null;
 
-            if (!data.IsAliveRef) {
+            MetaRef metaRef = data.Get<MetaRef>(this);
+            uint id = metaRef.ID;
+
+            if (!metaRef.IsAlive) {
                 FreeRef(type, id);
                 return null;
             }
 
-            if (!References.TryGetValue(type, out ConcurrentDictionary<uint, IDataRef>? refs)) {
-                refs = new ConcurrentDictionary<uint, IDataRef>();
+            if (!References.TryGetValue(type, out ConcurrentDictionary<uint, DataType>? refs)) {
+                refs = new ConcurrentDictionary<uint, DataType>();
                 References[type] = refs;
             }
 
-            if (data is IDataBoundRef bound) {
-                Type? typeBoundToRaw = bound.GetBoundToType();
-
-                if (typeBoundToRaw != null) {
-                    string typeBoundTo = TypeToIDMap[typeBoundToRaw];
-                    if (!TryGetRef(typeBoundTo, id, out _))
-                        throw new Exception($"Cannot bind {type} to unknown reference {typeBoundTo} ID {id}");
-
-                    if (!Bound.TryGetValue(typeBoundTo, out ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>? boundByID)) {
-                        boundByID = new ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>();
-                        Bound[typeBoundTo] = boundByID;
-                    }
-
-                    if (!boundByID.TryGetValue(id, out ConcurrentDictionary<string, DataType>? boundByType)) {
-                        boundByType = new ConcurrentDictionary<string, DataType>();
-                        boundByID[id] = boundByType;
-                    }
-
-                    boundByType[type] = (DataType) bound;
-                }
-            }
-
-            return refs[data.ID] = data;
+            return refs[id] = data;
         }
 
-        public void FreeRef<T>(uint id) where T : DataType<T>, IDataRef
-            => FreeRef(typeof(T), id);
+        public DataType? SetBoundRef(DataType? data) {
+            if (data == null)
+                return null;
 
-        public void FreeRef(Type type, uint id)
-            => FreeRef(TypeToIDMap[type], id);
+            string typeBoundTo = data.Get<MetaBoundRef>(this).TypeBoundTo;
+            string type = data.GetTypeID(this);
+            if (typeBoundTo.IsNullOrEmpty() || type.IsNullOrEmpty())
+                return null;
+
+            MetaBoundRef metaBoundRef = data.Get<MetaBoundRef>(this);
+            uint id = metaBoundRef.ID;
+
+            if (!metaBoundRef.IsAlive) {
+                FreeBoundRef(typeBoundTo, type, id);
+                return null;
+            }
+
+            if (!TryGetRef(typeBoundTo, id, out _))
+                throw new Exception($"Cannot bind {type} to unknown reference {typeBoundTo} ID {id}");
+
+            if (!Bound.TryGetValue(typeBoundTo, out ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>? boundByID)) {
+                boundByID = new ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>();
+                Bound[typeBoundTo] = boundByID;
+            }
+
+            if (!boundByID.TryGetValue(id, out ConcurrentDictionary<string, DataType>? boundByType)) {
+                boundByType = new ConcurrentDictionary<string, DataType>();
+                boundByID[id] = boundByType;
+            }
+
+            return boundByType[type] = data;
+        }
+
+        public void FreeRef<T>(uint id) where T : DataType<T>
+            => FreeRef(DataTypeToID[typeof(T)], id);
+
+        public void FreeRef(DataType data)
+            => FreeRef(data.GetTypeID(this), data.Get<MetaRef>(this).ID);
 
         public void FreeRef(string type, uint id) {
-            IDataRef? data = null;
-            if (References.TryGetValue(type, out ConcurrentDictionary<uint, IDataRef>? refs) &&
-                refs.TryGetValue(id, out data)) {
+            if (References.TryGetValue(type, out ConcurrentDictionary<uint, DataType>? refs))
                 refs.TryRemove(id, out _);
-            }
 
             if (Bound.TryGetValue(type, out ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>? boundByID) &&
                 boundByID.TryGetValue(id, out ConcurrentDictionary<string, DataType>? boundByType)) {
@@ -598,20 +560,23 @@ namespace Celeste.Mod.CelesteNet {
                 foreach (string typeBound in boundByType.Keys)
                     FreeRef(typeBound, id);
             }
-
-            if (data is IDataBoundRef bound) {
-                Type? typeBoundToRaw = bound.GetBoundToType();
-                if (typeBoundToRaw != null &&
-                    Bound.TryGetValue(TypeToIDMap[typeBoundToRaw], out boundByID) &&
-                    boundByID.TryGetValue(id, out boundByType)) {
-                    boundByID.TryRemove(id, out _);
-                    foreach (string typeBound in boundByType.Keys)
-                        FreeRef(typeBound, id);
-                }
-            }
         }
 
-        public void FreeOrder<T>(uint id) where T : DataType<T>, IDataOrderedUpdate
+        public void FreeBoundRef<TBoundTo, T>(uint id) where TBoundTo : DataType<TBoundTo> where T : DataType<T>
+            => FreeBoundRef(DataTypeToID[typeof(TBoundTo)], DataTypeToID[typeof(T)], id);
+
+        public void FreeBoundRef(DataType data) {
+            MetaBoundRef bound = data.Get<MetaBoundRef>(this);
+            FreeBoundRef(bound.TypeBoundTo, data.GetTypeID(this), bound.ID);
+        }
+
+        public void FreeBoundRef(string typeBoundTo, string type, uint id) {
+            if (Bound.TryGetValue(typeBoundTo, out ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>? boundByID) &&
+                boundByID.TryGetValue(id, out ConcurrentDictionary<string, DataType>? boundByType))
+                boundByType.TryRemove(type, out _);
+        }
+
+        public void FreeOrder<T>(uint id) where T : DataType<T>
             => FreeOrder(typeof(T), id);
 
         public void FreeOrder(Type type, uint id) {

@@ -11,13 +11,18 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataEmote : DataType<DataEmote>, IDataPlayerUpdate {
+    public class DataEmote : DataType<DataEmote> {
 
         static DataEmote() {
             DataID = "emote";
         }
 
-        public DataPlayerInfo? Player { get; set; }
+        public override MetaType[] GenerateMeta(DataContext ctx)
+            => new MetaType[] {
+                new MetaPlayerUpdate(Player)
+            };
+
+        public DataPlayerInfo? Player;
 
         public string Text = "";
 
@@ -27,13 +32,15 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override bool FilterSend(DataContext ctx)
             => !string.IsNullOrEmpty(Text);
 
+        public override void FixupMeta(DataContext ctx) {
+            Player = Get<MetaPlayerUpdate>(ctx);
+        }
+
         public override void Read(DataContext ctx, BinaryReader reader) {
-            Player = ctx.ReadRef<DataPlayerInfo>(reader);
             Text = reader.ReadNullTerminatedString();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            ctx.WriteRef(writer, Player);
             writer.WriteNullTerminatedString(Text);
         }
 

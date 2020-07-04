@@ -127,18 +127,6 @@ namespace Celeste.Mod.CelesteNet.Client {
             return data;
         }
 
-        public IDataRef SendAndSet(IDataRef data) {
-            Con?.Send((DataType) data);
-            Data.SetRef(data);
-            return data;
-        }
-
-        public T SendAndSet<T>(T data) where T : DataType<T>, IDataRef {
-            Con?.Send(data);
-            Data.SetRef(data);
-            return data;
-        }
-
         public DataType SendAndHandle(DataType data) {
             Con?.Send(data);
             Data.Handle(null, data);

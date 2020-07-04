@@ -149,7 +149,7 @@ namespace Celeste.Mod.CelesteNet {
         public uint ReadTeapot() {
             uint token = 0;
             using (StreamReader reader = new StreamReader(TCPStream, Encoding.UTF8, false, 1024, true)) {
-                for (string line; !string.IsNullOrWhiteSpace(line = reader.ReadLine());) {
+                for (string line; !string.IsNullOrWhiteSpace(line = reader?.ReadLine() ?? "");) {
                     if (line.StartsWith(CelesteNetUtils.HTTPTeapotConToken)) {
                         token = uint.Parse(line.Substring(CelesteNetUtils.HTTPTeapotConToken.Length).Trim());
                     }

@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetKillGhostNetComponent : CelesteNetGameComponent {
 
         public object GhostNetModule;
-        public MethodInfo m_GhostNetModule_Stop;
+        public FieldInfo m_GhostNetModule_Client;
 
         public CelesteNetKillGhostNetComponent(CelesteNetClientComponent context, Game game)
             : base(context, game) {
@@ -30,15 +30,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     continue;
 
                 GhostNetModule = module;
-                m_GhostNetModule_Stop = module.GetType().GetMethod("Stop");
+                m_GhostNetModule_Client = module.GetType().GetField("Client");
             }
         }
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
-            if (m_GhostNetModule_Stop != null)
-                m_GhostNetModule_Stop.Invoke(GhostNetModule, Dummy<object>.EmptyArray);
+            if (m_GhostNetModule_Client?.GetValue(GhostNetModule) != null) {
+                Context.Status.Set("Disconnected from CelesteNet, connected to GhostNet", 10, false);
+                Settings.Connected = false;
+            }
         }
 
     }

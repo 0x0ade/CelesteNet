@@ -309,7 +309,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             session.StartedFromBeginning = false;
 
-            RunOnMainThread(() => Engine.Scene = new LevelLoader(Session, target.Position));
+            RunOnMainThread(() => Engine.Scene = new LevelLoader(session, target.Position));
         }
 
         #endregion

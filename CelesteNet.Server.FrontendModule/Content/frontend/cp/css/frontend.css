@@ -129,8 +129,13 @@ app {
     flex-direction: column;
 }
 
+.hidden {
+    display: none !important;
+}
+
 /* #splash inlined */
 #splash.hidden {
+    display: block !important;
     pointer-events: none;
     animation: appintro-splash /*0.*/0.5s /*0.*/0.0s 1 ease-in-out forwards;
 }

@@ -14,6 +14,7 @@ const mdc = window["mdc"]; // mdc
 @typedef {{
   ID: number,
   PlayerID: number,
+  Targeted: boolean,
   Color: string,
   Text: string
 }} ChatData
@@ -149,13 +150,18 @@ export class FrontendChatPanel extends FrontendBasicPanel {
 
           opts = [
             ...opts,
-            [ "error_outline", `Kick ${name}` ],
-            [ "gavel", `Ban ${name}` ]
+            [ "error_outline", `Kick ${name}`, () => this.frontend.sync.run("kick", data.PlayerID) ],
+            [ "gavel", `Ban ${name}`, () => this.frontend.dialog.ban(player && player.UID, player && player.ConnectionUID) ]
           ];
         }
       }
 
       this.frontend.dom.setContext(el, ...opts);
+
+      if (data.Targeted && !this.frontend.settings.sensitive)
+        el.classList.add("hidden");
+      else
+        el.classList.remove("hidden");
 
       return el;
     };

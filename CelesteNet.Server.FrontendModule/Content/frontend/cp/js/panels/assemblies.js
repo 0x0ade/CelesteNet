@@ -48,6 +48,7 @@ export class FrontendAssembliesPanel extends FrontendBasicPanel {
     ]);
 
     this.frontend.dom.setContext(this.frontend.dom.renderSettingsButton(null),
+      [ null, "Control Panel", () => this.frontend.dialog.settingsCP() ],
       [ null, "CelesteNet.Server", () => this.frontend.dialog.settings("CelesteNet.Server") ],
       ...this.data
         .map(asm => asm.Name)

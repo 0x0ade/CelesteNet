@@ -2,6 +2,7 @@
 import mdcrd from "./utils/mdcrd.js";
 /** @type {import("material-components-web")} */
 const mdc = window["mdc"];
+import { FrontendSettings } from "./components/settings.js";
 import { FrontendDOM } from "./components/dom.js";
 import { FrontendUtils } from "./components/utils.js";
 import { FrontendSync } from "./components/sync.js";
@@ -30,6 +31,7 @@ export class Frontend {
 
     // Set up all remaining components.
     this.utils = new FrontendUtils(this);
+    this.settings = new FrontendSettings(this);
     this.sync = new FrontendSync(this);
     this.auth = new FrontendAuth(this);
     this.dom = new FrontendDOM(this);
@@ -152,6 +154,14 @@ export class Frontend {
 
     this.snackbarLast = snackbar;
     return snackbar;
+  }
+
+  /**
+   * @param {string} value
+   * @param {string} [censored]
+   */
+  censor(value, censored) {
+    return this.settings.sensitive ? value : (censored || "CENSORED");
   }
 
 }

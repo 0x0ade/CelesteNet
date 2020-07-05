@@ -22,6 +22,63 @@ export class FrontendDialog {
   async start() {
   }
 
+  settingsCP() {
+    const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
+    const group = (...items) => el => {
+      el = rd$(el)`<ul class="settings-group"></ul>`;
+
+      let list = new RDOMListHelper(el);
+      for (let i in items) {
+        list.add(i, items[i]);
+      }
+      list.end();
+
+      return el;
+    }
+    const id = (id, gen) => el => {
+      el = gen(el);
+      el.id = id;
+      return el;
+    }
+
+    const s = this.frontend.settings;
+
+    let el = this.elSettingsCP = mdcrd.dialog({
+      title: "Settings: Control Panel",
+      body: el => rd$(el)`
+      <div>
+        ${group(
+          id("setting-sensitive", mdcrd.checkbox("Show sensitive data", s.sensitive))
+        )}
+      </div>`,
+      defaultButton: "yes",
+      buttons: ["Cancel", "OK"],
+    })(this.elSettingsCP);
+
+    document.body.appendChild(el);
+
+    /** @type {import("@material/dialog").MDCDialog & Promise<string>} */
+    let dialog = el["MDCDialog"];
+
+    dialog.open();
+
+    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"]), { once: true }));
+    dialog["then"] = promise.then.bind(promise);
+    dialog["catch"] = promise.catch.bind(promise);
+
+    dialog.then(
+      action => {
+        if (action !== "1")
+          return;
+        s.sensitive = el.querySelector("#setting-sensitive input")["checked"];
+        s.save();
+        this.frontend.dom.render();
+      }
+    );
+
+    return dialog;
+  }
+
   settings(module) {
     if (!module)
       module = "CelesteNet.Server";

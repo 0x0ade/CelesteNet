@@ -50,9 +50,9 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
       el = mdcrd.list.item(el => {
         el = rd$(el)`<span></span>`;
         const list = new RDOMListHelper(el);
-        list.add("name", el => rd$(el)`<span><b>${p.Name || "?"}</b>${(p.Discrim ? "#" + p.Discrim : "") + " "} <i>(${p.UID})</i></span>`);
+        list.add("name", el => rd$(el)`<span><b>${p.Name || "?"}</b>${(p.Discrim ? "#" + p.Discrim : "") + " "} <i>(${p.Name ? p.UID : this.frontend.censor(p.UID)})</i></span>`);
         if (p.Key)
-          list.add("key", el => rd$(el)`<span><br><b>Key: </b>${"#" + p.Key}</span>`);
+          list.add("key", el => rd$(el)`<span><br><b>Key: </b>${"#" + this.frontend.censor(p.Key)}</span>`);
         if (p.Tags && p.Tags.length > 0)
           list.add("tags", el => rd$(el)`<span><br><b>Tags: </b>${p.Tags.join(", ")}</span>`);
         if (p.Ban)

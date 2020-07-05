@@ -18,6 +18,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             => new {
                 msg.ID,
                 PlayerID = msg.Player?.ID ?? uint.MaxValue,
+                Targeted = msg.Targets != null,
                 Color = msg.Color.ToHex(),
                 Text = msg.ToString(false, false)
             };

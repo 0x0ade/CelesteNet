@@ -307,12 +307,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 session.CoreMode = data.CoreMode;
             }
 
-            if (target.Position != null)
-                session.RespawnPoint = target.Position.Value;
-
             session.StartedFromBeginning = false;
 
-            RunOnMainThread(() => LevelEnter.Go(session, false));
+            RunOnMainThread(() => Engine.Scene = new LevelLoader(Session, target.Position));
         }
 
         #endregion

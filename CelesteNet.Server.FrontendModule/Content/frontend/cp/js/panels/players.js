@@ -42,8 +42,8 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
         <span>
         <b>${p.FullName}</b> <i>(#${p.ID})</i><br>
         ${p.Name}<br>
-        ${p.UID}<br>
-        ${p.Connection}
+        ${p.DisplayName !== p.FullName ? p.UID : this.frontend.censor(p.UID)}<br>
+        ${this.frontend.censor(p.Connection)}
         </span>`
       )(el);
 

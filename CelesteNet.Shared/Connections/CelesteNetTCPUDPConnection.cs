@@ -19,7 +19,7 @@ namespace Celeste.Mod.CelesteNet {
     public class CelesteNetTCPUDPConnection : CelesteNetConnection {
 
         public TcpClient TCP;
-        public NetworkStream TCPStream;
+        public PositionAwareStream<NetworkStream> TCPStream;
         public BinaryReader TCPReader;
         public BinaryWriter TCPWriter;
 
@@ -70,7 +70,7 @@ namespace Celeste.Mod.CelesteNet {
 
         private void InitTCPUDP(TcpClient tcp, UdpClient? udp) {
             TCP = tcp;
-            TCPStream = tcp.GetStream();
+            TCPStream = new PositionAwareStream<NetworkStream>(tcp.GetStream());
             TCPReader = new BinaryReader(TCPStream, Encoding.UTF8, true);
             TCPWriter = new BinaryWriter(TCPStream, Encoding.UTF8, true);
 

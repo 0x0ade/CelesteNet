@@ -256,6 +256,9 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public DataType Read(BinaryReader reader) {
+            PositionAwareStream? pas = reader.BaseStream as PositionAwareStream;
+            pas?.ResetPosition();
+
             string id = Calc.ReadNullTerminatedString(reader);
             DataFlags flags = (DataFlags) reader.ReadUInt16();
             bool small = (flags & DataFlags.Small) == DataFlags.Small;
@@ -265,6 +268,7 @@ namespace Celeste.Mod.CelesteNet {
             MetaTypeWrap[] metas = ReadMeta(reader);
 
             uint length = small ? reader.ReadByte() : big ? reader.ReadUInt32() : reader.ReadUInt16();
+            long start = pas?.Position ?? 0;
 
             if (!IDToDataType.TryGetValue(id, out Type? type))
                 return new DataUnparsed() {
@@ -278,8 +282,16 @@ namespace Celeste.Mod.CelesteNet {
             DataType? data = (DataType?) Activator.CreateInstance(type);
             if (data == null)
                 throw new Exception($"Cannot create instance of data type {type.FullName}");
+            
             data.UnwrapMeta(this, metas);
             data.Read(this, reader);
+
+            if (pas != null) {
+                long lengthReal = pas.Position - start;
+                if (lengthReal != length)
+                    throw new Exception($"Length mismatch for {id} {flags} {source} {length} - got {lengthReal}");
+            }
+
             return data;
         }
 

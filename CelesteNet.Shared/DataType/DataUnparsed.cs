@@ -43,11 +43,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            reader.ReadBytes(reader.ReadUInt16());
+            throw new NotSupportedException();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.Write((ushort) InnerData.Length);
             writer.Write(InnerData);
         }
 

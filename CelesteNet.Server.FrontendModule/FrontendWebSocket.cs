@@ -23,6 +23,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public Frontend Frontend;
 
         public string SessionKey = "";
+        public bool IsAuthorized => Frontend.CurrentSessionKeys.Contains(SessionKey);
 
         public WSCommands Commands;
 
@@ -40,6 +41,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private void Close(string reason) {
             State = EState.Invalid;
             Context.WebSocket.Close(CloseStatusCode.Normal, reason);
+        }
+
+        public void SendRawString(string data) {
+            Send(data);
         }
 
         private void RunCommand(object? input) {
@@ -118,7 +123,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         break;
                     }
 
-                    if (cmd.Auth && !Frontend.CurrentSessionKeys.Contains(SessionKey)) {
+                    if (cmd.Auth && !IsAuthorized) {
                         Close("unauthorized");
                         break;
                     }

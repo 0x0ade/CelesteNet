@@ -27,13 +27,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override void Read(DataContext ctx, BinaryReader reader) {
             Version = reader.ReadUInt16();
 
-            PlayerInfo = new DataPlayerInfo().ReadT(ctx, reader);
+            PlayerInfo = new DataPlayerInfo().ReadAllT(ctx, reader);
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.Write(Version);
 
-            PlayerInfo.Write(ctx, writer);
+            PlayerInfo.WriteAll(ctx, writer);
         }
 
         public override string ToString()

@@ -17,9 +17,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "keepalive";
         }
 
-        public override DataFlags DataFlags => IsUpdate ? DataFlags.Update : DataFlags.None;
+        public override DataFlags DataFlags => DataFlags.Small | (IsUpdate ? DataFlags.Update : DataFlags.None);
 
         public bool IsUpdate;
+
+        public override bool FilterHandle(DataContext ctx)
+            => false;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
         }

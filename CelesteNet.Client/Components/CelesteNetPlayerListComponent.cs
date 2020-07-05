@@ -46,10 +46,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             switch (Mode) {
                 case ListMode.Classic:
                     foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
-                        if (string.IsNullOrWhiteSpace(player.FullName))
+                        if (string.IsNullOrWhiteSpace(player.DisplayName))
                             continue;
 
-                        builder.Append(player.FullName);
+                        builder.Append(player.DisplayName);
 
                         DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
                         if (channel != null && !string.IsNullOrEmpty(channel.Name)) {
@@ -80,7 +80,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     bool wrotePrivate = false;
 
                     foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
-                        if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.FullName))
+                        if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
                             continue;
 
                         if (!wrotePrivate) {
@@ -88,7 +88,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             builder.AppendLine();
                         }
 
-                        builder.AppendLine(player.FullName);
+                        builder.AppendLine(player.DisplayName);
                     }
                     break;
             }
@@ -97,10 +97,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         private DataPlayerInfo ListPlayerUnderChannel(StringBuilder builder, uint playerID) {
-            if (Client.Data.TryGetRef(playerID, out DataPlayerInfo player) && !string.IsNullOrEmpty(player.FullName)) {
+            if (Client.Data.TryGetRef(playerID, out DataPlayerInfo player) && !string.IsNullOrEmpty(player.DisplayName)) {
                 builder
                     .Append("  ")
-                    .Append(player.FullName);
+                    .Append(player.DisplayName);
 
                 if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
                     AppendState(builder, state);

@@ -24,14 +24,20 @@ namespace Celeste.Mod.CelesteNet.Client {
         private readonly static FieldInfo f_Player_wasDashB =
             typeof(Player).GetField("wasDashB", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        private readonly static FieldInfo f_Level_updateHair =
-            typeof(Level).GetField("updateHair", BindingFlags.NonPublic | BindingFlags.Instance);
-
         public static bool GetWasDashB(this Player self)
             => (bool) f_Player_wasDashB.GetValue(self);
 
+        private readonly static FieldInfo f_Level_updateHair =
+            typeof(Level).GetField("updateHair", BindingFlags.NonPublic | BindingFlags.Instance);
+
         public static bool GetUpdateHair(this Level self)
             => (bool) f_Level_updateHair.GetValue(self);
+
+        private readonly static FieldInfo f_TrailManager_shapshots =
+            typeof(TrailManager).GetField("snapshots", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        public static TrailManager.Snapshot[] GetSnapshots(this TrailManager self)
+            => (TrailManager.Snapshot[]) f_TrailManager_shapshots.GetValue(self);
 
         private delegate IntPtr _AsPointer<T>(ref T value);
         private static readonly Dictionary<Type, Delegate> _AsPointerCache = new Dictionary<Type, Delegate>();

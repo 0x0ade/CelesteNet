@@ -136,15 +136,24 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public int IntRangeMin => Math.Min(IntRangeFrom, IntRangeTo);
         public int IntRangeMax => Math.Max(IntRangeFrom, IntRangeTo);
 
-        public CelesteNetPlayerSession Session {
+        public CelesteNetPlayerSession? Session {
             get {
-                if (Type != ChatCMDArgType.Int && Type != ChatCMDArgType.Long)
-                    throw new Exception("Argument not an ID.");
-                CelesteNetPlayerSession? session;
-                lock (Env.Chat.Server.Connections)
-                    if (!Env.Chat.Server.PlayersByID.TryGetValue((uint) Long, out session))
-                        throw new Exception("ID out of range.");
-                return session;
+                if (Type == ChatCMDArgType.Int || Type == ChatCMDArgType.Long) {
+                    lock (Env.Chat.Server.Connections)
+                        if (Env.Chat.Server.PlayersByID.TryGetValue((uint) Long, out CelesteNetPlayerSession? session))
+                            return session;
+                    return null;
+                }
+
+                if (Type == ChatCMDArgType.String) {
+                    string stringLower = String.ToLowerInvariant();
+                    lock (Env.Chat.Server.Connections)
+                        return
+                            Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName == String) ??
+                            Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName.ToLowerInvariant().StartsWith(stringLower) ?? false);
+                }
+
+                return null;
             }
         }
 
@@ -267,7 +276,19 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public string FullText => Msg.Text;
         public string Text => Cmd == null ? Msg.Text : Msg.Text.Substring(Chat.Settings.CommandPrefix.Length + Cmd.ID.Length);
 
-        public DataChat? Send(string text, string? tag = null, Color? color = null) => Chat.Send(Session, text, tag, color ?? Chat.Settings.ColorCommandReply);
+        public DataChat? Send(string text, string? tag = null, Color? color = null) => Chat.SendTo(Session, text, tag, color ?? Chat.Settings.ColorCommandReply);
+
+        public DataChat? Error(Exception e) {
+            string cmdName = Cmd?.ID ?? "?";
+
+            if (e.GetType() == typeof(Exception)) {
+                Logger.Log(LogLevel.VVV, "chatcmd", $"Command {cmdName} failed:\n{e}");
+                return Send($"Command {cmdName} failed: {e.Message}", color: Chat.Settings.ColorError);
+            }
+
+            Logger.Log(LogLevel.ERR, "chatcmd", $"Command {cmdName} failed:\n{e}");
+            return Send($"Command {cmdName} failed due to an internal error.", color: Chat.Settings.ColorError);
+        }
 
     }
 

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <link rel="icon" type="image/png" href="/favicon.png">
+        <link rel="shortcut icon" type="image/png" href="/favicon.png">
+
+        <title>CelesteNet is down</title>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="theme-color" content="#3b2d4a">
+
+        <meta property="og:description" content="The online multiplayer mod for Celeste.">
+        <meta name="author" content="0x0ade">
+        <meta property="og:locale" content="en_US">
+        <link rel="canonical" href="https://celestenet.0x0ade.ga/"><meta property="og:url" content="https://celestenet.0x0ade.ga/">
+        <meta property="og:image" content="https://celestenet.0x0ade.ga/logo.png">
+        <meta name="twitter:card" content="summary"><meta name="twitter:image" content="https://celestenet.0x0ade.ga/logo.png"><meta name="twitter:site" content="@everestapi"><meta name="twitter:creator" content="@everestapi">
+
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:400,600&display=swap">
+
+        <style>
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #111111;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+    line-height: 1.75em;
+    user-select: none;
+}
+
+body {
+    overflow: hidden;
+}
+
+#card {
+    background: rgba(14, 1, 27, 1);
+    box-shadow: 0 0 32px rgba(0, 0, 0, 0.5);
+    animation: main-in 0.5s 0s forwards;
+    position: absolute;
+    display: block;
+    width: 400px;
+    min-height: 80px;
+    padding: 16px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    overflow: hidden;
+    border-radius: 3px;
+}
+
+.note {
+    transition: border-left 0.2s;
+    border-left: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 3px;
+    padding: 8px 16px;
+}
+.note.error {
+    border-color: rgba(201, 19, 19, 0.7);
+}
+
+a, a:visited {
+    transition: color 0.2s, text-decoration-color 0.2s, text-shadow 0.2s, border-bottom 0.2s;
+    color: rgba(150, 230, 255, 0.87);
+    text-decoration-color: rgba(150, 230, 255, 0.435);
+    text-shadow: 0 0 0 rgba(150, 230, 255, 0);
+    font-weight: 500;
+    position: relative;
+    border-color: none;
+}
+a:hover, a:focus, a:active {
+    color: rgba(150, 230, 255, 0.94);
+    text-decoration-color: rgba(150, 230, 255, 0.94);
+    text-shadow: 0 0 16px rgba(150, 230, 255, 0.2);
+}
+
+@keyframes main-in {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, calc(-50% + 192px)) rotate(10deg);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) rotate(0);
+    }
+}
+        </style>
+    </head>
+    <body>
+        <div id="card">
+            <div class="note error">
+                <h2>Whoops...</h2>
+                <!--
+                <p>The CelesteNet server is down right now. Hopefully being worked on or something.<br><a href="https://discord.gg/6qjaePQ">Join the Celeste Discord</a> and ping 0x0ade.<br>Or go <a onclick="alert('WIP.')">download the mod</a> to prepare yourself.</p>
+                <p>CelesteNet isn't ready yet.<br>You were probably looking for <a href="https://0x0ade.ga/ghostnet">GhostNet</a>.</p>
+                -->
+                <p>The CelesteNet server is down right now. Hopefully being worked on or something.<br><a href="https://discord.gg/6qjaePQ">Join the Celeste Discord</a> for status updates.</p>
+            </div>
+        </div>
+    </body>
+</html>

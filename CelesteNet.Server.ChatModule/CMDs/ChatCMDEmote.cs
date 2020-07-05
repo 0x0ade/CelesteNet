@@ -10,6 +10,12 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
+    public class ChatCMDE : ChatCMDEmote {
+
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDEmote>().ID}";
+
+    }
+
     public class ChatCMDEmote : ChatCMD {
 
         public override string Args => "<text> | i:<img> | p:<img>";

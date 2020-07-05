@@ -33,6 +33,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public override bool IsConnected => TCP?.Connected ?? false;
         public override string ID => "TCP/UDP " + (TCPRemoteEndPoint?.ToString() ?? $"?{GetHashCode()}");
+        public override string UID => $"tcpudp-{TCPRemoteEndPoint?.Address?.ToString() ?? "unknown"}";
 
         protected IPEndPoint? TCPLocalEndPoint;
         protected IPEndPoint? TCPRemoteEndPoint;
@@ -111,8 +112,13 @@ namespace Celeste.Mod.CelesteNet {
         public override void SendRaw(DataType data) {
             lock (BufferStream) {
                 // Let's have some fun with dumb port sniffers.
-                if (data is DataTCPHTTPTeapot) {
-                    WriteTeapot();
+                if (data is DataTCPHTTPTeapot teapot) {
+                    WriteTeapot(teapot.ConnectionToken);
+                    return;
+                }
+
+                if (data is DataUDPConnectionToken token) {
+                    WriteToken(token.Value);
                     return;
                 }
 
@@ -140,16 +146,32 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public void ReadTeapot() {
+        public uint ReadTeapot() {
+            uint token = 0;
             using (StreamReader reader = new StreamReader(TCPStream, Encoding.UTF8, false, 1024, true)) {
-                while (!string.IsNullOrWhiteSpace(reader.ReadLine())) {
+                for (string line; !string.IsNullOrWhiteSpace(line = reader?.ReadLine() ?? "");) {
+                    if (line.StartsWith(CelesteNetUtils.HTTPTeapotConToken)) {
+                        token = uint.Parse(line.Substring(CelesteNetUtils.HTTPTeapotConToken.Length).Trim());
+                    }
                 }
             }
+            return token;
         }
 
-        public void WriteTeapot() {
+        public void WriteTeapot(uint token) {
             using (StreamWriter writer = new StreamWriter(TCPStream, Encoding.UTF8, 1024, true))
-                writer.Write(CelesteNetUtils.HTTPTeapot);
+                writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, token));
+            TCPStream.Flush();
+        }
+
+        public void WriteToken(uint token) {
+            if (UDP == null)
+                return;
+            if (UDP.Client.Connected && ReadUDPThread != null) {
+                UDP.Send(BitConverter.GetBytes(token), 4);
+            } else if (UDPRemoteEndPoint != null) {
+                UDP.Send(BitConverter.GetBytes(token), 4, UDPRemoteEndPoint);
+            }
         }
 
         protected virtual void ReadTCPLoop() {

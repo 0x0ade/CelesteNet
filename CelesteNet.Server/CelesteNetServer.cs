@@ -18,10 +18,14 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetServer : IDisposable {
 
+        public readonly DateTime StartupTime;
+
         public readonly CelesteNetServerSettings Settings;
 
         public readonly DataContext Data;
         public readonly TCPUDPServer TCPUDP;
+
+        public UserData UserData;
 
         public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
 
@@ -35,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly DetourModManager DetourModManager;
 
-        public uint PlayerCounter = 1;
+        public uint PlayerCounter = 0;
         public readonly Dictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new Dictionary<CelesteNetConnection, CelesteNetPlayerSession>();
         public readonly Dictionary<uint, CelesteNetPlayerSession> PlayersByID = new Dictionary<uint, CelesteNetPlayerSession>();
 
@@ -61,6 +65,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public CelesteNetServer(CelesteNetServerSettings settings) {
+            StartupTime = DateTime.UtcNow;
+
             Settings = settings;
 
             DetourModManager = new DetourModManager();
@@ -87,6 +93,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             Data = new DataContext();
             Data.RegisterHandlersIn(this);
 
+            Channels = new Channels(this);
+
+            UserData = new FileSystemUserData(this);
+
             Initialized = true;
             lock (Modules) {
                 foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers) {
@@ -111,7 +121,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ModulesFSWatcher.EnableRaisingEvents = true;
 
-            Channels = new Channels(this);
             TCPUDP = new TCPUDPServer(this);
         }
 

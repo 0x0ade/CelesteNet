@@ -13,6 +13,8 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public abstract class DataHandshakeClient<T> : DataType<T> where T : DataHandshakeClient<T> {
 
+        public override DataFlags DataFlags => DataFlags.Small;
+
         public ushort Version = CelesteNetUtils.Version;
 
         public string Name = "";

@@ -1,5 +1,6 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
+using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -26,6 +27,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             Commands = new ChatCommands(this);
             Server.OnSessionStart += OnSessionStart;
+            lock (Server.Connections)
+                foreach (CelesteNetPlayerSession session in Server.PlayersByCon.Values)
+                    session.OnEnd += OnSessionEnd;
         }
 
         public override void Dispose() {
@@ -40,15 +44,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
-            Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.FullName ?? "???"));
-            Send(session, Settings.MessageMOTD);
+            Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.DisplayName ?? "???"));
+            SendTo(session, Settings.MessageMOTD);
             session.OnEnd += OnSessionEnd;
         }
 
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
-            string? fullName = lastPlayerInfo?.FullName;
-            if (!fullName.IsNullOrEmpty())
-                Broadcast(Settings.MessageLeave.InjectSingleValue("player", fullName));
+            string? displayName = lastPlayerInfo?.DisplayName;
+            if (!displayName.IsNullOrEmpty())
+                Broadcast((new DynamicData(session).Get<string>("leaveReason") ?? Settings.MessageLeave).InjectSingleValue("player", displayName));
         }
 
         public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {
@@ -88,7 +92,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             msg.Date = DateTime.UtcNow;
 
             if (!msg.CreatedByServer)
-                Logger.Log(LogLevel.INF, "chatmsg", msg.ToString());
+                Logger.Log(LogLevel.INF, "chatmsg", msg.ToString(false, true));
 
             if (!(OnReceive?.InvokeWhileTrue(this, msg) ?? true))
                 return null;
@@ -102,7 +106,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (PrepareAndLog(con, msg) == null)
                 return;
 
-            if (msg.Text.StartsWith(Settings.CommandPrefix)) {
+            if ((!msg.CreatedByServer || msg.Player == null) && msg.Text.StartsWith(Settings.CommandPrefix)) {
                 if (msg.Player != null) {
                     // Player should at least receive msg ack.
                     msg.Color = Settings.ColorCommand;
@@ -126,13 +130,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                         try {
                             cmd.ParseAndRun(env);
                         } catch (Exception e) {
-                            if (e.GetType() == typeof(Exception)) {
-                                env.Send($"Command {cmdName} failed: {e.Message}", color: Settings.ColorError);
-                                Logger.Log(LogLevel.VVV, "chatcmd", $"Command {cmdName} failed:\n{e}");
-                            } else {
-                                env.Send($"Command {cmdName} failed due to an internal error.", color: Settings.ColorError);
-                                Logger.Log(LogLevel.ERR, "chatcmd", $"Command {cmdName} failed:\n{e}");
-                            }
+                            env.Error(e);
                         }
                     });
 
@@ -144,6 +142,28 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             }
 
             Server.Broadcast(msg);
+        }
+
+        public void Handle(CelesteNetConnection con, DataEmote emote) {
+            if (con == null)
+                return;
+
+            CelesteNetPlayerSession? player;
+            lock (Server.Connections)
+                if (!Server.PlayersByCon.TryGetValue(con, out player))
+                    return;
+
+            DataPlayerInfo? playerInfo = player.PlayerInfo;
+            if (playerInfo == null)
+                return;
+
+            PrepareAndLog(con, new DataChat {
+                Player = playerInfo,
+                Targets = new DataPlayerInfo[0],
+                Text = emote.Text,
+                Tag = "emote",
+                Color = Settings.ColorLogEmote
+            });
         }
 
 
@@ -158,7 +178,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             return msg;
         }
 
-        public DataChat? Send(CelesteNetPlayerSession? player, string text, string? tag = null, Color? color = null) {
+        public DataChat? SendTo(CelesteNetPlayerSession? player, string text, string? tag = null, Color? color = null) {
             DataChat msg = new DataChat() {
                 Target = player?.PlayerInfo,
                 Text = text,
@@ -179,19 +199,21 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public event Action<ChatModule, DataChat>? OnForceSend;
 
         public void ForceSend(DataChat msg) {
-            Logger.Log(LogLevel.INF, "chatupd", msg.ToString());
+            Logger.Log(LogLevel.INF, "chatupd", msg.ToString(false, true));
             OnForceSend?.Invoke(this, msg);
 
-            if (msg.Target == null) {
+            if (msg.Targets == null) {
                 Server.Broadcast(msg);
                 return;
             }
 
-            CelesteNetPlayerSession? player;
-            lock (Server.Connections)
-                if (!Server.PlayersByID.TryGetValue(msg.Target.ID, out player))
-                    return;
-            player.Con?.Send(msg);
+            foreach (DataPlayerInfo playerInfo in msg.Targets) {
+                CelesteNetPlayerSession? player;
+                lock (Server.Connections)
+                    if (!Server.PlayersByID.TryGetValue(playerInfo.ID, out player))
+                        continue;
+                player.Con?.Send(msg);
+            }
         }
 
     }

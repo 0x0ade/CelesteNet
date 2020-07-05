@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FMOD.Studio;
+using MonoMod.Utils;
+using System.Collections;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
@@ -34,9 +36,24 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override void Load() {
             Logger.LogCelesteNetTag = true;
+
+            // Dirty hackfix for Everest not reloading Monocle debug commands at runtime.
+            if (Engine.Commands != null) {
+                DynamicData cmds = new DynamicData(Engine.Commands);
+                cmds.Get<IDictionary>("commands").Clear();
+                cmds.Get<IList>("sorted").Clear();
+                cmds.Invoke("BuildCommandsList");
+            }
+
+            CelesteNetClientRC.Initialize();
+            Everest.Events.Celeste.OnShutdown += CelesteNetClientRC.Shutdown;
         }
 
         public override void Unload() {
+            CelesteNetClientRC.Shutdown();
+            Everest.Events.Celeste.OnShutdown -= CelesteNetClientRC.Shutdown;
+
+            Settings.Connected = false;
             Stop();
         }
 
@@ -94,7 +111,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                     context.Init(Settings);
                     context.Status.Set("Connecting...");
                     context.Start();
-                    context.Status.Set("Connected", 1f);
+                    if (context.Status.Spin)
+                        context.Status.Set("Connected", 1f);
 
                 } catch (ThreadInterruptedException) {
                     Logger.Log(LogLevel.CRI, "clientmod", "Startup interrupted.");
@@ -123,6 +141,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Stop() {
+            QueuedTaskHelper.Cancel("CelesteNetAutoReconnect");
+
             if (_StartThread?.IsAlive ?? false)
                 _StartThread.Join();
 

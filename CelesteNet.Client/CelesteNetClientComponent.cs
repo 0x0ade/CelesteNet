@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
@@ -21,6 +22,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetChatComponent Chat;
 
         public Dictionary<Type, CelesteNetGameComponent> Components = new Dictionary<Type, CelesteNetGameComponent>();
+
+        protected Queue<Action> MainThreadQueue = new Queue<Action>();
 
         private bool Started = false;
 
@@ -73,12 +76,46 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
+            lock (MainThreadQueue)
+                while (MainThreadQueue.Count > 0)
+                    MainThreadQueue.Dequeue()();
+
             if (Started && !(Client?.IsAlive ?? true))
                 Dispose();
         }
 
+        internal void _RunOnMainThread(Action action, bool wait = false)
+            => RunOnMainThread(action, wait);
+        protected void RunOnMainThread(Action action, bool wait = false) {
+            if (Thread.CurrentThread == MainThreadHelper.MainThread) {
+                action();
+                return;
+            }
+
+            using (ManualResetEvent waiter = wait ? new ManualResetEvent(false) : null) {
+                if (wait) {
+                    Action real = action;
+                    action = () => {
+                        try {
+                            real();
+                        } finally {
+                            waiter.Set();
+                        }
+                    };
+                }
+
+                lock (MainThreadQueue)
+                    MainThreadQueue.Enqueue(action);
+
+                if (wait)
+                    WaitHandle.WaitAny(new WaitHandle[] { waiter });
+            }
+        }
+
         protected override void Dispose(bool disposing) {
+            bool reconnect = false;
             if (CelesteNetClientModule.Instance.Context == this) {
+                reconnect = CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected;
                 CelesteNetClientModule.Instance.Context = null;
                 CelesteNetClientModule.Settings.Connected = false;
             }
@@ -94,8 +131,15 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (component.AutoDispose)
                     component.Dispose();
 
-            Status?.Set("Disconnected", 3f, false);
-            Status.AutoDispose = true;
+            if (Status != null) {
+                if (Status.Spin) {
+                    Status.Set("Disconnected", 3f, false);
+                    if (reconnect) {
+                        QueuedTaskHelper.Do("CelesteNetAutoReconnect", () => CelesteNetClientModule.Settings.Connected = true);
+                    }
+                }
+                Status.AutoDispose = true;
+            }
         }
 
     }

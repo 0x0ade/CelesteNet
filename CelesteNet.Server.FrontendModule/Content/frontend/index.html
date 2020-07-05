@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+        THIS IS THE DEFAULT WEBSITE.
+        If you're hosting your own CelesteNet server, replace it!
+        Or host it separately, as the built-in HTTP client isn't the best.
+    -->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <link rel="icon" type="image/png" href="/favicon.png">
+        <link rel="shortcut icon" type="image/png" href="/favicon.png">
+
+        <title>CelesteNet</title>
+        <meta name="description" content="The online multiplayer mod for Celeste.">
+
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="theme-color" content="#3b2d4a">
+
+        <meta property="og:description" content="The online multiplayer mod for Celeste.">
+        <meta name="author" content="0x0ade">
+        <meta property="og:locale" content="en_US">
+        <link rel="canonical" href="https://celestenet.0x0ade.ga/"><meta property="og:url" content="https://celestenet.0x0ade.ga/">
+        <meta property="og:image" content="https://celestenet.0x0ade.ga/logo.png">
+        <meta name="twitter:card" content="summary"><meta name="twitter:image" content="https://celestenet.0x0ade.ga/logo.png"><meta name="twitter:site" content="@everestapi"><meta name="twitter:creator" content="@everestapi">
+
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:400,600&display=swap">
+
+        <link rel="stylesheet" href="/main/style.css">
+        <link rel="stylesheet" href="/overlay/style.css">
+    </head>
+    <body>
+        <div id="background"></div>
+
+        <div id="parallax-root">
+            <div id="front">
+                <img id="front-logo" src="/main/header.png">
+            </div>
+
+            <div id="body">
+                <a id="front-arrow" href="#about"></a>
+
+                <div id="body-bg">
+                    <div id="cogwheel"></div>
+                </div>
+
+                <ul id="toplist">
+                    <li><a id="toplink-auto" class="button" onclick="alert('WIP!')"><span class="toplink-icon"></span><span class="toplink-text">Install Automatically</span></a></li>
+                    <li><a id="toplink-manual" class="button" onclick="alert('WIP!')"><span class="toplink-icon"></span><span class="toplink-text">Install Manually</span></a></li>
+                    <li><a id="toplink-discord" class="button" href="https://discord.gg/6qjaePQ"><span class="toplink-icon"></span><span class="toplink-text">Join the Community</span></a></li>
+                </ul>
+
+                <div id="main">
+                    <div id="about">
+                        <h2>About</h2>
+                        <p class="note" style="border-color: #ee1188;">
+                            <img class="haha" src="/main/haha.png" alt="granny laughing">
+                            Hey, kiddo! This isn't ready yet, and <b>stuff's still changing!</b><br>
+                            Now shush, go play with <a href="https://0x0ade.ga/ghostnet/">GhostNet</a> until this is ready.
+                        </p>
+                        <p>
+                            CelesteNet is an <b>online multiplayer mod for <a href="http://www.celestegame.com/">Celeste</a></b>, using the <a href="https://everestapi.github.io/">Everest mod loader</a>, made with a lot of love and sweat.<br>
+                            It <b>completely replaces</b> the previous <a href="https://0x0ade.ga/ghostnet/">GhostNet</a> mod from 2018.<br>
+                            <br>
+                            Press T to talk.<br>
+                            Use the right stick for emoji and click it down to send it.<br>
+                            Emotes can be set up in the settings file found in your saves folder.<br>
+                            Press tab (KB) or select / back (controller) to open the player list.<br>
+                            Send /help in chat for a list of all commands.<br>
+                            CelesteNet is still being worked on.<br>
+                            Listing all features on this website would be harder than just giving it a try.<br>
+                            <br>
+                            <b>Boring but important stuff:</b><br>
+                            Both mods are created by <a class="ade" href="https://0x0ade.github.io/">0x0ade</a>, who also hosts the main servers.<br>
+                            By connecting to any server, no matter who's hosting them, some basic information (IP address, nickname, messages, ...) gets logged temporarily to prevent abuse and to ban spammers.<br>
+                            Linking your account via Discord is opt-in and only uses the <a href="https://discord.com/developers/docs/resources/user#user-object">user info endpoint</a> for your user ID, nickname, discrim and avatar. All that info is already public if you're using Discord.<br>
+                            That information cannot be used to determine your actual identity, unless you f.e. provide that information via chat on your own. That would be similar to yelling the same info out loud to all the people around you.<br>
+                            This website tells your browser to stay logged in using a cookie.<br>
+                            Feel free to contact the server host if you want to be wiped from those logs, your Discord info to be deleted or if you want to contest a ban.<br>
+                            <br>
+                            If you need any help, have any suggestions or want to access the source code, feel free to <a href="https://discord.gg/6qjaePQ">join the Celeste Discord server</a> and ping 0x0ade.
+                        </p>
+                    </div>
+
+                    <div id="content">
+                        <div id="status">
+                            <h2>Status</h2>
+                            <ul id="status-list">
+                                <li class="dummy">The server is up, hopefully.</li>
+                                <noscript class="dummy"><li>You need to enable JavaScript for detailed status, sorry.</li></noscript>
+                            </ul>
+                        </div>
+
+                        <div id="user">
+                            <h2>User</h2>
+                            <div id="userpanel">
+                                <noscript class="dummy"><p>You need to enable JavaScript to link your Discord account, sorry.</p></noscript>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="footer">
+                Baked with <img class="berry" src="/main/berry.gif" alt="a strawberry"> by <a class="ade" href="https://0x0ade.github.io/">0x0ade</a>
+            </div>
+
+        </div>
+
+        <div id="foreground">
+            <div id="dim" class="loading"></div>
+            <div id="dialog" class="loading">
+                <p id="dialog-text"></p>
+                <a id="dialog-close" class="button" onclick="dialog()">Close</a>
+            </div>
+
+            <div id="overlay-wrap">
+                <div id="overlay">
+                </div>
+            </div>
+
+            <div id="noisefg">
+            </div>
+        </div>
+
+        <div id="dummy"></div>
+        <script src="/main/index.js" type="module" async></script>
+    </body>
+</html>

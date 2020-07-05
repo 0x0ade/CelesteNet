@@ -79,9 +79,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (!level.Paused) {
                 bool joyAnyDir = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f;
-                Wheel.Shown    = joyAnyDir || Settings.ButtonEmoteWheelShow.Button;
-                Wheel.Joystick = joyAnyDir;
-                Wheel.Selected =(joyAnyDir || Settings.ButtonEmoteWheelShow.Button) ? Wheel.Selected : -1;
+                Wheel.Shown    =  joyAnyDir || Settings.ButtonEmoteWheelShow.Button;
+                Wheel.Joystick =  joyAnyDir;
+                Wheel.Selected = (joyAnyDir || Settings.ButtonEmoteWheelShow.Button) ? Wheel.Selected : -1;
 
                 if (Wheel.Shown && Wheel.Selected != -1 && Settings.ButtonEmoteSend.Button.Pressed) {
                     Send(Wheel.Selected);

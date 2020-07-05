@@ -47,8 +47,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public override void Update() {
-            // Update only runs while the level is "alive" (scene not paused or frozen).
-            // The new PauseUpdate Tag may invalidate part of the above comment, right?
 
             if (Shown && !timeRateSet) {
                 Engine.TimeRate = 0.25f;
@@ -79,12 +77,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                             }
                         }
                     } else {
-                        // Why do constructors exist again? NullReferenceExceptions...
                         VirtualButton RBut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollR.Button;
                         VirtualButton LBut = CelesteNetClientModule.Settings.ButtonEmoteWheelScrollL.Button;
                         int scrollMultiplier = -CelesteNetClientModule.Settings.EmoteWheelScrollMultiplier;
-                        RBut.SetRepeat(0.01875f * scrollMultiplier, 0.006225f * scrollMultiplier); // Getting these numbers juuuust right
-                        LBut.SetRepeat(0.01875f * scrollMultiplier, 0.006225f * scrollMultiplier); // took a lot longer then it should've
+                        RBut.SetRepeat(0.01875f * scrollMultiplier, 0.006225f * scrollMultiplier);
+                        LBut.SetRepeat(0.01875f * scrollMultiplier, 0.006225f * scrollMultiplier);
 
                         Selected = Selected < 0 ? 0 : Selected; // if -1 then 0
                         if (RBut.Pressed || RBut.Repeating)

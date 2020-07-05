@@ -15,7 +15,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int UI_WIDTH = 1920;
         public const int UI_HEIGHT = 1080;
 
-        public CelesteNetClientComponent Context;
+        public CelesteNetClientContext Context;
         public CelesteNetClient Client => Context?.Client;
         public CelesteNetClientSettings ClientSettings => Context?.Client?.Settings ?? CelesteNetClientModule.Settings;
         public CelesteNetClientSettings Settings => CelesteNetClientModule.Settings;
@@ -23,7 +23,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public bool AutoRemove = true;
         public bool AutoDispose = true;
 
-        public CelesteNetGameComponent(CelesteNetClientComponent context, Game game)
+        public CelesteNetGameComponent(CelesteNetClientContext context, Game game)
             : base(game) {
 
             Context = context;

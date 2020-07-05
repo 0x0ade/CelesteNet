@@ -31,7 +31,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new HashSet<PlayerSpriteMode>();
 
-        public CelesteNetMainComponent(CelesteNetClientComponent context, Game game)
+        public CelesteNetMainComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10200;

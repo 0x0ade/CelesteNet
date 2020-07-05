@@ -19,7 +19,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public object GhostNetModule;
         public FieldInfo m_GhostNetModule_Client;
 
-        public CelesteNetKillGhostNetComponent(CelesteNetClientComponent context, Game game)
+        public CelesteNetKillGhostNetComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;

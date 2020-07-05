@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public HashSet<string> Registered = new HashSet<string>();
         public HashSet<string> RegisteredFiles = new HashSet<string>();
 
-        public CelesteNetEmojiComponent(CelesteNetClientComponent context, Game game)
+        public CelesteNetEmojiComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;

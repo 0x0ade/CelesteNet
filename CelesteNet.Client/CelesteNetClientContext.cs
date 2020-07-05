@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client {
-    public class CelesteNetClientComponent : GameComponent {
+    public class CelesteNetClientContext : GameComponent {
 
         public CelesteNetClient Client;
 
@@ -27,7 +27,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private bool Started = false;
 
-        public CelesteNetClientComponent(Game game)
+        public static event Action<CelesteNetClientContext> OnCreate;
+
+        public CelesteNetClientContext(Game game)
             : base(game) {
 
             UpdateOrder = -10000;
@@ -45,6 +47,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 Add((CelesteNetGameComponent) Activator.CreateInstance(type, this, game));
             }
+
+            OnCreate?.Invoke(this);
         }
 
         protected void Add(CelesteNetGameComponent component) {
@@ -56,11 +60,16 @@ namespace Celeste.Mod.CelesteNet.Client {
         public T Get<T>() where T : CelesteNetGameComponent
             => Components.TryGetValue(typeof(T), out CelesteNetGameComponent component) ? (T) component : null;
 
+        public static event Action<CelesteNetClientContext> OnInit;
+
         public void Init(CelesteNetClientSettings settings) {
             Client = new CelesteNetClient(settings);
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Init();
+            OnInit?.Invoke(this);
         }
+
+        public static event Action<CelesteNetClientContext> OnStart;
 
         public void Start() {
             if (Client == null)
@@ -69,6 +78,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             Client.Start();
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Start();
+
+            OnInit?.Invoke(this);
 
             Started = true;
         }
@@ -112,6 +123,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
+        public static event Action<CelesteNetClientContext> OnDispose;
+
         protected override void Dispose(bool disposing) {
             bool reconnect = false;
             if (CelesteNetClientModule.Instance.Context == this) {
@@ -130,6 +143,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             foreach (CelesteNetGameComponent component in Components.Values)
                 if (component.AutoDispose)
                     component.Dispose();
+
+            OnDispose?.Invoke(this);
 
             if (Status != null) {
                 if (Status.Spin) {

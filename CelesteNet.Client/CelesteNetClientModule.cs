@@ -19,8 +19,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override Type SettingsType => typeof(CelesteNetClientSettings);
         public static CelesteNetClientSettings Settings => (CelesteNetClientSettings) Instance._Settings;
 
-        public CelesteNetClientComponent ContextLast;
-        public CelesteNetClientComponent Context;
+        public CelesteNetClientContext ContextLast;
+        public CelesteNetClientContext Context;
         public CelesteNetClient Client => Context?.Client;
         private readonly object ClientLock = new object();
 
@@ -99,20 +99,20 @@ namespace Celeste.Mod.CelesteNet.Client {
                 _StartThread.Join();
 
             lock (ClientLock) {
-                CelesteNetClientComponent last = Context ?? ContextLast;
+                CelesteNetClientContext last = Context ?? ContextLast;
                 if (Client?.IsAlive ?? false)
                     Stop();
 
                 last?.Status?.Set(null);
 
-                Context = new CelesteNetClientComponent(Celeste.Instance);
+                Context = new CelesteNetClientContext(Celeste.Instance);
                 ContextLast = Context;
 
                 Context.Status.Set("Initializing...");
             }
 
             _StartThread = new Thread(() => {
-                CelesteNetClientComponent context = Context;
+                CelesteNetClientContext context = Context;
                 try {
                     context.Init(Settings);
                     context.Status.Set("Connecting...");

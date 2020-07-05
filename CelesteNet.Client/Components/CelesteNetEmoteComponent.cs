@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Player Player;
         public GhostEmoteWheel Wheel;
 
-        public CelesteNetEmoteComponent(CelesteNetClientComponent context, Game game)
+        public CelesteNetEmoteComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;

@@ -30,7 +30,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public float Time => show ? timeTextMax : timeText;
         public bool Spin => spin;
 
-        public CelesteNetStatusComponent(CelesteNetClientComponent context, Game game)
+        public CelesteNetStatusComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;

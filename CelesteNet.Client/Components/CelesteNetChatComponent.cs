@@ -76,7 +76,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
-        public CelesteNetChatComponent(CelesteNetClientComponent context, Game game)
+        public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;

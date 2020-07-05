@@ -29,7 +29,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Classic,
         }
 
-        public CelesteNetPlayerListComponent(CelesteNetClientComponent context, Game game)
+        public CelesteNetPlayerListComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;

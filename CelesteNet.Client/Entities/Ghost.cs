@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     public class Ghost : Actor {
 
-        public CelesteNetClientComponent Context;
+        public CelesteNetClientContext Context;
 
         public float Alpha = 0.875f;
 
@@ -31,7 +31,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public bool Dead;
 
-        public Ghost(CelesteNetClientComponent context, PlayerSpriteMode spriteMode)
+        public Ghost(CelesteNetClientContext context, PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
             Context = context;
 

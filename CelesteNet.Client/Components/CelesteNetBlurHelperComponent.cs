@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public RenderTarget2D BlurYRT;
         public RenderTarget2D BlurRT;
 
-        public CelesteNetBlurHelperComponent(CelesteNetClientComponent context, Game game)
+        public CelesteNetBlurHelperComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;

@@ -401,8 +401,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.Particles.Update();
                 level.ParticlesFG.Update();
                 level.ParticlesBG.Update();
-                if (TrailManager == null || TrailManager.Scene != Engine.Scene)
-                    TrailManager = Engine.Scene.Tracker.GetEntity<TrailManager>();
+                if (TrailManager == null || TrailManager.Scene != level)
+                    TrailManager = level.Tracker.GetEntity<TrailManager>();
                 if (TrailManager != null)
                     foreach (TrailManager.Snapshot snapshot in TrailManager.GetSnapshots())
                         snapshot?.Update();
@@ -411,7 +411,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             bool sendState = StateUpdated;
             StateUpdated = false;
 
-            if (Player == null || Player.Scene != Engine.Scene) {
+            if (Player == null || Player.Scene != level) {
                 Player = level.Tracker.GetEntity<Player>();
                 if (Player != null) {
                     Session = level.Session;
@@ -432,7 +432,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Player == null)
                 return;
 
-            if (PlayerNameTag == null || PlayerNameTag.Tracking != Player) {
+            if (PlayerNameTag == null || PlayerNameTag.Tracking != Player || PlayerNameTag.Scene != level) {
                 RunOnMainThread(() => {
                     PlayerNameTag?.RemoveSelf();
                     level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName));

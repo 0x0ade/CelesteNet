@@ -8,9 +8,11 @@ using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -267,11 +269,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
             }
 
-            if (session == null || session.Area.SID != target.SID) {
+            if (session == null || session.Area.SID != target.SID || session.Area.Mode != target.Mode) {
                 if (session != null)
                     UserIO.SaveHandler(true, true);
 
                 session = new Session(area.ToKey(target.Mode));
+
+            } else if (session != null) {
+                // Best™ way to clone the session.
+                XmlSerializer serializer = new XmlSerializer(typeof(Session));
+                using (MemoryStream ms = new MemoryStream()) {
+                    serializer.Serialize(ms, session);
+                    ms.Seek(0, SeekOrigin.Begin);
+                    session = (Session) serializer.Deserialize(ms);
+                }
             }
 
             if (!string.IsNullOrEmpty(target.Level) && session.MapData.Get(target.Level) != null) {
@@ -307,9 +318,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 session.CoreMode = data.CoreMode;
             }
 
+            if (target.Position != null)
+                session.RespawnPoint = target.Position.Value;
+
             session.StartedFromBeginning = false;
 
-            RunOnMainThread(() => Engine.Scene = new LevelLoader(session, target.Position));
+            RunOnMainThread(() => LevelEnter.Go(session, false));
         }
 
         #endregion

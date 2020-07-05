@@ -21,8 +21,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected Overlay _DummyOverlay = new PauseUpdateOverlay();
 
         public List<DataChat> Log = new List<DataChat>();
+        public List<DataChat> LogSpecial = new List<DataChat>();
         public Dictionary<string, DataChat> Pending = new Dictionary<string, DataChat>();
         public string Typing = "";
+
+        public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
+
+        public enum ChatMode {
+            All,
+            Special,
+            Off
+        }
 
         public List<string> Repeat = new List<string>() {
             ""
@@ -97,6 +106,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 };
                 Pending[text] = msg;
                 Log.Add(msg);
+                LogSpecial.Add(msg);
                 Client.Send(msg);
             }
         }
@@ -106,13 +116,23 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (msg.Player != null && msg.Player.ID == Client.PlayerInfo?.ID && Pending.TryGetValue(msg.Text, out DataChat pending)) {
                     Pending.Remove(msg.Text);
                     Log.Remove(pending);
+                    LogSpecial.Remove(pending);
                 }
 
-                int index = Log.FindIndex(other => other.ID == msg.ID);
+                int index = Log.FindLastIndex(other => other.ID == msg.ID);
                 if (index != -1) {
                     Log[index] = msg;
                 } else {
                     Log.Add(msg);
+                }
+
+                if (msg.Color != Color.White) {
+                    index = LogSpecial.FindLastIndex(other => other.ID == msg.ID);
+                    if (index != -1) {
+                        LogSpecial[index] = msg;
+                    } else {
+                        LogSpecial.Add(msg);
+                    }
                 }
             }
         }
@@ -211,7 +231,23 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             lock (Log) {
-                int count = Log.Count;
+                List<DataChat> log;
+                switch (Mode) {
+                    case ChatMode.All:
+                    default:
+                        log = Log;
+                        break;
+
+                    case ChatMode.Special:
+                        log = LogSpecial;
+                        break;
+
+                    case ChatMode.Off:
+                        log = Dummy<DataChat>.EmptyList;
+                        break;
+                }
+
+                int count = log.Count;
                 if (count > 0) {
                     DateTime now = DateTime.UtcNow;
 
@@ -221,7 +257,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     float logLength = Settings.ChatLogLength;
                     for (int i = 0; i < count && i < logLength; i++) {
-                        DataChat msg = Log[count - 1 - i];
+                        DataChat msg = log[count - 1 - i];
 
                         float alpha = 1f;
                         float delta = (float) (now - msg.ReceivedDate).TotalSeconds;

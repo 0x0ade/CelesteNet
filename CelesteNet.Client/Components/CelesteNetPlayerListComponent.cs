@@ -123,6 +123,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     .Append((char) ('A' + (int) state.Mode))
                     .Append(" ")
                     .Append(state.Level);
+
+            if (state.Idle)
+                builder.Append(" :celestenet_idle:");
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {

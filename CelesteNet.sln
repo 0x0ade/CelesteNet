@@ -51,7 +51,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "iconwheel", "iconwheel", "{
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Server.FrontendModule", "CelesteNet.Server.FrontendModule\CelesteNet.Server.FrontendModule.csproj", "{E457A1D6-7FB5-4125-8ADD-47154C1F7DEE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CelesteNet.Server.ChatModule", "CelesteNet.Server.ChatModule\CelesteNet.Server.ChatModule.csproj", "{D58962F4-3A09-4D56-9516-C46AD9AAECBA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Server.ChatModule", "CelesteNet.Server.ChatModule\CelesteNet.Server.ChatModule.csproj", "{D58962F4-3A09-4D56-9516-C46AD9AAECBA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "emoji", "emoji", "{273EB989-5755-4F5C-A630-574B7F197C27}"
+	ProjectSection(SolutionItems) = preProject
+		Graphics\Atlases\Gui\emoji\celestenet_idle.png = Graphics\Atlases\Gui\emoji\celestenet_idle.png
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -92,6 +97,7 @@ Global
 		{9AE35793-3E94-4E8C-BDA7-C314BA7012FA} = {B101467E-391E-4794-8FE5-D8E968BEFA74}
 		{835CD78E-3E88-46F8-81EE-FC42E1D8FB38} = {9AE35793-3E94-4E8C-BDA7-C314BA7012FA}
 		{02E424ED-285B-453B-997F-3C4AC74DB4F6} = {835CD78E-3E88-46F8-81EE-FC42E1D8FB38}
+		{273EB989-5755-4F5C-A630-574B7F197C27} = {9AE35793-3E94-4E8C-BDA7-C314BA7012FA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7FDFC39A-82B7-4B23-8208-F246E9B3A7A2}

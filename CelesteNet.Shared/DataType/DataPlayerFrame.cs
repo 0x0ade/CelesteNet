@@ -44,6 +44,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Color[] HairColors = Dummy<Color>.EmptyArray;
         public string[] HairTextures = Dummy<string>.EmptyArray;
 
+        public string[] Followers = Dummy<string>.EmptyArray;
+
         // TODO: Get rid of this, sync particles separately!
         public bool? DashWasB;
         public Vector2 DashDir;
@@ -97,6 +99,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     HairTextures[i] = HairTextures[i - 1];
             }
 
+            Followers = new string[reader.ReadByte()];
+            for (int i = 0; i < Followers.Length; i++) {
+                Followers[i] = reader.ReadNullTerminatedString();
+                if (Followers[i] == "-")
+                    Followers[i] = Followers[i - 1];
+            }
+
             if (reader.ReadBoolean()) {
                 DashWasB = reader.ReadBoolean();
                 DashDir = reader.ReadVector2();
@@ -133,16 +142,25 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(HairSimulateMotion);
 
             writer.Write(HairCount);
-            if (HairColors != null && HairCount != 0) {
+            if (HairCount != 0) {
                 for (int i = 0; i < HairCount; i++)
                     writer.Write(HairColors[i]);
             }
-            if (HairTextures != null && HairCount != 0) {
+            if (HairCount != 0) {
                 for (int i = 0; i < HairCount; i++) {
-                    if (i > 1 && HairTextures[i] == HairTextures[i - 1])
+                    if (i >= 1 && HairTextures[i] == HairTextures[i - 1])
                         writer.WriteNullTerminatedString("-");
                     else
                         writer.WriteNullTerminatedString(HairTextures[i]);
+                }
+            }
+
+            if (Followers.Length != 0) {
+                for (int i = 0; i < Followers.Length; i++) {
+                    if (i >= 1 && Followers[i] == Followers[i - 1])
+                        writer.WriteNullTerminatedString("-");
+                    else
+                        writer.WriteNullTerminatedString(Followers[i]);
                 }
             }
 

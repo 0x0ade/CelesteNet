@@ -25,8 +25,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         private Thread? UDPReadThread;
 
         private uint UDPNextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
-        private readonly Dictionary<UDPPendingKey, CelesteNetTCPUDPConnection> UDPPending = new Dictionary<UDPPendingKey, CelesteNetTCPUDPConnection>();
-        private readonly Dictionary<CelesteNetTCPUDPConnection, UDPPendingKey> UDPPendingKeys = new Dictionary<CelesteNetTCPUDPConnection, UDPPendingKey>();
+        private readonly ConcurrentDictionary<UDPPendingKey, CelesteNetTCPUDPConnection> UDPPending = new ConcurrentDictionary<UDPPendingKey, CelesteNetTCPUDPConnection>();
+        private readonly ConcurrentDictionary<CelesteNetTCPUDPConnection, UDPPendingKey> UDPPendingKeys = new ConcurrentDictionary<CelesteNetTCPUDPConnection, UDPPendingKey>();
         private readonly ConcurrentDictionary<IPEndPoint, CelesteNetTCPUDPConnection> UDPMap = new ConcurrentDictionary<IPEndPoint, CelesteNetTCPUDPConnection>();
 
         public TCPUDPServer(CelesteNetServer server) {
@@ -74,19 +74,19 @@ namespace Celeste.Mod.CelesteNet.Server {
                     client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
                     CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Server.Data, client, null);
-                    lock (UDPPending) {
-                        uint token = UDPNextID++;
-                        UDPPendingKey key = new UDPPendingKey {
-                            IPHash = ((IPEndPoint) client.Client.RemoteEndPoint).Address.GetHashCode(),
-                            Token = token
-                        };
-                        UDPPending[key] = con;
-                        UDPPendingKeys[con] = key;
-                        con.OnDisconnect += RemoveUDPPending;
-                        con.Send(new DataTCPHTTPTeapot() {
-                            ConnectionToken = token
-                        });
-                    }
+                    uint token;
+                    lock (UDPPending)
+                        token = UDPNextID++;
+                    UDPPendingKey key = new UDPPendingKey {
+                        IPHash = ((IPEndPoint) client.Client.RemoteEndPoint).Address.GetHashCode(),
+                        Token = token
+                    };
+                    UDPPending[key] = con;
+                    UDPPendingKeys[con] = key;
+                    con.OnDisconnect += RemoveUDPPending;
+                    con.Send(new DataTCPHTTPTeapot() {
+                        ConnectionToken = token
+                    });
                     con.StartReadTCP();
                     Server.HandleConnect(con);
                 }
@@ -117,25 +117,22 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                         if (!UDPMap.TryGetValue(remote, out CelesteNetTCPUDPConnection? con)) {
                             if (raw.Length == 4) {
-                                lock (UDPPending) {
-                                    UDPPendingKey key = new UDPPendingKey {
-                                        IPHash = remote.Address.GetHashCode(),
-                                        Token = BitConverter.ToUInt32(raw, 0)
-                                    };
-                                    if (UDPPending.TryGetValue(key, out con)) {
-                                        Logger.Log(LogLevel.CRI, "tcpudp", $"New UDP connection: {remote}");
-                                        con.OnDisconnect -= RemoveUDPPending;
-                                        UDPPendingKeys.Remove(con);
-                                        UDPPending.Remove(key);
+                                UDPPendingKey key = new UDPPendingKey {
+                                    IPHash = remote.Address.GetHashCode(),
+                                    Token = BitConverter.ToUInt32(raw, 0)
+                                };
+                                if (UDPPending.TryRemove(key, out con)) {
+                                    Logger.Log(LogLevel.CRI, "tcpudp", $"New UDP connection: {remote}");
+                                    con.OnDisconnect -= RemoveUDPPending;
+                                    UDPPendingKeys.TryRemove(con, out _);
 
-                                        con.UDP = UDP;
-                                        con.UDPLocalEndPoint = (IPEndPoint) UDP.Client.LocalEndPoint;
-                                        con.UDPRemoteEndPoint = remote;
+                                    con.UDP = UDP;
+                                    con.UDPLocalEndPoint = (IPEndPoint) UDP.Client.LocalEndPoint;
+                                    con.UDPRemoteEndPoint = remote;
 
-                                        UDPMap[con.UDPRemoteEndPoint] = con;
-                                        con.OnDisconnect += RemoveUDPMap;
-                                        continue;
-                                    }
+                                    UDPMap[con.UDPRemoteEndPoint] = con;
+                                    con.OnDisconnect += RemoveUDPMap;
+                                    continue;
                                 }
                             }
 
@@ -166,11 +163,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private void RemoveUDPPending(CelesteNetConnection _con) {
             CelesteNetTCPUDPConnection con = (CelesteNetTCPUDPConnection) _con;
-            lock (UDPPending) {
-                if (UDPPendingKeys.TryGetValue(con, out UDPPendingKey key)) {
-                    UDPPendingKeys.Remove(con);
-                    UDPPending.Remove(key);
-                }
+            if (UDPPendingKeys.TryRemove(con, out UDPPendingKey key)) {
+                UDPPending.TryRemove(key, out _);
             }
         }
 

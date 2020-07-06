@@ -73,7 +73,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public string FilePath = "";
 
         public virtual void Load(string path = "") {
-            FilePath = path = Path.GetFullPath(path.Nullify() ?? FilePath.Nullify());
+            FilePath = path = Path.GetFullPath(path.Nullify() ?? FilePath);
 
             if (!File.Exists(path)) {
                 Save(path);

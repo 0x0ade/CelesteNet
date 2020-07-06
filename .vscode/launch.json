@@ -26,7 +26,13 @@
             "cwd": "${workspaceRoot}/CelesteNet.Server/bin/Debug/net452"
         },
         {
-            "name": "Attach",
+            "name": "Attach (dotnet)",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        },
+        {
+            "name": "Attach (mono)",
             "type": "mono",
             "request": "attach",
             "address": "localhost",

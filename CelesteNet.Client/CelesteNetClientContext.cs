@@ -79,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Start();
 
-            OnInit?.Invoke(this);
+            OnStart?.Invoke(this);
 
             Started = true;
         }

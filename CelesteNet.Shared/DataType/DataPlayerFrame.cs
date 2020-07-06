@@ -155,6 +155,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 }
             }
 
+            writer.Write((byte) Followers.Length);
             if (Followers.Length != 0) {
                 for (int i = 0; i < Followers.Length; i++) {
                     if (i >= 1 && Followers[i] == Followers[i - 1])

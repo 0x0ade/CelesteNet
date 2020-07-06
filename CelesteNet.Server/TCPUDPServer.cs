@@ -179,7 +179,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Handle(CelesteNetTCPUDPConnection con, DataHandshakeTCPUDPClient handshake) {
             if (handshake.Version != CelesteNetUtils.Version) {
-                con.Dispose();
+                con.Send(new DataDisconnectReason { Text = "Protocol version mismatch" });
+                con.Send(new DataInternalDisconnect());
                 return;
             }
 

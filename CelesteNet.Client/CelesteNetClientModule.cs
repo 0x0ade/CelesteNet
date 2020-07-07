@@ -48,6 +48,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             CelesteNetClientRC.Initialize();
             Everest.Events.Celeste.OnShutdown += CelesteNetClientRC.Shutdown;
+
+            CelesteNetClientSpriteDB.Load();
         }
 
         public override void Unload() {

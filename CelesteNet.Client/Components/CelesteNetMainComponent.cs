@@ -171,6 +171,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
             ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
             ghost.UpdateDead(frame.Dead && state.Level == session.Level);
+            ghost.UpdateFollowers(frame.Followers);
         }
 
         public void Handle(CelesteNetConnection con, DataAudioPlay audio) {
@@ -569,6 +570,37 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             for (int i = 0; i < hairCount; i++)
                 hairTextures[i] = Player.Hair.GetHairTexture(i).AtlasPath;
 
+            Leader leader = Player.Get<Leader>();
+            DataPlayerFrame.Follower[] followers = new DataPlayerFrame.Follower[leader.Followers.Count];
+            for (int i = 0; i < followers.Length; i++) {
+                Follower f = leader.Followers[i];
+                Sprite s = f.Entity.Get<Sprite>();
+                if (s == null) {
+                    followers[i] = new DataPlayerFrame.Follower {
+                        Scale = Vector2.One,
+                        Color = Color.White,
+                        Depth = -1000000,
+                        SpriteRate = 1f,
+                        SpriteJustify = null,
+                        SpriteID = "",
+                        CurrentAnimationID = "idle",
+                        CurrentAnimationFrame = 0
+                    };
+                    continue;
+                }
+
+                followers[i] = new DataPlayerFrame.Follower {
+                    Scale = s.Scale,
+                    Color = s.Color,
+                    Depth = f.Entity.Depth,
+                    SpriteRate = s.Rate,
+                    SpriteJustify = s.Justify,
+                    SpriteID = s.GetID(),
+                    CurrentAnimationID = s.CurrentAnimationID,
+                    CurrentAnimationFrame = s.CurrentAnimationFrame
+                };
+            }
+
             try {
                 Client?.Send(new DataPlayerFrame {
                     UpdateID = FrameNextID++,
@@ -592,6 +624,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     HairCount = (byte) hairCount,
                     HairColors = hairColors,
                     HairTextures = hairTextures,
+
+                    Followers = followers,
 
                     // TODO: Get rid of this, sync particles separately!
                     DashWasB = Player.StateMachine.State == Player.StDash ? Player.GetWasDashB() : (bool?) null,

@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Color[] HairColors = Dummy<Color>.EmptyArray;
         public string[] HairTextures = Dummy<string>.EmptyArray;
 
-        public string[] Followers = Dummy<string>.EmptyArray;
+        public Follower[] Followers = Dummy<Follower>.EmptyArray;
 
         // TODO: Get rid of this, sync particles separately!
         public bool? DashWasB;
@@ -99,11 +99,24 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     HairTextures[i] = HairTextures[i - 1];
             }
 
-            Followers = new string[reader.ReadByte()];
+            Followers = new Follower[reader.ReadByte()];
             for (int i = 0; i < Followers.Length; i++) {
-                Followers[i] = reader.ReadNullTerminatedString();
-                if (Followers[i] == "-")
-                    Followers[i] = Followers[i - 1];
+                Follower f = new Follower();
+                f.Scale = reader.ReadVector2();
+                f.Color = reader.ReadColor();
+                f.Depth = reader.ReadInt32();
+                f.SpriteRate = reader.ReadSingle();
+                f.SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null;
+                f.SpriteID = reader.ReadNullTerminatedString();
+                if (f.SpriteID == "-") {
+                    Follower p = Followers[i - 1];
+                    f.SpriteID = p.SpriteID;
+                    f.CurrentAnimationID = p.CurrentAnimationID;
+                } else {
+                    f.CurrentAnimationID = reader.ReadNullTerminatedString();
+                }
+                f.CurrentAnimationFrame = reader.ReadInt32();
+                Followers[i] = f;
             }
 
             if (reader.ReadBoolean()) {
@@ -158,10 +171,26 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write((byte) Followers.Length);
             if (Followers.Length != 0) {
                 for (int i = 0; i < Followers.Length; i++) {
-                    if (i >= 1 && Followers[i] == Followers[i - 1])
+                    Follower f = Followers[i];
+                    writer.Write(f.Scale);
+                    writer.Write(f.Color);
+                    writer.Write(f.Depth);
+                    writer.Write(f.SpriteRate);
+                    if (f.SpriteJustify != null) {
+                        writer.Write(true);
+                        writer.Write(f.SpriteJustify.Value);
+                    } else {
+                        writer.Write(false);
+                    }
+                    if (i >= 1 &&
+                        f.SpriteID == Followers[i - 1].SpriteID &&
+                        f.CurrentAnimationID == Followers[i - 1].CurrentAnimationID) {
                         writer.WriteNullTerminatedString("-");
-                    else
-                        writer.WriteNullTerminatedString(Followers[i]);
+                    } else {
+                        writer.WriteNullTerminatedString(f.SpriteID);
+                        writer.WriteNullTerminatedString(f.CurrentAnimationID);
+                    }
+                    writer.Write(f.CurrentAnimationFrame);
                 }
             }
 
@@ -175,6 +204,17 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             }
 
             writer.Write(Dead);
+        }
+
+        public class Follower {
+            public Vector2 Scale;
+            public Color Color;
+            public int Depth;
+            public float SpriteRate;
+            public Vector2? SpriteJustify;
+            public string SpriteID = "";
+            public string CurrentAnimationID = "";
+            public int CurrentAnimationFrame;
         }
 
     }

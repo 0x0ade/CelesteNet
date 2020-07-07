@@ -1,4 +1,4 @@
-- Name: CelesteNet
+- Name: CelesteNet.Client
   Version: 1.0.0
   DLL: CelesteNet.Client.dll
   Dependencies:

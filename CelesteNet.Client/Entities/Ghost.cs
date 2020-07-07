@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public PlayerSprite Sprite;
         public PlayerHair Hair;
+        public Leader Leader;
 
         public GhostNameTag NameTag;
         public GhostEmote IdleTag;
@@ -30,6 +32,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public Vector2 DashDir;
 
         public bool Dead;
+
+        public List<GhostFollower> Followers = new List<GhostFollower>();
 
         public Ghost(CelesteNetClientContext context, PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
@@ -51,6 +55,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Add(Hair = new PlayerHair(Sprite));
             Add(Sprite);
             Hair.Color = Player.NormalHairColor;
+            Add(Leader = new Leader(new Vector2(0f, -8f)));
 
             Collidable = true;
             Collider = new Hitbox(8f, 11f, -4f, -11f);
@@ -118,6 +123,12 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (!level.GetUpdateHair() || level.Overlay is PauseUpdateOverlay)
                 Hair.AfterUpdate();
 
+            lock (Followers) {
+                foreach (GhostFollower gf in Followers)
+                    if (gf.Scene != level)
+                        level.Add(gf);
+            }
+
             // TODO: Get rid of this, sync particles separately!
             if (DashWasB != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
                 level.ParticlesFG.Emit(DashWasB.Value ? Player.P_DashB : Player.P_DashA, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Angle());
@@ -181,6 +192,30 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 HandleDeath();
             Dead = dead;
         }
+
+        public void UpdateFollowers(DataPlayerFrame.Follower[] followers) {
+            lock (Followers) {
+                for (int i = 0; i < followers.Length; i++) {
+                    DataPlayerFrame.Follower f = followers[i];
+                    GhostFollower gf;
+                    if (i >= Followers.Count) {
+                        gf = new GhostFollower(this);
+                        gf.Position = Position + Leader.Position;
+                        Followers.Add(gf);
+                    } else {
+                        gf = Followers[i];
+                    }
+                    gf.UpdateSprite(f.Scale, f.Depth, f.Color, f.SpriteRate, f.SpriteJustify, f.SpriteID, f.CurrentAnimationID, f.CurrentAnimationFrame);
+                }
+
+                while (Followers.Count > followers.Length) {
+                    GhostFollower gf = Followers[Followers.Count - 1];
+                    gf.Ghost = null;
+                    Followers.RemoveAt(Followers.Count - 1);
+                }
+            }
+        }
+
 
         public void HandleDeath() {
             if (!(Scene is Level level) ||

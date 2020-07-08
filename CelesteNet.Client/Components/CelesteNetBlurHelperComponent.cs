@@ -20,7 +20,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public int BlurScale {
             get {
                 switch (Settings.UIBlur) {
-                    case BlurQuality.Off:
+                    case BlurQuality.OFF:
                     default:
                         return 1;
 
@@ -152,7 +152,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Vector2 blurScaleInv = new Vector2(UI_WIDTH / (float) BlurWidth, UI_HEIGHT / (float) BlurHeight);
 
                     switch (Settings.UIBlur) {
-                        case BlurQuality.Off:
+                        case BlurQuality.OFF:
                         default:
                             blurrad = 0;
                             blurdist = 0;
@@ -276,7 +276,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public enum BlurQuality {
-            Off,
+            OFF,
             LQ,
             HQ
         }

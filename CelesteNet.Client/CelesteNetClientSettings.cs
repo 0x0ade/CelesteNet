@@ -73,7 +73,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public bool Collision { get; set; } = true;
-        public bool Sounds { get; set; } = true;
+        public SyncMode Sounds { get; set; } = SyncMode.ON;
+        public SyncMode Followers { get; set; } = SyncMode.ON;
 
         public CelesteNetPlayerListComponent.ListMode PlayerListMode { get; set; }
 
@@ -210,6 +211,15 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         #endregion
+
+
+        [Flags]
+        public enum SyncMode {
+            OFF =           0b00,
+            Send =          0b01,
+            Receive =       0b10,
+            ON =            0b11
+        }
 
     }
 }

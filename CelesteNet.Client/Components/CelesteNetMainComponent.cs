@@ -171,11 +171,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
             ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
             ghost.UpdateDead(frame.Dead && state.Level == session.Level);
-            ghost.UpdateFollowers(frame.Followers);
+            ghost.UpdateFollowers((Settings.Followers & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Follower>.EmptyArray : frame.Followers);
         }
 
         public void Handle(CelesteNetConnection con, DataAudioPlay audio) {
-            if (!Settings.Sounds || !(Engine.Scene is Level level) || level.Paused)
+            if ((Settings.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0 || !(Engine.Scene is Level level) || level.Paused)
                 return;
 
             if (audio.Position == null) {
@@ -570,35 +570,42 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             for (int i = 0; i < hairCount; i++)
                 hairTextures[i] = Player.Hair.GetHairTexture(i).AtlasPath;
 
-            Leader leader = Player.Get<Leader>();
-            DataPlayerFrame.Follower[] followers = new DataPlayerFrame.Follower[leader.Followers.Count];
-            for (int i = 0; i < followers.Length; i++) {
-                Follower f = leader.Followers[i];
-                Sprite s = f.Entity.Get<Sprite>();
-                if (s == null) {
-                    followers[i] = new DataPlayerFrame.Follower {
-                        Scale = Vector2.One,
-                        Color = Color.White,
-                        Depth = -1000000,
-                        SpriteRate = 1f,
-                        SpriteJustify = null,
-                        SpriteID = "",
-                        CurrentAnimationID = "idle",
-                        CurrentAnimationFrame = 0
-                    };
-                    continue;
-                }
+            DataPlayerFrame.Follower[] followers;
 
-                followers[i] = new DataPlayerFrame.Follower {
-                    Scale = s.Scale,
-                    Color = s.Color,
-                    Depth = f.Entity.Depth,
-                    SpriteRate = s.Rate,
-                    SpriteJustify = s.Justify,
-                    SpriteID = s.GetID(),
-                    CurrentAnimationID = s.CurrentAnimationID,
-                    CurrentAnimationFrame = s.CurrentAnimationFrame
-                };
+            if ((Settings.Followers & CelesteNetClientSettings.SyncMode.Send) == 0) {
+                followers = Dummy<DataPlayerFrame.Follower>.EmptyArray;
+
+            } else {
+                Leader leader = Player.Get<Leader>();
+                followers = new DataPlayerFrame.Follower[leader.Followers.Count];
+                for (int i = 0; i < followers.Length; i++) {
+                    Follower f = leader.Followers[i];
+                    Sprite s = f.Entity.Get<Sprite>();
+                    if (s == null) {
+                        followers[i] = new DataPlayerFrame.Follower {
+                            Scale = Vector2.One,
+                            Color = Color.White,
+                            Depth = -1000000,
+                            SpriteRate = 1f,
+                            SpriteJustify = null,
+                            SpriteID = "",
+                            CurrentAnimationID = "idle",
+                            CurrentAnimationFrame = 0
+                        };
+                        continue;
+                    }
+
+                    followers[i] = new DataPlayerFrame.Follower {
+                        Scale = s.Scale,
+                        Color = s.Color,
+                        Depth = f.Entity.Depth,
+                        SpriteRate = s.Rate,
+                        SpriteJustify = s.Justify,
+                        SpriteID = s.GetID(),
+                        CurrentAnimationID = s.CurrentAnimationID,
+                        CurrentAnimationFrame = s.CurrentAnimationFrame
+                    };
+                }
             }
 
             try {
@@ -640,6 +647,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void SendAudioPlay(Vector2 pos, string sound, string param = null, float value = 0f) {
+            if ((Settings.Sounds & CelesteNetClientSettings.SyncMode.Send) == 0)
+                return;
+
             try {
                 Client?.Send(new DataAudioPlay {
                     Player = Client.PlayerInfo,

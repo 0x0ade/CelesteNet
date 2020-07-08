@@ -57,6 +57,40 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        protected override void Dispose(bool disposing) {
+            base.Dispose(disposing);
+
+            MainThreadHelper.Do(() => {
+                On.Celeste.Level.LoadLevel -= OnLoadLevel;
+                Everest.Events.Level.OnExit -= OnExitLevel;
+                On.Celeste.PlayerHair.GetHairColor -= OnGetHairColor;
+                On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
+                On.Celeste.Player.Play -= OnPlayerPlayAudio;
+                On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
+                On.Celeste.PlayerSprite.ctor -= OnPlayerSpriteCtor;
+            });
+
+            Cleanup();
+        }
+
+        public void Cleanup() {
+            Player = null;
+            Session = null;
+            WasIdle = false;
+
+            foreach (Ghost ghost in Ghosts.Values)
+                ghost?.RemoveSelf();
+            Ghosts.Clear();
+
+            if (PlayerNameTag != null)
+                PlayerNameTag.Name = "";
+
+            if (PlayerIdleTag != null) {
+                PlayerIdleTag.PopOut = true;
+                PlayerIdleTag.AnimationTime = 1f;
+            }
+        }
+
         #region Handlers
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
@@ -459,40 +493,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             SendFrame();
-        }
-
-        protected override void Dispose(bool disposing) {
-            base.Dispose(disposing);
-
-            MainThreadHelper.Do(() => {
-                On.Celeste.Level.LoadLevel -= OnLoadLevel;
-                Everest.Events.Level.OnExit -= OnExitLevel;
-                On.Celeste.PlayerHair.GetHairColor -= OnGetHairColor;
-                On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
-                On.Celeste.Player.Play -= OnPlayerPlayAudio;
-                On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
-                On.Celeste.PlayerSprite.ctor -= OnPlayerSpriteCtor;
-            });
-
-            Cleanup();
-        }
-
-        public void Cleanup() {
-            Player = null;
-            Session = null;
-            WasIdle = false;
-
-            foreach (Ghost ghost in Ghosts.Values)
-                ghost?.RemoveSelf();
-            Ghosts.Clear();
-
-            if (PlayerNameTag != null)
-                PlayerNameTag.Name = "";
-
-            if (PlayerIdleTag != null) {
-                PlayerIdleTag.PopOut = true;
-                PlayerIdleTag.AnimationTime = 1f;
-            }
         }
 
         #region Hooks

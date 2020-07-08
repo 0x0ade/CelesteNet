@@ -21,6 +21,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected float popupTime = 100f;
         protected bool timeRateSet = false;
 
+        public HashSet<string> TimeRateSkip = new HashSet<string>();
+        public bool ForceSetTimeRate;
+
         public float Angle = 0f;
 
         public int Selected = -1;
@@ -45,16 +48,21 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Update() {
             // Update only runs while the level is "alive" (scene not paused or frozen).
 
-            if (Shown && !timeRateSet) {
-                Engine.TimeRate = 0.25f;
-                timeRateSet = true;
+            if (TimeRateSkip.Count == 0 || ForceSetTimeRate) {
+                if (Shown && !timeRateSet) {
+                    Engine.TimeRate = 0.25f;
+                    timeRateSet = true;
 
-            } else if (!Shown && timeRateSet) {
-                Engine.TimeRate = 1f;
-                timeRateSet = false;
+                } else if (!Shown && timeRateSet) {
+                    Engine.TimeRate = 1f;
+                    timeRateSet = false;
+                }
             }
 
             base.Update();
+
+            if (Tracking == null || Tracking?.Scene != Scene)
+                RemoveSelf();
         }
 
         public override void Render() {

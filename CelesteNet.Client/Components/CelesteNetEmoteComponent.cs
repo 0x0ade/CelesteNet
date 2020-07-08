@@ -24,6 +24,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Visible = false;
         }
 
+        public override void Initialize() {
+            base.Initialize();
+
+            On.Celeste.HeartGem.Collect += OnHeartGemCollect;
+            On.Celeste.HeartGem.EndCutscene += OnHeartGemEndCutscene;
+            On.Celeste.Player.Die += OnPlayerDie;
+        }
+
+        protected override void Dispose(bool disposing) {
+            base.Dispose(disposing);
+
+            Wheel?.RemoveSelf();
+
+            MainThreadHelper.Do(() => {
+                On.Celeste.HeartGem.Collect -= OnHeartGemCollect;
+                On.Celeste.HeartGem.EndCutscene -= OnHeartGemEndCutscene;
+                On.Celeste.Player.Die -= OnPlayerDie;
+            });
+        }
         public void Send(string text) {
             Client.SendAndHandle(new DataEmote {
                 Player = Client.PlayerInfo,
@@ -66,8 +85,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Player == null || Player.Scene != level)
                 Player = level.Tracker.GetEntity<Player>();
 
-            if (Wheel != null && (Wheel.Scene != level || Wheel.Tracking != Player)) {
-                Wheel?.RemoveSelf();
+            if (Wheel != null && Wheel.Scene != level) {
+                Wheel.RemoveSelf();
                 Wheel = null;
             }
 
@@ -77,7 +96,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Wheel == null)
                 level.Add(Wheel = new GhostEmoteWheel(Player));
 
-            if (!level.Paused && Settings.EmoteWheel) {
+            if (!level.Paused && Settings.EmoteWheel && !Player.Dead) {
                 Wheel.Shown = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f;
                 int selected = Wheel.Selected;
                 if (Wheel.Shown && selected != -1 && CelesteNetClientModule.Instance.ButtonEmoteSend.Pressed) {
@@ -118,11 +137,29 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Context.Main.StateUpdated |= Context.Main.ForceIdle.Remove("EmoteWheel");
         }
 
-        protected override void Dispose(bool disposing) {
-            base.Dispose(disposing);
+        #region Hooks
 
-            Wheel?.RemoveSelf();
+        private void OnHeartGemCollect(On.Celeste.HeartGem.orig_Collect orig, HeartGem self, Player player) {
+            orig(self, player);
+            Wheel?.TimeRateSkip.Add("HeartGem");
         }
+
+        private void OnHeartGemEndCutscene(On.Celeste.HeartGem.orig_EndCutscene orig, HeartGem self) {
+            orig(self);
+            Wheel?.TimeRateSkip.Remove("HeartGem");
+        }
+
+        private PlayerDeadBody OnPlayerDie(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats) {
+            PlayerDeadBody pdb = orig(self, direction, evenIfInvincible, registerDeathInStats);
+            if (pdb != null && Wheel != null) {
+                Wheel.TimeRateSkip.Add("PlayerDead");
+                Wheel.Shown = false;
+                Wheel.ForceSetTimeRate = true;
+            }
+            return pdb;
+        }
+
+        #endregion
 
     }
 }

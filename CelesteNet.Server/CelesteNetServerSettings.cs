@@ -36,6 +36,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int MaxNameLength { get; set; } = 30;
         public int MaxGuestNameLength { get; set; } = 16;
         public int MaxEmoteValueLength { get; set; } = 2048;
+        public int MaxChannelNameLength { get; set; } = 16;
 
         public bool AuthOnly { get; set; } = false;
 

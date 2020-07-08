@@ -84,7 +84,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public Tuple<Channel, Channel> Move(CelesteNetPlayerSession session, string name) {
-            name = name.Trim();
+            name = name.Sanitize();
+            if (name.Length > Server.Settings.MaxChannelNameLength)
+                name = name.Substring(0, Server.Settings.MaxChannelNameLength);
             if (name == NamePrivate)
                 throw new Exception("Invalid private channel name.");
 

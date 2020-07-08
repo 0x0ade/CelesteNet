@@ -80,7 +80,7 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Chat.Serve
                 return;
             }
 
-            Tuple<Channel, Channel> tuple = channels.Move(session, env.Text.Sanitize());
+            Tuple<Channel, Channel> tuple = channels.Move(session, env.Text);
             if (tuple.Item1 == tuple.Item2) {
                 env.Send($"Already in {tuple.Item2.Name}");
             } else {

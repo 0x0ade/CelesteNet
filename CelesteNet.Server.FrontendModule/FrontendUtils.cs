@@ -23,6 +23,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 Text = msg.ToString(false, false)
             };
 
+        public static object ToDetailedFrontendChat(this DataChat msg)
+            => new {
+                msg.ID,
+                PlayerID = msg.Player?.ID ?? uint.MaxValue,
+                Targets = msg.Targets?.Select(p => p?.ID ?? uint.MaxValue) ?? null,
+                Color = msg.Color.ToHex(),
+                DateTime = msg.Date.ToUnixTime(),
+                msg.Tag,
+                msg.Text
+            };
+
         public static double ToUnixTime(this DateTime time)
             => time.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
 

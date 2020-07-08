@@ -170,7 +170,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }).ToArray());
         }
 
-        [RCEndpoint(false, "/chatlog", "?count={count}", "?count=20", "Chat Log", "Basic chat log.")]
+        [RCEndpoint(false, "/chatlog", "?count={count}&detailed={true|false}", "?count=20&detailed=false", "Chat Log", "Basic chat log.")]
         public static void ChatLog(Frontend f, HttpRequestEventArgs c) {
             bool auth = f.IsAuthorized(c);
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
@@ -180,6 +180,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (!auth && count > 100)
                 count = 100;
 
+            if (!bool.TryParse(args["detailed"], out bool detailed))
+                detailed = false;
+
             ChatModule chat = f.Server.Get<ChatModule>();
             List<object> log = new List<object>();
             lock (chat.ChatLog) {
@@ -187,7 +190,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 for (int i = Math.Max(-chat.ChatBuffer.Moved, -count); i < 0; i++) {
                     DataChat msg = buffer[i];
                     if (msg.Target == null || auth)
-                        log.Add(msg.ToFrontendChat());
+                        log.Add(detailed ? msg.ToDetailedFrontendChat() : msg.ToFrontendChat());
                 }
             }
 

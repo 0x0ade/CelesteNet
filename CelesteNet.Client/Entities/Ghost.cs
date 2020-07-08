@@ -62,6 +62,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Add(new PlayerCollider(OnPlayer));
 
             NameTag = new GhostNameTag(this, "");
+            NameTag.Alpha = 0.85f;
 
             Dead = false;
             AllowPushing = false;

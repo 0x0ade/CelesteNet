@@ -146,6 +146,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override T[] LoadAll<T>() {
             lock (GlobalLock) {
+                if (!Directory.Exists(UserRoot))
+                    return Dummy<T>.EmptyArray;
                 string name = GetFileName<T>();
                 return Directory.GetDirectories(UserRoot).Select(dir => LoadRaw<T>(Path.Combine(dir, name))).ToArray();
             }
@@ -155,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             => LoadRaw<Global>(GlobalPath).UIDs.Values.ToArray();
 
         public override string[] GetAll()
-            => Directory.GetDirectories(UserRoot).Select(name => Path.GetFileName(name)).ToArray();
+            =>  !Directory.Exists(UserRoot) ? Dummy<string>.EmptyArray : Directory.GetDirectories(UserRoot).Select(name => Path.GetFileName(name)).ToArray();
 
         public override int GetRegisteredCount()
             => LoadRaw<Global>(GlobalPath).UIDs.Count;

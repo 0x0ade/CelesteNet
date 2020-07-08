@@ -21,11 +21,9 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Client {
     public static class CelesteNetClientSpriteDB {
 
+        private static ConditionalWeakTable<Sprite, SpriteExt> SpriteExts = new ConditionalWeakTable<Sprite, SpriteExt>();
+
         public static void Load() {
-            if (GFX.SpriteBank != null) {
-
-            }
-
             On.Monocle.Sprite.CloneInto += OnSpriteCloneInto;
             On.Monocle.SpriteData.Add += OnSpriteDataAdd;
         }
@@ -36,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         private static Sprite OnSpriteCloneInto(On.Monocle.Sprite.orig_CloneInto orig, Sprite self, Sprite clone) {
-            new DynamicData(clone).Set("CelesteNetSpriteID", self.GetID());
+            clone.SetID(self.GetID());
             return orig(self, clone);
         }
 
@@ -46,10 +44,14 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public static void SetID(this Sprite self, string value)
-            => new DynamicData(self).Set("CelesteNetSpriteID", value);
+            => SpriteExts.GetOrCreateValue(self).ID = value;
 
         public static string GetID(this Sprite self)
-            => new DynamicData(self).Get<string>("CelesteNetSpriteID");
+            => SpriteExts.TryGetValue(self, out SpriteExt ext) ? ext.ID : null;
+
+        private class SpriteExt {
+            public string ID;
+        }
 
     }
 }

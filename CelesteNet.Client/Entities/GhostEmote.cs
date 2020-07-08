@@ -112,6 +112,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (!(Scene is Level level))
                 return;
 
+            float popupScale = PopupScale * level.GetScreenScale();
+
             MTexture icon = null;
             string text = null;
 
@@ -128,20 +130,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (Tracking == null)
                 return;
 
-            Camera cam = level.Camera;
-            if (cam == null)
-                return;
-
-            Vector2 pos = Position;
-            pos -= cam.Position;
-            pos *= 6f; // 1920 / 320
+            Vector2 pos = level.WorldToScreen(Position);
 
             if (Float)
                 pos.Y -= (float) Math.Sin(Time * 2f) * 4f;
 
             if (icon != null) {
                 Vector2 size = new Vector2(icon.Width, icon.Height);
-                float scale = (Size / Math.Max(size.X, size.Y)) * 0.5f * PopupScale;
+                float scale = (Size / Math.Max(size.X, size.Y)) * 0.5f * popupScale;
                 size *= scale;
 
                 pos = pos.Clamp(
@@ -158,7 +154,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             } else {
                 Vector2 size = CelesteNetClientFont.Measure(text);
-                float scale = (Size / Math.Max(size.X, size.Y)) * 0.5f * PopupScale;
+                float scale = (Size / Math.Max(size.X, size.Y)) * 0.5f * popupScale;
                 size *= scale;
 
                 pos = pos.Clamp(

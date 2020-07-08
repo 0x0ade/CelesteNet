@@ -12,8 +12,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public Entity Tracking;
 
-        protected Camera Camera;
-
         public float Alpha = 1f;
 
         protected float time = 0f;
@@ -137,16 +135,12 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (level == null)
                 return;
 
-            if (Camera == null)
-                Camera = level.Camera;
-            if (Camera == null)
-                return;
+            popupScale *= level.GetScreenScale();
 
             Vector2 pos = Tracking.Position;
             pos.Y -= 8f;
 
-            pos -= level.Camera.Position;
-            pos *= 6f; // 1920 / 320
+            pos = level.WorldToScreen(pos);
 
             float radius = BG.Width * 0.5f * 0.75f * popupScale;
 

@@ -43,21 +43,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (level == null)
                 return;
 
-            if (Camera == null)
-                Camera = level.Camera;
-            if (Camera == null)
-                return;
+            float scale = level.GetScreenScale();
 
             Vector2 pos = Tracking?.Position ?? Position;
             pos.Y -= 16f;
 
-            pos -= level.Camera.Position;
-            pos *= 6f; // 1920 / 320
+            pos = level.WorldToScreen(pos);
 
-            if (SaveData.Instance?.Assists.MirrorMode ?? false)
-                pos.X = 1920f - pos.X;
-
-            Vector2 size = CelesteNetClientFont.Measure(Name);
+            Vector2 size = CelesteNetClientFont.Measure(Name) * scale;
             pos = pos.Clamp(
                 0f + size.X * 0.25f + 32f, 0f + size.Y * 0.5f + 32f,
                 1920f - size.X * 0.25f - 32f, 1080f - 32f
@@ -67,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 Name,
                 pos,
                 new Vector2(0.5f, 1f),
-                Vector2.One * 0.5f,
+                Vector2.One * 0.5f * scale,
                 Color.White * a,
                 2f,
                 Color.Black * (a * a * a)

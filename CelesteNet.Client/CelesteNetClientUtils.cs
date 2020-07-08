@@ -21,6 +21,35 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Client {
     public static class CelesteNetClientUtils {
 
+        public static float GetScreenScale(this Level level)
+            => level.Zoom * ((320f - level.ScreenPadding * 2f) / 320f);
+
+        public static Vector2 WorldToScreen(this Level level, Vector2 pos) {
+            Camera cam = level.Camera;
+            if (cam == null)
+                return pos;
+
+            pos -= cam.Position;
+
+            Vector2 size = new Vector2(320f, 180f);
+            Vector2 sizeScaled = size / level.ZoomTarget;
+            Vector2 offs = level.ZoomTarget != 1f ? (level.ZoomFocusPoint - sizeScaled / 2f) / (size - sizeScaled) * size : Vector2.Zero;
+            float scale = level.GetScreenScale();
+
+            pos += new Vector2(level.ScreenPadding, level.ScreenPadding * 0.5625f);
+
+            pos -= offs;
+            pos *= scale;
+            pos += offs;
+
+            pos *= 6f; // 1920 / 320
+
+            if (SaveData.Instance?.Assists.MirrorMode ?? false)
+                pos.X = 1920f - pos.X;
+
+            return pos;
+        }
+
         private readonly static FieldInfo f_Player_wasDashB =
             typeof(Player).GetField("wasDashB", BindingFlags.NonPublic | BindingFlags.Instance);
 

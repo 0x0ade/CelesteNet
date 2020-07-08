@@ -163,6 +163,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (ghost == null) {
                 Ghosts[frame.Player.ID] = ghost = new Ghost(Context, frame.SpriteMode);
                 ghost.Active = false;
+                ghost.NameTag.Name = frame.Player.DisplayName;
                 if (ghost.Sprite.Mode != frame.SpriteMode)
                     UnsupportedSpriteModes.Add(frame.SpriteMode);
                 RunOnMainThread(() => {

@@ -75,6 +75,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             base.Added(scene);
 
             Hair.Start();
+            Scene.Add(NameTag);
         }
 
         public override void Removed(Scene scene) {

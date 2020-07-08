@@ -27,7 +27,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Update() {
             base.Update();
 
-            if (Tracking.Scene == null)
+            if (Tracking != null && Tracking.Scene == null)
                 RemoveSelf();
         }
 
@@ -39,9 +39,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (a <= 0f || string.IsNullOrWhiteSpace(Name))
                 return;
 
-            if (Tracking == null)
-                return;
-
             Level level = SceneAs<Level>();
             if (level == null)
                 return;
@@ -51,7 +48,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (Camera == null)
                 return;
 
-            Vector2 pos = Tracking.Position;
+            Vector2 pos = Tracking?.Position ?? Position;
             pos.Y -= 16f;
 
             pos -= level.Camera.Position;

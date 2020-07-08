@@ -77,7 +77,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Wheel == null)
                 level.Add(Wheel = new GhostEmoteWheel(Player));
 
-            if (!level.Paused) {
+            if (!level.Paused && Settings.EmoteWheel) {
                 Wheel.Shown = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f;
                 int selected = Wheel.Selected;
                 if (Wheel.Shown && selected != -1 && CelesteNetClientModule.Instance.ButtonEmoteSend.Pressed) {

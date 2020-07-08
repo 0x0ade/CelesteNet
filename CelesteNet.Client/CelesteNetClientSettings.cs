@@ -72,6 +72,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             set => Logger.Level = value;
         }
 
+
         public bool Collision { get; set; } = true;
         public SyncMode Sounds { get; set; } = SyncMode.ON;
         public SyncMode Followers { get; set; } = SyncMode.ON;
@@ -98,6 +99,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         [SettingSubText("modoptions_celestenetclient_uiblurhint")]
         public CelesteNetBlurHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetBlurHelperComponent.BlurQuality.HQ;
+
+
+        public bool EmoteWheel { get; set; } = true;
 
         #region Key Bindings
 

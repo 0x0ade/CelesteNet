@@ -136,8 +136,19 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
                 using (Graphics g = Graphics.FromImage(avatar)) {
                     g.SmoothingMode = SmoothingMode.AntiAlias;
+
                     using (TextureBrush tbr = new TextureBrush(avatarScale)) {
                         g.FillEllipse(tbr, 0, 0, 64, 64);
+                    }
+
+                    foreach (string tagName in info.Tags) {
+                        using (Stream? asset = f.OpenContent($"frontend/assets/tags/{tagName}.png", out _, out _)) {
+                            if (asset == null)
+                                continue;
+
+                            using (Image tag = Image.FromStream(asset))
+                                g.DrawImageUnscaled(tag, 0, 0);
+                        }
                     }
                 }
 

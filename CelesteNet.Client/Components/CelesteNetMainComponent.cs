@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
+using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -43,12 +44,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Initialize() {
             base.Initialize();
 
-            On.Celeste.Level.LoadLevel += OnLoadLevel;
-            Everest.Events.Level.OnExit += OnExitLevel;
-            On.Celeste.PlayerHair.GetHairColor += OnGetHairColor;
-            On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
-            On.Celeste.Player.Play += OnPlayerPlayAudio;
-            On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
+            using (new DetourContext("CelesteNetMain") {
+                Before = { "*" }
+            }) {
+                On.Celeste.Level.LoadLevel += OnLoadLevel;
+                Everest.Events.Level.OnExit += OnExitLevel;
+                On.Celeste.PlayerHair.GetHairColor += OnGetHairColor;
+                On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
+                On.Celeste.Player.Play += OnPlayerPlayAudio;
+                On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
+                On.Celeste.PlayerSprite.ctor += OnPlayerSpriteCtor;
+            }
         }
 
         #region Handlers
@@ -464,6 +470,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
                 On.Celeste.Player.Play -= OnPlayerPlayAudio;
                 On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
+                On.Celeste.PlayerSprite.ctor -= OnPlayerSpriteCtor;
             });
 
             Cleanup();
@@ -536,6 +543,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (hair?.Entity is Player)
                 SendDashTrail(position, sprite, hair, scale, color, depth, duration, frozenUpdate, useRawDeltaTime);
             return orig(position, sprite, hair, scale, color, depth, duration, frozenUpdate, useRawDeltaTime);
+        }
+
+        private void OnPlayerSpriteCtor(On.Celeste.PlayerSprite.orig_ctor orig, PlayerSprite self, PlayerSpriteMode mode) {
+            orig(self, mode & (PlayerSpriteMode) ~(1 << 31));
         }
 
         #endregion

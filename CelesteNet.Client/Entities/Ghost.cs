@@ -43,7 +43,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             RetryPlayerSprite:
             try {
-                Sprite = new PlayerSprite(spriteMode);
+                Sprite = new PlayerSprite(spriteMode | (PlayerSpriteMode) (1 << 31));
             } catch (Exception) {
                 if (spriteMode != PlayerSpriteMode.Madeline) {
                     spriteMode = PlayerSpriteMode.Madeline;

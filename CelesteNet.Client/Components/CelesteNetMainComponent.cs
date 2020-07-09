@@ -377,11 +377,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (session == null) {
                 Client?.Send(new DataSession {
+                    ID = request.ID,
                     InSession = false
                 });
 
             } else {
                 Client?.Send(new DataSession {
+                    ID = request.ID,
                     InSession = true,
 
                     Audio = new DataPartAudioState(session.Audio),

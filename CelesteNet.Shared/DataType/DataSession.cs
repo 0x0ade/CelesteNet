@@ -17,6 +17,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "session";
         }
 
+        public uint ID = uint.MaxValue;
+
         public bool InSession;
 
         public DataPartAudioState? Audio;
@@ -43,6 +45,15 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public float DarkRoomAlpha;
         public long Time;
         public Session.CoreModes CoreMode;
+
+        public override MetaType[] GenerateMeta(DataContext ctx)
+            => new MetaType[] {
+                new MetaRequestResponse(ID)
+            };
+
+        public override void FixupMeta(DataContext ctx) {
+            ID = Get<MetaRequestResponse>(ctx);
+        }
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             InSession = reader.ReadBoolean();

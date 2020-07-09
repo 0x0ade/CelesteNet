@@ -27,6 +27,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public DataNetEmoji? AvatarEmoji;
 
+        private object RequestNextIDLock = new object();
+        private uint RequestNextID = 0;
+
         public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
             Server = server;
             Con = con;
@@ -180,10 +183,18 @@ namespace Celeste.Mod.CelesteNet.Server {
             => Request(0, req, cb, null);
 
         public Action Request<T>(int timeout, DataType req, DataHandler<T> cb, Action? cbTimeout = null) where T : DataType<T>, IDataRequestable {
+            MetaRequest mreq = req.Get<MetaRequest>(Server.Data);
+            if (mreq.ID == uint.MaxValue)
+                lock (RequestNextIDLock)
+                    mreq.ID = RequestNextID++;
+
             Action cancel = WaitFor<T>(timeout, (con, data) => {
+                if (data.Get<MetaRequestResponse>(Server.Data).ID != mreq.ID)
+                    return false;
                 cb(con, data);
                 return true;
             }, cbTimeout);
+
             Con.Send(req);
             return cancel;
         }

@@ -19,6 +19,17 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override DataFlags DataFlags => DataFlags.Small;
 
+        public uint ID = uint.MaxValue;
+
+        public override MetaType[] GenerateMeta(DataContext ctx)
+            => new MetaType[] {
+                new MetaRequest(ID)
+            };
+
+        public override void FixupMeta(DataContext ctx) {
+            ID = Get<MetaRequest>(ctx);
+        }
+
         public override void Read(DataContext ctx, BinaryReader reader) {
         }
 

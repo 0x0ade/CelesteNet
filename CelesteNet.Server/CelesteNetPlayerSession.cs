@@ -183,14 +183,12 @@ namespace Celeste.Mod.CelesteNet.Server {
             => Request(0, req, cb, null);
 
         public Action Request<T>(int timeout, DataType req, DataHandler<T> cb, Action? cbTimeout = null) where T : DataType<T>, IDataRequestable {
-            MetaRequest mreq = req.Get<MetaRequest>(Server.Data);
-            if (mreq.ID == uint.MaxValue)
-                lock (RequestNextIDLock)
-                    mreq.ID = RequestNextID++;
-
             Action cancel = WaitFor<T>(timeout, (con, data) => {
-                if (data.Get<MetaRequestResponse>(Server.Data).ID != mreq.ID)
+                if (req.TryGet(Server.Data, out MetaRequest? mreq) &&
+                    data.TryGet(Server.Data, out MetaRequestResponse? mres) &&
+                    mreq.ID != mres.ID)
                     return false;
+
                 cb(con, data);
                 return true;
             }, cbTimeout);

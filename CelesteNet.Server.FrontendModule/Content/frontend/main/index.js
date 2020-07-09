@@ -56,7 +56,11 @@ function renderUser() {
 				Create a CelesteNet account<br>
 				by linking your Discord account.<br>
 				<br>
-				<a id="button-auth" class="button" href="/discordauth"><span class="button-icon"></span><span>Link your account</span></a>
+				<a id="button-auth" class="button" href="/discordauth"><span class="button-icon"></span><span>Link your account</span></a><br>
+				<sub style="line-height: 0.5em;">
+					Linking your account requires a "cookie."<br>
+					It is only used to keep you logged in.
+				</sub>
 			</p>`);
 
 			// list.add("error", li(info.Error));

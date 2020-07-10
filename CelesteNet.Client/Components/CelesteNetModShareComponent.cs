@@ -1,5 +1,6 @@
 ﻿using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -23,20 +24,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             UpdateOrder = 10000;
             Visible = false;
-        }
-
-        public override void Initialize() {
-            base.Initialize();
-
-            IL.Celeste.Mod.UI.OuiModOptions.CreateMenu += ILOuiModOptionsCreateMenu;
-        }
-
-        protected override void Dispose(bool disposing) {
-            base.Dispose(disposing);
-
-            MainThreadHelper.Do(() => {
-                IL.Celeste.Mod.UI.OuiModOptions.CreateMenu -= ILOuiModOptionsCreateMenu;
-            });
         }
 
         public void Handle(CelesteNetConnection con, DataMapModInfoRequest request) {
@@ -64,7 +51,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 MapSID = sid,
                 MapName = Dialog.Clean(area.Name),
                 ModID = mod.Name,
-                ModName = string.IsNullOrEmpty(mod.Name) ? "" : Dialog.Clean($"modname_{mod.Name.DialogKeyify()}"),
+                ModName = string.IsNullOrEmpty(mod.Name) ? "" : ($"modname_{mod.Name.DialogKeyify()}"?.DialogCleanOrNull() ?? Dialog.Clean(area.Name)),
                 ModVersion = mod.Version
             });
 
@@ -80,7 +67,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Handle(CelesteNetConnection con, DataModRec rec) {
             Logger.Log(LogLevel.CRI, "netmod", $"Server recommended mod: {rec.ModName} ({rec.ModID} v{rec.ModVersion})");
 
-            Context.Status.Set($"Check mod options to install {rec.ModName}");
+            if (Engine.Scene is Level)
+                Context.Status.Set($"Main Menu > Mod Options to install {rec.ModName}", 8);
+            else if (Engine.Scene is Overworld overworld && overworld.IsCurrent<OuiModOptions>())
+                Context.Status.Set($"Reopen Mod Options to install {rec.ModName}", 8);
+            else
+                Context.Status.Set($"Go to Mod Options to install {rec.ModName}", 8);
 
             lock (Requested) {
                 int index = Requested.FindIndex(other => other.Name == rec.ModID);
@@ -88,26 +80,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Requested[index].Version = rec.ModVersion;
                 } else {
                     Requested.Add(new EverestModuleMetadata {
-                        Name = rec.ModName,
-                        Version = rec.ModVersion
+                        Name = rec.ModID,
+                        Version = rec.ModVersion,
+                        DLL = rec.ModName
                     });
                 }
             }
         }
-
-        #region Hooks
-
-        private void ILOuiModOptionsCreateMenu(ILContext il) {
-            ILCursor c = new ILCursor(il);
-            c.GotoNext(i => i.MatchNewobj<List<EverestModuleMetadata>>());
-            c.Index++;
-            c.EmitDelegate<Func<List<EverestModuleMetadata>, List<EverestModuleMetadata>>>(list => {
-                lock (Requested)
-                    return list.Concat(Requested).ToList();
-            });
-        }
-
-        #endregion
 
     }
 }

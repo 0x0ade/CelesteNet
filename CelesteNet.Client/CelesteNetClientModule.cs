@@ -10,11 +10,21 @@ using System.Threading.Tasks;
 using FMOD.Studio;
 using MonoMod.Utils;
 using System.Collections;
+using Celeste.Mod.CelesteNet.Client.Components;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
 
         public static CelesteNetClientModule Instance;
+
+        private static readonly Type t_OuiDependencyDownloader =
+            typeof(Everest).Assembly
+            .GetType("Celeste.Mod.UI.OuiDependencyDownloader");
+        private static readonly FieldInfo f_OuiDependencyDownloader_MissingDependencies =
+            t_OuiDependencyDownloader.GetField("MissingDependencies");
+        private static readonly MethodInfo m_Overworld_Goto_OuiDependencyDownloader =
+            typeof(Overworld).GetMethod("Goto")
+            .MakeGenericMethod(t_OuiDependencyDownloader);
 
         public override Type SettingsType => typeof(CelesteNetClientSettings);
         public static CelesteNetClientSettings Settings => (CelesteNetClientSettings) Instance._Settings;
@@ -94,6 +104,31 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             JoystickEmoteWheel?.Deregister();
             ButtonEmoteSend?.Deregister();
+        }
+
+        protected override void CreateModMenuSectionHeader(TextMenu menu, bool inGame, EventInstance snapshot) {
+            base.CreateModMenuSectionHeader(menu, inGame, snapshot);
+
+            CelesteNetModShareComponent sharer = Context?.Get<CelesteNetModShareComponent>();
+            if (sharer != null && !inGame) {
+                List<EverestModuleMetadata> requested;
+                lock (sharer.Requested)
+                    requested = new List<EverestModuleMetadata>(sharer.Requested);
+
+                if (requested.Count != 0) {
+                    TextMenu.Item item;
+                    menu.Add(item = new TextMenu.Button("modoptions_celestenetclient_recommended".DialogClean()).Pressed(() => {
+                        f_OuiDependencyDownloader_MissingDependencies.SetValue(null, requested);
+                        m_Overworld_Goto_OuiDependencyDownloader.Invoke(Engine.Scene, Dummy<object>.EmptyArray);
+                    }));
+
+                    item.AddDescription(
+                        menu,
+                        "modoptions_celestenetclient_recommendedhint".DialogClean()
+                        .Replace("((list))", string.Join(", ", requested.Select(r => r.DLL)))
+                    );
+                }
+            }
         }
 
         public void Start() {

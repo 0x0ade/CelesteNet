@@ -72,7 +72,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
                     other.Request<DataMapModInfo>(1000, (con, info) => {
                         if (!string.IsNullOrEmpty(info.ModID))
-                            self.Con.Send(info);
+                            self.Con.Send(new DataModRec {
+                                ModID = info.ModID,
+                                ModName = info.ModName,
+                                ModVersion = info.ModVersion
+                            });
                     });
                 });
             }

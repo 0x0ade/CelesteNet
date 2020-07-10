@@ -55,7 +55,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataMapModInfoRequest : DataType<DataMapModInfoRequest> {
 
         static DataMapModInfoRequest() {
-            DataID = "mapModInfo";
+            DataID = "mapModInfoReq";
         }
 
         public override DataFlags DataFlags => DataFlags.Small;

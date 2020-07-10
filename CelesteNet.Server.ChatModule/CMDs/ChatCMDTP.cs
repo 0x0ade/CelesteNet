@@ -47,14 +47,14 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             other.Request<DataSession>(300,
                 (con, session) => other.WaitFor<DataPlayerFrame>(300,
-                    (con, frame) => Teleport(env, msg, self, otherPlayer, otherState, session, frame.Position),
-                    () => Teleport(env, msg, self, otherPlayer, otherState, session, null)
+                    (con, frame) => Teleport(env, msg, self, other, otherPlayer, otherState, session, frame.Position),
+                    () => Teleport(env, msg, self, other, otherPlayer, otherState, session, null)
                 ),
-                () => Teleport(env, msg, self, otherPlayer, otherState, null, null)
+                () => Teleport(env, msg, self, other, otherPlayer, otherState, null, null)
             );
         }
 
-        private bool Teleport(ChatCMDEnv env, DataChat? msg, CelesteNetPlayerSession self, DataPlayerInfo otherPlayer, DataPlayerState otherState, DataSession? session, Vector2? pos) {
+        private bool Teleport(ChatCMDEnv env, DataChat? msg, CelesteNetPlayerSession self, CelesteNetPlayerSession other, DataPlayerInfo otherPlayer, DataPlayerState otherState, DataSession? tpSession, Vector2? tpPos) {
             if (msg != null) {
                 self.WaitFor<DataPlayerState>(2000, (con, state) => {
                     if (state.SID != otherState.SID ||
@@ -65,9 +65,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     msg.Text = $"Teleported to {otherPlayer.DisplayName}";
                     Chat.ForceSend(msg);
                     return true;
+
                 }, () => {
                     msg.Text = $"Couldn't teleport to {otherPlayer.DisplayName} - maybe missing map?";
                     Chat.ForceSend(msg);
+
+                    other.Request<DataMapModInfo>(1000, (con, info) => {
+                        if (!string.IsNullOrEmpty(info.ModID))
+                            self.Con.Send(info);
+                    });
                 });
             }
 
@@ -75,8 +81,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 SID = otherState.SID,
                 Mode = otherState.Mode,
                 Level = otherState.Level,
-                Session = session,
-                Position = pos
+                Session = tpSession,
+                Position = tpPos
             });
 
             return true;

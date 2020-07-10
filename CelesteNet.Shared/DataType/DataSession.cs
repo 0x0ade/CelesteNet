@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "session";
         }
 
-        public uint ID = uint.MaxValue;
+        public uint RequestID = uint.MaxValue;
 
         public bool InSession;
 
@@ -48,11 +48,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override MetaType[] GenerateMeta(DataContext ctx)
             => new MetaType[] {
-                new MetaRequestResponse(ID)
+                new MetaRequestResponse(RequestID)
             };
 
         public override void FixupMeta(DataContext ctx) {
-            ID = Get<MetaRequestResponse>(ctx);
+            RequestID = Get<MetaRequestResponse>(ctx);
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {
@@ -228,6 +228,33 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             writer.Write((byte) CoreMode);
 #pragma warning restore CS8602
+        }
+
+    }
+
+    public class DataSessionRequest : DataType<DataSessionRequest> {
+
+        static DataSessionRequest() {
+            DataID = "sessionReq";
+        }
+
+        public override DataFlags DataFlags => DataFlags.Small;
+
+        public uint ID = uint.MaxValue;
+
+        public override MetaType[] GenerateMeta(DataContext ctx)
+            => new MetaType[] {
+                new MetaRequest(ID)
+            };
+
+        public override void FixupMeta(DataContext ctx) {
+            ID = Get<MetaRequest>(ctx);
+        }
+
+        public override void Read(DataContext ctx, BinaryReader reader) {
+        }
+
+        public override void Write(DataContext ctx, BinaryWriter writer) {
         }
 
     }

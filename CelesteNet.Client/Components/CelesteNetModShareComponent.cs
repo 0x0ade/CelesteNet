@@ -59,6 +59,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 goto Error;
 
             Client?.Send(new DataMapModInfo {
+                RequestID = request.ID,
+
                 MapSID = sid,
                 MapName = Dialog.Clean(area.Name),
                 ModID = mod.Name,
@@ -69,7 +71,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return;
 
             Error:
-            Client?.Send(new DataMapModInfo());
+            Client?.Send(new DataMapModInfo {
+                RequestID = request.ID
+            });
             return;
         }
 

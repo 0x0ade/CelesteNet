@@ -206,13 +206,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             }
 
-            ghost.NameTag.Name = frame.Player.DisplayName;
-            UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
-            ghost.UpdateSprite(frame.Position, frame.Speed, frame.Scale, frame.Facing, frame.Depth, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
-            ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
-            ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
-            ghost.UpdateDead(frame.Dead && state.Level == session.Level);
-            ghost.UpdateFollowers((Settings.Followers & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Follower>.EmptyArray : frame.Followers);
+            RunOnMainThread(() => {
+                ghost.NameTag.Name = frame.Player.DisplayName;
+                UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
+                ghost.UpdateSprite(frame.Position, frame.Speed, frame.Scale, frame.Facing, frame.Depth, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
+                ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
+                ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
+                ghost.UpdateDead(frame.Dead && state.Level == session.Level);
+                ghost.UpdateFollowers((Settings.Followers & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Follower>.EmptyArray : frame.Followers);
+            });
         }
 
         public void Handle(CelesteNetConnection con, DataAudioPlay audio) {
@@ -254,32 +256,34 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
             }
 
-            if (trail.Server) {
-                TrailManager.Add(
-                    trail.Position,
-                    trail.Sprite?.ToImage(),
-                    ghost?.Hair,
-                    trail.Scale,
-                    trail.Color,
-                    trail.Depth,
-                    trail.Duration,
-                    trail.FrozenUpdate,
-                    trail.UseRawDeltaTime
-                );
+            RunOnMainThread(() => {
+                if (trail.Server) {
+                    TrailManager.Add(
+                        trail.Position,
+                        trail.Sprite?.ToImage(),
+                        ghost?.Hair,
+                        trail.Scale,
+                        trail.Color,
+                        trail.Depth,
+                        trail.Duration,
+                        trail.FrozenUpdate,
+                        trail.UseRawDeltaTime
+                    );
 
-            } else {
-                TrailManager.Add(
-                    trail.Position,
-                    ghost.Sprite,
-                    ghost.Hair,
-                    trail.Scale,
-                    trail.Color,
-                    ghost.Depth + 1,
-                    1f,
-                    false,
-                    false
-                );
-            }
+                } else {
+                    TrailManager.Add(
+                        trail.Position,
+                        ghost.Sprite,
+                        ghost.Hair,
+                        trail.Scale,
+                        trail.Color,
+                        ghost.Depth + 1,
+                        1f,
+                        false,
+                        false
+                    );
+                }
+            });
         }
 
         public void Handle(CelesteNetConnection con, DataMoveTo target) {
@@ -360,8 +364,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 session.CoreMode = data.CoreMode;
             }
 
-            if (target.Position != null)
-                session.RespawnPoint = target.Position.Value;
+            session.RespawnPoint = target.Position;
 
             session.StartedFromBeginning = false;
 

@@ -316,6 +316,13 @@ namespace Celeste.Mod.CelesteNet.Server {
             return true;
         }
 
+        public bool Filter(CelesteNetConnection con, DataPlayerFrame frame) {
+            if (frame.HairCount > Server.Settings.MaxHairLength)
+                frame.HairCount = Server.Settings.MaxHairLength;
+
+            return true;
+        }
+
         public void Handle(CelesteNetConnection con, DataPlayerInfo updated) {
             if (con != Con)
                 return;

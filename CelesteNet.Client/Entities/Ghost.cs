@@ -35,6 +35,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public List<GhostFollower> Followers = new List<GhostFollower>();
 
+        private Color LastSpriteColor;
+        private Color LastHairColor;
+        private int LastDepth;
+        private int DepthOffset;
+
         public Ghost(CelesteNetClientContext context, PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
             Context = context;
@@ -112,6 +117,23 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
             }
 
+            Alpha = 0.875f * ((CelesteNetClientModule.Settings.PlayerOpacity + 2) / 6f);
+            DepthOffset = 0;
+            if (CelesteNetClientModule.Settings.PlayerOpacity > 2) {
+                Player p = Scene.Tracker.GetEntity<Player>();
+                if (p != null) {
+                    Alpha = Calc.LerpClamp(Alpha * 0.5f, Alpha, (p.Position - Position).LengthSquared() / 256f);
+                    if (Alpha <= 0.7f) {
+                        Depth = LastDepth + 1;
+                        DepthOffset = 1;
+                    }
+                }
+            }
+
+            Hair.Color = LastHairColor * Alpha;
+            Hair.Alpha = Alpha;
+            Sprite.Color = LastSpriteColor * Alpha;
+
             if (NameTag.Scene != Scene)
                 Scene.Add(NameTag);
 
@@ -138,8 +160,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public void UpdateHair(Facings facing, Color color, bool simulateMotion, int count, Color[] colors, string[] textures) {
             Hair.Facing = facing;
+            LastHairColor = color;
             Hair.Color = color * Alpha;
-            Hair.Alpha = Alpha;
             Hair.SimulateMotion = simulateMotion;
 
             if (count == 0) {
@@ -165,8 +187,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Sprite.Scale = scale;
             Sprite.Scale.X *= (float) facing;
 
-            Depth = depth;
+            LastDepth = depth;
+            Depth = depth + DepthOffset;
 
+            LastSpriteColor = color;
             Sprite.Color = color * Alpha;
 
             Sprite.Rate = rate;

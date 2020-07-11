@@ -24,10 +24,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     default:
                         return 1;
 
-                    case BlurQuality.LQ:
+                    case BlurQuality.LOW:
                         return 4;
 
-                    case BlurQuality.HQ:
+                    case BlurQuality.MEDIUM:
+                        return 4;
+
+                    case BlurQuality.HIGH:
                         return 3;
                 }
             }
@@ -39,10 +42,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     default:
                         return 1;
 
-                    case BlurQuality.LQ:
+                    case BlurQuality.LOW:
                         return 8;
 
-                    case BlurQuality.HQ:
+                    case BlurQuality.MEDIUM:
+                        return 8;
+
+                    case BlurQuality.HIGH:
                         return 6;
                 }
             }
@@ -180,12 +186,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             blurScaleInv = new Vector2(UI_WIDTH / (float) tmpRealVP.Width, UI_HEIGHT / (float) tmpRealVP.Height);
                             break;
 
-                        case BlurQuality.LQ:
+                        case BlurQuality.LOW:
+                            blurrad = 3;
+                            blurdist = 1.2f;
+                            break;
+
+                        case BlurQuality.MEDIUM:
                             blurrad = 5;
                             blurdist = 0.9f;
                             break;
 
-                        case BlurQuality.HQ:
+                        case BlurQuality.HIGH:
                             blurrad = 16;
                             blurdist = 0.6f;
                             break;
@@ -318,8 +329,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public enum BlurQuality {
             OFF,
-            LQ,
-            HQ
+            LOW,
+            MEDIUM,
+            HIGH
         }
 
     }

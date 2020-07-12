@@ -1,4 +1,5 @@
-﻿using Celeste.Mod.CelesteNet.Client.Entities;
+﻿using Celeste.Editor;
+using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
@@ -7,10 +8,12 @@ using Microsoft.Xna.Framework.Input;
 using Monocle;
 using MonoMod.RuntimeDetour;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
@@ -19,9 +22,16 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetMainComponent : CelesteNetGameComponent {
 
+        public const string LevelDebugMap = ":celestenet_debugmap:";
+
+        private static readonly FieldInfo f_MapEditor_area =
+            typeof(MapEditor)
+            .GetField("area", BindingFlags.NonPublic | BindingFlags.Static);
+
         private Player Player;
         private TrailManager TrailManager;
         private Session Session;
+        private AreaKey? MapEditorArea;
         private bool WasIdle;
         private uint FrameNextID = 0;
 
@@ -30,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public GhostNameTag PlayerNameTag;
         public GhostEmote PlayerIdleTag;
-        public Dictionary<uint, Ghost> Ghosts = new Dictionary<uint, Ghost>();
+        public ConcurrentDictionary<uint, Ghost> Ghosts = new ConcurrentDictionary<uint, Ghost>();
 
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new HashSet<PlayerSpriteMode>();
 
@@ -105,8 +115,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             if (string.IsNullOrEmpty(player.DisplayName)) {
-                ghost.NameTag.Name = "";
-                Ghosts.Remove(player.ID);
+                ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
+                Ghosts.TryRemove(player.ID, out _);
                 Client.Data.FreeOrder<DataPlayerFrame>(player.ID);
                 return;
             }
@@ -133,8 +143,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     ghost == null)
                     return;
 
-                ghost.NameTag.Name = "";
-                Ghosts.Remove(move.Player.ID);
+                ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
+                Ghosts.TryRemove(move.Player.ID, out _);
 
                 foreach (DataType data in Client.Data.GetBoundRefs(move.Player))
                     if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
@@ -156,9 +166,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
 
                 Session session = Session;
-                if (session != null && (state.SID != session.Area.SID || state.Mode != session.Area.Mode)) {
-                    ghost.NameTag.Name = "";
-                    Ghosts.Remove(id);
+                if (session != null && (state.SID != session.Area.SID || state.Mode != session.Area.Mode || state.Level == LevelDebugMap)) {
+                    ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
+                    Ghosts.TryRemove(id, out _);
                     return;
                 }
 
@@ -175,7 +185,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level == null ||
                 session == null ||
                 state.SID != session.Area.SID ||
-                state.Mode != session.Area.Mode;
+                state.Mode != session.Area.Mode ||
+                state.Level == LevelDebugMap;
 
             if (UnsupportedSpriteModes.Contains(frame.SpriteMode))
                 frame.SpriteMode = PlayerSpriteMode.Madeline;
@@ -185,10 +196,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 (ghost.Active && ghost.Scene != level) ||
                 ghost.Sprite.Mode != frame.SpriteMode ||
                 outside) {
-                if (ghost != null)
-                    ghost.NameTag.Name = "";
+                ghost?.RunOnUpdate(ghost => ghost.NameTag.Name = "");
                 ghost = null;
-                Ghosts.Remove(frame.Player.ID);
+                Ghosts.TryRemove(frame.Player.ID, out _);
             }
 
             if (level == null || outside)
@@ -202,11 +212,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     UnsupportedSpriteModes.Add(frame.SpriteMode);
                 RunOnMainThread(() => {
                     level.Add(ghost);
-                    ghost.Active = true;
+                    level.OnEndOfFrame += () => ghost.Active = true;
                 });
             }
 
-            RunOnMainThread(() => {
+            ghost.RunOnUpdate(ghost => {
+                if (string.IsNullOrEmpty(ghost.NameTag.Name))
+                    return;
                 ghost.NameTag.Name = frame.Player.DisplayName;
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
                 ghost.UpdateSprite(frame.Position, frame.Speed, frame.Scale, frame.Facing, frame.Depth, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
@@ -446,7 +458,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             bool ready = Client != null && Client.IsReady && Client.PlayerInfo != null;
             if (!(Engine.Scene is Level level) || !ready) {
-                if (Player != null) {
+                if (ready && Engine.Scene is MapEditor) {
+                    Player = null;
+                    Session = null;
+                    WasIdle = false;
+                    AreaKey area = (AreaKey) f_MapEditor_area.GetValue(null);
+
+                    if (MapEditorArea == null || MapEditorArea.Value.SID != area.SID || MapEditorArea.Value.Mode != area.Mode) {
+                        MapEditorArea = area;
+                        SendState();
+                    }
+                }
+
+                if (Player != null && MapEditorArea == null) {
                     Player = null;
                     Session = null;
                     WasIdle = false;
@@ -454,6 +478,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
                 return;
             }
+
+            MapEditorArea = null;
 
             if (level.FrozenOrPaused || level.Overlay is PauseUpdateOverlay) {
                 level.Particles.Update();
@@ -526,13 +552,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public Color OnGetHairColor(On.Celeste.PlayerHair.orig_GetHairColor orig, PlayerHair self, int index) {
-            if (self.Entity is Ghost ghost && 0 <= index && index < ghost.HairColors.Length)
+            if (self.Entity is Ghost ghost && ghost.HairColors != null && 0 <= index && index < ghost.HairColors.Length)
                 return ghost.HairColors[index] * ghost.Alpha;
             return orig(self, index);
         }
 
         private MTexture OnGetHairTexture(On.Celeste.PlayerHair.orig_GetHairTexture orig, PlayerHair self, int index) {
-            if (self.Entity is Ghost ghost && 0 <= index && index < ghost.HairTextures.Length && GFX.Game.Textures.TryGetValue(ghost.HairTextures[index], out MTexture tex))
+            if (self.Entity is Ghost ghost && ghost.HairTextures != null && 0 <= index && index < ghost.HairTextures.Length && GFX.Game.Textures.TryGetValue(ghost.HairTextures[index], out MTexture tex))
                 return tex;
             return orig(self, index);
         }
@@ -564,9 +590,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             try {
                 Client?.SendAndHandle(new DataPlayerState {
                     Player = Client.PlayerInfo,
-                    SID = Session?.Area.GetSID() ?? "",
-                    Mode = Session?.Area.Mode ?? AreaMode.Normal,
-                    Level = Session?.Level ?? "",
+                    SID = Session?.Area.GetSID() ?? MapEditorArea?.SID ?? "",
+                    Mode = Session?.Area.Mode ?? MapEditorArea?.Mode ?? AreaMode.Normal,
+                    Level = Session?.Level ?? (MapEditorArea != null ? LevelDebugMap : ""),
                     Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null))
                 });
             } catch (Exception e) {

@@ -55,6 +55,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Server.ChatModul
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "emoji", "emoji", "{273EB989-5755-4F5C-A630-574B7F197C27}"
 	ProjectSection(SolutionItems) = preProject
+		Graphics\Atlases\Gui\emoji\celestenet_debugmap.png = Graphics\Atlases\Gui\emoji\celestenet_debugmap.png
 		Graphics\Atlases\Gui\emoji\celestenet_idle.png = Graphics\Atlases\Gui\emoji\celestenet_idle.png
 	EndProjectSection
 EndProject

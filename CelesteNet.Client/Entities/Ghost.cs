@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities {
@@ -35,10 +36,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public List<GhostFollower> Followers = new List<GhostFollower>();
 
-        private Color LastSpriteColor;
-        private Color LastHairColor;
-        private int LastDepth;
-        private int DepthOffset;
+        protected Color LastSpriteColor;
+        protected Color LastHairColor;
+        protected int LastDepth;
+        protected int DepthOffset;
+
+        protected Queue<Action<Ghost>> UpdateQueue = new Queue<Action<Ghost>>();
+        protected bool IsUpdating;
 
         public Ghost(CelesteNetClientContext context, PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
@@ -112,7 +116,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public override void Update() {
-            if (string.IsNullOrEmpty(NameTag.Name)) {
+            lock (UpdateQueue) {
+                IsUpdating = true;
+                while (UpdateQueue.Count > 0)
+                    UpdateQueue.Dequeue()(this);
+                IsUpdating = false;
+            }
+
+            if (string.IsNullOrEmpty(NameTag.Name) && Active) {
                 RemoveSelf();
                 return;
             }
@@ -156,6 +167,35 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             // TODO: Get rid of this, sync particles separately!
             if (DashWasB != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
                 level.ParticlesFG.Emit(DashWasB.Value ? Player.P_DashB : Player.P_DashA, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Angle());
+        }
+
+        public void RunOnUpdate(Action<Ghost> action, bool wait = false) {
+            bool updating;
+            lock (UpdateQueue)
+                updating = IsUpdating;
+            if (updating) {
+                action(this);
+                return;
+            }
+
+            using (ManualResetEvent waiter = wait ? new ManualResetEvent(false) : null) {
+                if (wait) {
+                    Action<Ghost> real = action;
+                    action = g => {
+                        try {
+                            real(g);
+                        } finally {
+                            waiter.Set();
+                        }
+                    };
+                }
+
+                lock (UpdateQueue)
+                    UpdateQueue.Enqueue(action);
+
+                if (wait)
+                    WaitHandle.WaitAny(new WaitHandle[] { waiter });
+            }
         }
 
         public void UpdateHair(Facings facing, Color color, bool simulateMotion, int count, Color[] colors, string[] textures) {

@@ -43,6 +43,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 On.Celeste.Player.Die -= OnPlayerDie;
             });
         }
+
         public void Send(string text) {
             Client.SendAndHandle(new DataEmote {
                 Player = Client.PlayerInfo,

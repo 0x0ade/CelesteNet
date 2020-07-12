@@ -180,7 +180,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 );
 
                 foreach (DebugMapGhost ghost in Ghosts.Values) {
-                    Vector2 pos = new Vector2(ghost.Position.X / 8f, (ghost.Position.Y - 4f) / 8f - 2f);
+                    Vector2 pos = new Vector2(ghost.Position.X / 8f + 0.5f, ghost.Position.Y / 8f - 1.5f);
                     pos -= camera.Position;
                     pos = new Vector2((float) Math.Round(pos.X), (float) Math.Round(pos.Y));
                     pos *= camera.Zoom;

@@ -297,12 +297,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     MDraw.SpriteBatch.End();
 
-                    VirtualRenderTarget uiRT = CelesteNetClientModule.Instance.UIRenderTarget;
+                    List<CelesteNetGameComponent> uiDC = Context?.DrawableComponents;
+                    VirtualRenderTarget uiRT = uiDC == null ? null : CelesteNetClientModule.Instance.UIRenderTarget;
                     if (uiRT != null) {
                         GraphicsDevice.SetRenderTarget(uiRT);
                         GraphicsDevice.Clear(Color.Transparent);
                         IsDrawingUI = true;
-                        foreach (CelesteNetGameComponent component in Context.DrawableComponents)
+                        foreach (CelesteNetGameComponent component in uiDC)
                             component.Draw(null);
                         IsDrawingUI = false;
                     }

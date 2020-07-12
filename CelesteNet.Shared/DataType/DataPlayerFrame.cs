@@ -123,6 +123,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if (reader.ReadBoolean())
                 Holding = new Entity {
+                    Position = reader.ReadVector2(),
                     Scale = reader.ReadVector2(),
                     Color = reader.ReadColor(),
                     Depth = reader.ReadInt32(),
@@ -185,6 +186,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             if (Followers.Length != 0) {
                 for (int i = 0; i < Followers.Length; i++) {
                     Entity h = Followers[i];
+                    writer.Write(h.Position);
                     writer.Write(h.Scale);
                     writer.Write(h.Color);
                     writer.Write(h.Depth);

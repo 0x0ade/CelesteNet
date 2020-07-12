@@ -44,7 +44,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Color[] HairColors = Dummy<Color>.EmptyArray;
         public string[] HairTextures = Dummy<string>.EmptyArray;
 
-        public Follower[] Followers = Dummy<Follower>.EmptyArray;
+        public Entity[] Followers = Dummy<Entity>.EmptyArray;
+
+        public Entity? Holding;
 
         // TODO: Get rid of this, sync particles separately!
         public bool? DashWasB;
@@ -99,9 +101,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     HairTextures[i] = HairTextures[i - 1];
             }
 
-            Followers = new Follower[reader.ReadByte()];
+            Followers = new Entity[reader.ReadByte()];
             for (int i = 0; i < Followers.Length; i++) {
-                Follower f = new Follower();
+                Entity f = new Entity();
                 f.Scale = reader.ReadVector2();
                 f.Color = reader.ReadColor();
                 f.Depth = reader.ReadInt32();
@@ -109,7 +111,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 f.SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null;
                 f.SpriteID = reader.ReadNullTerminatedString();
                 if (f.SpriteID == "-") {
-                    Follower p = Followers[i - 1];
+                    Entity p = Followers[i - 1];
                     f.SpriteID = p.SpriteID;
                     f.CurrentAnimationID = p.CurrentAnimationID;
                 } else {
@@ -118,6 +120,18 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 f.CurrentAnimationFrame = reader.ReadInt32();
                 Followers[i] = f;
             }
+
+            if (reader.ReadBoolean())
+                Holding = new Entity {
+                    Scale = reader.ReadVector2(),
+                    Color = reader.ReadColor(),
+                    Depth = reader.ReadInt32(),
+                    SpriteRate = reader.ReadSingle(),
+                    SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null,
+                    SpriteID = reader.ReadNullTerminatedString(),
+                    CurrentAnimationID = reader.ReadNullTerminatedString(),
+                    CurrentAnimationFrame = reader.ReadInt32()
+                };
 
             if (reader.ReadBoolean()) {
                 DashWasB = reader.ReadBoolean();
@@ -141,13 +155,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             writer.Write((byte) SpriteMode);
             writer.Write(SpriteRate);
-            if (SpriteJustify != null) {
+            if (SpriteJustify == null) {
+                writer.Write(false);
+            } else {
                 writer.Write(true);
                 writer.Write(SpriteJustify.Value);
-            } else {
-                writer.Write(false);
             }
-
             writer.WriteNullTerminatedString(CurrentAnimationID);
             writer.Write(CurrentAnimationFrame);
 
@@ -171,27 +184,49 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write((byte) Followers.Length);
             if (Followers.Length != 0) {
                 for (int i = 0; i < Followers.Length; i++) {
-                    Follower f = Followers[i];
-                    writer.Write(f.Scale);
-                    writer.Write(f.Color);
-                    writer.Write(f.Depth);
-                    writer.Write(f.SpriteRate);
-                    if (f.SpriteJustify != null) {
-                        writer.Write(true);
-                        writer.Write(f.SpriteJustify.Value);
-                    } else {
+                    Entity h = Followers[i];
+                    writer.Write(h.Scale);
+                    writer.Write(h.Color);
+                    writer.Write(h.Depth);
+                    writer.Write(h.SpriteRate);
+                    if (h.SpriteJustify == null) {
                         writer.Write(false);
+                    } else {
+                        writer.Write(true);
+                        writer.Write(h.SpriteJustify.Value);
                     }
                     if (i >= 1 &&
-                        f.SpriteID == Followers[i - 1].SpriteID &&
-                        f.CurrentAnimationID == Followers[i - 1].CurrentAnimationID) {
+                        h.SpriteID == Followers[i - 1].SpriteID &&
+                        h.CurrentAnimationID == Followers[i - 1].CurrentAnimationID) {
                         writer.WriteNullTerminatedString("-");
                     } else {
-                        writer.WriteNullTerminatedString(f.SpriteID);
-                        writer.WriteNullTerminatedString(f.CurrentAnimationID);
+                        writer.WriteNullTerminatedString(h.SpriteID);
+                        writer.WriteNullTerminatedString(h.CurrentAnimationID);
                     }
-                    writer.Write(f.CurrentAnimationFrame);
+                    writer.Write(h.CurrentAnimationFrame);
                 }
+            }
+
+            if (Holding == null) {
+                writer.Write(false);
+
+            } else {
+                writer.Write(true);
+                Entity g = Holding;
+                writer.Write(g.Scale);
+                writer.Write(g.Color);
+                writer.Write(g.Depth);
+                writer.Write(g.SpriteRate);
+                if (g.SpriteJustify == null) {
+                    writer.Write(false);
+
+                } else {
+                    writer.Write(true);
+                    writer.Write(g.SpriteJustify.Value);
+                }
+                writer.WriteNullTerminatedString(g.SpriteID);
+                writer.WriteNullTerminatedString(g.CurrentAnimationID);
+                writer.Write(g.CurrentAnimationFrame);
             }
 
             if (DashWasB == null) {
@@ -206,7 +241,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(Dead);
         }
 
-        public class Follower {
+        public class Entity {
+            public Vector2 Position;
             public Vector2 Scale;
             public Color Color;
             public int Depth;

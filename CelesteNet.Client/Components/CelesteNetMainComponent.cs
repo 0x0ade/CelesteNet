@@ -225,7 +225,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
                 ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
                 ghost.UpdateDead(frame.Dead && state.Level == session.Level);
-                ghost.UpdateFollowers((Settings.Followers & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Follower>.EmptyArray : frame.Followers);
+                ghost.UpdateFollowers((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
+                ghost.UpdateHolding((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? null : frame.Holding);
             });
         }
 
@@ -613,19 +614,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             for (int i = 0; i < hairCount; i++)
                 hairTextures[i] = Player.Hair.GetHairTexture(i).AtlasPath;
 
-            DataPlayerFrame.Follower[] followers;
+            DataPlayerFrame.Entity[] followers;
+            DataPlayerFrame.Entity holding = null;
 
-            if ((Settings.Followers & CelesteNetClientSettings.SyncMode.Send) == 0) {
-                followers = Dummy<DataPlayerFrame.Follower>.EmptyArray;
+            if ((Settings.Entities & CelesteNetClientSettings.SyncMode.Send) == 0) {
+                followers = Dummy<DataPlayerFrame.Entity>.EmptyArray;
 
             } else {
                 Leader leader = Player.Get<Leader>();
-                followers = new DataPlayerFrame.Follower[leader.Followers.Count];
+                followers = new DataPlayerFrame.Entity[leader.Followers.Count];
                 for (int i = 0; i < followers.Length; i++) {
                     Follower f = leader.Followers[i];
                     Sprite s = f.Entity.Get<Sprite>();
                     if (s == null) {
-                        followers[i] = new DataPlayerFrame.Follower {
+                        followers[i] = new DataPlayerFrame.Entity {
                             Scale = Vector2.One,
                             Color = Color.White,
                             Depth = -1000000,
@@ -638,7 +640,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         continue;
                     }
 
-                    followers[i] = new DataPlayerFrame.Follower {
+                    followers[i] = new DataPlayerFrame.Entity {
                         Scale = s.Scale,
                         Color = s.Color,
                         Depth = f.Entity.Depth,
@@ -648,6 +650,37 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         CurrentAnimationID = s.CurrentAnimationID,
                         CurrentAnimationFrame = s.CurrentAnimationFrame
                     };
+                }
+
+                Holdable holdable = Player.Holding;
+                if (holdable != null) {
+                    Sprite s = holdable.Entity.Get<Sprite>();
+                    if (s == null) {
+                        holding = new DataPlayerFrame.Entity {
+                            Position = holdable.Entity.Position,
+                            Scale = Vector2.One,
+                            Color = Color.White,
+                            Depth = -1000000,
+                            SpriteRate = 1f,
+                            SpriteJustify = null,
+                            SpriteID = "",
+                            CurrentAnimationID = "idle",
+                            CurrentAnimationFrame = 0
+                        };
+
+                    } else {
+                        holding = new DataPlayerFrame.Entity {
+                            Position = holdable.Entity.Position,
+                            Scale = s.Scale,
+                            Color = s.Color,
+                            Depth = holdable.Entity.Depth,
+                            SpriteRate = s.Rate,
+                            SpriteJustify = s.Justify,
+                            SpriteID = s.GetID(),
+                            CurrentAnimationID = s.CurrentAnimationID,
+                            CurrentAnimationFrame = s.CurrentAnimationFrame
+                        };
+                    }
                 }
             }
 
@@ -676,6 +709,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     HairTextures = hairTextures,
 
                     Followers = followers,
+
+                    Holding = holding,
 
                     // TODO: Get rid of this, sync particles separately!
                     DashWasB = Player.StateMachine.State == Player.StDash ? Player.GetWasDashB() : (bool?) null,

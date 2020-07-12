@@ -73,11 +73,11 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
 
-        [SettingSubText("modoptions_celestenetclient_collisionhint")]
-        public bool Collision { get; set; } = true;
+        [SettingSubText("modoptions_celestenetclient_interactionshint")]
+        public bool Interactions { get; set; } = true;
         public SyncMode Sounds { get; set; } = SyncMode.ON;
-        [SettingSubText("modoptions_celestenetclient_followershint")]
-        public SyncMode Followers { get; set; } = SyncMode.ON;
+        [SettingSubText("modoptions_celestenetclient_entitieshint")]
+        public SyncMode Entities { get; set; } = SyncMode.ON;
 
         public CelesteNetPlayerListComponent.ListMode PlayerListMode { get; set; }
 

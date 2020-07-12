@@ -28,8 +28,8 @@
 	MODOPTIONS_CELESTENETCLIENT_NAME=			Name: ((name))
 	MODOPTIONS_CELESTENETCLIENT_SETTINGS=			Settings
 	MODOPTIONS_CELESTENETCLIENT_DEVONLYHINT= 		Only for developers.
-	MODOPTIONS_CELESTENETCLIENT_COLLISIONHINT= 		This only affects your interactions with others.
-	MODOPTIONS_CELESTENETCLIENT_FOLLOWERSHINT= 		Followers are keys, berries and other things following you.
+	MODOPTIONS_CELESTENETCLIENT_INTERACTIONSHINT= 		This only affects your ability to interact with others.
+	MODOPTIONS_CELESTENETCLIENT_ENTITIESHINT= 		Entities are keys, berries, Theo, jellyfish and other things.
 	MODOPTIONS_CELESTENETCLIENT_UISIZE= 			UI Size
 	MODOPTIONS_CELESTENETCLIENT_UIBLUR= 			UI Blur
 	MODOPTIONS_CELESTENETCLIENT_UIBLURHINT=			Lower the quality if you're experiencing lag.

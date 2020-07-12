@@ -35,6 +35,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public bool Dead;
 
         public List<GhostFollower> Followers = new List<GhostFollower>();
+        public GhostEntity Holding;
 
         protected Color LastSpriteColor;
         protected Color LastHairColor;
@@ -94,7 +95,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnPlayer(Player player) {
-            if (!CelesteNetClientModule.Settings.Collision)
+            if (!CelesteNetClientModule.Settings.Interactions)
                 return;
 
             if (player.StateMachine.State == Player.StNormal &&
@@ -158,11 +159,12 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (!level.GetUpdateHair() || level.Overlay is PauseUpdateOverlay)
                 Hair.AfterUpdate();
 
-            lock (Followers) {
-                foreach (GhostFollower gf in Followers)
-                    if (gf.Scene != level)
-                        level.Add(gf);
-            }
+            foreach (GhostFollower gf in Followers)
+                if (gf.Scene != level)
+                    level.Add(gf);
+
+            if (Holding != null && Holding.Scene != level)
+                level.Add(Holding);
 
             // TODO: Get rid of this, sync particles separately!
             if (DashWasB != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
@@ -259,27 +261,39 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Dead = dead;
         }
 
-        public void UpdateFollowers(DataPlayerFrame.Follower[] followers) {
-            lock (Followers) {
-                for (int i = 0; i < followers.Length; i++) {
-                    DataPlayerFrame.Follower f = followers[i];
-                    GhostFollower gf;
-                    if (i >= Followers.Count) {
-                        gf = new GhostFollower(this);
-                        gf.Position = Position + Leader.Position;
-                        Followers.Add(gf);
-                    } else {
-                        gf = Followers[i];
-                    }
-                    gf.UpdateSprite(f.Scale, f.Depth, f.Color, f.SpriteRate, f.SpriteJustify, f.SpriteID, f.CurrentAnimationID, f.CurrentAnimationFrame);
+        public void UpdateFollowers(DataPlayerFrame.Entity[] followers) {
+            for (int i = 0; i < followers.Length; i++) {
+                DataPlayerFrame.Entity f = followers[i];
+                GhostFollower gf;
+                if (i >= Followers.Count) {
+                    gf = new GhostFollower(this);
+                    gf.Position = Position + Leader.Position;
+                    Followers.Add(gf);
+                } else {
+                    gf = Followers[i];
                 }
-
-                while (Followers.Count > followers.Length) {
-                    GhostFollower gf = Followers[Followers.Count - 1];
-                    gf.Ghost = null;
-                    Followers.RemoveAt(Followers.Count - 1);
-                }
+                gf.UpdateSprite(f.Scale, f.Depth, f.Color, f.SpriteRate, f.SpriteJustify, f.SpriteID, f.CurrentAnimationID, f.CurrentAnimationFrame);
             }
+
+            while (Followers.Count > followers.Length) {
+                GhostFollower gf = Followers[Followers.Count - 1];
+                gf.Ghost = null;
+                Followers.RemoveAt(Followers.Count - 1);
+            }
+        }
+
+        public void UpdateHolding(DataPlayerFrame.Entity h) {
+            if (h == null) {
+                if (Holding != null)
+                    Holding.Ghost = null;
+                Holding = null;
+                return;
+            }
+
+            if (Holding == null)
+                Holding = new GhostEntity(this);
+            Holding.Position = h.Position;
+            Holding.UpdateSprite(h.Scale, h.Depth, h.Color, h.SpriteRate, h.SpriteJustify, h.SpriteID, h.CurrentAnimationID, h.CurrentAnimationFrame);
         }
 
 

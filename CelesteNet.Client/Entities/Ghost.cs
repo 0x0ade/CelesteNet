@@ -130,14 +130,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             Alpha = 0.875f * ((CelesteNetClientModule.Settings.PlayerOpacity + 2) / 6f);
             DepthOffset = 0;
-            if (CelesteNetClientModule.Settings.PlayerOpacity > 2) {
-                Player p = Scene.Tracker.GetEntity<Player>();
-                if (p != null) {
-                    Alpha = Calc.LerpClamp(Alpha * 0.5f, Alpha, (p.Position - Position).LengthSquared() / 256f);
-                    if (Alpha <= 0.7f) {
-                        Depth = LastDepth + 1;
-                        DepthOffset = 1;
-                    }
+            Player p = Scene.Tracker.GetEntity<Player>();
+            if (p != null) {
+                float dist = (p.Position - Position).LengthSquared();
+                if (CelesteNetClientModule.Settings.PlayerOpacity > 2)
+                    Alpha = Calc.LerpClamp(Alpha * 0.5f, Alpha, dist / 256f);
+                if (dist <= 256f) {
+                    Depth = LastDepth + 1;
+                    DepthOffset = 1;
                 }
             }
 

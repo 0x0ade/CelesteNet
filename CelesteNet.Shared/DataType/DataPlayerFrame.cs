@@ -185,27 +185,26 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write((byte) Followers.Length);
             if (Followers.Length != 0) {
                 for (int i = 0; i < Followers.Length; i++) {
-                    Entity h = Followers[i];
-                    writer.Write(h.Position);
-                    writer.Write(h.Scale);
-                    writer.Write(h.Color);
-                    writer.Write(h.Depth);
-                    writer.Write(h.SpriteRate);
-                    if (h.SpriteJustify == null) {
+                    Entity f = Followers[i];
+                    writer.Write(f.Scale);
+                    writer.Write(f.Color);
+                    writer.Write(f.Depth);
+                    writer.Write(f.SpriteRate);
+                    if (f.SpriteJustify == null) {
                         writer.Write(false);
                     } else {
                         writer.Write(true);
-                        writer.Write(h.SpriteJustify.Value);
+                        writer.Write(f.SpriteJustify.Value);
                     }
                     if (i >= 1 &&
-                        h.SpriteID == Followers[i - 1].SpriteID &&
-                        h.CurrentAnimationID == Followers[i - 1].CurrentAnimationID) {
+                        f.SpriteID == Followers[i - 1].SpriteID &&
+                        f.CurrentAnimationID == Followers[i - 1].CurrentAnimationID) {
                         writer.WriteNullTerminatedString("-");
                     } else {
-                        writer.WriteNullTerminatedString(h.SpriteID);
-                        writer.WriteNullTerminatedString(h.CurrentAnimationID);
+                        writer.WriteNullTerminatedString(f.SpriteID);
+                        writer.WriteNullTerminatedString(f.CurrentAnimationID);
                     }
-                    writer.Write(h.CurrentAnimationFrame);
+                    writer.Write(f.CurrentAnimationFrame);
                 }
             }
 
@@ -214,21 +213,22 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             } else {
                 writer.Write(true);
-                Entity g = Holding;
-                writer.Write(g.Scale);
-                writer.Write(g.Color);
-                writer.Write(g.Depth);
-                writer.Write(g.SpriteRate);
-                if (g.SpriteJustify == null) {
+                Entity h = Holding;
+                writer.Write(h.Position);
+                writer.Write(h.Scale);
+                writer.Write(h.Color);
+                writer.Write(h.Depth);
+                writer.Write(h.SpriteRate);
+                if (h.SpriteJustify == null) {
                     writer.Write(false);
 
                 } else {
                     writer.Write(true);
-                    writer.Write(g.SpriteJustify.Value);
+                    writer.Write(h.SpriteJustify.Value);
                 }
-                writer.WriteNullTerminatedString(g.SpriteID);
-                writer.WriteNullTerminatedString(g.CurrentAnimationID);
-                writer.Write(g.CurrentAnimationFrame);
+                writer.WriteNullTerminatedString(h.SpriteID);
+                writer.WriteNullTerminatedString(h.CurrentAnimationID);
+                writer.Write(h.CurrentAnimationFrame);
             }
 
             if (DashWasB == null) {

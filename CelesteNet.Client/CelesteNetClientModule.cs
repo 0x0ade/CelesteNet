@@ -37,6 +37,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         private Thread _StartThread;
         public bool IsAlive => Context != null;
 
+        public VirtualRenderTarget UIRenderTarget;
+
         // This should ideally be part of the "emote module" if emotes were a fully separate thing.
         public VirtualJoystick JoystickEmoteWheel;
         public VirtualButton ButtonEmoteSend;
@@ -62,12 +64,20 @@ namespace Celeste.Mod.CelesteNet.Client {
             CelesteNetClientSpriteDB.Load();
         }
 
+        public override void LoadContent(bool firstLoad) {
+            UIRenderTarget?.Dispose();
+            UIRenderTarget = VirtualContent.CreateRenderTarget("celestenet-hud-target", 1922, 1082, false, true, 0);
+        }
+
         public override void Unload() {
             CelesteNetClientRC.Shutdown();
             Everest.Events.Celeste.OnShutdown -= CelesteNetClientRC.Shutdown;
 
             Settings.Connected = false;
             Stop();
+
+            UIRenderTarget?.Dispose();
+            UIRenderTarget = null;
         }
 
         public override void LoadSettings() {

@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
-    public unsafe class CelesteNetBlurHelperComponent : CelesteNetGameComponent {
+    public unsafe class CelesteNetRenderHelperComponent : CelesteNetGameComponent {
 
         public int BlurScale {
             get {
@@ -65,7 +65,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public RenderTarget2D BlurLowRT;
         public RenderTarget2D BlurRT;
 
-        public CelesteNetBlurHelperComponent(CelesteNetClientContext context, Game game)
+        public CelesteNetRenderHelperComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;
@@ -297,6 +297,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     MDraw.SpriteBatch.End();
 
+                    VirtualRenderTarget uiRT = CelesteNetClientModule.Instance.UIRenderTarget;
+                    if (uiRT != null) {
+                        GraphicsDevice.SetRenderTarget(uiRT);
+                        GraphicsDevice.Clear(Color.Transparent);
+                        IsDrawingUI = true;
+                        foreach (CelesteNetGameComponent component in Context.DrawableComponents)
+                            component.Draw(null);
+                        IsDrawingUI = false;
+                    }
+
                     GraphicsDevice.SetRenderTarget(tmpRealRT);
                     GraphicsDevice.Viewport = Engine.Viewport;
                     GraphicsDevice.Clear(Engine.ClearColor);
@@ -314,6 +324,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     MDraw.SpriteBatch.Draw(FakeRT, Vector2.Zero, Color.White);
 
                     MDraw.SpriteBatch.End();
+
+                    if (uiRT != null) {
+                        MDraw.SpriteBatch.Begin(
+                            SpriteSortMode.Deferred,
+                            BlendState.AlphaBlend,
+                            SamplerState.LinearClamp,
+                            DepthStencilState.None,
+                            RasterizerState.CullNone,
+                            null,
+                            Engine.ScreenMatrix
+                        );
+
+                        MDraw.SpriteBatch.Draw(uiRT, new Vector2(-1f, -1f), Color.White);
+
+                        MDraw.SpriteBatch.End();
+                    }
                 }
             });
         }

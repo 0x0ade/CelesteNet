@@ -17,11 +17,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetClient Client;
 
         public CelesteNetMainComponent Main;
-        public CelesteNetBlurHelperComponent Blur;
+        public CelesteNetRenderHelperComponent Blur;
         public CelesteNetStatusComponent Status;
         public CelesteNetChatComponent Chat;
 
         public Dictionary<Type, CelesteNetGameComponent> Components = new Dictionary<Type, CelesteNetGameComponent>();
+        public List<CelesteNetGameComponent> DrawableComponents;
 
         protected Queue<Action> MainThreadQueue = new Queue<Action>();
 
@@ -37,7 +38,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Celeste.Instance.Components.Add(this);
 
             Add(Main = new CelesteNetMainComponent(this, game));
-            Add(Blur = new CelesteNetBlurHelperComponent(this, game));
+            Add(Blur = new CelesteNetRenderHelperComponent(this, game));
             Add(Status = new CelesteNetStatusComponent(this, game));
             Add(Chat = new CelesteNetChatComponent(this, game));
 
@@ -47,6 +48,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 Add((CelesteNetGameComponent) Activator.CreateInstance(type, this, game));
             }
+
+            DrawableComponents = Components.Values.Where(c => c.Visible).OrderBy(c => c.DrawOrder).ToList();
 
             OnCreate?.Invoke(this);
         }

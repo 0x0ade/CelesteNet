@@ -15,6 +15,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int UI_WIDTH = 1920;
         public const int UI_HEIGHT = 1080;
 
+        public static bool IsDrawingUI;
+
         public CelesteNetClientContext Context;
         public CelesteNetClient Client => Context?.Client;
         public CelesteNetClientSettings ClientSettings => Context?.Client?.Settings ?? CelesteNetClientModule.Settings;
@@ -69,30 +71,11 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public override void Draw(GameTime gameTime) {
-            base.Draw(gameTime);
-
-            // TODO: Figure out why rendering to a buffer doesn't work.
-            if (HiresRenderer.Buffer == null || true) {
+            if (IsDrawingUI) {
+                RenderContentWrap(gameTime, true);
+            } else if (!IsDrawingUI && CelesteNetClientModule.Instance.UIRenderTarget == null) {
                 RenderContentWrap(gameTime, false);
-                return;
             }
-
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(HiresRenderer.Buffer);
-            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-            RenderContentWrap(gameTime, true);
-
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(null);
-            MDraw.SpriteBatch.Begin(
-                SpriteSortMode.Deferred,
-                BlendState.NonPremultiplied,
-                SamplerState.LinearClamp,
-                DepthStencilState.Default,
-                RasterizerState.CullNone,
-                null,
-                Engine.ScreenMatrix
-            );
-            MDraw.SpriteBatch.Draw(HiresRenderer.Buffer, new Vector2(-1f, -1f), Color.White);
-            MDraw.SpriteBatch.End();
         }
 
         protected override void Dispose(bool disposing) {

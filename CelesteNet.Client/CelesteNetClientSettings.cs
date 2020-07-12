@@ -103,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public float UIScale => 0.5f + 0.5f * ((UISize - 1f) / (UISizeMax - 1f));
 
         [SettingSubText("modoptions_celestenetclient_uiblurhint")]
-        public CelesteNetBlurHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetBlurHelperComponent.BlurQuality.MEDIUM;
+        public CelesteNetRenderHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetRenderHelperComponent.BlurQuality.MEDIUM;
 
 
         public bool EmoteWheel { get; set; } = true;

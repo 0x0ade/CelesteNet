@@ -51,6 +51,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Cleanup();
         }
 
+        public void Cleanup() {
+            lock (Ghosts)
+                if (Ghosts.Count > 0)
+                    Ghosts.Clear();
+        }
+
         #region Handlers
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
@@ -136,12 +142,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 LastArea = area;
                 Cleanup();
             }
-        }
-
-        public void Cleanup() {
-            lock (Ghosts)
-                if (Ghosts.Count > 0)
-                    Ghosts.Clear();
         }
 
         #region Hooks

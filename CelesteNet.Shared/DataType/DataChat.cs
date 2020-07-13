@@ -73,7 +73,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             => ToString(true, false);
 
         public string ToString(bool displayName, bool id)
-            => $"{(id ? $"{{{ID}}}" : "")}[{Date.ToLocalTime().ToLongTimeString()}]{(Tag.IsNullOrEmpty() ? "" : $"[{Tag}]")} {(displayName ? Player?.DisplayName : Player?.FullName) ?? "**SERVER**"}{(Target != null ? " @ " + Target.DisplayName : "")}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
+            => $"{(id ? $"{{{ID}}} " : "")}{(Tag.IsNullOrEmpty() ? "" : $"[{Tag}] ")}{(displayName ? Player?.DisplayName : Player?.FullName) ?? "**SERVER**"}{(Target != null ? " @ " + Target.DisplayName : "")}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
 
 
     }

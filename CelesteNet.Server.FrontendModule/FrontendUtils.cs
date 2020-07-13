@@ -20,7 +20,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 PlayerID = msg.Player?.ID ?? uint.MaxValue,
                 Targeted = msg.Targets != null,
                 Color = msg.Color.ToHex(),
-                Text = msg.ToString(false, false)
+                Text = $"[{msg.Date.ToLocalTime().ToLongDateString()}] {msg.ToString(false, false)}"
             };
 
         public static object ToDetailedFrontendChat(this DataChat msg)

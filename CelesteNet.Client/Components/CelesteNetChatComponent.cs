@@ -287,7 +287,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         if (alpha <= 0f)
                             continue;
 
-                        string text = msg.ToString();
+                        string time = msg.Date.ToLocalTime().ToLongTimeString();
+
+                        string text = msg.ToString(true, false);
                         logLength -= Math.Max(0, text.Count(c => c == '\n') - 1) * 0.75f;
 
                         int lineScaleTry = 0;
@@ -295,7 +297,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         RetryLineScale:
                         Vector2 lineFontScale = Vector2.One * lineScale;
 
-                        Vector2 size = CelesteNetClientFont.Measure(text) * lineFontScale;
+                        Vector2 sizeTime = CelesteNetClientFontMono.Measure(time) * lineFontScale;
+                        Vector2 sizeText = CelesteNetClientFont.Measure(text) * lineFontScale;
+                        Vector2 size = new Vector2(sizeTime.X + 25f * scale + sizeText.X, Math.Max(sizeTime.Y - 5f * scale, sizeText.Y));
 
                         if ((size.X + 100f * scale) > UI_WIDTH && lineScaleTry < 4) {
                             lineScaleTry++;
@@ -308,9 +312,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         y -= height;
 
                         Context.Blur.Rect(25f * scale, y, size.X + 50f * scale, height, Color.Black * 0.8f * alpha);
+                        CelesteNetClientFontMono.Draw(
+                            time,
+                            new Vector2(50f * scale, y + 20f * scale),
+                            Vector2.Zero,
+                            lineFontScale,
+                            msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)
+                        );
                         CelesteNetClientFont.Draw(
                             text,
-                            new Vector2(50f * scale, y + 25f * scale),
+                            new Vector2(75f * scale + sizeTime.X, y + 25f * scale),
                             Vector2.Zero,
                             lineFontScale,
                             msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)

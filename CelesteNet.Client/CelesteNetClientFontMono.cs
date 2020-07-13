@@ -19,27 +19,28 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Client {
-    // Copy of ActiveFont that always uses the English font.
-    public static class CelesteNetClientFont {
+    // Copy of ActiveFont that always uses a font with monospace Latin characters / Arabic numbers.
+    public static class CelesteNetClientFontMono {
 
-        public static PixelFont Font => Fonts.Get(Dialog.Languages["english"].FontFace);
+        // English is always loaded. Other language fonts must be loaded manually. Load only loads once.
+        public static PixelFont Font => Fonts.Load(Dialog.Languages["japanese"].FontFace);
 
         public static PixelFontSize FontSize => Font.Get(BaseSize);
 
-        public static float BaseSize => Dialog.Languages["english"].FontFaceSize;
+        public static float BaseSize => Dialog.Languages["japanese"].FontFaceSize;
 
         public static float LineHeight => FontSize.LineHeight;
 
-        public static Vector2 Measure(char text)
+        public static Vector2 Measure(char text) 
             => FontSize.Measure(text);
 
-        public static Vector2 Measure(string text)
+        public static Vector2 Measure(string text) 
             => FontSize.Measure(text);
 
-        public static float WidthToNextLine(string text, int start)
+        public static float WidthToNextLine(string text, int start) 
             => FontSize.WidthToNextLine(text, start);
 
-        public static float HeightOf(string text)
+        public static float HeightOf(string text) 
             => FontSize.HeightOf(text);
 
         public static void Draw(char character, Vector2 position, Vector2 justify, Vector2 scale, Color color) 

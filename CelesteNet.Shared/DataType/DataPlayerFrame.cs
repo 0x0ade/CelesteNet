@@ -123,8 +123,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if (reader.ReadBoolean())
                 Holding = new Entity {
-                    Position = reader.ReadVector2Scale(),
-                    Scale = reader.ReadVector2(),
+                    Position = reader.ReadVector2(),
+                    Scale = reader.ReadVector2Scale(),
                     Color = reader.ReadColor(),
                     Depth = reader.ReadInt32(),
                     SpriteRate = reader.ReadSingle(),

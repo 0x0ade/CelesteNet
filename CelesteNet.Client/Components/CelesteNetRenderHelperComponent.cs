@@ -107,6 +107,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 FakeRT?.Dispose();
                 BlurRT?.Dispose();
+                BlurRT = null;
                 BlurXRT?.Dispose();
                 BlurYRT?.Dispose();
                 BlurLowRT?.Dispose();
@@ -119,6 +120,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return realRT;
 
             if (Engine.Instance != null && Engine.Scene is AssetReloadHelper)
+                return null;
+
+            if (BlurRT == null)
                 return null;
 
             if (FakeRT != null && (FakeRT.Width != Engine.ViewWidth || FakeRT.Height != Engine.ViewHeight)) {

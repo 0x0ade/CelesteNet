@@ -13,6 +13,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public string CommandPrefix { get; set; } = "/";
 
+        public int SpamCount { get; set; } = 3;
+        public int SpamCountMax { get; set; } = 6;
+        public double SpamTimeout { get; set; } = 4;
+        public double SpamTimeoutAdd { get; set; } = 2;
+
         public Color ColorBroadcast { get; set; } = Calc.HexToColor("#00adee");
         public Color ColorServer { get; set; } = Calc.HexToColor("#9e24f5");
         public Color ColorError { get; set; } = Calc.HexToColor("#c71585");
@@ -29,6 +34,7 @@ Send /help for a list of all commands.";
         public string MessageLeave { get; set; } = "Cya, {player}!";
         public string MessageKick { get; set; } = "{player} did an oopsie!";
         public string MessageBan { get; set; } = "{player} won't come back.";
+        public string MessageSpam { get; set; } = "Stop spamming.";
 
     }
 }

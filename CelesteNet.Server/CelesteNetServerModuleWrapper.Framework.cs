@@ -23,7 +23,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         private AssemblyName? AssemblyNameNew;
 
         private void LoadAssembly() {
-            long stamp = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            long stamp = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
 
             string dir = Path.Combine(Path.GetTempPath(), "CelesteNetServerModuleCache");
             if (!Directory.Exists(dir))

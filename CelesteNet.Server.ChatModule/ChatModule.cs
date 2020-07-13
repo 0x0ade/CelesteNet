@@ -2,11 +2,13 @@
 using Microsoft.Xna.Framework;
 using MonoMod.Utils;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +20,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
+        public SpamContext BroadcastSpamContext;
+        public ConcurrentDictionary<CelesteNetPlayerSession, SpamContext> SpamContexts = new ConcurrentDictionary<CelesteNetPlayerSession, SpamContext>();
+
 #pragma warning disable CS8618 // Set on init.
         public ChatCommands Commands;
 #pragma warning restore CS8618
@@ -25,6 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public override void Init(CelesteNetServerModuleWrapper wrapper) {
             base.Init(wrapper);
 
+            BroadcastSpamContext = new SpamContext(this);
             Commands = new ChatCommands(this);
             Server.OnSessionStart += OnSessionStart;
             lock (Server.Connections)
@@ -35,7 +41,12 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public override void Dispose() {
             base.Dispose();
 
+            BroadcastSpamContext.Dispose();
             Commands.Dispose();
+
+            foreach (SpamContext spam in SpamContexts.Values)
+                spam.Dispose();
+            SpamContexts.Clear();
 
             Server.OnSessionStart -= OnSessionStart;
             lock (Server.Connections)
@@ -46,6 +57,12 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         private void OnSessionStart(CelesteNetPlayerSession session) {
             Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.DisplayName ?? "???"));
             SendTo(session, Settings.MessageMOTD);
+            SpamContext spam = SpamContexts[session] = new SpamContext(this);
+            spam.OnSpam += (msg, timeout) => {
+                msg.Target = session.PlayerInfo;
+                ForceSend(msg);
+                SendTo(session, Settings.MessageSpam, null, Settings.ColorError);
+            };
             session.OnEnd += OnSessionEnd;
         }
 
@@ -53,9 +70,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             string? displayName = lastPlayerInfo?.DisplayName;
             if (!displayName.IsNullOrEmpty())
                 Broadcast((new DynamicData(session).Get<string>("leaveReason") ?? Settings.MessageLeave).InjectSingleValue("player", displayName));
+            if (SpamContexts.TryRemove(session, out SpamContext spam))
+                spam.Dispose();
         }
 
         public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {
+            lock (ChatLog)
+                msg.ID = NextID++;
+            msg.Date = DateTime.UtcNow;
+
             if (!msg.CreatedByServer) {
                 if (from == null)
                     return null;
@@ -79,17 +102,30 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
                 msg.Tag = "";
                 msg.Color = Color.White;
+
+                if (SpamContexts.TryGetValue(player, out SpamContext spam) && spam.IsSpam(msg))
+                    return null;
+
+            } else if (msg.Player != null) {
+                CelesteNetPlayerSession? player;
+                lock (Server.Connections)
+                    if (!Server.PlayersByID.TryGetValue(msg.Player.ID, out player))
+                        return null;
+
+                if (SpamContexts.TryGetValue(player, out SpamContext spam) && spam.IsSpam(msg))
+                    return null;
+
+            } else if (msg.Target == null && BroadcastSpamContext.IsSpam(msg)) {
+                return null;
             }
 
             if (msg.Text.Length == 0)
                 return null;
 
             lock (ChatLog) {
-                ChatLog[msg.ID = NextID++] = msg;
+                ChatLog[msg.ID] = msg;
                 ChatBuffer.Set(msg).Move(1);
             }
-
-            msg.Date = DateTime.UtcNow;
 
             if (!msg.CreatedByServer)
                 Logger.Log(LogLevel.INF, "chatmsg", msg.ToString(false, true));

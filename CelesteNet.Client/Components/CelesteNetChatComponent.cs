@@ -114,10 +114,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataChat msg) {
             lock (Log) {
-                if (msg.Player != null && msg.Player.ID == Client.PlayerInfo?.ID && Pending.TryGetValue(msg.Text, out DataChat pending)) {
-                    Pending.Remove(msg.Text);
-                    Log.Remove(pending);
-                    LogSpecial.Remove(pending);
+                if (msg.Player?.ID == Client.PlayerInfo?.ID) {
+                    foreach (DataChat pending in Pending.Values) {
+                        Log.Remove(pending);
+                        LogSpecial.Remove(pending);
+                    }
+                    Pending.Clear();
                 }
 
                 int index = Log.FindLastIndex(other => other.ID == msg.ID);

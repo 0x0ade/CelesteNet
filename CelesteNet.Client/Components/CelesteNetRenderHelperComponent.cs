@@ -92,9 +92,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Initialize() {
             base.Initialize();
 
-            BlurRT = new RenderTarget2D(GraphicsDevice, UI_WIDTH, UI_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
-
             MainThreadHelper.Do(() => {
+                BlurRT = new RenderTarget2D(GraphicsDevice, UI_WIDTH, UI_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
+
                 IL.Celeste.Level.Render += ILRenderLevel;
                 IL.Monocle.Engine.RenderCore += ILRenderCore;
             });

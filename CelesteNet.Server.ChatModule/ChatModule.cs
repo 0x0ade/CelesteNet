@@ -20,10 +20,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
-        public SpamContext BroadcastSpamContext;
         public ConcurrentDictionary<CelesteNetPlayerSession, SpamContext> SpamContexts = new ConcurrentDictionary<CelesteNetPlayerSession, SpamContext>();
 
 #pragma warning disable CS8618 // Set on init.
+        public SpamContext BroadcastSpamContext;
         public ChatCommands Commands;
 #pragma warning restore CS8618
 
@@ -70,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             string? displayName = lastPlayerInfo?.DisplayName;
             if (!displayName.IsNullOrEmpty())
                 Broadcast((new DynamicData(session).Get<string>("leaveReason") ?? Settings.MessageLeave).InjectSingleValue("player", displayName));
-            if (SpamContexts.TryRemove(session, out SpamContext spam))
+            if (SpamContexts.TryRemove(session, out SpamContext? spam))
                 spam.Dispose();
         }
 
@@ -103,21 +103,23 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 msg.Tag = "";
                 msg.Color = Color.White;
 
-                if (SpamContexts.TryGetValue(player, out SpamContext spam) && spam.IsSpam(msg))
+                if (SpamContexts.TryGetValue(player, out SpamContext? spam) && spam.IsSpam(msg))
                     return null;
 
-            } else if (msg.Player != null) {
-                CelesteNetPlayerSession? player;
-                lock (Server.Connections)
-                    if (!Server.PlayersByID.TryGetValue(msg.Player.ID, out player))
+            } else if ((msg.Targets?.Length ?? 1) > 0) {
+                if (msg.Player != null) {
+                    CelesteNetPlayerSession? player;
+                    lock (Server.Connections)
+                        if (!Server.PlayersByID.TryGetValue(msg.Player.ID, out player))
+                            return null;
+
+                    if (SpamContexts.TryGetValue(player, out SpamContext? spam) && spam.IsSpam(msg))
                         return null;
 
-                if (SpamContexts.TryGetValue(player, out SpamContext spam) && spam.IsSpam(msg))
+                } else if (BroadcastSpamContext.IsSpam(msg)) {
                     return null;
-
-            } else if (msg.Target == null && BroadcastSpamContext.IsSpam(msg)) {
-                return null;
-            }
+                }
+            } 
 
             if (msg.Text.Length == 0)
                 return null;

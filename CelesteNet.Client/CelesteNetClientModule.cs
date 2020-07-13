@@ -65,8 +65,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public override void LoadContent(bool firstLoad) {
-            UIRenderTarget?.Dispose();
-            UIRenderTarget = VirtualContent.CreateRenderTarget("celestenet-hud-target", 1922, 1082, false, true, 0);
+            MainThreadHelper.Do(() => {
+                UIRenderTarget?.Dispose();
+                UIRenderTarget = VirtualContent.CreateRenderTarget("celestenet-hud-target", 1922, 1082, false, true, 0);
+            });
         }
 
         public override void Unload() {

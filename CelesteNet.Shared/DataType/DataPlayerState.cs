@@ -36,16 +36,16 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            SID = reader.ReadNullTerminatedString();
+            SID = reader.ReadNetString();
             Mode = (AreaMode) reader.ReadByte();
-            Level = reader.ReadNullTerminatedString();
+            Level = reader.ReadNetString();
             Idle = reader.ReadBoolean();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.WriteNullTerminatedString(SID);
+            writer.WriteNetString(SID);
             writer.Write((byte) Mode);
-            writer.WriteNullTerminatedString(Level);
+            writer.WriteNetString(Level);
             writer.Write(Idle);
         }
 

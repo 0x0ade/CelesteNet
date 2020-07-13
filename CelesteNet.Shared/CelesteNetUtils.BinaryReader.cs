@@ -46,5 +46,28 @@ namespace Celeste.Mod.CelesteNet {
             writer.Write(value.ToBinary());
         }
 
+        public static string ReadNetString(this BinaryReader stream) {
+            StringBuilder sb = new StringBuilder();
+            char c;
+            while ((c = stream.ReadChar()) != '\0') {
+                sb.Append(c);
+                if (sb.Length > 4096)
+                    throw new Exception("String too long.");
+            }
+            return sb.ToString();
+        }
+
+        public static void WriteNetString(this BinaryWriter stream, string? text) {
+            if (text != null) {
+                if (text.Length > 4096)
+                    throw new Exception("String too long.");
+                for (int i = 0; i < text.Length; i++) {
+                    char c = text[i];
+                    stream.Write(c);
+                }
+            }
+            stream.Write('\0');
+        }
+
     }
 }

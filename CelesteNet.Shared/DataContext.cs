@@ -259,12 +259,12 @@ namespace Celeste.Mod.CelesteNet {
             PositionAwareStream? pas = reader.BaseStream as PositionAwareStream;
             pas?.ResetPosition();
 
-            string id = Calc.ReadNullTerminatedString(reader);
+            string id = reader.ReadNetString();
             DataFlags flags = (DataFlags) reader.ReadUInt16();
             bool small = (flags & DataFlags.Small) == DataFlags.Small;
             bool big = (flags & DataFlags.Big) == DataFlags.Big;
 
-            string source = Calc.ReadNullTerminatedString(reader);
+            string source = reader.ReadNetString();
             MetaTypeWrap[] metas = ReadMeta(reader);
 
             uint length = small ? reader.ReadByte() : big ? reader.ReadUInt32() : reader.ReadUInt16();
@@ -310,10 +310,10 @@ namespace Celeste.Mod.CelesteNet {
             bool small = (flags & DataFlags.Small) == DataFlags.Small;
             bool big = (flags & DataFlags.Big) == DataFlags.Big;
 
-            writer.WriteNullTerminatedString(type);
+            writer.WriteNetString(type);
             writer.Write((ushort) flags);
 
-            writer.WriteNullTerminatedString(data.GetSource(this));
+            writer.WriteNetString(data.GetSource(this));
             WriteMeta(writer, data.WrapMeta(this));
 
             if (small)

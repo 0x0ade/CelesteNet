@@ -20,11 +20,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public string Text = "";
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            Text = reader.ReadNullTerminatedString();
+            Text = reader.ReadNetString();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.WriteNullTerminatedString(Text);
+            writer.WriteNetString(Text);
         }
 
     }

@@ -35,19 +35,19 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            MapSID = reader.ReadNullTerminatedString();
-            MapName = reader.ReadNullTerminatedString();
-            ModID = reader.ReadNullTerminatedString();
-            ModName = reader.ReadNullTerminatedString();
-            ModVersion = new Version(reader.ReadNullTerminatedString());
+            MapSID = reader.ReadNetString();
+            MapName = reader.ReadNetString();
+            ModID = reader.ReadNetString();
+            ModName = reader.ReadNetString();
+            ModVersion = new Version(reader.ReadNetString());
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.WriteNullTerminatedString(MapSID);
-            writer.WriteNullTerminatedString(MapName);
-            writer.WriteNullTerminatedString(ModID);
-            writer.WriteNullTerminatedString(ModName);
-            writer.WriteNullTerminatedString(ModVersion.ToString());
+            writer.WriteNetString(MapSID);
+            writer.WriteNetString(MapName);
+            writer.WriteNetString(ModID);
+            writer.WriteNetString(ModName);
+            writer.WriteNetString(ModVersion.ToString());
         }
 
     }
@@ -74,11 +74,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            MapSID = reader.ReadNullTerminatedString();
+            MapSID = reader.ReadNetString();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.WriteNullTerminatedString(MapSID);
+            writer.WriteNetString(MapSID);
         }
 
     }

@@ -53,8 +53,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             CreatedByServer = false;
             Player = ctx.ReadRef<DataPlayerInfo>(reader);
             ID = reader.ReadUInt32();
-            Tag = reader.ReadNullTerminatedString();
-            Text = reader.ReadNullTerminatedString();
+            Tag = reader.ReadNetString();
+            Text = reader.ReadNetString();
             Color = reader.ReadColorNoA();
             Date = reader.ReadDateTime();
             ReceivedDate = DateTime.UtcNow;
@@ -63,8 +63,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override void Write(DataContext ctx, BinaryWriter writer) {
             ctx.WriteOptRef(writer, Player);
             writer.Write(ID);
-            writer.WriteNullTerminatedString(Tag);
-            writer.WriteNullTerminatedString(Text);
+            writer.WriteNetString(Tag);
+            writer.WriteNetString(Text);
             writer.WriteNoA(Color);
             writer.Write(Date);
         }

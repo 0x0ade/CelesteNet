@@ -46,7 +46,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             };
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            AtlasPath = reader.ReadNullTerminatedString();
+            AtlasPath = reader.ReadNetString();
             Position = reader.ReadVector2();
             Origin = reader.ReadVector2();
             Scale = reader.ReadVector2();
@@ -56,7 +56,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.WriteNullTerminatedString(AtlasPath);
+            writer.WriteNetString(AtlasPath);
             writer.Write(Position);
             writer.Write(Origin);
             writer.Write(Scale);

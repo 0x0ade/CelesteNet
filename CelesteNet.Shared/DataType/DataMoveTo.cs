@@ -28,9 +28,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             Force = reader.ReadBoolean();
-            SID = reader.ReadNullTerminatedString();
+            SID = reader.ReadNetString();
             Mode = (AreaMode) reader.ReadByte();
-            Level = reader.ReadNullTerminatedString();
+            Level = reader.ReadNetString();
 
             if (reader.ReadBoolean()) {
                 Session = new DataSession();
@@ -45,9 +45,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.Write(Force);
-            writer.WriteNullTerminatedString(SID);
+            writer.WriteNetString(SID);
             writer.Write((byte) Mode);
-            writer.WriteNullTerminatedString(Level);
+            writer.WriteNetString(Level);
 
             if (Session == null) {
                 writer.Write(false);

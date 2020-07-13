@@ -43,8 +43,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override void Read(DataContext ctx, BinaryReader reader) {
             Server = reader.ReadBoolean();
 
-            Sound = reader.ReadNullTerminatedString();
-            Param = reader.ReadNullTerminatedString();
+            Sound = reader.ReadNetString();
+            Param = reader.ReadNetString();
             if (!Param.IsNullOrEmpty())
                 Value = reader.ReadSingle();
 
@@ -58,8 +58,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             writer.Write(Server);
 
-            writer.WriteNullTerminatedString(Sound);
-            writer.WriteNullTerminatedString(Param);
+            writer.WriteNetString(Sound);
+            writer.WriteNetString(Param);
             if (!Param.IsNullOrEmpty())
                 writer.Write(Value);
 

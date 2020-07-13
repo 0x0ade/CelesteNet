@@ -22,15 +22,15 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Version ModVersion = new Version();
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            ModID = reader.ReadNullTerminatedString();
-            ModName = reader.ReadNullTerminatedString();
-            ModVersion = new Version(reader.ReadNullTerminatedString());
+            ModID = reader.ReadNetString();
+            ModName = reader.ReadNetString();
+            ModVersion = new Version(reader.ReadNetString());
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.WriteNullTerminatedString(ModID);
-            writer.WriteNullTerminatedString(ModName);
-            writer.WriteNullTerminatedString(ModVersion.ToString());
+            writer.WriteNetString(ModID);
+            writer.WriteNetString(ModName);
+            writer.WriteNetString(ModVersion.ToString());
         }
 
     }

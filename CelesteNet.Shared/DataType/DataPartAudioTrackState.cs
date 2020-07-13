@@ -34,21 +34,21 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             };
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            Event = reader.ReadNullTerminatedString();
+            Event = reader.ReadNetString();
             Progress = reader.ReadInt32();
 
             Parameters = new MEP[reader.ReadByte()];
             for (int i = 0; i < Parameters.Length; i++)
-                Parameters[i] = new MEP(reader.ReadNullTerminatedString(), reader.ReadSingle());
+                Parameters[i] = new MEP(reader.ReadNetString(), reader.ReadSingle());
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.WriteNullTerminatedString(Event);
+            writer.WriteNetString(Event);
             writer.Write(Progress);
 
             writer.Write((byte) Parameters.Length);
             foreach (MEP param in Parameters) {
-                writer.WriteNullTerminatedString(param.Key);
+                writer.WriteNetString(param.Key);
                 writer.Write(param.Value);
             }
         }

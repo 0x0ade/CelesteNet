@@ -55,19 +55,19 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public MetaTypeWrap Read(BinaryReader reader) {
-            ID = reader.ReadNullTerminatedString();
+            ID = reader.ReadNetString();
             int count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                Data[reader.ReadNullTerminatedString()] = reader.ReadNullTerminatedString();
+                Data[reader.ReadNetString()] = reader.ReadNetString();
             return this;
         }
 
         public void Write(BinaryWriter writer) {
-            writer.WriteNullTerminatedString(ID);
+            writer.WriteNetString(ID);
             writer.Write((byte) Data.Count);
             foreach (KeyValuePair<string, string> kvp in Data) {
-                writer.WriteNullTerminatedString(kvp.Key);
-                writer.WriteNullTerminatedString(kvp.Value);
+                writer.WriteNetString(kvp.Key);
+                writer.WriteNetString(kvp.Value);
             }
         }
 

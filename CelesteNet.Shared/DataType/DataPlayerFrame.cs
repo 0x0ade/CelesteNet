@@ -84,7 +84,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             SpriteRate = reader.ReadSingle();
             SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null;
 
-            CurrentAnimationID = reader.ReadNullTerminatedString();
+            CurrentAnimationID = reader.ReadNetString();
             CurrentAnimationFrame = reader.ReadInt32();
 
             HairColor = reader.ReadColor();
@@ -96,7 +96,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 HairColors[i] = reader.ReadColor();
             HairTextures = new string[HairCount];
             for (int i = 0; i < HairColors.Length; i++) {
-                HairTextures[i] = reader.ReadNullTerminatedString();
+                HairTextures[i] = reader.ReadNetString();
                 if (HairTextures[i] == "-")
                     HairTextures[i] = HairTextures[i - 1];
             }
@@ -109,13 +109,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 f.Depth = reader.ReadInt32();
                 f.SpriteRate = reader.ReadSingle();
                 f.SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null;
-                f.SpriteID = reader.ReadNullTerminatedString();
+                f.SpriteID = reader.ReadNetString();
                 if (f.SpriteID == "-") {
                     Entity p = Followers[i - 1];
                     f.SpriteID = p.SpriteID;
                     f.CurrentAnimationID = p.CurrentAnimationID;
                 } else {
-                    f.CurrentAnimationID = reader.ReadNullTerminatedString();
+                    f.CurrentAnimationID = reader.ReadNetString();
                 }
                 f.CurrentAnimationFrame = reader.ReadInt32();
                 Followers[i] = f;
@@ -129,8 +129,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     Depth = reader.ReadInt32(),
                     SpriteRate = reader.ReadSingle(),
                     SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null,
-                    SpriteID = reader.ReadNullTerminatedString(),
-                    CurrentAnimationID = reader.ReadNullTerminatedString(),
+                    SpriteID = reader.ReadNetString(),
+                    CurrentAnimationID = reader.ReadNetString(),
                     CurrentAnimationFrame = reader.ReadInt32()
                 };
 
@@ -162,7 +162,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 writer.Write(true);
                 writer.Write(SpriteJustify.Value);
             }
-            writer.WriteNullTerminatedString(CurrentAnimationID);
+            writer.WriteNetString(CurrentAnimationID);
             writer.Write(CurrentAnimationFrame);
 
             writer.Write(HairColor);
@@ -176,9 +176,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             if (HairCount != 0) {
                 for (int i = 0; i < HairCount; i++) {
                     if (i >= 1 && HairTextures[i] == HairTextures[i - 1])
-                        writer.WriteNullTerminatedString("-");
+                        writer.WriteNetString("-");
                     else
-                        writer.WriteNullTerminatedString(HairTextures[i]);
+                        writer.WriteNetString(HairTextures[i]);
                 }
             }
 
@@ -199,10 +199,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     if (i >= 1 &&
                         f.SpriteID == Followers[i - 1].SpriteID &&
                         f.CurrentAnimationID == Followers[i - 1].CurrentAnimationID) {
-                        writer.WriteNullTerminatedString("-");
+                        writer.WriteNetString("-");
                     } else {
-                        writer.WriteNullTerminatedString(f.SpriteID);
-                        writer.WriteNullTerminatedString(f.CurrentAnimationID);
+                        writer.WriteNetString(f.SpriteID);
+                        writer.WriteNetString(f.CurrentAnimationID);
                     }
                     writer.Write(f.CurrentAnimationFrame);
                 }
@@ -226,8 +226,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     writer.Write(true);
                     writer.Write(h.SpriteJustify.Value);
                 }
-                writer.WriteNullTerminatedString(h.SpriteID);
-                writer.WriteNullTerminatedString(h.CurrentAnimationID);
+                writer.WriteNetString(h.SpriteID);
+                writer.WriteNetString(h.CurrentAnimationID);
                 writer.Write(h.CurrentAnimationFrame);
             }
 

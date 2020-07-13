@@ -26,13 +26,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override void Read(DataContext ctx, BinaryReader reader) {
             List = new string[reader.ReadUInt16()];
             for (int i = 0; i < List.Length; i++)
-                List[i] = reader.ReadNullTerminatedString();
+                List[i] = reader.ReadNetString();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             writer.Write((ushort) List.Length);
             foreach (string mod in List)
-                writer.WriteNullTerminatedString(mod);
+                writer.WriteNetString(mod);
         }
 
     }

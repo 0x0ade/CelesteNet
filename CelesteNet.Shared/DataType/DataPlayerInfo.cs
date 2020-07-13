@@ -32,15 +32,15 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            Name = reader.ReadNullTerminatedString();
-            FullName = reader.ReadNullTerminatedString();
-            DisplayName = reader.ReadNullTerminatedString();
+            Name = reader.ReadNetString();
+            FullName = reader.ReadNetString();
+            DisplayName = reader.ReadNetString();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.WriteNullTerminatedString(Name);
-            writer.WriteNullTerminatedString(FullName);
-            writer.WriteNullTerminatedString(DisplayName);
+            writer.WriteNetString(Name);
+            writer.WriteNetString(FullName);
+            writer.WriteNetString(DisplayName);
         }
 
         public override string ToString()

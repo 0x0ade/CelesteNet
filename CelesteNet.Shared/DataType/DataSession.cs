@@ -81,39 +81,39 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Flags = new HashSet<string>();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                Flags.Add(reader.ReadNullTerminatedString());
+                Flags.Add(reader.ReadNetString());
 
             LevelFlags = new HashSet<string>();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                LevelFlags.Add(reader.ReadNullTerminatedString());
+                LevelFlags.Add(reader.ReadNetString());
 
             Strawberries = new HashSet<EntityID>();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                Strawberries.Add(new EntityID(reader.ReadNullTerminatedString(), reader.ReadInt32()));
+                Strawberries.Add(new EntityID(reader.ReadNetString(), reader.ReadInt32()));
 
             DoNotLoad = new HashSet<EntityID>();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                DoNotLoad.Add(new EntityID(reader.ReadNullTerminatedString(), reader.ReadInt32()));
+                DoNotLoad.Add(new EntityID(reader.ReadNetString(), reader.ReadInt32()));
 
             Keys = new HashSet<EntityID>();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                Keys.Add(new EntityID(reader.ReadNullTerminatedString(), reader.ReadInt32()));
+                Keys.Add(new EntityID(reader.ReadNetString(), reader.ReadInt32()));
 
             Counters = new List<Session.Counter>();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
                 Counters.Add(new Session.Counter {
-                    Key = reader.ReadNullTerminatedString(),
+                    Key = reader.ReadNetString(),
                     Value = reader.ReadInt32()
                 });
 
-            FurthestSeenLevel = reader.ReadNullTerminatedString().Nullify();
-            StartCheckpoint = reader.ReadNullTerminatedString().Nullify();
-            ColorGrade = reader.ReadNullTerminatedString().Nullify();
+            FurthestSeenLevel = reader.ReadNetString().Nullify();
+            StartCheckpoint = reader.ReadNetString().Nullify();
+            ColorGrade = reader.ReadNetString().Nullify();
 
             count = reader.ReadByte();
             SummitGems = new bool[count];
@@ -172,39 +172,39 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             writer.Write((byte) Flags.Count);
             foreach (string value in Flags)
-                writer.WriteNullTerminatedString(value);
+                writer.WriteNetString(value);
 
             writer.Write((byte) LevelFlags.Count);
             foreach (string value in LevelFlags)
-                writer.WriteNullTerminatedString(value);
+                writer.WriteNetString(value);
 
             writer.Write((byte) Strawberries.Count);
             foreach (EntityID value in Strawberries) {
-                writer.WriteNullTerminatedString(value.Level);
+                writer.WriteNetString(value.Level);
                 writer.Write(value.ID);
             }
 
             writer.Write((byte) DoNotLoad.Count);
             foreach (EntityID value in DoNotLoad) {
-                writer.WriteNullTerminatedString(value.Level);
+                writer.WriteNetString(value.Level);
                 writer.Write(value.ID);
             }
 
             writer.Write((byte) Keys.Count);
             foreach (EntityID value in Keys) {
-                writer.WriteNullTerminatedString(value.Level);
+                writer.WriteNetString(value.Level);
                 writer.Write(value.ID);
             }
 
             writer.Write((byte) Counters.Count);
             foreach (Session.Counter value in Counters) {
-                writer.WriteNullTerminatedString(value.Key);
+                writer.WriteNetString(value.Key);
                 writer.Write(value.Value);
             }
 
-            writer.WriteNullTerminatedString(FurthestSeenLevel);
-            writer.WriteNullTerminatedString(StartCheckpoint);
-            writer.WriteNullTerminatedString(ColorGrade);
+            writer.WriteNetString(FurthestSeenLevel);
+            writer.WriteNetString(StartCheckpoint);
+            writer.WriteNetString(ColorGrade);
 
             writer.Write((byte) SummitGems.Length);
             bools = 0;

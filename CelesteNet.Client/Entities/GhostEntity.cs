@@ -13,6 +13,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public string SpriteID;
         public Sprite Sprite;
+        public CelesteNetClientSpriteDB.SpriteMeta SpriteMeta;
 
         public GhostEntity(Ghost ghost)
             : base(Vector2.Zero) {
@@ -43,6 +44,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 } catch (Exception) {
                     Sprite = GFX.SpriteBank.Create("flutterBird");
                 }
+                SpriteMeta = Sprite.GetMeta();
 
                 Add(Sprite);
             }
@@ -66,6 +68,28 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                     // Let's ignore this for now.
                 }
             }
+        }
+
+        public override void Render() {
+            Sprite s = Sprite;
+            if (s != null && (SpriteMeta?.ForceOutline ?? false)) {
+                Vector2 pos = s.Position;
+                Color color = s.Color;
+                float a = Ghost?.Alpha ?? 1f;
+                s.Color = Color.Black * a * a;
+                s.Position = pos + new Vector2(-1f, 0f);
+                s.Render();
+                s.Position = pos + new Vector2(0f, -1f);
+                s.Render();
+                s.Position = pos + new Vector2(1f, 0f);
+                s.Render();
+                s.Position = pos + new Vector2(0f, 1f);
+                s.Render();
+                s.Position = pos;
+                s.Color = color;
+            }
+
+            base.Render();
         }
 
     }

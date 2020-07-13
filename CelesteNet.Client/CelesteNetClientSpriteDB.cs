@@ -23,6 +23,17 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private static ConditionalWeakTable<Sprite, SpriteExt> SpriteExts = new ConditionalWeakTable<Sprite, SpriteExt>();
 
+        public static Dictionary<string, SpriteMeta> SpriteMetas = new Dictionary<string, SpriteMeta>() {
+            { "glider", new SpriteMeta {
+                ForceOutline = true
+            } },
+
+            { "pufferFish", new SpriteMeta {
+                ForceOutline = true
+            } }
+
+        };
+
         public static void Load() {
             On.Monocle.Sprite.CloneInto += OnSpriteCloneInto;
             On.Monocle.SpriteData.Add += OnSpriteDataAdd;
@@ -49,8 +60,19 @@ namespace Celeste.Mod.CelesteNet.Client {
         public static string GetID(this Sprite self)
             => SpriteExts.TryGetValue(self, out SpriteExt ext) ? ext.ID : null;
 
+        public static SpriteMeta GetMeta(this Sprite self) {
+            string id = self.GetID();
+            if (SpriteMetas.TryGetValue(id, out SpriteMeta meta))
+                return meta;
+            return SpriteMetas[id] = new SpriteMeta();
+        }
+
         private class SpriteExt {
             public string ID;
+        }
+
+        public class SpriteMeta {
+            public bool ForceOutline;
         }
 
     }

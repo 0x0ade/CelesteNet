@@ -104,11 +104,12 @@ body {
 
 #body {
     position: relative;
+    box-sizing: border-box;
     box-shadow: 0 0 48px rgba(0, 0, 0, 0.7);
     background: #0e011b;
     border-radius: 3px;
     display: block;
-    width: calc(100% - 256px);
+    width: calc(100% - 128px);
     padding: 32px;
     margin: calc(90vh + 32px) 64px 0 64px;
     z-index: 10;

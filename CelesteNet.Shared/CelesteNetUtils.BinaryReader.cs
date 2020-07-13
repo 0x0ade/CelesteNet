@@ -1,6 +1,7 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
+using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,6 +19,8 @@ namespace Celeste.Mod.CelesteNet {
 
         public static Vector2 ReadVector2(this BinaryReader reader)
             => new Vector2(reader.ReadSingle(), reader.ReadSingle());
+        public static Vector2 ReadVector2Scale(this BinaryReader reader)
+            => new Vector2(Calc.Clamp(reader.ReadSingle(), -3f, 3f), Calc.Clamp(reader.ReadSingle(), -3f, 3f));
         public static void Write(this BinaryWriter writer, Vector2 value) {
             writer.Write(value.X);
             writer.Write(value.Y);

@@ -49,7 +49,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             AtlasPath = reader.ReadNetString();
             Position = reader.ReadVector2();
             Origin = reader.ReadVector2();
-            Scale = reader.ReadVector2();
+            Scale = reader.ReadVector2Scale();
             Rotation = reader.ReadSingle();
             Color = reader.ReadColor();
             Effects = (SpriteEffects) reader.ReadByte();

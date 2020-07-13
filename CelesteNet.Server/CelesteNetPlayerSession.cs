@@ -320,6 +320,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (frame.HairCount > Server.Settings.MaxHairLength)
                 frame.HairCount = Server.Settings.MaxHairLength;
 
+            if (frame.Followers.Length > Server.Settings.MaxFollowers)
+                Array.Resize(ref frame.Followers, Server.Settings.MaxFollowers);
+
             return true;
         }
 

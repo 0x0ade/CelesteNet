@@ -38,7 +38,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int MaxEmoteValueLength { get; set; } = 2048;
         public int MaxChannelNameLength { get; set; } = 16;
 
-        public byte MaxHairLength { get; set; } = 10;
+        public byte MaxHairLength { get; set; } = 12;
+        public byte MaxFollowers { get; set; } = 12;
 
         public bool AuthOnly { get; set; } = false;
 

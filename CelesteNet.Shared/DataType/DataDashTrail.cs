@@ -48,7 +48,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Server = reader.ReadBoolean();
 
             Position = reader.ReadVector2();
-            Scale = reader.ReadVector2();
+            Scale = reader.ReadVector2Scale();
             Color = reader.ReadColor();
 
             if (Server) {

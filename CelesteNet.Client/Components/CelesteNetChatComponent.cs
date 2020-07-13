@@ -70,6 +70,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         level.Overlay = _DummyOverlay;
 
                     _RepeatIndex = 0;
+                    _Time = 0;
                     TextInput.OnInput += OnTextInput;
 
                 } else {
@@ -200,6 +201,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (Typing.Length > 0)
                     Typing = Typing.Substring(0, Typing.Length - 1);
                 _RepeatIndex = 0;
+                _Time = 0;
 
             } else if (c == (char) 127) {
                 // Delete - currenly not handled.
@@ -208,6 +210,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 // Any other character - append.
                 Typing += c;
                 _RepeatIndex = 0;
+                _Time = 0;
             }
         }
 
@@ -218,16 +221,34 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Active) {
                 Context.Blur.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
 
-                string text = ">" + Typing;
-                if (Calc.BetweenInterval(_Time, 0.5f))
-                    text += "_";
+                CelesteNetClientFont.Draw(
+                    ">",
+                    new Vector2(50f * scale, UI_HEIGHT - 105f * scale),
+                    Vector2.Zero,
+                    fontScale * new Vector2(0.5f, 1f),
+                    Color.White * 0.5f
+                );
+                float offs = CelesteNetClientFont.Measure(">").X * scale;
+
+                string text = Typing;
                 CelesteNetClientFont.Draw(
                     text,
-                    new Vector2(50f * scale, UI_HEIGHT - 105f * scale),
+                    new Vector2(50f * scale + offs, UI_HEIGHT - 105f * scale),
                     Vector2.Zero,
                     fontScale,
                     Color.White
                 );
+
+                if (!Calc.BetweenInterval(_Time, 0.5f)) {
+                    offs += CelesteNetClientFont.Measure(text).X * scale;
+                    CelesteNetClientFont.Draw(
+                        "_",
+                        new Vector2(50f * scale + offs, UI_HEIGHT - 105f * scale),
+                        Vector2.Zero,
+                        fontScale,
+                        Color.White * 0.5f
+                    );
+                }
             }
 
             lock (Log) {

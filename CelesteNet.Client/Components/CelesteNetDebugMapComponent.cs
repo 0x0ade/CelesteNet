@@ -38,7 +38,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Initialize() {
             base.Initialize();
 
-            On.Celeste.Editor.MapEditor.Render += OnMapEditorRender;
+            MainThreadHelper.Do(() => {
+                On.Celeste.Editor.MapEditor.Render += OnMapEditorRender;
+            });
         }
 
         protected override void Dispose(bool disposing) {

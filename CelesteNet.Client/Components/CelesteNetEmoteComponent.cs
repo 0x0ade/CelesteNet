@@ -27,9 +27,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Initialize() {
             base.Initialize();
 
-            On.Celeste.HeartGem.Collect += OnHeartGemCollect;
-            On.Celeste.HeartGem.EndCutscene += OnHeartGemEndCutscene;
-            On.Celeste.Player.Die += OnPlayerDie;
+            MainThreadHelper.Do(() => {
+                On.Celeste.HeartGem.Collect += OnHeartGemCollect;
+                On.Celeste.HeartGem.EndCutscene += OnHeartGemEndCutscene;
+                On.Celeste.Player.Die += OnPlayerDie;
+            });
         }
 
         protected override void Dispose(bool disposing) {

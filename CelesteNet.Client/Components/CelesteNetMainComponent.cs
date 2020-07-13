@@ -54,17 +54,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Initialize() {
             base.Initialize();
 
-            using (new DetourContext("CelesteNetMain") {
-                Before = { "*" }
-            }) {
-                On.Celeste.Level.LoadLevel += OnLoadLevel;
-                Everest.Events.Level.OnExit += OnExitLevel;
-                On.Celeste.PlayerHair.GetHairColor += OnGetHairColor;
-                On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
-                On.Celeste.Player.Play += OnPlayerPlayAudio;
-                On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
-                On.Celeste.PlayerSprite.ctor += OnPlayerSpriteCtor;
-            }
+            MainThreadHelper.Do(() => {
+                using (new DetourContext("CelesteNetMain") {
+                    Before = { "*" }
+                }) {
+                    On.Celeste.Level.LoadLevel += OnLoadLevel;
+                    Everest.Events.Level.OnExit += OnExitLevel;
+                    On.Celeste.PlayerHair.GetHairColor += OnGetHairColor;
+                    On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
+                    On.Celeste.Player.Play += OnPlayerPlayAudio;
+                    On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
+                    On.Celeste.PlayerSprite.ctor += OnPlayerSpriteCtor;
+                }
+            });
         }
 
         protected override void Dispose(bool disposing) {
@@ -443,6 +445,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (idle && idleTag == null) {
                 level.Add(idleTag = new GhostEmote(target, "i:hover/idle") {
+                    Position = target.Position,
                     PopIn = true,
                     Float = true
                 });

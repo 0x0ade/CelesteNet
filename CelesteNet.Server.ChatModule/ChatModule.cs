@@ -106,20 +106,18 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (SpamContexts.TryGetValue(player, out SpamContext? spam) && spam.IsSpam(msg))
                     return null;
 
-            } else if ((msg.Targets?.Length ?? 1) > 0) {
-                if (msg.Player != null) {
-                    CelesteNetPlayerSession? player;
-                    lock (Server.Connections)
-                        if (!Server.PlayersByID.TryGetValue(msg.Player.ID, out player))
-                            return null;
-
-                    if (SpamContexts.TryGetValue(player, out SpamContext? spam) && spam.IsSpam(msg))
+            } else if (msg.Player != null && (msg.Targets?.Length ?? 1) > 0) {
+                CelesteNetPlayerSession? player;
+                lock (Server.Connections)
+                    if (!Server.PlayersByID.TryGetValue(msg.Player.ID, out player))
                         return null;
 
-                } else if (BroadcastSpamContext.IsSpam(msg)) {
+                if (SpamContexts.TryGetValue(player, out SpamContext? spam) && spam.IsSpam(msg))
                     return null;
-                }
-            } 
+
+            } else if (msg.Targets == null && BroadcastSpamContext.IsSpam(msg)) {
+                return null;
+            }
 
             if (msg.Text.Length == 0)
                 return null;

@@ -14,9 +14,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public string CommandPrefix { get; set; } = "/";
 
         public int SpamCount { get; set; } = 3;
-        public int SpamCountMax { get; set; } = 6;
+        public int SpamCountMax { get; set; } = 4;
         public double SpamTimeout { get; set; } = 4;
-        public double SpamTimeoutAdd { get; set; } = 2;
+        public double SpamTimeoutAdd { get; set; } = 5;
 
         public Color ColorBroadcast { get; set; } = Calc.HexToColor("#00adee");
         public Color ColorServer { get; set; } = Calc.HexToColor("#9e24f5");

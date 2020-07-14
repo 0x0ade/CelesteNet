@@ -404,6 +404,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 }
 
+                if (ghost.Holdable.IsHeld || !ghost.Holdable.ShouldHaveGravity)
+                    goto Release;
+
                 if (GrabbedBy != null && grab.Player.ID != GrabbedBy.PlayerInfo.ID)
                     goto Release;
 
@@ -422,7 +425,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         player.StateMachine.State = Player.StFrozen;
                         GrabLastSpeed = player.Speed = Vector2.Zero;
                         player.Hair.AfterUpdate(); // TODO: Replace with node offset update instead.
-                        level.EnforceBounds(player);
                     }
                 });
 

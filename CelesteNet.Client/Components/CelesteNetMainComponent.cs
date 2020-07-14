@@ -395,14 +395,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Handle(CelesteNetConnection con, DataPlayerGrabPlayer grab) {
             Player player = Player;
             if (!(Engine.Scene is Level level) || level.Paused || player == null || !Settings.Interactions)
-                goto SendDenial;
+                goto Release;
 
             if (grab.Grabbing.ID == Client.PlayerInfo.ID) {
                 if (!Ghosts.TryGetValue(grab.Player.ID, out Ghost ghost)) {
                     if (grab.Force == null)
-                        goto SendDenial;
+                        goto Release;
                     return;
                 }
+
+                if (GrabbedBy != null && grab.Player.ID != GrabbedBy.PlayerInfo.ID)
+                    goto Release;
 
                 RunOnMainThread(() => {
                     GrabbedBy = ghost;
@@ -419,6 +422,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         player.StateMachine.State = Player.StFrozen;
                         GrabLastSpeed = player.Speed = Vector2.Zero;
                         player.Hair.AfterUpdate(); // TODO: Replace with node offset update instead.
+                        level.EnforceBounds(player);
                     }
                 });
 
@@ -432,7 +436,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             return;
 
-            SendDenial:
+            Release:
             Client?.Send(new DataPlayerGrabPlayer {
                 UpdateID = FrameNextID++,
 
@@ -544,8 +548,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (GrabbedBy != null && (GrabTimeout += Engine.RawDeltaTime) >= GrabTimeoutMax)
                 GrabbedBy = null;
-            if (GrabbedBy?.Scene != level)
+            if (GrabbedBy?.Scene != level) {
                 GrabbedBy = null;
+                Player.ForceCameraUpdate = false;
+                Player.StateMachine.State = Player.StNormal;
+            }
 
             MapEditorArea = null;
 

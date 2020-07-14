@@ -73,7 +73,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override void Draw(GameTime gameTime) {
             if (IsDrawingUI) {
                 RenderContentWrap(gameTime, true);
-            } else if (!IsDrawingUI && CelesteNetClientModule.Instance.UIRenderTarget == null) {
+            } else if (!IsDrawingUI && (Context.IsDisposed || CelesteNetClientModule.Instance.UIRenderTarget == null)) {
                 RenderContentWrap(gameTime, false);
             }
         }

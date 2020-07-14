@@ -221,7 +221,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Vector2 fontScale = Vector2.One * scale;
 
             if (Active) {
-                Context.Blur.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
+                Context.RenderHelper.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
 
                 CelesteNetClientFont.Draw(
                     ">",
@@ -313,7 +313,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                         y -= height;
 
-                        Context.Blur.Rect(25f * scale, y, size.X + 50f * scale, height, Color.Black * 0.8f * alpha);
+                        Context.RenderHelper.Rect(25f * scale, y, size.X + 50f * scale, height, Color.Black * 0.8f * alpha);
                         CelesteNetClientFontMono.Draw(
                             time,
                             new Vector2(50f * scale, y + 20f * scale),

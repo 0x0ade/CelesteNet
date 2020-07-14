@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetClient Client;
 
         public CelesteNetMainComponent Main;
-        public CelesteNetRenderHelperComponent Blur;
+        public CelesteNetRenderHelperComponent RenderHelper;
         public CelesteNetStatusComponent Status;
         public CelesteNetChatComponent Chat;
 
@@ -30,6 +30,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public static event Action<CelesteNetClientContext> OnCreate;
 
+        public bool IsDisposed { get; private set; }
+
         public CelesteNetClientContext(Game game)
             : base(game) {
 
@@ -38,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Celeste.Instance.Components.Add(this);
 
             Add(Main = new CelesteNetMainComponent(this, game));
-            Add(Blur = new CelesteNetRenderHelperComponent(this, game));
+            Add(RenderHelper = new CelesteNetRenderHelperComponent(this, game));
             Add(Status = new CelesteNetStatusComponent(this, game));
             Add(Chat = new CelesteNetChatComponent(this, game));
 
@@ -129,6 +131,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         public static event Action<CelesteNetClientContext> OnDispose;
 
         protected override void Dispose(bool disposing) {
+            IsDisposed = true;
+
             bool reconnect = false;
             if (CelesteNetClientModule.Instance.Context == this) {
                 reconnect = CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected;

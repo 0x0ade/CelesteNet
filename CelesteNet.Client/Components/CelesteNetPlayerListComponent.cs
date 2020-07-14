@@ -188,7 +188,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             Vector2 size = CelesteNetClientFont.Measure(ListText) * fontScale;
-            Context.Blur.Rect(25f * scale, y - 25f * scale, size.X + 50f * scale, size.Y + 50f * scale, Color.Black * 0.8f);
+            Context.RenderHelper.Rect(25f * scale, y - 25f * scale, size.X + 50f * scale, size.Y + 50f * scale, Color.Black * 0.8f);
             CelesteNetClientFont.Draw(
                 ListText,
                 new Vector2(50f * scale, y),

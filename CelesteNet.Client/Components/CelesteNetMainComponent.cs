@@ -44,6 +44,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new HashSet<PlayerSpriteMode>();
 
+        public Ghost GrabbedBy;
+        public float GrabTimeout = 0f;
+        public const float GrabTimeoutMax = 0.1f;
+
         public CelesteNetMainComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
@@ -207,7 +211,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             if (ghost == null) {
-                Ghosts[frame.Player.ID] = ghost = new Ghost(Context, frame.SpriteMode);
+                Ghosts[frame.Player.ID] = ghost = new Ghost(Context, frame.Player, frame.SpriteMode);
                 ghost.Active = false;
                 ghost.NameTag.Name = frame.Player.DisplayName;
                 if (ghost.Sprite.Mode != frame.SpriteMode)
@@ -386,6 +390,43 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             RunOnMainThread(() => LevelEnter.Go(session, false));
         }
 
+        public void Handle(CelesteNetConnection con, DataPlayerGrabPlayer grab) {
+            Player player = Player;
+            if (player == null || !Settings.Interactions)
+                return;
+
+            if (grab.Player.ID == Client.PlayerInfo.ID) {
+                RunOnMainThread(() => {
+                    if (player.Holding?.Entity is Ghost ghost && ghost.PlayerInfo.ID == grab.Grabbing.ID)
+                        player.Holding = null;
+                });
+
+            } else if (grab.Grabbing.ID == Client.PlayerInfo.ID) {
+                Session session = Session;
+                if (!Client.Data.TryGetBoundRef(grab.Player, out DataPlayerState state) ||
+                    session == null ||
+                    state.SID != session.Area.SID ||
+                    state.Mode != session.Area.Mode ||
+                    state.Level != session.Level ||
+                    !Ghosts.TryGetValue(grab.Player.ID, out Ghost ghost))
+                    return;
+
+                RunOnMainThread(() => {
+                    GrabTimeout = 0f;
+
+                    player.Position = grab.Position;
+
+                    if (grab.Force != null) {
+                        GrabbedBy = null;
+                        player.Speed = grab.Force.Value;
+
+                    } else {
+                        GrabbedBy = ghost;
+                    }
+                });
+            }
+        }
+
         #endregion
 
         #region Request Handlers
@@ -462,6 +503,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             bool ready = Client != null && Client.IsReady && Client.PlayerInfo != null;
             if (!(Engine.Scene is Level level) || !ready) {
+                GrabbedBy = null;
+
                 if (ready && Engine.Scene is MapEditor) {
                     Player = null;
                     Session = null;
@@ -482,6 +525,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
                 return;
             }
+
+            if (GrabbedBy != null && (GrabTimeout += Engine.RawDeltaTime) >= GrabTimeout)
+                GrabbedBy = null;
 
             MapEditorArea = null;
 
@@ -658,20 +704,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Holdable holdable = Player.Holding;
                 if (holdable != null) {
                     Sprite s = holdable.Entity.Get<Sprite>();
-                    if (s == null) {
-                        holding = new DataPlayerFrame.Entity {
-                            Position = holdable.Entity.Position,
-                            Scale = Vector2.One,
-                            Color = Color.White,
-                            Depth = -1000000,
-                            SpriteRate = 1f,
-                            SpriteJustify = null,
-                            SpriteID = "",
-                            CurrentAnimationID = "idle",
-                            CurrentAnimationFrame = 0
-                        };
-
-                    } else {
+                    if (s?.GetType() == typeof(Sprite)) {
                         holding = new DataPlayerFrame.Entity {
                             Position = holdable.Entity.Position,
                             Scale = s.Scale,

@@ -13,6 +13,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public CelesteNetClientContext Context;
 
+        public DataPlayerInfo PlayerInfo;
+
         public float Alpha = 0.875f;
 
         public Vector2 Speed;
@@ -20,6 +22,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public PlayerSprite Sprite;
         public PlayerHair Hair;
         public Leader Leader;
+        public Holdable Holdable;
 
         public GhostNameTag NameTag;
         public GhostEmote IdleTag;
@@ -45,9 +48,12 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected Queue<Action<Ghost>> UpdateQueue = new Queue<Action<Ghost>>();
         protected bool IsUpdating;
 
-        public Ghost(CelesteNetClientContext context, PlayerSpriteMode spriteMode)
+        private uint GrabFrameNextID = 0;
+
+        public Ghost(CelesteNetClientContext context, DataPlayerInfo playerInfo, PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
             Context = context;
+            PlayerInfo = playerInfo;
 
             Depth = 0;
 
@@ -66,6 +72,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Add(Sprite);
             Hair.Color = Player.NormalHairColor;
             Add(Leader = new Leader(new Vector2(0f, -8f)));
+            Add(Holdable = new Holdable() {
+                OnCarry = OnCarry,
+                OnRelease = OnRelease
+            });
 
             Collidable = true;
             Collider = new Hitbox(8f, 11f, -4f, -11f);
@@ -116,6 +126,56 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             }
         }
 
+        public void OnCarry(Vector2 position) {
+            if (!CelesteNetClientModule.Settings.Interactions)
+                return;
+
+            Position = position;
+
+            CelesteNetClient client = Context?.Client;
+            if (PlayerInfo == null || client == null)
+                return;
+
+            try {
+                client.Send(new DataPlayerGrabPlayer {
+                    UpdateID = GrabFrameNextID++,
+
+                    Player = client.PlayerInfo,
+
+                    Grabbing = PlayerInfo,
+                    Position = position,
+                    Force = null
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-ghost", $"Error in OnCarry:\n{e}");
+                Context.Dispose();
+            }
+        }
+
+        public void OnRelease(Vector2 force) {
+            if (!CelesteNetClientModule.Settings.Interactions)
+                return;
+
+            CelesteNetClient client = Context?.Client;
+            if (PlayerInfo == null || client == null)
+                return;
+
+            try {
+                client.Send(new DataPlayerGrabPlayer {
+                    UpdateID = GrabFrameNextID++,
+
+                    Player = client.PlayerInfo,
+
+                    Grabbing = PlayerInfo,
+                    Position = Position,
+                    Force = force
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-ghost", $"Error in OnRelease:\n{e}");
+                Context.Dispose();
+            }
+        }
+
         public override void Update() {
             lock (UpdateQueue) {
                 IsUpdating = true;
@@ -128,6 +188,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 RemoveSelf();
                 return;
             }
+
+            if (!CelesteNetClientModule.Settings.Interactions && Holdable.Holder != null)
+                Holdable.Holder.Holding = null;
 
             Alpha = 0.875f * ((CelesteNetClientModule.Settings.PlayerOpacity + 2) / 6f);
             DepthOffset = 0;

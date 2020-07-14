@@ -546,13 +546,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
             }
 
-            if (GrabbedBy != null && (GrabTimeout += Engine.RawDeltaTime) >= GrabTimeoutMax)
+            bool grabReleased = false;
+            grabReleased |= GrabbedBy != null && (GrabTimeout += Engine.RawDeltaTime) >= GrabTimeoutMax;
+            grabReleased |= GrabbedBy != null && GrabbedBy.Scene != level;
+
+            if (grabReleased)
                 GrabbedBy = null;
-            if (GrabbedBy?.Scene != level) {
-                GrabbedBy = null;
-                Player.ForceCameraUpdate = false;
-                Player.StateMachine.State = Player.StNormal;
-            }
 
             MapEditorArea = null;
 
@@ -590,6 +589,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (Player == null)
                 return;
+
+            if (grabReleased) {
+                Player.ForceCameraUpdate = false;
+                Player.StateMachine.State = Player.StNormal;
+            }
 
             if (GrabbedBy != null)
                 Player.Speed = GrabLastSpeed;

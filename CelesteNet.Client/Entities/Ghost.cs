@@ -48,8 +48,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected Queue<Action<Ghost>> UpdateQueue = new Queue<Action<Ghost>>();
         protected bool IsUpdating;
 
-        private uint GrabFrameNextID = 0;
-
         public Ghost(CelesteNetClientContext context, DataPlayerInfo playerInfo, PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
             Context = context;
@@ -105,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnPlayer(Player player) {
-            if (!CelesteNetClientModule.Settings.Interactions)
+            if (!CelesteNetClientModule.Settings.Interactions || Context?.Main.GrabbedBy == this)
                 return;
 
             if (player.StateMachine.State == Player.StNormal &&
@@ -131,6 +129,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
 
             Position = position;
+            Collidable = false;
 
             CelesteNetClient client = Context?.Client;
             if (PlayerInfo == null || client == null)
@@ -138,7 +137,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             try {
                 client.Send(new DataPlayerGrabPlayer {
-                    UpdateID = GrabFrameNextID++,
+                    UpdateID = Context.Main.FrameNextID++,
 
                     Player = client.PlayerInfo,
 
@@ -153,6 +152,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnRelease(Vector2 force) {
+            Collidable = true;
+
             if (!CelesteNetClientModule.Settings.Interactions)
                 return;
 
@@ -162,7 +163,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             try {
                 client.Send(new DataPlayerGrabPlayer {
-                    UpdateID = GrabFrameNextID++,
+                    UpdateID = Context.Main.FrameNextID++,
 
                     Player = client.PlayerInfo,
 
@@ -189,8 +190,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
             }
 
-            if (!CelesteNetClientModule.Settings.Interactions && Holdable.Holder != null)
-                Holdable.Holder.Holding = null;
+            if (!CelesteNetClientModule.Settings.Interactions && Holdable.Holder != null) {
+                Collidable = false;
+                Holdable.Release(Vector2.Zero);
+                Collidable = true;
+            }
 
             Alpha = 0.875f * ((CelesteNetClientModule.Settings.PlayerOpacity + 2) / 6f);
             DepthOffset = 0;
@@ -286,7 +290,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void UpdateSprite(Vector2 position, Vector2 speed, Vector2 scale, Facings facing, int depth, Color color, float rate, Vector2? justify, string animationID, int animationFrame) {
-            Position = position;
+            if (Holdable.Holder == null) {
+                Position = position;
+            }
             Speed = speed;
 
             Sprite.Scale = scale;

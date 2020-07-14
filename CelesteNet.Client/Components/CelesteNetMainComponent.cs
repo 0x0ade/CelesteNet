@@ -33,7 +33,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private Session Session;
         private AreaKey? MapEditorArea;
         private bool WasIdle;
-        private uint FrameNextID = 0;
+
+        public uint FrameNextID;
 
         public HashSet<string> ForceIdle = new HashSet<string>();
         public bool StateUpdated;
@@ -45,6 +46,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new HashSet<PlayerSpriteMode>();
 
         public Ghost GrabbedBy;
+        public Vector2 GrabLastSpeed;
         public float GrabTimeout = 0f;
         public const float GrabTimeoutMax = 0.1f;
 
@@ -392,39 +394,53 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataPlayerGrabPlayer grab) {
             Player player = Player;
-            if (player == null || !Settings.Interactions)
-                return;
+            if (!(Engine.Scene is Level level) || level.Paused || player == null || !Settings.Interactions)
+                goto SendDenial;
 
-            if (grab.Player.ID == Client.PlayerInfo.ID) {
-                RunOnMainThread(() => {
-                    if (player.Holding?.Entity is Ghost ghost && ghost.PlayerInfo.ID == grab.Grabbing.ID)
-                        player.Holding = null;
-                });
-
-            } else if (grab.Grabbing.ID == Client.PlayerInfo.ID) {
-                Session session = Session;
-                if (!Client.Data.TryGetBoundRef(grab.Player, out DataPlayerState state) ||
-                    session == null ||
-                    state.SID != session.Area.SID ||
-                    state.Mode != session.Area.Mode ||
-                    state.Level != session.Level ||
-                    !Ghosts.TryGetValue(grab.Player.ID, out Ghost ghost))
+            if (grab.Grabbing.ID == Client.PlayerInfo.ID) {
+                if (!Ghosts.TryGetValue(grab.Player.ID, out Ghost ghost)) {
+                    if (grab.Force == null)
+                        goto SendDenial;
                     return;
+                }
 
                 RunOnMainThread(() => {
+                    GrabbedBy = ghost;
                     GrabTimeout = 0f;
 
                     player.Position = grab.Position;
 
                     if (grab.Force != null) {
-                        GrabbedBy = null;
-                        player.Speed = grab.Force.Value;
-
+                        player.ForceCameraUpdate = false;
+                        player.StateMachine.State = Player.StNormal;
+                        GrabLastSpeed = player.Speed = grab.Force.Value.SafeNormalize() * 300f + Vector2.UnitY * -70f;
                     } else {
-                        GrabbedBy = ghost;
+                        player.ForceCameraUpdate = true;
+                        player.StateMachine.State = Player.StFrozen;
+                        GrabLastSpeed = player.Speed = Vector2.Zero;
+                        player.Hair.AfterUpdate(); // TODO: Replace with node offset update instead.
                     }
                 });
+
+            } else if (player.Holding?.Entity is Ghost ghost && ghost.PlayerInfo.ID == grab.Grabbing.ID && grab.Force != null) {
+                RunOnMainThread(() => {
+                    ghost.Collidable = false;
+                    player.Drop();
+                    ghost.Collidable = true;
+                });
             }
+
+            return;
+
+            SendDenial:
+            Client?.Send(new DataPlayerGrabPlayer {
+                UpdateID = FrameNextID++,
+
+                Player = Client.PlayerInfo,
+                Grabbing = Client.PlayerInfo,
+
+                Force = new Vector2(0, 0)
+            });
         }
 
         #endregion
@@ -526,7 +542,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
             }
 
-            if (GrabbedBy != null && (GrabTimeout += Engine.RawDeltaTime) >= GrabTimeout)
+            if (GrabbedBy != null && (GrabTimeout += Engine.RawDeltaTime) >= GrabTimeoutMax)
+                GrabbedBy = null;
+            if (GrabbedBy?.Scene != level)
                 GrabbedBy = null;
 
             MapEditorArea = null;
@@ -566,11 +584,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Player == null)
                 return;
 
+            if (GrabbedBy != null)
+                Player.Speed = GrabLastSpeed;
+            if (Player.Holding?.Entity is Ghost ghost && ghost.Scene != level)
+                Player.Holding = null;
+
             if (PlayerNameTag == null || PlayerNameTag.Tracking != Player || PlayerNameTag.Scene != level) {
-                RunOnMainThread(() => {
-                    PlayerNameTag?.RemoveSelf();
-                    level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName));
-                });
+                PlayerNameTag?.RemoveSelf();
+                level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName));
             }
 
             SendFrame();

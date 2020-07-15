@@ -184,7 +184,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                 con.Send(new DataUDPConnectionToken {
                     Value = hsClient.ConnectionToken
                 });
-                tcpudp.SendUDP = true;
             }
 
             Data.Handle(con, handshake.PlayerInfo);

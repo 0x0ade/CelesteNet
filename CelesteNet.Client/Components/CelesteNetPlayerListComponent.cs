@@ -207,7 +207,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             Vector2 size = CelesteNetClientFont.Measure(ListText) * textFontScale;
 
-            if (((size.X + 100f * scale) > UI_WIDTH * 0.5f || (size.Y + 100f * scale) > UI_HEIGHT * 0.5f) && textScaleTry < 4) {
+            if (((size.X + 100f * scale) > UI_WIDTH * 0.7f || (size.Y + 100f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 4) {
                 textScaleTry++;
                 textScale -= scale * 0.1f;
                 goto RetryLineScale;

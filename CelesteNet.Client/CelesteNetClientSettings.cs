@@ -100,9 +100,14 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingRange(UISizeMin, UISizeMax)]
         public int UISize { get; set; } = 2;
         [SettingIgnore]
+        public float UIScaleOverride { get; set; } = 0f;
+        [SettingIgnore]
         [YamlIgnore]
         public float UIScale {
             get {
+                if (UIScaleOverride != 0f)
+                    return UIScaleOverride;
+
                 switch (UISize) {
                     case 1:
                         return 0.25f;

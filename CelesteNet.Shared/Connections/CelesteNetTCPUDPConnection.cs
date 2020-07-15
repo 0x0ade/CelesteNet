@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet {
         protected Thread? ReadUDPThread;
 
         public override bool IsConnected => TCP?.Connected ?? false;
-        public override string ID => "TCP/UDP " + (TCPRemoteEndPoint?.ToString() ?? $"?{GetHashCode()}");
+        public override string ID => "TCP" + (UDP != null ? "/UDP" : "only") + " " + (TCPRemoteEndPoint?.ToString() ?? $"?{GetHashCode()}");
         public override string UID => $"tcpudp-{TCPRemoteEndPoint?.Address?.ToString() ?? "unknown"}";
 
         protected IPEndPoint? TCPLocalEndPoint;

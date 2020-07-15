@@ -46,9 +46,13 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
-            Default.Add(session);
-
-            BroadcastList();
+            if (Server.UserData.TryLoad(session.UID, out LastChannelUserInfo last) &&
+                last.Name != NameDefault) {
+                Move(session, last.Name);
+            } else {
+                Default.Add(session);
+                BroadcastList();
+            }
         }
 
         public void SendListTo(CelesteNetPlayerSession session) {
@@ -117,6 +121,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                 BroadcastList();
 
                 session.ResendPlayerStates();
+
+                if (!Server.UserData.GetKey(session.UID).IsNullOrEmpty()) {
+                    Server.UserData.Save(session.UID, new LastChannelUserInfo {
+                        Name = name
+                    });
+                }
 
                 return Tuple.Create(prev, c);
             }
@@ -187,5 +197,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             Remove(session);
             Ctx.BroadcastList();
         }
+    }
+
+    public class LastChannelUserInfo {
+        public string Name = "main";
     }
 }

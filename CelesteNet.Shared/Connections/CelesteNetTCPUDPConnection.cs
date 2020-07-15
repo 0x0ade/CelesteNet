@@ -43,13 +43,13 @@ namespace Celeste.Mod.CelesteNet {
 
         private readonly object UDPErrorLock = new object();
         private Exception UDPErrorLast;
-        private Action<CelesteNetTCPUDPConnection, Exception>? _OnUDPError;
-        public event Action<CelesteNetTCPUDPConnection, Exception> OnUDPError {
+        private Action<CelesteNetTCPUDPConnection, Exception, bool>? _OnUDPError;
+        public event Action<CelesteNetTCPUDPConnection, Exception, bool> OnUDPError {
             add {
                 lock (UDPErrorLock) {
                     _OnUDPError += value;
                     if (UDPErrorLast != null)
-                        value?.Invoke(this, UDPErrorLast);
+                        value?.Invoke(this, UDPErrorLast, false);
                 }
             }
             remove {
@@ -156,10 +156,21 @@ namespace Celeste.Mod.CelesteNet {
                     // Make sure that we have a default address if sending it without an endpoint
                     // UDP is a mess and the UdpClient can be shared.
                     // UDP.Client.Connected is true on mono server...
-                    if (UDP.Client.Connected && ReadUDPThread != null) {
-                        UDP.Send(raw, length);
-                    } else if (UDPRemoteEndPoint != null) {
-                        UDP.Send(raw, length, UDPRemoteEndPoint);
+                    try {
+                        if (UDP.Client.Connected && ReadUDPThread != null) {
+                            UDP.Send(raw, length);
+                        } else if (UDPRemoteEndPoint != null) {
+                            UDP.Send(raw, length, UDPRemoteEndPoint);
+                        }
+                    } catch (Exception e) {
+                        lock (UDPErrorLock) {
+                            UDPErrorLast = e;
+                            if (_OnUDPError != null) {
+                                _OnUDPError(this, e, false);
+                            } else {
+                                Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP send failure:\n{this}\n{e}");
+                            }
+                        }
                     }
 
                 } else {
@@ -243,7 +254,7 @@ namespace Celeste.Mod.CelesteNet {
                 lock (UDPErrorLock) {
                     UDPErrorLast = e;
                     if (_OnUDPError != null) {
-                        _OnUDPError(this, e);
+                        _OnUDPError(this, e, true);
                     } else {
                         Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP loop error:\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
                         Dispose();

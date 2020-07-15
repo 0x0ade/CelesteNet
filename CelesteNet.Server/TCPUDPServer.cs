@@ -204,6 +204,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             IPEndPoint? ep = con.UDPRemoteEndPoint;
             if (ep != null)
                 UDPMap.TryRemove(ep, out _);
+
+            con.Send(downgrade);
         }
 
         #endregion

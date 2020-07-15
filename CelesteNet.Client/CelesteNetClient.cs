@@ -41,6 +41,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private readonly object StartStopLock = new object();
 
+        private int UDPDeaths;
+
         public CelesteNetClient()
             : this(new CelesteNetClientSettings()) {
         }
@@ -71,7 +73,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Data, Settings.Host, Settings.Port, Settings.ConnectionType != ConnectionType.TCP);
                         con.SendUDP = false;
                         con.OnDisconnect += _ => Dispose();
-                        con.OnUDPError += IgnoreUDPError;
+                        con.OnUDPError += OnUDPError;
                         Con = con;
                         Logger.Log(LogLevel.INF, "main", $"Local endpoints: {con.TCP.Client.LocalEndPoint} / {con.UDP?.Client.LocalEndPoint?.ToString() ?? "null"}");
 
@@ -153,16 +155,20 @@ namespace Celeste.Mod.CelesteNet.Client {
             return data;
         }
 
-        private void IgnoreUDPError(CelesteNetTCPUDPConnection con, Exception e) {
-            Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Oh well.\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+        private void OnUDPError(CelesteNetTCPUDPConnection con, Exception e, bool read) {
+            if (!read)
+                return;
+
+            if (UDPDeaths < 3) {
+                UDPDeaths++;
+                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Oh well.\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+            } else if (UDPDeaths == 3) {
+                UDPDeaths++;
+                Logger.Log(LogLevel.CRI, "main", $"UDP connection died quite often so far. This is the last UDP death log.\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+            }
+
             con.SendUDP = false;
-
             con.Send(new DataTCPOnlyDowngrade());
-
-            if (HandshakeClient is DataHandshakeTCPUDPClient hsClient)
-                con.Send(new DataUDPConnectionToken {
-                    Value = hsClient.ConnectionToken
-                });
         }
 
 
@@ -196,6 +202,15 @@ namespace Celeste.Mod.CelesteNet.Client {
             Data.Handle(con, handshake.PlayerInfo);
 
             HandshakeEvent.Set();
+        }
+
+        public void Handle(CelesteNetTCPUDPConnection con, DataTCPOnlyDowngrade downgrade) {
+            if (HandshakeClient is DataHandshakeTCPUDPClient hsClient) {
+                con.StartReadUDP();
+                con.Send(new DataUDPConnectionToken {
+                    Value = hsClient.ConnectionToken
+                });
+            }
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {

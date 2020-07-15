@@ -96,13 +96,31 @@ namespace Celeste.Mod.CelesteNet.Client {
         public int ChatLogLength { get; set; } = 8;
 
         public const int UISizeMin = 1;
-        public const int UISizeReachableMax = 4;
-        public const int UISizeMax = 5;
-        [SettingRange(UISizeMin, UISizeReachableMax)]
+        public const int UISizeMax = 4;
+        [SettingRange(UISizeMin, UISizeMax)]
         public int UISize { get; set; } = 2;
         [SettingIgnore]
         [YamlIgnore]
-        public float UIScale => 0.5f + 0.5f * ((UISize - 1f) / (UISizeMax - 1f));
+        public float UIScale {
+            get {
+                switch (UISize) {
+                    case 1:
+                        return 0.25f;
+
+                    case 2:
+                        return 0.4f;
+
+                    case 3:
+                        return 0.6f;
+
+                    case 4:
+                        return 0.75f;
+
+                    default:
+                        return 0.5f + 0.5f * ((UISize - 1f) / (UISizeMax - 1f));
+                }
+            }
+        }
 
         [SettingSubText("modoptions_celestenetclient_uiblurhint")]
         public CelesteNetRenderHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetRenderHelperComponent.BlurQuality.MEDIUM;

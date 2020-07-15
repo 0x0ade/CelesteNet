@@ -68,7 +68,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case ListMode.Channels:
                     HashSet<DataPlayerInfo> listed = new HashSet<DataPlayerInfo>();
 
+                    DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+
+                    if (own != null) {
+                        builder
+                            .Append(own.Name)
+                            .AppendLine();
+
+                        foreach (uint playerID in own.Players)
+                            listed.Add(ListPlayerUnderChannel(builder, playerID));
+                    }
+
                     foreach (DataChannelList.Channel channel in Channels.List) {
+                        if (channel == own)
+                            continue;
+
                         builder
                             .Append(channel.Name)
                             .AppendLine();

@@ -23,6 +23,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public PlayerHair Hair;
         public Leader Leader;
         public Holdable Holdable;
+        private bool HoldableAdded;
 
         public GhostNameTag NameTag;
         public GhostEmote IdleTag;
@@ -70,10 +71,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Add(Sprite);
             Hair.Color = Player.NormalHairColor;
             Add(Leader = new Leader(new Vector2(0f, -8f)));
-            Add(Holdable = new Holdable() {
+            Holdable = new Holdable() {
                 OnCarry = OnCarry,
                 OnRelease = OnRelease
-            });
+            };
 
             Collidable = true;
             Collider = new Hitbox(8f, 11f, -4f, -11f);
@@ -194,6 +195,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 Collidable = false;
                 Holdable.Release(Vector2.Zero);
                 Collidable = true;
+            }
+
+            if (!HoldableAdded && CelesteNetClientModule.Settings.Interactions) {
+                HoldableAdded = true;
+                Add(Holdable);
+            } else if (HoldableAdded && !CelesteNetClientModule.Settings.Interactions) {
+                HoldableAdded = false;
+                Remove(Holdable);
             }
 
             Alpha = 0.875f * ((CelesteNetClientModule.Settings.PlayerOpacity + 2) / 6f);

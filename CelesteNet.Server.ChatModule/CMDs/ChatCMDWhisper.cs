@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDW : ChatCMDWhisper {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDChannel>().ID}";
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDWhisper>().ID}";
 
     }
 

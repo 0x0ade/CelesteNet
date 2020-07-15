@@ -175,6 +175,9 @@ export class FrontendChatPanel extends FrontendBasicPanel {
   log(text, color, data) {
     // @ts-ignore
     this.list.push(this.createEntry(text, color, data));
+    if (this.list.length > 100) {
+      this.list = this.list.slice(-100);
+    }
     this.render(null);
     this.elBody.scrollTop = this.elBody.scrollHeight;
   }

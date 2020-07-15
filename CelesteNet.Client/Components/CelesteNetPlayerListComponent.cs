@@ -179,7 +179,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             float scale = Scale;
-            Vector2 fontScale = Vector2.One * scale;
 
             float y = 50f * scale;
 
@@ -201,13 +200,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
-            Vector2 size = CelesteNetClientFont.Measure(ListText) * fontScale;
+            int textScaleTry = 0;
+            float textScale = scale;
+            RetryLineScale:
+            Vector2 textFontScale = Vector2.One * textScale;
+
+            Vector2 size = CelesteNetClientFont.Measure(ListText) * textFontScale;
+
+            if (((size.X + 100f * scale) > UI_WIDTH * 0.5f || (size.Y + 100f * scale) > UI_HEIGHT * 0.5f) && textScaleTry < 4) {
+                textScaleTry++;
+                textScale -= scale * 0.1f;
+                goto RetryLineScale;
+            }
+
             Context.RenderHelper.Rect(25f * scale, y - 25f * scale, size.X + 50f * scale, size.Y + 50f * scale, Color.Black * 0.8f);
             CelesteNetClientFont.Draw(
                 ListText,
                 new Vector2(50f * scale, y),
                 Vector2.Zero,
-                fontScale,
+                textFontScale,
                 Color.White
             );
         }

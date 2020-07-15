@@ -30,7 +30,39 @@ namespace Celeste.Mod.CelesteNet {
                 }
             }
             remove {
-                _OnDisconnect -= value;
+                lock (DisposeLock) {
+                    _OnDisconnect -= value;
+                }
+            }
+        }
+
+        private readonly object SendFilterLock = new object();
+        private DataFilter? _OnSendFilter;
+        public event DataFilter OnSendFilter {
+            add {
+                lock (SendFilterLock) {
+                    _OnSendFilter += value;
+                }
+            }
+            remove {
+                lock (SendFilterLock) {
+                    _OnSendFilter -= value;
+                }
+            }
+        }
+
+        private readonly object ReceiveFilterLock = new object();
+        private DataFilter? _OnReceiveFilter;
+        public event DataFilter OnReceiveFilter {
+            add {
+                lock (ReceiveFilterLock) {
+                    _OnReceiveFilter += value;
+                }
+            }
+            remove {
+                lock (ReceiveFilterLock) {
+                    _OnReceiveFilter -= value;
+                }
             }
         }
 
@@ -81,6 +113,9 @@ namespace Celeste.Mod.CelesteNet {
                 return;
             if (!IsAlive)
                 return;
+            lock (SendFilterLock)
+                if (!(_OnSendFilter?.InvokeWhileTrue(this, data) ?? true))
+                    return;
             lock (SendQueue) {
                 SendQueue.Enqueue(data);
                 try {
@@ -93,6 +128,9 @@ namespace Celeste.Mod.CelesteNet {
         public abstract void SendRaw(DataType data);
 
         protected virtual void Receive(DataType data) {
+            lock (ReceiveFilterLock)
+                if (!(_OnReceiveFilter?.InvokeWhileTrue(this, data) ?? true))
+                    return;
             Data.Handle(this, data);
         }
 

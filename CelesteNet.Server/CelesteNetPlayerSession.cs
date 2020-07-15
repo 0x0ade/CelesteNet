@@ -37,6 +37,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ConUID = UID = $"con-{con.UID}";
 
+            Con.OnSendFilter += ConSendFilter;
             Server.Data.RegisterHandlersIn(this);
         }
 
@@ -238,6 +239,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                 otherState.SID == state.SID &&
                 otherState.Mode == state.Mode;
 
+        public bool ConSendFilter(CelesteNetConnection con, DataType data) {
+            if (Server.Data.TryGetBoundRef(PlayerInfo, out DataNetFilterList? list) && list != null)
+                return list.Contains(data.GetSource(Server.Data));
+
+            return true;
+        }
+
         public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;
 
         public void Dispose() {
@@ -258,6 +266,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Data.FreeRef<DataPlayerInfo>(ID);
             Server.Data.FreeOrder<DataPlayerFrame>(ID);
 
+            Con.OnSendFilter -= ConSendFilter;
             Server.Data.UnregisterHandlersIn(this);
 
             OnEnd?.Invoke(this, playerInfoLast);

@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet {
     public static partial class CelesteNetUtils {
 
-        public const ushort Version = 1338;
+        public const ushort Version = 1;
         public static readonly ushort LoadedVersion = Version;
 
         // Port MUST be fixed as the website expects it to be the same for everyone.

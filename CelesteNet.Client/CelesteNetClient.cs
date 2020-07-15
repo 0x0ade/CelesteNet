@@ -94,6 +94,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             Logger.Log(LogLevel.INF, "main", "Waiting for server handshake.");
             WaitHandle.WaitAny(new WaitHandle[] { HandshakeEvent });
 
+            SendFilterList();
+
             Logger.Log(LogLevel.INF, "main", "Ready");
             IsReady = true;
         }
@@ -114,6 +116,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Con?.Dispose();
                 Con = null;
             }
+        }
+
+
+        public void SendFilterList() {
+            Logger.Log(LogLevel.INF, "main", "Sending filter list");
+            Con?.Send(new DataNetFilterList {
+                List = Data.DataTypeToSource.Values.Distinct().ToArray()
+            });
         }
 
 

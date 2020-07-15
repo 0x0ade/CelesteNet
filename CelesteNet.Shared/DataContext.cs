@@ -282,9 +282,13 @@ namespace Celeste.Mod.CelesteNet {
             DataType? data = (DataType?) Activator.CreateInstance(type);
             if (data == null)
                 throw new Exception($"Cannot create instance of data type {type.FullName}");
-            
-            data.UnwrapMeta(this, metas);
-            data.Read(this, reader);
+
+            try {
+                data.UnwrapMeta(this, metas);
+                data.Read(this, reader);
+            } catch (Exception e) {
+                throw new Exception($"Exception while reading {id} {flags} {source} {length}", e);
+            }
 
             if (pas != null) {
                 long lengthReal = pas.Position - start;

@@ -69,6 +69,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {Settings.Host}:{Settings.Port}");
 
                         CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Data, Settings.Host, Settings.Port, Settings.ConnectionType != ConnectionType.TCP);
+                        con.SendUDP = false;
                         con.OnDisconnect += _ => Dispose();
                         con.OnUDPError += IgnoreUDPError;
                         Con = con;
@@ -159,11 +160,15 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region Handlers
 
-        public void Filter(CelesteNetConnection con, DataType data) {
+        public bool Filter(CelesteNetConnection con, DataType data) {
             if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
-                if (con is CelesteNetTCPUDPConnection tcpudp)
+                if (con is CelesteNetTCPUDPConnection tcpudp) {
                     tcpudp.OnUDPError -= IgnoreUDPError;
+                    tcpudp.SendUDP = true;
+                }
             }
+
+            return true;
         }
 
         public void Handle(CelesteNetConnection con, DataHandshakeServer handshake) {
@@ -174,11 +179,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
 
             // Needed because while the server knows the client's TCP endpoint, the UDP endpoint is ambiguous.
-            if (con is CelesteNetTCPUDPConnection && HandshakeClient is DataHandshakeTCPUDPClient hsClient) {
+            if (con is CelesteNetTCPUDPConnection tcpudp && HandshakeClient is DataHandshakeTCPUDPClient hsClient) {
                 hsClient.IsUDP = true;
                 con.Send(new DataUDPConnectionToken {
                     Value = hsClient.ConnectionToken
                 });
+                tcpudp.SendUDP = true;
             }
 
             Data.Handle(con, handshake.PlayerInfo);

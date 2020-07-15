@@ -24,6 +24,7 @@ namespace Celeste.Mod.CelesteNet {
         public BinaryWriter TCPWriter;
 
         public UdpClient? UDP;
+        public bool SendUDP = true;
 
         protected MemoryStream BufferStream;
         protected BinaryWriter BufferWriter;
@@ -69,7 +70,8 @@ namespace Celeste.Mod.CelesteNet {
         public CelesteNetTCPUDPConnection(DataContext data, string host, int port, bool canUDP)
             : this(data) {
             TcpClient tcp = new TcpClient(host, port);
-            tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
+            tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, 3000);
+            tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 3000);
 
             UdpClient? udp = null;
             if (canUDP) {
@@ -78,7 +80,8 @@ namespace Celeste.Mod.CelesteNet {
                 udp = tcp.Client.RemoteEndPoint is IPEndPoint tcpEP ?
                     new UdpClient(tcpEP.Address.ToString(), tcpEP.Port) :
                     new UdpClient(host, port);
-                udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
+                udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, 3000);
+                udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 3000);
             }
 
             InitTCPUDP(tcp, udp);
@@ -148,7 +151,7 @@ namespace Celeste.Mod.CelesteNet {
                 int length = Data.Write(BufferWriter, data);
                 byte[] raw = BufferStream.GetBuffer();
 
-                if ((data.DataFlags & DataFlags.Update) == DataFlags.Update && UDP != null) {
+                if ((data.DataFlags & DataFlags.Update) == DataFlags.Update && UDP != null && SendUDP) {
                     // Missed updates aren't that bad...
                     // Make sure that we have a default address if sending it without an endpoint
                     // UDP is a mess and the UdpClient can be shared.

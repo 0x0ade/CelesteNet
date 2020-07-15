@@ -193,7 +193,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void CreateServerEntry(TextMenu menu, bool inGame) {
-#if !DEBUG
+#if DEBUG
             menu.Add(
                 (ServerEntry = new TextMenu.Button(("modoptions_celestenetclient_server".DialogClean()).Replace("((server))", Server)))
                 .Pressed(() => {

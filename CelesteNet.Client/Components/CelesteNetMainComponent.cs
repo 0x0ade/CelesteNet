@@ -237,6 +237,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost.UpdateDead(frame.Dead && state.Level == session.Level);
                 ghost.UpdateFollowers((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
                 ghost.UpdateHolding((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? null : frame.Holding);
+                ghost.Interactive = state.Interactive;
             });
         }
 

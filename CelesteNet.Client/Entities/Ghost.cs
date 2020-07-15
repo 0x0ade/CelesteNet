@@ -128,7 +128,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnCarry(Vector2 position) {
-            if (!Interactive || !CelesteNetClientModule.Settings.Interactions)
+            if (!Interactive || !CelesteNetClientModule.Settings.Interactions || IdleTag != null)
                 return;
 
             Position = position;
@@ -157,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void OnRelease(Vector2 force) {
             Collidable = true;
 
-            if (!Interactive || !CelesteNetClientModule.Settings.Interactions)
+            if (!Interactive || !CelesteNetClientModule.Settings.Interactions || IdleTag != null)
                 return;
 
             CelesteNetClient client = Context?.Client;
@@ -193,18 +193,18 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
             }
 
-            bool interactive = Interactive && CelesteNetClientModule.Settings.Interactions;
+            bool holdable = Interactive && CelesteNetClientModule.Settings.Interactions && IdleTag == null;
 
-            if (!interactive && Holdable.Holder != null) {
+            if (!holdable && Holdable.Holder != null) {
                 Collidable = false;
                 Holdable.Release(Vector2.Zero);
                 Collidable = true;
             }
 
-            if (!HoldableAdded && interactive) {
+            if (!HoldableAdded && holdable) {
                 HoldableAdded = true;
                 Add(Holdable);
-            } else if (HoldableAdded && !interactive) {
+            } else if (HoldableAdded && !holdable) {
                 HoldableAdded = false;
                 Remove(Holdable);
             }

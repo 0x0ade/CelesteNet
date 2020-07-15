@@ -42,6 +42,27 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             return false;
         }
 
+        // Stupid Roslyn "bug": ? can't be used as it requires when T :, but this is override.
+        public override void Set<T>(DataContext ctx, [AllowNull] T value) {
+            string id = ctx.MetaTypeToID[typeof(T)];
+            if (value == null) {
+                InnerMeta = InnerMeta.Where(m => m.ID != id).ToArray();
+                return;
+            }
+
+            for (int i = 0; i < InnerMeta.Length; i++) {
+                MetaTypeWrap meta = InnerMeta[i];
+                if (meta.ID == id) {
+                    meta.Wrap(ctx, value);
+                    return;
+                }
+            }
+
+            MetaTypeWrap wrap = new MetaTypeWrap();
+            wrap.Wrap(ctx, value);
+            InnerMeta = InnerMeta.Concat(new MetaTypeWrap[] { wrap }).ToArray();
+        }
+
         public override void Read(DataContext ctx, BinaryReader reader) {
             throw new NotSupportedException();
         }

@@ -25,6 +25,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public virtual void FixupMeta(DataContext ctx) {
         }
 
+        public virtual MetaUpdateContext UpdateMeta(DataContext ctx)
+            => new MetaUpdateContext(ctx, this);
+
         public virtual void ReadAll(DataContext ctx, BinaryReader reader) {
             UnwrapMeta(ctx, ctx.ReadMeta(reader));
             Read(ctx, reader);
@@ -59,6 +62,23 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 }
             value = null;
             return false;
+        }
+
+        public virtual void Set<T>(DataContext ctx, T? value) where T : MetaType<T> {
+            if (value == null) {
+                Meta = Meta.Where(m => !(m is T)).ToArray();
+                return;
+            }
+
+            for (int i = 0; i < Meta.Length; i++) {
+                MetaType meta = Meta[i];
+                if (meta == value || meta is T) {
+                    Meta[i] = value;
+                    return;
+                }
+            }
+
+            Meta = Meta.Concat(new MetaType[] { value }).ToArray();
         }
 
         public virtual MetaTypeWrap[] WrapMeta(DataContext ctx) {
@@ -133,6 +153,23 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override string GetSource(DataContext ctx)
             => DataSource;
+
+    }
+
+    public class MetaUpdateContext : IDisposable {
+
+        public readonly DataContext Context;
+        public readonly DataType Data;
+
+        public MetaUpdateContext(DataContext ctx, DataType data) {
+            Context = ctx;
+            Data = data;
+            Data.Meta = data.GenerateMeta(Context);
+        }
+
+        public void Dispose() {
+            Data.FixupMeta(Context);
+        }
 
     }
 

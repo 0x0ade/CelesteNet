@@ -184,6 +184,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             => Request(0, req, cb, null);
 
         public Action Request<T>(int timeout, DataType req, DataHandler<T> cb, Action? cbTimeout = null) where T : DataType<T>, IDataRequestable {
+            using (req.UpdateMeta(Server.Data)) {
+                if (!req.TryGet(Server.Data, out MetaRequest? mreq))
+                    mreq = new MetaRequest();
+                lock (RequestNextIDLock)
+                    mreq.ID = RequestNextID++;
+                req.Set(Server.Data, mreq);
+            }
+
             Action cancel = WaitFor<T>(timeout, (con, data) => {
                 if (req.TryGet(Server.Data, out MetaRequest? mreq) &&
                     data.TryGet(Server.Data, out MetaRequestResponse? mres) &&

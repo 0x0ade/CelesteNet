@@ -43,8 +43,8 @@ namespace Celeste.Mod.CelesteNet {
 
         private readonly object UDPErrorLock = new object();
         private Exception UDPErrorLast;
-        private Action<CelesteNetConnection, Exception>? _OnUDPError;
-        public event Action<CelesteNetConnection, Exception> OnUDPError {
+        private Action<CelesteNetTCPUDPConnection, Exception>? _OnUDPError;
+        public event Action<CelesteNetTCPUDPConnection, Exception> OnUDPError {
             add {
                 lock (UDPErrorLock) {
                     _OnUDPError += value;

@@ -44,8 +44,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             DataChat? msg = env.Send($"Teleporting to {otherPlayer.DisplayName}");
 
-            self.Request<DataSession>(300,
-                (con, session) => self.WaitFor<DataPlayerFrame>(300,
+            self.Request<DataSession>(400,
+                (con, session) => self.WaitFor<DataPlayerFrame>(400,
                     (con, frame) => SaveAndTeleport(env, msg, self, other, otherPlayer, otherState, session, frame.Position),
                     () => SaveAndTeleport(env, msg, self, other, otherPlayer, otherState, session, null)
                 ),
@@ -60,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 Position = savedPos
             });
 
-            other.Request<DataSession>(300,
+            other.Request<DataSession>(400,
                 (con, session) => other.WaitFor<DataPlayerFrame>(300,
                     (con, frame) => Teleport(env, msg, self, other, otherPlayer, otherState, session, frame.Position),
                     () => Teleport(env, msg, self, other, otherPlayer, otherState, session, null)
@@ -72,7 +72,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         private bool Teleport(ChatCMDEnv env, DataChat? msg, CelesteNetPlayerSession self, CelesteNetPlayerSession other, DataPlayerInfo otherPlayer, DataPlayerState otherState, DataSession? tpSession, Vector2? tpPos) {
             if (msg != null) {
-                self.WaitFor<DataPlayerState>(2000, (con, state) => {
+                self.WaitFor<DataPlayerState>(6000, (con, state) => {
                     if (state.SID != otherState.SID ||
                         state.Mode != otherState.Mode ||
                         state.Level != otherState.Level)

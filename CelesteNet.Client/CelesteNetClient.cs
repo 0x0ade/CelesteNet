@@ -153,8 +153,16 @@ namespace Celeste.Mod.CelesteNet.Client {
             return data;
         }
 
-        private void IgnoreUDPError(CelesteNetConnection con, Exception e) {
-            Logger.Log(LogLevel.CRI, "main", $"UDP endpoint died but client hasn't received anything anyway. Oh well.\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+        private void IgnoreUDPError(CelesteNetTCPUDPConnection con, Exception e) {
+            Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Oh well.\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+            con.SendUDP = false;
+
+            con.Send(new DataTCPOnlyDowngrade());
+
+            if (HandshakeClient is DataHandshakeTCPUDPClient hsClient)
+                con.Send(new DataUDPConnectionToken {
+                    Value = hsClient.ConnectionToken
+                });
         }
 
 
@@ -163,7 +171,6 @@ namespace Celeste.Mod.CelesteNet.Client {
         public bool Filter(CelesteNetConnection con, DataType data) {
             if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
                 if (con is CelesteNetTCPUDPConnection tcpudp) {
-                    tcpudp.OnUDPError -= IgnoreUDPError;
                     tcpudp.SendUDP = true;
                 }
             }

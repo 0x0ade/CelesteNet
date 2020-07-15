@@ -67,6 +67,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Handle(CelesteNetConnection con, DataModRec rec) {
             Logger.Log(LogLevel.CRI, "netmod", $"Server recommended mod: {rec.ModName} ({rec.ModID} v{rec.ModVersion})");
 
+            if (Everest.Modules.Any(mod => mod?.Metadata?.Name == rec.ModID))
+                return;
+
             if (Engine.Scene is Level)
                 Context.Status.Set($"Main Menu > Mod Options to install {rec.ModName}", 8);
             else if (Engine.Scene is Overworld overworld && overworld.IsCurrent<OuiModOptions>())

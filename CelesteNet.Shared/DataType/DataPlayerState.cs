@@ -23,6 +23,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public AreaMode Mode;
         public string Level = "";
         public bool Idle;
+        public bool Interactive;
 
         public override MetaType[] GenerateMeta(DataContext ctx)
             => new MetaType[] {
@@ -40,6 +41,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Mode = (AreaMode) reader.ReadByte();
             Level = reader.ReadNetString();
             Idle = reader.ReadBoolean();
+            Interactive = reader.ReadBoolean();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
@@ -47,6 +49,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write((byte) Mode);
             writer.WriteNetString(Level);
             writer.Write(Idle);
+            writer.Write(Interactive);
         }
 
         public override string ToString()

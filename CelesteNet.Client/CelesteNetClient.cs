@@ -179,7 +179,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
 
             // Needed because while the server knows the client's TCP endpoint, the UDP endpoint is ambiguous.
-            if (con is CelesteNetTCPUDPConnection tcpudp && HandshakeClient is DataHandshakeTCPUDPClient hsClient) {
+            if (con is CelesteNetTCPUDPConnection && HandshakeClient is DataHandshakeTCPUDPClient hsClient) {
                 hsClient.IsUDP = true;
                 con.Send(new DataUDPConnectionToken {
                     Value = hsClient.ConnectionToken

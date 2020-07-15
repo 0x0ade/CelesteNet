@@ -33,6 +33,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private Session Session;
         private AreaKey? MapEditorArea;
         private bool WasIdle;
+        private bool WasInteractive;
 
         public uint FrameNextID;
 
@@ -95,6 +96,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Player = null;
             Session = null;
             WasIdle = false;
+            WasInteractive = false;
 
             foreach (Ghost ghost in Ghosts.Values)
                 ghost?.RemoveSelf();
@@ -546,6 +548,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Player = null;
                     Session = null;
                     WasIdle = false;
+                    WasInteractive = false;
                     AreaKey area = (AreaKey) f_MapEditor_area.GetValue(null);
 
                     if (MapEditorArea == null || MapEditorArea.Value.SID != area.SID || MapEditorArea.Value.Mode != area.Mode) {
@@ -558,6 +561,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Player = null;
                     Session = null;
                     WasIdle = false;
+                    WasInteractive = false;
                     SendState();
                 }
                 return;
@@ -591,6 +595,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (Player != null) {
                     Session = level.Session;
                     WasIdle = false;
+                    WasInteractive = false;
                     sendState = true;
                 }
             }
@@ -598,6 +603,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             bool idle = level.FrozenOrPaused || level.Overlay != null;
             if (WasIdle != idle) {
                 WasIdle = idle;
+                sendState = true;
+            }
+
+            if (WasInteractive != Settings.Interactions) {
+                WasInteractive = Settings.Interactions;
                 sendState = true;
             }
 
@@ -633,6 +643,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             Session = level.Session;
             WasIdle = false;
+            WasInteractive = false;
 
             if (Client == null)
                 return;
@@ -645,6 +656,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void OnExitLevel(Level level, LevelExit exit, LevelExit.Mode mode, Session session, HiresSnow snow) {
             Session = null;
             WasIdle = false;
+            WasInteractive = false;
 
             Cleanup();
 
@@ -693,7 +705,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     SID = Session?.Area.GetSID() ?? MapEditorArea?.SID ?? "",
                     Mode = Session?.Area.Mode ?? MapEditorArea?.Mode ?? AreaMode.Normal,
                     Level = Session?.Level ?? (MapEditorArea != null ? LevelDebugMap : ""),
-                    Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null))
+                    Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null)),
+                    Interactive = Settings.Interactions
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");

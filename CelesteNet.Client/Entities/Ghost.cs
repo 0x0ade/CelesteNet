@@ -41,6 +41,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public List<GhostFollower> Followers = new List<GhostFollower>();
         public GhostEntity Holding;
 
+        public bool Interactive;
+
         protected Color LastSpriteColor;
         protected Color LastHairColor;
         protected int LastDepth;
@@ -104,7 +106,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnPlayer(Player player) {
-            if (!CelesteNetClientModule.Settings.Interactions || Context?.Main.GrabbedBy == this)
+            if (!Interactive || !CelesteNetClientModule.Settings.Interactions || Context?.Main.GrabbedBy == this)
                 return;
 
             if (player.StateMachine.State == Player.StNormal &&
@@ -126,7 +128,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnCarry(Vector2 position) {
-            if (!CelesteNetClientModule.Settings.Interactions)
+            if (!Interactive || !CelesteNetClientModule.Settings.Interactions)
                 return;
 
             Position = position;
@@ -155,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void OnRelease(Vector2 force) {
             Collidable = true;
 
-            if (!CelesteNetClientModule.Settings.Interactions)
+            if (!Interactive || !CelesteNetClientModule.Settings.Interactions)
                 return;
 
             CelesteNetClient client = Context?.Client;
@@ -191,16 +193,18 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
             }
 
-            if (!CelesteNetClientModule.Settings.Interactions && Holdable.Holder != null) {
+            bool interactive = Interactive && CelesteNetClientModule.Settings.Interactions;
+
+            if (!interactive && Holdable.Holder != null) {
                 Collidable = false;
                 Holdable.Release(Vector2.Zero);
                 Collidable = true;
             }
 
-            if (!HoldableAdded && CelesteNetClientModule.Settings.Interactions) {
+            if (!HoldableAdded && interactive) {
                 HoldableAdded = true;
                 Add(Holdable);
-            } else if (HoldableAdded && !CelesteNetClientModule.Settings.Interactions) {
+            } else if (HoldableAdded && !interactive) {
                 HoldableAdded = false;
                 Remove(Holdable);
             }

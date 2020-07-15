@@ -576,8 +576,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             grabReleased |= IsGrabbed && (GrabTimeout += Engine.RawDeltaTime) >= GrabTimeoutMax;
             grabReleased |= GrabbedBy != null && GrabbedBy.Scene != level;
 
-            if (grabReleased)
+            if (grabReleased) {
                 GrabbedBy = null;
+                IsGrabbed = false;
+            }
 
             MapEditorArea = null;
 

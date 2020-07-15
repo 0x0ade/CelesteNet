@@ -385,7 +385,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 session.CoreMode = data.CoreMode;
             }
 
-            session.RespawnPoint = target.Position;
+            if (target.Position != null) {
+                Vector2? respawnPoint = session.RespawnPoint;
+                session.RespawnPoint = target.Position;
+                Action<Level> onBegin = null;
+                onBegin = lvl => {
+                    if (onBegin == null)
+                        return;
+                    QueuedTaskHelper.Do(target, () => {
+                        if (lvl.Session.RespawnPoint == target.Position)
+                            lvl.Session.RespawnPoint = respawnPoint ?? lvl.Session.RespawnPoint;
+                    });
+                    area.OnLevelBegin -= onBegin;
+                    onBegin = null;
+                };
+                area.OnLevelBegin += onBegin;
+            }
 
             session.StartedFromBeginning = false;
 

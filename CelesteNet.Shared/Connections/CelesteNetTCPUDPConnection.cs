@@ -40,6 +40,24 @@ namespace Celeste.Mod.CelesteNet {
         public IPEndPoint? UDPLocalEndPoint;
         public IPEndPoint? UDPRemoteEndPoint;
 
+        private readonly object UDPErrorLock = new object();
+        private Exception UDPErrorLast;
+        private Action<CelesteNetConnection, Exception>? _OnUDPError;
+        public event Action<CelesteNetConnection, Exception> OnUDPError {
+            add {
+                lock (UDPErrorLock) {
+                    _OnUDPError += value;
+                    if (UDPErrorLast != null)
+                        value?.Invoke(this, UDPErrorLast);
+                }
+            }
+            remove {
+                lock (UDPErrorLock) {
+                    _OnUDPError -= value;
+                }
+            }
+        }
+
 #pragma warning disable CS8618 // Every other ctor uses this ctor and initializes everything properly.
         private CelesteNetTCPUDPConnection(DataContext data)
 #pragma warning restore CS8618
@@ -48,17 +66,20 @@ namespace Celeste.Mod.CelesteNet {
             BufferWriter = new BinaryWriter(BufferStream, Encoding.UTF8);
         }
 
-        public CelesteNetTCPUDPConnection(DataContext data, string host, int port)
+        public CelesteNetTCPUDPConnection(DataContext data, string host, int port, bool canUDP)
             : this(data) {
             TcpClient tcp = new TcpClient(host, port);
             tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
-            // Reuse TCP endpoint as - at least on Windows - TCP and UDP hostname
-            // lookups can result in IPv4 for TCP vs IPv6 for UDP in some cases.
-            UdpClient udp = tcp.Client.RemoteEndPoint is IPEndPoint tcpEP ?
-                new UdpClient(tcpEP.Address.ToString(), tcpEP.Port) :
-                new UdpClient(host, port);
-            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
+            UdpClient? udp = null;
+            if (canUDP) {
+                // Reuse TCP endpoint as - at least on Windows - TCP and UDP hostname
+                // lookups can result in IPv4 for TCP vs IPv6 for UDP in some cases.
+                udp = tcp.Client.RemoteEndPoint is IPEndPoint tcpEP ?
+                    new UdpClient(tcpEP.Address.ToString(), tcpEP.Port) :
+                    new UdpClient(host, port);
+                udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
+            }
 
             InitTCPUDP(tcp, udp);
         }
@@ -127,17 +148,15 @@ namespace Celeste.Mod.CelesteNet {
                 int length = Data.Write(BufferWriter, data);
                 byte[] raw = BufferStream.GetBuffer();
 
-                if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
+                if ((data.DataFlags & DataFlags.Update) == DataFlags.Update && UDP != null) {
                     // Missed updates aren't that bad...
-                    if (UDP != null) {
-                        // Make sure that we have a default address if sending it without an endpoint
-                        // UDP is a mess and the UdpClient can be shared.
-                        // UDP.Client.Connected is true on mono server...
-                        if (UDP.Client.Connected && ReadUDPThread != null) {
-                            UDP.Send(raw, length);
-                        } else if (UDPRemoteEndPoint != null) {
-                            UDP.Send(raw, length, UDPRemoteEndPoint);
-                        }
+                    // Make sure that we have a default address if sending it without an endpoint
+                    // UDP is a mess and the UdpClient can be shared.
+                    // UDP.Client.Connected is true on mono server...
+                    if (UDP.Client.Connected && ReadUDPThread != null) {
+                        UDP.Send(raw, length);
+                    } else if (UDPRemoteEndPoint != null) {
+                        UDP.Send(raw, length, UDPRemoteEndPoint);
                     }
 
                 } else {
@@ -217,9 +236,16 @@ namespace Celeste.Mod.CelesteNet {
                 if (!IsAlive)
                     return;
 
-                Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP loop error:\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
                 ReadUDPThread = null;
-                Dispose();
+                lock (UDPErrorLock) {
+                    UDPErrorLast = e;
+                    if (_OnUDPError != null) {
+                        _OnUDPError(this, e);
+                    } else {
+                        Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP loop error:\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+                        Dispose();
+                    }
+                }
                 return;
             }
         }

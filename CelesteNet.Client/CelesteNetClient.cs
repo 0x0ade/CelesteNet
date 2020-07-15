@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -64,12 +65,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                 switch (Settings.ConnectionType) {
                     case ConnectionType.Auto:
                     case ConnectionType.TCPUDP:
+                    case ConnectionType.TCP:
                         Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {Settings.Host}:{Settings.Port}");
 
-                        CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Data, Settings.Host, Settings.Port);
+                        CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Data, Settings.Host, Settings.Port, Settings.ConnectionType != ConnectionType.TCP);
                         con.OnDisconnect += _ => Dispose();
+                        con.OnUDPError += IgnoreUDPError;
                         Con = con;
-                        Logger.Log(LogLevel.INF, "main", $"Local endpoints: {con.TCP.Client.LocalEndPoint} / {con.UDP.Client.LocalEndPoint}");
+                        Logger.Log(LogLevel.INF, "main", $"Local endpoints: {con.TCP.Client.LocalEndPoint} / {con.UDP?.Client.LocalEndPoint?.ToString() ?? "null"}");
 
                         // Server replies with a dummy HTTP response to filter out dumb port sniffers.
                         uint token = con.ReadTeapot();
@@ -149,8 +152,19 @@ namespace Celeste.Mod.CelesteNet.Client {
             return data;
         }
 
+        private void IgnoreUDPError(CelesteNetConnection con, Exception e) {
+            Logger.Log(LogLevel.CRI, "main", $"UDP endpoint died but client hasn't received anything anyway. Oh well.\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+        }
+
 
         #region Handlers
+
+        public void Filter(CelesteNetConnection con, DataType data) {
+            if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
+                if (con is CelesteNetTCPUDPConnection tcpudp)
+                    tcpudp.OnUDPError -= IgnoreUDPError;
+            }
+        }
 
         public void Handle(CelesteNetConnection con, DataHandshakeServer handshake) {
             Logger.Log(LogLevel.INF, "main", $"Received handshake: {handshake}");

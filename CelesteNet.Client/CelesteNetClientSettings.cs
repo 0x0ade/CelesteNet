@@ -89,6 +89,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingRange(1, 4)]
         public int NameOpacity { get; set; } = 4;
 
+        public bool ShowOwnName { get; set; } = true;
+
         [SettingIgnore]
         [SettingRange(4, 16)]
         public int ChatLogLength { get; set; } = 8;

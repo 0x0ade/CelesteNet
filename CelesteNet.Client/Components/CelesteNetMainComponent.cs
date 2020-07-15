@@ -621,6 +621,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 PlayerNameTag?.RemoveSelf();
                 level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName));
             }
+            PlayerNameTag.Alpha = Settings.ShowOwnName ? 1f : 0f;
 
             SendFrame();
         }

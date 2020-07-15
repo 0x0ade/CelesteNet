@@ -105,7 +105,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [YamlIgnore]
         public float UIScale {
             get {
-                if (UIScaleOverride != 0f)
+                if (UIScaleOverride >= 0f)
                     return UIScaleOverride;
 
                 switch (UISize) {

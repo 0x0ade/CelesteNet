@@ -430,18 +430,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     goto Release;
 
                 RunOnMainThread(() => {
-                    IsGrabbed = true;
-                    GrabbedBy = ghost;
                     GrabTimeout = 0f;
 
                     player.Position = Calc.Round(grab.Position);
 
                     if (grab.Force != null) {
+                        GrabbedBy = null;
                         IsGrabbed = false;
                         player.ForceCameraUpdate = false;
                         player.StateMachine.State = Player.StNormal;
                         GrabLastSpeed = player.Speed = grab.Force.Value.SafeNormalize() * 300f + Vector2.UnitY * -70f;
+
                     } else {
+                        GrabbedBy = ghost;
+                        IsGrabbed = true;
                         player.ForceCameraUpdate = true;
                         player.StateMachine.State = Player.StFrozen;
                         GrabLastSpeed = player.Speed = Vector2.Zero;
@@ -579,6 +581,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (grabReleased) {
                 GrabbedBy = null;
                 IsGrabbed = false;
+            }
+
+            if (!IsGrabbed) {
+                GrabTimeout = 0f;
             }
 
             MapEditorArea = null;

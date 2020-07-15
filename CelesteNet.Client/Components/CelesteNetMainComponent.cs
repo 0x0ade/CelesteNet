@@ -48,8 +48,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public Ghost GrabbedBy;
         public Vector2 GrabLastSpeed;
+        public bool IsGrabbed = false;
         public float GrabTimeout = 0f;
-        public const float GrabTimeoutMax = 0.1f;
+        public const float GrabTimeoutMax = 0.3f;
 
         public CelesteNetMainComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -429,12 +430,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     goto Release;
 
                 RunOnMainThread(() => {
+                    IsGrabbed = true;
                     GrabbedBy = ghost;
                     GrabTimeout = 0f;
 
-                    player.Position = grab.Position;
+                    player.Position = Calc.Round(grab.Position);
 
                     if (grab.Force != null) {
+                        IsGrabbed = false;
                         player.ForceCameraUpdate = false;
                         player.StateMachine.State = Player.StNormal;
                         GrabLastSpeed = player.Speed = grab.Force.Value.SafeNormalize() * 300f + Vector2.UnitY * -70f;
@@ -443,6 +446,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         player.StateMachine.State = Player.StFrozen;
                         GrabLastSpeed = player.Speed = Vector2.Zero;
                         player.Hair.AfterUpdate(); // TODO: Replace with node offset update instead.
+                        level.EnforceBounds(player);
                     }
                 });
 
@@ -569,7 +573,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             bool grabReleased = false;
-            grabReleased |= GrabbedBy != null && (GrabTimeout += Engine.RawDeltaTime) >= GrabTimeoutMax;
+            grabReleased |= IsGrabbed && (GrabTimeout += Engine.RawDeltaTime) >= GrabTimeoutMax;
             grabReleased |= GrabbedBy != null && GrabbedBy.Scene != level;
 
             if (grabReleased)
@@ -716,16 +720,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void SendFrame() {
-            if (Player == null || Player.Sprite == null || Player.Hair == null)
+            Player player = Player;
+            if (player == null || player.Sprite == null || player.Hair == null)
                 return;
 
-            int hairCount = Player.Sprite.HairCount;
+            int hairCount = player.Sprite.HairCount;
             Color[] hairColors = new Color[hairCount];
             for (int i = 0; i < hairCount; i++)
-                hairColors[i] = Player.Hair.GetHairColor(i);
+                hairColors[i] = player.Hair.GetHairColor(i);
             string[] hairTextures = new string[hairCount];
             for (int i = 0; i < hairCount; i++)
-                hairTextures[i] = Player.Hair.GetHairTexture(i).AtlasPath;
+                hairTextures[i] = player.Hair.GetHairTexture(i).AtlasPath;
 
             DataPlayerFrame.Entity[] followers;
             DataPlayerFrame.Entity holding = null;
@@ -734,11 +739,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 followers = Dummy<DataPlayerFrame.Entity>.EmptyArray;
 
             } else {
-                Leader leader = Player.Get<Leader>();
+                Leader leader = player.Get<Leader>();
                 followers = new DataPlayerFrame.Entity[leader.Followers.Count];
                 for (int i = 0; i < followers.Length; i++) {
-                    Follower f = leader.Followers[i];
-                    Sprite s = f.Entity.Get<Sprite>();
+                    Entity f = leader.Followers[i]?.Entity;
+                    Sprite s = f?.Get<Sprite>();
                     if (s == null) {
                         followers[i] = new DataPlayerFrame.Entity {
                             Scale = Vector2.One,
@@ -756,7 +761,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     followers[i] = new DataPlayerFrame.Entity {
                         Scale = s.Scale,
                         Color = s.Color,
-                        Depth = f.Entity.Depth,
+                        Depth = f.Depth,
                         SpriteRate = s.Rate,
                         SpriteJustify = s.Justify,
                         SpriteID = s.GetID(),
@@ -765,15 +770,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     };
                 }
 
-                Holdable holdable = Player.Holding;
+                Entity holdable = player.Holding?.Entity;
                 if (holdable != null) {
-                    Sprite s = holdable.Entity.Get<Sprite>();
+                    Sprite s = holdable.Get<Sprite>();
                     if (s?.GetType() == typeof(Sprite)) {
                         holding = new DataPlayerFrame.Entity {
-                            Position = holdable.Entity.Position,
+                            Position = holdable.Position,
                             Scale = s.Scale,
                             Color = s.Color,
-                            Depth = holdable.Entity.Depth,
+                            Depth = holdable.Depth,
                             SpriteRate = s.Rate,
                             SpriteJustify = s.Justify,
                             SpriteID = s.GetID(),
@@ -790,19 +795,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     Player = Client.PlayerInfo,
 
-                    Position = Player.Position,
-                    Speed = Player.Speed,
-                    Scale = Player.Sprite.Scale,
-                    Color = Player.Sprite.Color,
-                    Facing = Player.Facing,
-                    Depth = Player.Depth,
+                    Position = player.Position,
+                    Speed = player.Speed,
+                    Scale = player.Sprite.Scale,
+                    Color = player.Sprite.Color,
+                    Facing = player.Facing,
+                    Depth = player.Depth,
 
-                    SpriteMode = Player.Sprite.Mode,
-                    CurrentAnimationID = Player.Sprite.CurrentAnimationID,
-                    CurrentAnimationFrame = Player.Sprite.CurrentAnimationFrame,
+                    SpriteMode = player.Sprite.Mode,
+                    CurrentAnimationID = player.Sprite.CurrentAnimationID,
+                    CurrentAnimationFrame = player.Sprite.CurrentAnimationFrame,
 
-                    HairColor = Player.Hair.Color,
-                    HairSimulateMotion = Player.Hair.SimulateMotion,
+                    HairColor = player.Hair.Color,
+                    HairSimulateMotion = player.Hair.SimulateMotion,
 
                     HairCount = (byte) hairCount,
                     HairColors = hairColors,
@@ -813,10 +818,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Holding = holding,
 
                     // TODO: Get rid of this, sync particles separately!
-                    DashWasB = Player.StateMachine.State == Player.StDash ? Player.GetWasDashB() : (bool?) null,
-                    DashDir = Player.DashDir,
+                    DashWasB = player.StateMachine.State == Player.StDash ? player.GetWasDashB() : (bool?) null,
+                    DashDir = player.DashDir,
 
-                    Dead = Player.Dead
+                    Dead = player.Dead
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendFrame:\n{e}");

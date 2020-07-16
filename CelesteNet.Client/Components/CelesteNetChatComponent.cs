@@ -172,7 +172,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (MInput.Keyboard.Pressed(Keys.Up) && RepeatIndex < Repeat.Count - 1) {
                     RepeatIndex++;
 
-                } else if (Input.ESC.Pressed || Input.Pause.Pressed) {
+                } else if (Input.ESC.Pressed) {
                     Active = false;
                 }
             }

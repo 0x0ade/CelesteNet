@@ -159,6 +159,8 @@ namespace Celeste.Mod.CelesteNet {
         public bool SendKeepAliveUpdate;
         public bool SendKeepAliveNonUpdate;
 
+        public int MaxCount = 0;
+
         public CelesteNetSendQueue(CelesteNetConnection con) {
             Con = con;
 
@@ -174,6 +176,8 @@ namespace Celeste.Mod.CelesteNet {
 
         public void Enqueue(DataType data) {
             lock (Queue) {
+                if (MaxCount > 0 && Queue.Count >= MaxCount)
+                    Queue.Dequeue();
                 Queue.Enqueue(data);
                 try {
                     Event.Set();

@@ -70,7 +70,8 @@ namespace Celeste.Mod.CelesteNet {
             TCPQueue = DefaultSendQueue;
             TCPQueue.SendKeepAliveUpdate = false;
             SendQueues.Add(UDPQueue = new CelesteNetSendQueue(this) {
-                SendKeepAliveUpdate = true
+                SendKeepAliveUpdate = true,
+                MaxCount = 64
             });
         }
 

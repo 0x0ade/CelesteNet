@@ -14,6 +14,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public string CommandPrefix { get; set; } = "/";
 
         public bool GreetPlayers { get; set; } = true;
+        public bool LogEmotes { get; set; } = false;
 
         public int SpamCount { get; set; } = 3;
         public int SpamCountMax { get; set; } = 4;

@@ -196,13 +196,19 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (playerInfo == null)
                 return;
 
-            PrepareAndLog(con, new DataChat {
+            DataChat msg = new DataChat {
                 Player = playerInfo,
                 Targets = new DataPlayerInfo[0],
                 Text = emote.Text,
                 Tag = "emote",
                 Color = Settings.ColorLogEmote
-            });
+            };
+
+            if (Settings.LogEmotes) {
+                PrepareAndLog(con, msg);
+            } else {
+                Logger.Log(LogLevel.INF, "chatemote", msg.ToString(false, true));
+            }
         }
 
 

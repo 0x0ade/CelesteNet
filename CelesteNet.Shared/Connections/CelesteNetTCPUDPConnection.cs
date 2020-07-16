@@ -72,7 +72,6 @@ namespace Celeste.Mod.CelesteNet {
             TcpClient tcp = new TcpClient(host, port);
             tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, 3000);
             tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 3000);
-            tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
 
             UdpClient? udp = null;
             if (canUDP) {

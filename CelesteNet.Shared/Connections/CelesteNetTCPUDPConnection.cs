@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -26,8 +27,7 @@ namespace Celeste.Mod.CelesteNet {
         public UdpClient? UDP;
         public bool SendUDP = true;
 
-        protected MemoryStream BufferStream;
-        protected BinaryWriter BufferWriter;
+        protected ConcurrentBag<BufferHelper> BufferHelpers = new ConcurrentBag<BufferHelper>();
 
         protected Thread? ReadTCPThread;
         protected Thread? ReadUDPThread;
@@ -40,6 +40,9 @@ namespace Celeste.Mod.CelesteNet {
         protected IPEndPoint? TCPRemoteEndPoint;
         public IPEndPoint? UDPLocalEndPoint;
         public IPEndPoint? UDPRemoteEndPoint;
+
+        public readonly CelesteNetSendQueue TCPQueue;
+        public readonly CelesteNetSendQueue UDPQueue;
 
         private readonly object UDPErrorLock = new object();
         private Exception UDPErrorLast;
@@ -63,8 +66,12 @@ namespace Celeste.Mod.CelesteNet {
         private CelesteNetTCPUDPConnection(DataContext data)
 #pragma warning restore CS8618
             : base(data) {
-            BufferStream = new MemoryStream();
-            BufferWriter = new BinaryWriter(BufferStream, Encoding.UTF8);
+
+            TCPQueue = DefaultSendQueue;
+            TCPQueue.SendKeepAliveUpdate = false;
+            SendQueues.Add(UDPQueue = new CelesteNetSendQueue(this) {
+                SendKeepAliveUpdate = true
+            });
         }
 
         public CelesteNetTCPUDPConnection(DataContext data, string host, int port, bool canUDP)
@@ -72,6 +79,7 @@ namespace Celeste.Mod.CelesteNet {
             TcpClient tcp = new TcpClient(host, port);
             tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, 3000);
             tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 3000);
+            tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
 
             UdpClient? udp = null;
             if (canUDP) {
@@ -133,25 +141,37 @@ namespace Celeste.Mod.CelesteNet {
             ReadUDPThread.Start();
         }
 
+        public bool SendViaUDP(DataType data)
+            => (data.DataFlags & DataFlags.Update) == DataFlags.Update && UDP != null && SendUDP;
+
+        public override CelesteNetSendQueue GetQueue(DataType data) {
+            if (SendViaUDP(data))
+                return UDPQueue;
+            return TCPQueue;
+        }
+
         public override void SendRaw(DataType data) {
-            lock (BufferStream) {
-                // Let's have some fun with dumb port sniffers.
-                if (data is DataTCPHTTPTeapot teapot) {
-                    WriteTeapot(teapot.ConnectionToken);
-                    return;
-                }
+            // Let's have some fun with dumb port sniffers.
+            if (data is DataTCPHTTPTeapot teapot) {
+                WriteTeapot(teapot.ConnectionToken);
+                return;
+            }
 
-                if (data is DataUDPConnectionToken token) {
-                    WriteToken(token.Value);
-                    return;
-                }
+            if (data is DataUDPConnectionToken token) {
+                WriteToken(token.Value);
+                return;
+            }
 
-                BufferStream.Seek(0, SeekOrigin.Begin);
+            if (!BufferHelpers.TryTake(out BufferHelper buffer))
+                buffer = new BufferHelper();
 
-                int length = Data.Write(BufferWriter, data);
-                byte[] raw = BufferStream.GetBuffer();
+            try {
+                buffer.Stream.Seek(0, SeekOrigin.Begin);
 
-                if ((data.DataFlags & DataFlags.Update) == DataFlags.Update && UDP != null && SendUDP) {
+                int length = Data.Write(buffer.Writer, data);
+                byte[] raw = buffer.Stream.GetBuffer();
+
+                if (SendViaUDP(data)) {
                     // Missed updates aren't that bad...
                     // Make sure that we have a default address if sending it without an endpoint
                     // UDP is a mess and the UdpClient can be shared.
@@ -175,6 +195,12 @@ namespace Celeste.Mod.CelesteNet {
 
                 } else {
                     TCPWriter.Write(raw, 0, length);
+                }
+            } finally {
+                lock (DisposeLock) {
+                    BufferHelpers.Add(buffer);
+                    if (!IsAlive)
+                        buffer.Dispose();
                 }
             }
         }
@@ -286,8 +312,8 @@ namespace Celeste.Mod.CelesteNet {
                 UDP?.Close();
             }
 
-            BufferWriter.Dispose();
-            BufferStream.Dispose();
+            foreach (BufferHelper buffer in BufferHelpers)
+                buffer.Dispose();
 
         }
 
@@ -296,6 +322,23 @@ namespace Celeste.Mod.CelesteNet {
             if (UDPRemoteEndPoint != null)
                 s += $" / {UDPLocalEndPoint?.ToString() ?? "???"} <-> {UDPRemoteEndPoint?.ToString() ?? "???"}";
             return s;
+        }
+
+        protected class BufferHelper : IDisposable {
+
+            public MemoryStream Stream;
+            public BinaryWriter Writer;
+
+            public BufferHelper() {
+                Stream = new MemoryStream();
+                Writer = new BinaryWriter(Stream, Encoding.UTF8);
+            }
+
+            public void Dispose() {
+                Writer?.Dispose();
+                Stream?.Dispose();
+            }
+
         }
 
     }

@@ -19,7 +19,8 @@ namespace Celeste.Mod.CelesteNet {
         public readonly string Creator = "Unknown";
         public readonly DataContext Data;
 
-        private readonly object DisposeLock = new object();
+        protected readonly object DisposeLock = new object();
+
         private Action<CelesteNetConnection>? _OnDisconnect;
         public event Action<CelesteNetConnection> OnDisconnect {
             add {
@@ -66,20 +67,16 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        private readonly Queue<DataType> SendQueue = new Queue<DataType>();
-        private readonly ManualResetEvent SendQueueEvent;
-        private readonly WaitHandle[] SendQueueEventHandles;
-        private readonly Thread SendQueueThread;
-
-        private DateTime LastSendUpdate;
-        private DateTime LastSendNonUpdate;
-
         public virtual bool IsAlive { get; protected set; } = true;
         public abstract bool IsConnected { get; }
         public abstract string ID { get; }
         public abstract string UID { get; }
 
         public bool SendKeepAlive;
+
+        protected List<CelesteNetSendQueue> SendQueues = new List<CelesteNetSendQueue>();
+
+        public readonly CelesteNetSendQueue DefaultSendQueue;
 
         public CelesteNetConnection(DataContext data) {
             Data = data;
@@ -95,17 +92,13 @@ namespace Celeste.Mod.CelesteNet {
                 break;
             }
 
-            SendQueueEvent = new ManualResetEvent(false);
-            SendQueueEventHandles = new WaitHandle[] { SendQueueEvent };
-
-            SendQueueThread = new Thread(SendQueueThreadLoop) {
-                Name = $"{GetType().Name} SendQueue ({Creator} - {GetHashCode()})",
-                IsBackground = true
-            };
-            SendQueueThread.Start();
+            SendQueues.Add(DefaultSendQueue = new CelesteNetSendQueue(this) {
+                SendKeepAliveUpdate = true,
+                SendKeepAliveNonUpdate = true
+            });
         }
 
-        public void Send(DataType? data) {
+        public virtual void Send(DataType? data) {
             if (data == null)
                 return;
             data.Meta = data.GenerateMeta(Data);
@@ -116,13 +109,11 @@ namespace Celeste.Mod.CelesteNet {
             lock (SendFilterLock)
                 if (!(_OnSendFilter?.InvokeWhileTrue(this, data) ?? true))
                     return;
-            lock (SendQueue) {
-                SendQueue.Enqueue(data);
-                try {
-                    SendQueueEvent.Set();
-                } catch (ObjectDisposedException) {
-                }
-            }
+            GetQueue(data)?.Enqueue(data);
+        }
+
+        public virtual CelesteNetSendQueue GetQueue(DataType data) {
+            return DefaultSendQueue;
         }
 
         public abstract void SendRaw(DataType data);
@@ -138,74 +129,9 @@ namespace Celeste.Mod.CelesteNet {
             Logger.Log(level, "con", $"Creator: {Creator}");
         }
 
-        protected virtual void SendQueueThreadLoop() {
-            try {
-                while (IsAlive) {
-                    if (SendQueue.Count == 0)
-                        WaitHandle.WaitAny(SendQueueEventHandles, 1000);
-
-                    DateTime now = DateTime.UtcNow;
-
-                    while (SendQueue.Count > 0) {
-                        DataType data;
-                        lock (SendQueue)
-                            data = SendQueue.Dequeue();
-
-                        if (data is DataInternalDisconnect) {
-                            Dispose();
-                            return;
-                        }
-
-                        SendRaw(data);
-
-                        if ((data.DataFlags & DataFlags.Update) == DataFlags.Update)
-                            LastSendUpdate = now;
-                        else
-                            LastSendNonUpdate = now;
-                    }
-
-                    if (SendKeepAlive) {
-                        if ((now - LastSendUpdate).TotalSeconds >= 1D) {
-                            SendRaw(new DataKeepAlive {
-                                IsUpdate = true
-                            });
-                            LastSendUpdate = now;
-                        }
-                        if ((now - LastSendNonUpdate).TotalSeconds >= 1D) {
-                            SendRaw(new DataKeepAlive {
-                                IsUpdate = false
-                            });
-                            LastSendNonUpdate = now;
-                        }
-                    }
-
-                    lock (SendQueue)
-                        if (SendQueue.Count == 0)
-                            SendQueueEvent.Reset();
-                }
-
-            } catch (ThreadInterruptedException) {
-
-            } catch (ThreadAbortException) {
-
-            } catch (Exception e) {
-                if (!(e is IOException) && !(e is ObjectDisposedException))
-                    Logger.Log(LogLevel.CRI, "con", $"Failed sending data:\n{e}");
-
-                Dispose();
-
-            } finally {
-                SendQueueEvent.Dispose();
-            }
-        }
-
         protected virtual void Dispose(bool disposing) {
             IsAlive = false;
             _OnDisconnect?.Invoke(this);
-            try {
-                SendQueueEvent.Set();
-            } catch (ObjectDisposedException) {
-            }
         }
 
         public void Dispose() {
@@ -214,6 +140,118 @@ namespace Celeste.Mod.CelesteNet {
                     return;
                 Dispose(true);
             }
+        }
+
+    }
+
+    public class CelesteNetSendQueue : IDisposable {
+
+        public readonly CelesteNetConnection Con;
+
+        private readonly Queue<DataType> Queue = new Queue<DataType>();
+        private readonly ManualResetEvent Event;
+        private readonly WaitHandle[] EventHandles;
+        private readonly Thread Thread;
+
+        private DateTime LastUpdate;
+        private DateTime LastNonUpdate;
+
+        public bool SendKeepAliveUpdate;
+        public bool SendKeepAliveNonUpdate;
+
+        public CelesteNetSendQueue(CelesteNetConnection con) {
+            Con = con;
+
+            Event = new ManualResetEvent(false);
+            EventHandles = new WaitHandle[] { Event };
+
+            Thread = new Thread(ThreadLoop) {
+                Name = $"{GetType().Name} #{GetHashCode()} for {con}",
+                IsBackground = true
+            };
+            Thread.Start();
+        }
+
+        public void Enqueue(DataType data) {
+            lock (Queue) {
+                Queue.Enqueue(data);
+                try {
+                    Event.Set();
+                } catch (ObjectDisposedException) {
+                }
+            }
+        }
+
+        protected virtual void ThreadLoop() {
+            try {
+                while (Con.IsAlive) {
+                    if (Queue.Count == 0)
+                        WaitHandle.WaitAny(EventHandles, 1000);
+
+                    DateTime now = DateTime.UtcNow;
+
+                    while (Queue.Count > 0) {
+                        DataType data;
+                        lock (Queue)
+                            data = Queue.Dequeue();
+
+                        if (data is DataInternalDisconnect) {
+                            Dispose();
+                            return;
+                        }
+
+                        Con.SendRaw(data);
+
+                        if ((data.DataFlags & DataFlags.Update) == DataFlags.Update)
+                            LastUpdate = now;
+                        else
+                            LastNonUpdate = now;
+                    }
+
+                    if (Con.SendKeepAlive) {
+                        if (SendKeepAliveUpdate && (now - LastUpdate).TotalSeconds >= 1D) {
+                            Con.SendRaw(new DataKeepAlive {
+                                IsUpdate = true
+                            });
+                            LastUpdate = now;
+                        }
+                        if (SendKeepAliveNonUpdate && (now - LastNonUpdate).TotalSeconds >= 1D) {
+                            Con.SendRaw(new DataKeepAlive {
+                                IsUpdate = false
+                            });
+                            LastNonUpdate = now;
+                        }
+                    }
+
+                    lock (Queue)
+                        if (Queue.Count == 0)
+                            Event.Reset();
+                }
+
+            } catch (ThreadInterruptedException) {
+
+            } catch (ThreadAbortException) {
+
+            } catch (Exception e) {
+                if (!(e is IOException) && !(e is ObjectDisposedException))
+                    Logger.Log(LogLevel.CRI, "conqueue", $"Failed sending data:\n{e}");
+
+                Con.Dispose();
+
+            } finally {
+                Event.Dispose();
+            }
+        }
+
+        protected virtual void Dispose(bool disposing) {
+            try {
+                Event.Set();
+            } catch (ObjectDisposedException) {
+            }
+        }
+
+        public void Dispose() {
+            Dispose(true);
         }
 
     }

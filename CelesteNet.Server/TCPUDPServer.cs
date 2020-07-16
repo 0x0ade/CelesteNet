@@ -68,28 +68,35 @@ namespace Celeste.Mod.CelesteNet.Server {
             try {
                 while (Server.IsAlive && TCPListener != null) {
                     TcpClient client = TCPListener.AcceptTcpClient();
+                    CelesteNetTCPUDPConnection? con = null;
+                    try {
+                        Logger.Log(LogLevel.VVV, "tcpudp", $"New TCP connection: {client.Client.RemoteEndPoint}");
 
-                    Logger.Log(LogLevel.VVV, "tcpudp", $"New TCP connection: {client.Client.RemoteEndPoint}");
+                        client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
-                    client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
-                    client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
+                        con = new CelesteNetTCPUDPConnection(Server.Data, client, null);
+                        uint token;
+                        lock (UDPPending)
+                            token = UDPNextID++;
+                        UDPPendingKey key = new UDPPendingKey {
+                            IPHash = ((IPEndPoint) client.Client.RemoteEndPoint).Address.GetHashCode(),
+                            Token = token
+                        };
+                        UDPKeys[con] = key;
+                        UDPPending[key] = con;
+                        con.OnDisconnect += RemoveUDPPending;
+                        con.Send(new DataTCPHTTPTeapot() {
+                            ConnectionToken = token
+                        });
+                        con.StartReadTCP();
+                        Server.HandleConnect(con);
 
-                    CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Server.Data, client, null);
-                    uint token;
-                    lock (UDPPending)
-                        token = UDPNextID++;
-                    UDPPendingKey key = new UDPPendingKey {
-                        IPHash = ((IPEndPoint) client.Client.RemoteEndPoint).Address.GetHashCode(),
-                        Token = token
-                    };
-                    UDPKeys[con] = key;
-                    UDPPending[key] = con;
-                    con.OnDisconnect += RemoveUDPPending;
-                    con.Send(new DataTCPHTTPTeapot() {
-                        ConnectionToken = token
-                    });
-                    con.StartReadTCP();
-                    Server.HandleConnect(con);
+                    } catch (ThreadAbortException) {
+
+                    } catch (Exception e) {
+                        Logger.Log(LogLevel.CRI, "tcpudp", $"Failed handling TCP connection:\n{e}");
+                        con?.Dispose();
+                    }
                 }
 
             } catch (ThreadAbortException) {

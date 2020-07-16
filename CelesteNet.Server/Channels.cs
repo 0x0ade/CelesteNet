@@ -170,6 +170,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             Ctx.BySession[session] = this;
 
             session.OnEnd += RemoveByDC;
+
+            if (session.PlayerInfo == null)
+                RemoveByDC(session, null);
         }
 
         public void Remove(CelesteNetPlayerSession session) {

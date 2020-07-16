@@ -458,9 +458,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             } else if (player.Holding?.Entity is Ghost ghost && ghost.PlayerInfo.ID == grab.Grabbing.ID && grab.Force != null) {
                 RunOnMainThread(() => {
-                    ghost.Collidable = false;
-                    player.Drop();
-                    ghost.Collidable = true;
+                    if (ghost?.Holding?.Scene == player.Scene && player.Scene != null) {
+                        ghost.Collidable = false;
+                        player.Drop();
+                        ghost.Collidable = true;
+                    }
                 });
             }
 

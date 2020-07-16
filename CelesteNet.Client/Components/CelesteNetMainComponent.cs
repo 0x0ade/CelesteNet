@@ -1,11 +1,14 @@
 ﻿using Celeste.Editor;
 using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.Core;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Mono.Cecil.Cil;
 using Monocle;
+using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Concurrent;
@@ -52,6 +55,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public float GrabTimeout = 0f;
         public const float GrabTimeoutMax = 0.3f;
 
+        private Vector2? NextRespawnPosition;
+
+        private ILHook ILHookTransitionRoutine;
+
         public CelesteNetMainComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
@@ -73,6 +80,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     On.Celeste.Player.Play += OnPlayerPlayAudio;
                     On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
                     On.Celeste.PlayerSprite.ctor += OnPlayerSpriteCtor;
+                    On.Celeste.Level.LoadNewPlayer += OnLoadNewPlayer;
+
+                    MethodInfo transitionRoutine =
+                        typeof(Level).GetNestedType("<TransitionRoutine>d__24", BindingFlags.NonPublic)
+                        ?.GetMethod("MoveNext");
+                    if (transitionRoutine != null)
+                        ILHookTransitionRoutine = new ILHook(transitionRoutine, ILTransitionRoutine);
                 }
             });
         }
@@ -88,6 +102,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 On.Celeste.Player.Play -= OnPlayerPlayAudio;
                 On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
                 On.Celeste.PlayerSprite.ctor -= OnPlayerSpriteCtor;
+                On.Celeste.Level.LoadNewPlayer -= OnLoadNewPlayer;
+
+                ILHookTransitionRoutine?.Dispose();
+                ILHookTransitionRoutine = null;
             });
 
             Cleanup();
@@ -389,22 +407,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 session.CoreMode = data.CoreMode;
             }
 
-            if (target.Position != null) {
-                Vector2? respawnPoint = session.RespawnPoint;
-                session.RespawnPoint = target.Position;
-                Action<Level> onBegin = null;
-                onBegin = lvl => {
-                    if (onBegin == null)
-                        return;
-                    QueuedTaskHelper.Do(target, () => {
-                        if (lvl.Session.RespawnPoint == target.Position)
-                            lvl.Session.RespawnPoint = respawnPoint ?? lvl.Session.RespawnPoint;
-                    });
-                    area.OnLevelBegin -= onBegin;
-                    onBegin = null;
-                };
-                area.OnLevelBegin += onBegin;
-            }
+            if (target.Position != null)
+                NextRespawnPosition = target.Position;
 
             session.StartedFromBeginning = false;
 
@@ -704,6 +708,29 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private void OnPlayerSpriteCtor(On.Celeste.PlayerSprite.orig_ctor orig, PlayerSprite self, PlayerSpriteMode mode) {
             orig(self, mode & (PlayerSpriteMode) ~(1 << 31));
+        }
+
+        private Player OnLoadNewPlayer(On.Celeste.Level.orig_LoadNewPlayer orig, Vector2 position, PlayerSpriteMode spriteMode) {
+            Player player = orig(position, spriteMode);
+            if (NextRespawnPosition != null) {
+                player.Position = NextRespawnPosition.Value;
+                NextRespawnPosition = null;
+            }
+            return player;
+        }
+
+        private void ILTransitionRoutine(ILContext il) {
+            ILCursor c = new ILCursor(il);
+            
+            if (c.TryGotoNext(i => i.MatchLdstr("Celeste"))) {
+                c.Next.Operand = "";
+            }
+
+            if (c.TryGotoNext(i => i.MatchCallOrCallvirt<CoreModuleSettings>("get_DisableAntiSoftlock"))) {
+                c.Index++;
+                c.Emit(OpCodes.Pop);
+                c.Emit(OpCodes.Ldc_I4_0);
+            }
         }
 
         #endregion

@@ -202,13 +202,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             ChatModule chat = f.Server.Get<ChatModule>();
             List<object> log = new List<object>();
-            lock (chat.ChatLog) {
-                RingBuffer<DataChat> buffer = chat.ChatBuffer;
-                for (int i = Math.Max(-chat.ChatBuffer.Moved, -count); i < 0; i++) {
-                    DataChat msg = buffer[i];
-                    if (msg.Target == null || auth)
-                        log.Add(detailed ? msg.ToDetailedFrontendChat() : msg.ToFrontendChat());
-                }
+            RingBuffer<DataChat> buffer = chat.ChatBuffer;
+            for (int i = Math.Max(-chat.ChatBuffer.Moved, -count); i < 0; i++) {
+                DataChat msg = buffer[i];
+                if (msg.Target == null || auth)
+                    log.Add(detailed ? msg.ToDetailedFrontendChat() : msg.ToFrontendChat());
             }
 
             f.RespondJSON(c, log);

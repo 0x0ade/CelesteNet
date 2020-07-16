@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatModule : CelesteNetServerModule<ChatSettings> {
 
-        public readonly Dictionary<uint, DataChat> ChatLog = new Dictionary<uint, DataChat>();
+        public readonly ConcurrentDictionary<uint, DataChat> ChatLog = new ConcurrentDictionary<uint, DataChat>();
         public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
@@ -125,10 +125,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (msg.Text.Length == 0)
                 return null;
 
-            lock (ChatLog) {
-                ChatLog[msg.ID] = msg;
+            ChatLog[msg.ID] = msg;
+            lock (ChatBuffer)
                 ChatBuffer.Set(msg).Move(1);
-            }
 
             if (!msg.CreatedByServer)
                 Logger.Log(LogLevel.INF, "chatmsg", msg.ToString(false, true));

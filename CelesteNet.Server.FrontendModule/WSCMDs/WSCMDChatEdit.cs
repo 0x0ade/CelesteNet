@@ -19,10 +19,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return null;
 
             ChatModule chat = Frontend.Server.Get<ChatModule>();
-            DataChat? msg;
-            lock (chat.ChatLog)
-                if (!chat.ChatLog.TryGetValue((uint?) input.ID ?? uint.MaxValue, out msg))
-                    return null;
+            if (!chat.ChatLog.TryGetValue((uint?) input.ID ?? uint.MaxValue, out DataChat? msg))
+                return null;
 
             if (input.Color != null)
                 msg.Color = Calc.HexToColor((string) input.Color);

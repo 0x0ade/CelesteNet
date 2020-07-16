@@ -330,89 +330,88 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataMoveTo target) {
-            Session session = Session;
-
             RunOnMainThread(() => {
+                Session session = Session;
+
                 if (SaveData.Instance == null)
                     SaveData.InitializeDebugMode();
-            }, true);
 
-            AreaData area = AreaDataExt.Get(target.SID);
+                AreaData area = AreaDataExt.Get(target.SID);
 
-            if (area == null) {
-                if (target.Force || string.IsNullOrEmpty(target.SID)) {
-                    RunOnMainThread(() => {
-                        OnExitLevel(null, null, LevelExit.Mode.SaveAndQuit, null, null);
+                if (area == null) {
+                    if (target.Force || string.IsNullOrEmpty(target.SID)) {
+                        RunOnMainThread(() => {
+                            OnExitLevel(null, null, LevelExit.Mode.SaveAndQuit, null, null);
 
-                        string message = Dialog.Get("postcard_levelgone");
-                        if (string.IsNullOrEmpty(target.SID))
-                            message = Dialog.Get("postcard_celestenetclient_backtomenu");
+                            string message = Dialog.Get("postcard_levelgone");
+                            if (string.IsNullOrEmpty(target.SID))
+                                message = Dialog.Get("postcard_celestenetclient_backtomenu");
 
-                        message = message.Replace("((player))", SaveData.Instance.Name);
-                        message = message.Replace("((sid))", target.SID);
+                            message = message.Replace("((player))", SaveData.Instance.Name);
+                            message = message.Replace("((sid))", target.SID);
 
-                        LevelEnterExt.ErrorMessage = message;
-                        LevelEnter.Go(new Session(new AreaKey(1).SetSID("")), false);
-                    });
+                            LevelEnterExt.ErrorMessage = message;
+                            LevelEnter.Go(new Session(new AreaKey(1).SetSID("")), false);
+                        });
+                    }
+                    return;
                 }
-                return;
-            }
 
-            if (session == null || session.Area.SID != target.SID || session.Area.Mode != target.Mode) {
-                if (session != null)
-                    UserIO.SaveHandler(true, true);
+                if (session == null || session.Area.SID != target.SID || session.Area.Mode != target.Mode) {
+                    if (session != null)
+                        UserIO.SaveHandler(true, true);
 
-                session = new Session(area.ToKey(target.Mode));
+                    session = new Session(area.ToKey(target.Mode));
 
-            } else if (session != null) {
-                // Best™ way to clone the session.
-                XmlSerializer serializer = new XmlSerializer(typeof(Session));
-                using (MemoryStream ms = new MemoryStream()) {
-                    serializer.Serialize(ms, session);
-                    ms.Seek(0, SeekOrigin.Begin);
-                    session = (Session) serializer.Deserialize(ms);
+                } else if (session != null) {
+                    // Best™ way to clone the session.
+                    XmlSerializer serializer = new XmlSerializer(typeof(Session));
+                    using (MemoryStream ms = new MemoryStream()) {
+                        serializer.Serialize(ms, session);
+                        ms.Seek(0, SeekOrigin.Begin);
+                        session = (Session) serializer.Deserialize(ms);
+                    }
                 }
-            }
 
-            if (!string.IsNullOrEmpty(target.Level) && session.MapData.Get(target.Level) != null) {
-                session.Level = target.Level;
-                session.FirstLevel = false;
-            }
+                if (!string.IsNullOrEmpty(target.Level) && session.MapData.Get(target.Level) != null) {
+                    session.Level = target.Level;
+                    session.FirstLevel = false;
+                }
 
-            if (target.Session != null && target.Session.InSession) {
-                DataSession data = target.Session;
-                session.Audio = data.Audio.ToState();
-                session.RespawnPoint = data.RespawnPoint;
-                session.Inventory = data.Inventory;
-                session.Flags = data.Flags;
-                session.LevelFlags = data.LevelFlags;
-                session.Strawberries = data.Strawberries;
-                session.DoNotLoad = data.DoNotLoad;
-                session.Keys = data.Keys;
-                session.Counters = data.Counters;
-                session.FurthestSeenLevel = data.FurthestSeenLevel;
-                session.StartCheckpoint = data.StartCheckpoint;
-                session.ColorGrade = data.ColorGrade;
-                session.SummitGems = data.SummitGems;
-                session.FirstLevel = data.FirstLevel;
-                session.Cassette = data.Cassette;
-                session.HeartGem = data.HeartGem;
-                session.Dreaming = data.Dreaming;
-                session.GrabbedGolden = data.GrabbedGolden;
-                session.HitCheckpoint = data.HitCheckpoint;
-                session.LightingAlphaAdd = data.LightingAlphaAdd;
-                session.BloomBaseAdd = data.BloomBaseAdd;
-                session.DarkRoomAlpha = data.DarkRoomAlpha;
-                session.Time = data.Time;
-                session.CoreMode = data.CoreMode;
-            }
+                if (target.Session != null && target.Session.InSession) {
+                    DataSession data = target.Session;
+                    session.Audio = data.Audio.ToState();
+                    session.RespawnPoint = data.RespawnPoint;
+                    session.Inventory = data.Inventory;
+                    session.Flags = data.Flags;
+                    session.LevelFlags = data.LevelFlags;
+                    session.Strawberries = data.Strawberries;
+                    session.DoNotLoad = data.DoNotLoad;
+                    session.Keys = data.Keys;
+                    session.Counters = data.Counters;
+                    session.FurthestSeenLevel = data.FurthestSeenLevel;
+                    session.StartCheckpoint = data.StartCheckpoint;
+                    session.ColorGrade = data.ColorGrade;
+                    session.SummitGems = data.SummitGems;
+                    session.FirstLevel = data.FirstLevel;
+                    session.Cassette = data.Cassette;
+                    session.HeartGem = data.HeartGem;
+                    session.Dreaming = data.Dreaming;
+                    session.GrabbedGolden = data.GrabbedGolden;
+                    session.HitCheckpoint = data.HitCheckpoint;
+                    session.LightingAlphaAdd = data.LightingAlphaAdd;
+                    session.BloomBaseAdd = data.BloomBaseAdd;
+                    session.DarkRoomAlpha = data.DarkRoomAlpha;
+                    session.Time = data.Time;
+                    session.CoreMode = data.CoreMode;
+                }
 
-            if (target.Position != null)
-                NextRespawnPosition = target.Position;
+                NextRespawnPosition = target.Position ?? session.RespawnPoint;
 
-            session.StartedFromBeginning = false;
+                session.StartedFromBeginning = false;
 
-            RunOnMainThread(() => LevelEnter.Go(session, false));
+                LevelEnter.Go(session, true);
+            });
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerGrabPlayer grab) {

@@ -109,7 +109,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
 
                 prev.Remove(session);
-                c.Add(session);
+
+                if (session.PlayerInfo != null)
+                    c.Add(session);
 
                 DataChannelMove move = new DataChannelMove {
                     Player = session.PlayerInfo
@@ -172,7 +174,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             session.OnEnd += RemoveByDC;
 
             if (session.PlayerInfo == null)
-                RemoveByDC(session, null);
+                Remove(session);
         }
 
         public void Remove(CelesteNetPlayerSession session) {

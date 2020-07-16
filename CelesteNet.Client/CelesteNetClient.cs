@@ -163,12 +163,13 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             con.SendUDP = false;
 
+            UDPDeathScore += 10;
             if (UDPDeathScore < UDPDeathScoreMax) {
-                UDPDeathScore += 10;
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Retrying.\nUDP death score:{UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Retrying.\nUDP death score: {UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
 
             } else {
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died too often. Switching to TCP only.\nUDP death score:{UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+                UDPDeathScore = UDPDeathScoreMax;
+                Logger.Log(LogLevel.CRI, "main", $"UDP connection died too often. Switching to TCP only.\nUDP death score: {UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
                 con.UDP?.Close();
                 con.UDP = null;
             }

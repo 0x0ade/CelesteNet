@@ -17,9 +17,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "hsTUC";
         }
 
-        public override DataFlags DataFlags => base.DataFlags | (IsUDP ? DataFlags.Update : 0);
-
-        public bool IsUDP;
         public uint ConnectionToken;
 
         public override void Read(DataContext ctx, BinaryReader reader) {

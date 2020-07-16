@@ -41,6 +41,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private readonly object StartStopLock = new object();
 
+        private const int UDPDeathScoreMin = -10;
+        private const int UDPDeathScoreMax = 50;
         private int UDPDeathScore;
 
         public CelesteNetClient()
@@ -159,15 +161,19 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (!read)
                 return;
 
-            if (UDPDeathScore < 50) {
+            con.SendUDP = false;
+
+            if (UDPDeathScore < UDPDeathScoreMax) {
                 UDPDeathScore += 10;
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Oh well.\nUDP death score:{UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
-                con.SendUDP = false;
-                con.Send(new DataTCPOnlyDowngrade());
+                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Retrying.\nUDP death score:{UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
 
             } else {
                 Logger.Log(LogLevel.CRI, "main", $"UDP connection died too often. Switching to TCP only.\nUDP death score:{UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+                con.UDP?.Close();
+                con.UDP = null;
             }
+
+            con.Send(new DataTCPOnlyDowngrade());
         }
 
 
@@ -177,7 +183,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
                 if (con is CelesteNetTCPUDPConnection tcpudp) {
                     tcpudp.SendUDP = true;
-                    if (UDPDeathScore > -10)
+                    if (UDPDeathScore > UDPDeathScoreMin)
                         UDPDeathScore -= 1;
                 }
             }
@@ -194,19 +200,19 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             // Needed because while the server knows the client's TCP endpoint, the UDP endpoint is ambiguous.
             if (con is CelesteNetTCPUDPConnection && HandshakeClient is DataHandshakeTCPUDPClient hsClient) {
-                hsClient.IsUDP = true;
                 con.Send(new DataUDPConnectionToken {
                     Value = hsClient.ConnectionToken
                 });
             }
 
+            PlayerInfo = handshake.PlayerInfo;
             Data.Handle(con, handshake.PlayerInfo);
 
             HandshakeEvent.Set();
         }
 
         public void Handle(CelesteNetTCPUDPConnection con, DataTCPOnlyDowngrade downgrade) {
-            if (HandshakeClient is DataHandshakeTCPUDPClient hsClient) {
+            if (HandshakeClient is DataHandshakeTCPUDPClient hsClient && UDPDeathScore < UDPDeathScoreMax) {
                 con.StartReadUDP();
                 con.Send(new DataUDPConnectionToken {
                     Value = hsClient.ConnectionToken
@@ -215,7 +221,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
-            if (PlayerInfo == null || PlayerInfo.ID == info.ID)
+            if (PlayerInfo != null && PlayerInfo.ID == info.ID)
                 PlayerInfo = info;
         }
 

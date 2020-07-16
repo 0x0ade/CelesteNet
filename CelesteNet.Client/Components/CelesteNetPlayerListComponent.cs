@@ -15,9 +15,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public float Scale => Settings.UIScale;
 
+        public readonly Color ColorCountHeader = Calc.HexToColor("FFFF77");
         public readonly Color ColorChannelHeader = Calc.HexToColor("DDDD88");
         public readonly Color ColorChannelHeaderOwn = Calc.HexToColor("FFFF77");
-        public readonly Color ColorChannelHeaderPrivate = Calc.HexToColor("CCCC22") * 0.6f;
+        public readonly Color ColorChannelHeaderPrivate = Calc.HexToColor("DDDD88") * 0.6f;
 
         public bool Active;
 
@@ -44,14 +45,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (MDraw.DefaultFont == null || Client == null || Channels == null)
                 return;
 
+            DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
+
             List<Blob> list = new List<Blob>();
+
+            list.Add(new Blob {
+                Text = $"{all.Length} player{(all.Length == 1 ? "" : "s")}",
+                Color = ColorCountHeader
+            });
 
             StringBuilder builder = new StringBuilder();
 
 
             switch (Mode) {
                 case ListMode.Classic:
-                    foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
+                    foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
                         if (string.IsNullOrWhiteSpace(player.DisplayName))
                             continue;
 
@@ -88,8 +96,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         });
 
                         builder.Clear();
-                        foreach (uint playerID in own.Players) 
-                            listed.Add(ListPlayerUnderChannel(builder, playerID));
+                        foreach (DataPlayerInfo player in own.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) 
+                            listed.Add(ListPlayerUnderChannel(builder, player));
                         list.Add(new Blob {
                             Text = builder.ToString().Trim(),
                             ScaleFactor = 0.5f
@@ -106,8 +114,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         });
 
                         builder.Clear();
-                        foreach (uint playerID in channel.Players)
-                            listed.Add(ListPlayerUnderChannel(builder, playerID));
+                        foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p)))
+                            listed.Add(ListPlayerUnderChannel(builder, player));
                         list.Add(new Blob {
                             Text = builder.ToString().Trim(),
                             ScaleFactor = 1f
@@ -117,7 +125,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     bool wrotePrivate = false;
 
                     builder.Clear();
-                    foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
+                    foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
                         if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
                             continue;
 
@@ -144,8 +152,24 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             List = list;
         }
 
-        private DataPlayerInfo ListPlayerUnderChannel(StringBuilder builder, uint playerID) {
-            if (Client.Data.TryGetRef(playerID, out DataPlayerInfo player) && !string.IsNullOrEmpty(player.DisplayName)) {
+        private string GetOrderKey(DataPlayerInfo player) {
+            if (player == null)
+                return "9";
+
+            if (Client.Data.TryGetBoundRef(player, out DataPlayerState state) && !string.IsNullOrEmpty(state?.SID))
+                return $"0 {(state.SID != null ? "0" + state.SID : "9")} {player.FullName}";
+
+            return $"8 {player.FullName}";
+        }
+
+        private DataPlayerInfo GetPlayerInfo(uint id) {
+            if (Client.Data.TryGetRef(id, out DataPlayerInfo player) && !string.IsNullOrEmpty(player?.DisplayName))
+                return player;
+            return null;
+        }
+
+        private DataPlayerInfo ListPlayerUnderChannel(StringBuilder builder, DataPlayerInfo player) {
+            if (player != null) {
                 builder
                     .Append(player.DisplayName);
 

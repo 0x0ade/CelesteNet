@@ -157,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (Status.Spin) {
                     Status.Set("Disconnected", 3f, false);
                     if (reconnect) {
-                        QueuedTaskHelper.Do("CelesteNetAutoReconnect", () => CelesteNetClientModule.Settings.Connected = true);
+                        QueuedTaskHelper.Do("CelesteNetAutoReconnect", 1D, () => CelesteNetClientModule.Settings.Connected = true);
                     }
                 }
                 Status.AutoDispose = true;

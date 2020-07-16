@@ -15,9 +15,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public float Scale => Settings.UIScale;
 
+        public readonly Color ColorChannelHeader = Calc.HexToColor("DDDD88");
+        public readonly Color ColorChannelHeaderOwn = Calc.HexToColor("FFFF77");
+        public readonly Color ColorChannelHeaderPrivate = Calc.HexToColor("CCCC22") * 0.6f;
+
         public bool Active;
 
-        private string ListText;
+        private List<Blob> List = new List<Blob>();
 
         public DataChannelList Channels;
 
@@ -39,6 +43,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void RebuildList() {
             if (MDraw.DefaultFont == null || Client == null || Channels == null)
                 return;
+
+            List<Blob> list = new List<Blob>();
 
             StringBuilder builder = new StringBuilder();
 
@@ -63,6 +69,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                         builder.AppendLine();
                     }
+
+                    list.Add(new Blob {
+                        Text = builder.ToString().Trim(),
+                        ScaleFactor = 1f
+                    });
                     break;
 
                 case ListMode.Channels:
@@ -71,49 +82,71 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
                     if (own != null) {
-                        builder
-                            .Append(own.Name)
-                            .AppendLine();
+                        list.Add(new Blob {
+                            Text = own.Name,
+                            Color = ColorChannelHeaderOwn
+                        });
 
-                        foreach (uint playerID in own.Players)
+                        builder.Clear();
+                        foreach (uint playerID in own.Players) 
                             listed.Add(ListPlayerUnderChannel(builder, playerID));
+                        list.Add(new Blob {
+                            Text = builder.ToString().Trim(),
+                            ScaleFactor = 0.5f
+                        });
                     }
 
                     foreach (DataChannelList.Channel channel in Channels.List) {
                         if (channel == own)
                             continue;
 
-                        builder
-                            .Append(channel.Name)
-                            .AppendLine();
+                        list.Add(new Blob {
+                            Text = channel.Name,
+                            Color = ColorChannelHeader
+                        });
 
+                        builder.Clear();
                         foreach (uint playerID in channel.Players)
                             listed.Add(ListPlayerUnderChannel(builder, playerID));
+                        list.Add(new Blob {
+                            Text = builder.ToString().Trim(),
+                            ScaleFactor = 1f
+                        });
                     }
 
                     bool wrotePrivate = false;
 
+                    builder.Clear();
                     foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>()) {
                         if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
                             continue;
 
                         if (!wrotePrivate) {
                             wrotePrivate = true;
-                            builder.AppendLine();
+                            list.Add(new Blob {
+                                Text = "!<private>",
+                                Color = ColorChannelHeaderPrivate
+                            });
                         }
 
                         builder.AppendLine(player.DisplayName);
                     }
+
+                    if (wrotePrivate) {
+                        list.Add(new Blob {
+                            Text = builder.ToString().Trim(),
+                            ScaleFactor = 1f
+                        });
+                    }
                     break;
             }
 
-            ListText = builder.ToString().Trim();
+            List = list;
         }
 
         private DataPlayerInfo ListPlayerUnderChannel(StringBuilder builder, uint playerID) {
             if (Client.Data.TryGetRef(playerID, out DataPlayerInfo player) && !string.IsNullOrEmpty(player.DisplayName)) {
                 builder
-                    .Append("  ")
                     .Append(player.DisplayName);
 
                 if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
@@ -173,11 +206,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         protected override void Render(GameTime gameTime, bool toBuffer) {
-            if (ListText == null)
-                RebuildList();
-            if (ListText == null)
-                return;
-
             float scale = Scale;
 
             float y = 50f * scale;
@@ -200,27 +228,48 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
+            List<Blob> list = List;
+
             int textScaleTry = 0;
             float textScale = scale;
             RetryLineScale:
-            Vector2 textFontScale = Vector2.One * textScale;
 
-            Vector2 size = CelesteNetClientFont.Measure(ListText) * textFontScale;
+            Vector2 sizeAll = Vector2.Zero;
 
-            if (((size.X + 100f * scale) > UI_WIDTH * 0.7f || (size.Y + 100f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 4) {
-                textScaleTry++;
-                textScale -= scale * 0.1f;
-                goto RetryLineScale;
+            foreach (Blob blob in list) {
+                blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
+                blob.DynY = sizeAll.Y;
+                Vector2 size = CelesteNetClientFont.Measure(blob.Text) * blob.DynScale;
+                sizeAll.X = Math.Max(sizeAll.X, size.X);
+                sizeAll.Y += size.Y + 10f * scale;
+
+                if (((sizeAll.X + 100f * scale) > UI_WIDTH * 0.7f || (sizeAll.Y + 90f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 5) {
+                    textScaleTry++;
+                    textScale -= scale * 0.1f;
+                    goto RetryLineScale;
+                }
             }
 
-            Context.RenderHelper.Rect(25f * scale, y - 25f * scale, size.X + 50f * scale, size.Y + 50f * scale, Color.Black * 0.8f);
-            CelesteNetClientFont.Draw(
-                ListText,
-                new Vector2(50f * scale, y),
-                Vector2.Zero,
-                textFontScale,
-                Color.White
-            );
+            Context.RenderHelper.Rect(25f * scale, y - 25f * scale, sizeAll.X + 50f * scale, sizeAll.Y + 40f * scale, Color.Black * 0.8f);
+
+            foreach (Blob blob in list) {
+                CelesteNetClientFont.Draw(
+                    blob.Text,
+                    new Vector2(50f * scale, y + blob.DynY),
+                    Vector2.Zero,
+                    new Vector2(blob.DynScale, blob.DynScale),
+                    blob.Color
+                );
+            }
+
+        }
+
+        public class Blob {
+            public string Text = "";
+            public Color Color = Color.White;
+            public float ScaleFactor = 0f;
+            public float DynY;
+            public float DynScale;
         }
 
     }

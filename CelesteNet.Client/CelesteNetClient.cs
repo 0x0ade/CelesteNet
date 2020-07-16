@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private readonly object StartStopLock = new object();
 
-        private int UDPDeaths;
+        private int UDPDeathScore;
 
         public CelesteNetClient()
             : this(new CelesteNetClientSettings()) {
@@ -159,16 +159,15 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (!read)
                 return;
 
-            if (UDPDeaths < 3) {
-                UDPDeaths++;
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Oh well.\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
-            } else if (UDPDeaths == 3) {
-                UDPDeaths++;
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died quite often so far. This is the last UDP death log.\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
-            }
+            if (UDPDeathScore < 50) {
+                UDPDeathScore += 10;
+                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Oh well.\nUDP death score:{UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+                con.SendUDP = false;
+                con.Send(new DataTCPOnlyDowngrade());
 
-            con.SendUDP = false;
-            con.Send(new DataTCPOnlyDowngrade());
+            } else {
+                Logger.Log(LogLevel.CRI, "main", $"UDP connection died too often. Switching to TCP only.\nUDP death score:{UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+            }
         }
 
 
@@ -178,6 +177,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
                 if (con is CelesteNetTCPUDPConnection tcpudp) {
                     tcpudp.SendUDP = true;
+                    if (UDPDeathScore > -10)
+                        UDPDeathScore -= 1;
                 }
             }
 

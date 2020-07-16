@@ -146,8 +146,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                             stream.Seek(0, SeekOrigin.Begin);
                             Server.Data.Handle(con, Server.Data.Read(reader));
                         } catch (Exception e) {
-                            Logger.Log(LogLevel.CRI, "tcpudp", $"Failed handling UDP data:\n{con}\n{e}");
-                            con.Dispose();
+                            Logger.Log(LogLevel.CRI, "tcpudp", $"Failed handling UDP data, {raw.Length} bytes:\n{con}\n{e}");
+                            // Sometimes we receive garbage via UDP. Oh well...
+                            Handle(con, new DataTCPOnlyDowngrade());
                         }
                     }
                 }
@@ -196,12 +197,12 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void Handle(CelesteNetTCPUDPConnection con, DataTCPOnlyDowngrade downgrade) {
             con.UDP = null;
             con.UDPLocalEndPoint = null;
+            IPEndPoint? ep = con.UDPRemoteEndPoint;
             con.UDPRemoteEndPoint = null;
 
             if (UDPKeys.TryGetValue(con, out UDPPendingKey key))
                 UDPPending[key] = con;
 
-            IPEndPoint? ep = con.UDPRemoteEndPoint;
             if (ep != null)
                 UDPMap.TryRemove(ep, out _);
 

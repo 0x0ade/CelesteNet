@@ -379,6 +379,21 @@ namespace Celeste.Mod.CelesteNet {
             if (type == null || data == null)
                 return;
 
+            if ((data.DataFlags & DataFlags.Taskable) == DataFlags.Taskable) {
+                Task.Run(() => {
+                    try {
+                        HandleInner(con, type, data);
+                    } catch (Exception e) {
+                        Logger.Log(LogLevel.CRI, "data-task", $"Failed handling data in task:\n{con}\n{type.FullName}\n{e}");
+                    }
+                });
+                return;
+            }
+
+            HandleInner(con, type, data);
+        }
+
+        protected void HandleInner(CelesteNetConnection con, Type type, DataType data) {
             for (Type btype = type; btype != typeof(object); btype = btype.BaseType ?? typeof(object))
                 if (Filters.TryGetValue(btype, out DataFilter? filter))
                     if (!filter.InvokeWhileTrue(con, data))

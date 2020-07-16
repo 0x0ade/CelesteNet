@@ -17,6 +17,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "mapModInfo";
         }
 
+        public override DataFlags DataFlags => DataFlags.Taskable;
+
         public uint RequestID = uint.MaxValue;
 
         public string MapSID = "";

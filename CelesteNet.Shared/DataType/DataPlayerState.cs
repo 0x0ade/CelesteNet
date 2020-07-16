@@ -17,6 +17,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "playerState";
         }
 
+        public override DataFlags DataFlags => DataFlags.Taskable;
+
         public DataPlayerInfo? Player;
 
         public string SID = "";

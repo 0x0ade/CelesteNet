@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "filterList";
         }
 
-        public override DataFlags DataFlags => DataFlags.Big;
+        public override DataFlags DataFlags => DataFlags.Big | DataFlags.Taskable;
 
         public DataPlayerInfo? Player;
 

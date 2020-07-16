@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "dashTrail";
         }
 
-        public override DataFlags DataFlags => DataFlags.Update;
+        public override DataFlags DataFlags => DataFlags.Update | DataFlags.Taskable;
 
         public bool Server;
         public DataPlayerInfo? Player;

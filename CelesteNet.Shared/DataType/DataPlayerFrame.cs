@@ -17,6 +17,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "playerFrame";
         }
 
+        // Too many too quickly to make tasking worth it.
         public override DataFlags DataFlags => DataFlags.Update;
 
         public uint UpdateID;

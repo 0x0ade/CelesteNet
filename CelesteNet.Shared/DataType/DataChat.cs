@@ -17,6 +17,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "chat";
         }
 
+        public override DataFlags DataFlags => DataFlags.Taskable;
+
         /// <summary>
         /// Server-internal field.
         /// </summary>

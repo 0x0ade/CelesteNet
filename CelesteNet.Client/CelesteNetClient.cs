@@ -41,9 +41,11 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private readonly object StartStopLock = new object();
 
-        private const int UDPDeathScoreMin = -10;
-        private const int UDPDeathScoreMax = 50;
+        private const int UDPDeathScoreMin = -1;
+        private const int UDPDeathScoreMax = 5;
         private int UDPDeathScore;
+        private const int UDPAliveScoreMax = 100;
+        private int UDPAliveScore;
 
         public CelesteNetClient()
             : this(new CelesteNetClientSettings()) {
@@ -163,13 +165,13 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             con.SendUDP = false;
 
-            UDPDeathScore += 10;
+            UDPDeathScore++;
             if (UDPDeathScore < UDPDeathScoreMax) {
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Retrying.\nUDP death score: {UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Retrying.\nUDP score: {UDPDeathScore} / {UDPAliveScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
 
             } else {
                 UDPDeathScore = UDPDeathScoreMax;
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died too often. Switching to TCP only.\nUDP death score: {UDPDeathScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+                Logger.Log(LogLevel.CRI, "main", $"UDP connection died too often. Switching to TCP only.\nUDP score: {UDPDeathScore} / {UDPAliveScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
                 con.UDP?.Close();
                 con.UDP = null;
             }
@@ -183,9 +185,13 @@ namespace Celeste.Mod.CelesteNet.Client {
         public bool Filter(CelesteNetConnection con, DataType data) {
             if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
                 if (con is CelesteNetTCPUDPConnection tcpudp) {
-                    tcpudp.SendUDP = true;
-                    if (UDPDeathScore > UDPDeathScoreMin)
-                        UDPDeathScore -= 1;
+                    UDPAliveScore++;
+                    if (UDPAliveScore >= UDPAliveScoreMax) {
+                        UDPAliveScore = 0;
+                        UDPDeathScore--;
+                        if (UDPDeathScore < UDPDeathScoreMin)
+                            UDPDeathScore = UDPDeathScoreMin;
+                    }
                 }
             }
 

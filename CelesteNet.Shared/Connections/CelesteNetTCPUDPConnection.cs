@@ -27,8 +27,6 @@ namespace Celeste.Mod.CelesteNet {
         public UdpClient? UDP;
         public bool SendUDP = true;
 
-        protected ConcurrentBag<BufferHelper> BufferHelpers = new ConcurrentBag<BufferHelper>();
-
         protected Thread? ReadTCPThread;
         protected Thread? ReadUDPThread;
 
@@ -80,7 +78,6 @@ namespace Celeste.Mod.CelesteNet {
             TcpClient tcp = new TcpClient(host, port);
             tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, 3000);
             tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 3000);
-            tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
 
             UdpClient? udp = null;
             if (canUDP) {
@@ -151,7 +148,7 @@ namespace Celeste.Mod.CelesteNet {
             return TCPQueue;
         }
 
-        public override void SendRaw(DataType data) {
+        public override void SendRaw(CelesteNetSendQueue queue, DataType data) {
             // Let's have some fun with dumb port sniffers.
             if (data is DataTCPHTTPTeapot teapot) {
                 WriteTeapot(teapot.ConnectionToken);
@@ -163,47 +160,38 @@ namespace Celeste.Mod.CelesteNet {
                 return;
             }
 
-            if (!BufferHelpers.TryTake(out BufferHelper buffer))
-                buffer = new BufferHelper();
+            BufferHelper buffer = queue.Buffer;
 
-            try {
-                buffer.Stream.Seek(0, SeekOrigin.Begin);
+            buffer.Stream.Seek(0, SeekOrigin.Begin);
 
-                int length = Data.Write(buffer.Writer, data);
-                byte[] raw = buffer.Stream.GetBuffer();
+            int length = Data.Write(buffer.Writer, data);
+            byte[] raw = buffer.Stream.GetBuffer();
 
-                if (SendViaUDP(data) && UDP != null) {
-                    // Missed updates aren't that bad...
-                    // Make sure that we have a default address if sending it without an endpoint
-                    // UDP is a mess and the UdpClient can be shared.
-                    // UDP.Client.Connected is true on mono server...
-                    try {
-                        if (UDP.Client.Connected && ReadUDPThread != null) {
-                            UDP.Send(raw, length);
-                        } else if (UDPRemoteEndPoint != null) {
-                            UDP.Send(raw, length, UDPRemoteEndPoint);
-                        }
-                    } catch (Exception e) {
-                        lock (UDPErrorLock) {
-                            UDPErrorLast = e;
-                            if (_OnUDPError != null) {
-                                _OnUDPError(this, e, false);
-                            } else {
-                                Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP send failure:\n{this}\n{e}");
-                            }
+            if (SendViaUDP(data) && UDP != null) {
+                // Missed updates aren't that bad...
+                // Make sure that we have a default address if sending it without an endpoint
+                // UDP is a mess and the UdpClient can be shared.
+                // UDP.Client.Connected is true on mono server...
+                try {
+                    if (UDP.Client.Connected && ReadUDPThread != null) {
+                        UDP.Send(raw, length);
+                    } else if (UDPRemoteEndPoint != null) {
+                        UDP.Send(raw, length, UDPRemoteEndPoint);
+                    }
+                } catch (Exception e) {
+                    lock (UDPErrorLock) {
+                        UDPErrorLast = e;
+                        if (_OnUDPError != null) {
+                            _OnUDPError(this, e, false);
+                        } else {
+                            Logger.Log(LogLevel.CRI, "tcpudpcon", $"UDP send failure:\n{this}\n{e}");
                         }
                     }
+                }
 
-                } else {
-                    lock (TCPWriter) // This can be theoretically reached from the UDP queue.
-                        TCPWriter.Write(raw, 0, length);
-                }
-            } finally {
-                lock (DisposeLock) {
-                    BufferHelpers.Add(buffer);
-                    if (!IsAlive)
-                        buffer.Dispose();
-                }
+            } else {
+                lock (TCPWriter) // This can be theoretically be reached from the UDP queue.
+                    TCPWriter.Write(raw, 0, length);
             }
         }
 
@@ -220,9 +208,11 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void WriteTeapot(uint token) {
-            using (StreamWriter writer = new StreamWriter(TCPStream, Encoding.UTF8, 1024, true))
-                writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, token));
-            TCPStream.Flush();
+            lock (TCPWriter) {
+                using (StreamWriter writer = new StreamWriter(TCPStream, Encoding.UTF8, 1024, true))
+                    writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, token));
+                TCPStream.Flush();
+            }
         }
 
         public void WriteToken(uint token) {
@@ -313,10 +303,6 @@ namespace Celeste.Mod.CelesteNet {
                 }
                 UDP?.Close();
             }
-
-            foreach (BufferHelper buffer in BufferHelpers)
-                buffer.Dispose();
-
         }
 
         public override string ToString() {
@@ -324,23 +310,6 @@ namespace Celeste.Mod.CelesteNet {
             if (UDPRemoteEndPoint != null)
                 s += $" / {UDPLocalEndPoint?.ToString() ?? "???"} <-> {UDPRemoteEndPoint?.ToString() ?? "???"}";
             return s;
-        }
-
-        protected class BufferHelper : IDisposable {
-
-            public MemoryStream Stream;
-            public BinaryWriter Writer;
-
-            public BufferHelper() {
-                Stream = new MemoryStream();
-                Writer = new BinaryWriter(Stream, Encoding.UTF8);
-            }
-
-            public void Dispose() {
-                Writer?.Dispose();
-                Stream?.Dispose();
-            }
-
         }
 
     }

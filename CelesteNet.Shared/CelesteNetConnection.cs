@@ -116,7 +116,7 @@ namespace Celeste.Mod.CelesteNet {
             return DefaultSendQueue;
         }
 
-        public abstract void SendRaw(DataType data);
+        public abstract void SendRaw(CelesteNetSendQueue queue, DataType data);
 
         protected virtual void Receive(DataType data) {
             lock (ReceiveFilterLock)
@@ -155,6 +155,8 @@ namespace Celeste.Mod.CelesteNet {
 
         private DateTime LastUpdate;
         private DateTime LastNonUpdate;
+
+        public readonly BufferHelper Buffer = new BufferHelper();
 
         public bool SendKeepAliveUpdate;
         public bool SendKeepAliveNonUpdate;
@@ -204,7 +206,7 @@ namespace Celeste.Mod.CelesteNet {
                             return;
                         }
 
-                        Con.SendRaw(data);
+                        Con.SendRaw(this, data);
 
                         if ((data.DataFlags & DataFlags.Update) == DataFlags.Update)
                             LastUpdate = now;
@@ -214,13 +216,13 @@ namespace Celeste.Mod.CelesteNet {
 
                     if (Con.SendKeepAlive) {
                         if (SendKeepAliveUpdate && (now - LastUpdate).TotalSeconds >= 1D) {
-                            Con.SendRaw(new DataKeepAlive {
+                            Con.SendRaw(this, new DataKeepAlive {
                                 IsUpdate = true
                             });
                             LastUpdate = now;
                         }
                         if (SendKeepAliveNonUpdate && (now - LastNonUpdate).TotalSeconds >= 1D) {
-                            Con.SendRaw(new DataKeepAlive {
+                            Con.SendRaw(this, new DataKeepAlive {
                                 IsUpdate = false
                             });
                             LastNonUpdate = now;
@@ -248,6 +250,8 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         protected virtual void Dispose(bool disposing) {
+            Buffer.Dispose();
+
             try {
                 Event.Set();
             } catch (ObjectDisposedException) {
@@ -256,6 +260,23 @@ namespace Celeste.Mod.CelesteNet {
 
         public void Dispose() {
             Dispose(true);
+        }
+
+    }
+
+    public class BufferHelper : IDisposable {
+
+        public MemoryStream Stream;
+        public BinaryWriter Writer;
+
+        public BufferHelper() {
+            Stream = new MemoryStream();
+            Writer = new BinaryWriter(Stream, Encoding.UTF8);
+        }
+
+        public void Dispose() {
+            Writer?.Dispose();
+            Stream?.Dispose();
         }
 
     }

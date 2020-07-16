@@ -204,7 +204,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (!HoldableAdded && holdable) {
                 HoldableAdded = true;
                 Add(Holdable);
-            } else if (HoldableAdded && !holdable) {
+            } else if (HoldableAdded && !holdable && !Holdable.IsHeld) {
                 HoldableAdded = false;
                 Remove(Holdable);
             }

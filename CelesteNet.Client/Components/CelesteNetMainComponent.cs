@@ -452,7 +452,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         player.StateMachine.State = Player.StFrozen;
                         GrabLastSpeed = player.Speed = Vector2.Zero;
                         player.Hair.AfterUpdate(); // TODO: Replace with node offset update instead.
-                        level.EnforceBounds(player);
+                        if (player.Scene == level) {
+                            try {
+                                level.EnforceBounds(player);
+                            } catch (Exception e) {
+                                Logger.Log(LogLevel.CRI, "client-main", $"Error on EnforceBounds on hold:\n{e}");
+                            }
+                        }
                     }
                 });
 

@@ -47,7 +47,7 @@ export class FrontendChannelsPanel extends FrontendBasicPanel {
             let name = player && player.FullName;
             // TODO: Rerender el on missing player only once! Otherwise render -> refresh -> render -> refresh...
             if (!name) {
-              FrontendPlayersPanel["instance"].refresh().then(() => this.render(null));
+              // FrontendPlayersPanel["instance"].refresh().then(() => this.render(null));
               name = "?";
             }
             list.add(pid, el => rd$(el)`<li><b>${name}</b> <i>(#${pid})</i></li>`);

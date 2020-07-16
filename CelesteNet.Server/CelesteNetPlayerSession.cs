@@ -115,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             using (Stream? avatar = Server.UserData.ReadFile(UID, "avatar.png")) {
                 if (avatar != null) {
                     AvatarEmoji = new DataNetEmoji {
-                        ID = $"celestenet_avatar_{fullName}_",
+                        ID = $"celestenet_avatar_{ID}_",
                         Data = avatar.ToBytes()
                     };
                     displayName = $":{AvatarEmoji.ID}: {fullNameSpace}";

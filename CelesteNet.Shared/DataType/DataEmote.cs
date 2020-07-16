@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "emote";
         }
 
-        public override DataFlags DataFlags => DataFlags.Update | DataFlags.Taskable;
+        public override DataFlags DataFlags => DataFlags.Update;
 
         public DataPlayerInfo? Player;
 

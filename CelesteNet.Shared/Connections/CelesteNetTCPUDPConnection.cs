@@ -171,7 +171,7 @@ namespace Celeste.Mod.CelesteNet {
                 int length = Data.Write(buffer.Writer, data);
                 byte[] raw = buffer.Stream.GetBuffer();
 
-                if (SendViaUDP(data)) {
+                if (SendViaUDP(data) && UDP != null) {
                     // Missed updates aren't that bad...
                     // Make sure that we have a default address if sending it without an endpoint
                     // UDP is a mess and the UdpClient can be shared.
@@ -194,7 +194,8 @@ namespace Celeste.Mod.CelesteNet {
                     }
 
                 } else {
-                    TCPWriter.Write(raw, 0, length);
+                    lock (TCPWriter) // This can be theoretically reached from the UDP queue.
+                        TCPWriter.Write(raw, 0, length);
                 }
             } finally {
                 lock (DisposeLock) {

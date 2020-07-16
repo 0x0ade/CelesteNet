@@ -156,7 +156,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return player;
 
             } else {
-                builder.AppendLine("  ?");
+                builder.AppendLine("?");
                 return null;
             }
         }

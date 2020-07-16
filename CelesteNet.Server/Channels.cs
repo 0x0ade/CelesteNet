@@ -72,6 +72,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public Action<Channels>? OnBroadcastList;
 
         public void BroadcastList() {
+            lock (All)
+                foreach (Channel c in All.ToArray())
+                    c.RemoveStale();
+
             OnBroadcastList?.Invoke(this);
 
             lock (All)
@@ -161,6 +165,17 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Ctx.All.Add(this);
                 Ctx.ByName[Name] = this;
                 Ctx.ByID[ID] = this;
+            }
+        }
+
+        public void RemoveStale() {
+            lock (Players) {
+                HashSet<CelesteNetPlayerSession> stale = new HashSet<CelesteNetPlayerSession>();
+                foreach (CelesteNetPlayerSession session in Players)
+                    if (session.PlayerInfo == null)
+                        stale.Add(session);
+                foreach (CelesteNetPlayerSession session in stale)
+                    Remove(session);
             }
         }
 

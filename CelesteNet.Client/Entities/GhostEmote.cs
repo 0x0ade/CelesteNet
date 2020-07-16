@@ -229,6 +229,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (icons.Count == 0)
                 return null;
 
+            if (icons.Count == 1)
+                return icons[0];
+
             int index = (int) Math.Floor(time * fps);
 
             if (index >= icons.Count - 1 && icons[icons.Count - 1] == null)

@@ -87,16 +87,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void Shutdown(Frontend f, HttpRequestEventArgs c) {
             DateTime start = DateTime.UtcNow;
 
-            lock (f.Server.Connections) {
-                foreach (CelesteNetConnection con in f.Server.Connections) {
-                    con.Send(new DataDisconnectReason { Text = "Server shutting down" });
-                    con.Send(new DataInternalDisconnect());
-                }
+            foreach (CelesteNetConnection con in f.Server.Connections.ToArray()) {
+                con.Send(new DataDisconnectReason { Text = "Server shutting down" });
+                con.Send(new DataInternalDisconnect());
             }
 
             // This isn't perf critical and would require a heavily specialized event anyway.
             bool timeout;
-            while (f.Server.Connections.Count > 0 || (timeout = (DateTime.UtcNow - start).TotalSeconds >= 3))
+            while ((timeout = (DateTime.UtcNow - start).TotalSeconds >= 3) || f.Server.Connections.Count > 0)
                 Thread.Sleep(100);
 
             f.RespondJSON(c, new {

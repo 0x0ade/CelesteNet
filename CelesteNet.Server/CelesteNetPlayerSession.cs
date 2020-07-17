@@ -248,8 +248,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 otherState.Mode == state.Mode;
 
         public bool ConSendFilter(CelesteNetConnection con, DataType data) {
-            if (Server.Data.TryGetBoundRef(PlayerInfo, out DataNetFilterList? list) && list != null)
-                return list.Contains(data.GetSource(Server.Data));
+            if (Server.Data.TryGetBoundRef(PlayerInfo, out DataNetFilterList? list) && list != null) {
+                string source = data.GetSource(Server.Data);
+                return string.IsNullOrEmpty(source) || list.Contains(source);
+            }
 
             return true;
         }

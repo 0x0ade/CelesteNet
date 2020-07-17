@@ -98,10 +98,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public virtual string GetTypeID(DataContext ctx)
-            => ctx.DataTypeToID[GetType()];
+            => ctx.DataTypeToID.TryGetValue(GetType(), out string? value) ? value : "";
 
         public virtual string GetSource(DataContext ctx)
-            => ctx.DataTypeToSource[GetType()];
+            => ctx.DataTypeToSource.TryGetValue(GetType(), out string? value) ? value : "";
 
         public static byte PackBool(byte value, int index, bool set) {
             int mask = 1 << index;

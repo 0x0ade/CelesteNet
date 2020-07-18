@@ -68,10 +68,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
-            if (Settings.GreetPlayers) {
-                string? displayName = lastPlayerInfo?.DisplayName;
-                if (!displayName.IsNullOrEmpty())
-                    Broadcast((new DynamicData(session).Get<string>("leaveReason") ?? Settings.MessageLeave).InjectSingleValue("player", displayName));
+            string? displayName = lastPlayerInfo?.DisplayName;
+            if (!displayName.IsNullOrEmpty()) {
+                string? reason = new DynamicData(session).Get<string>("leaveReason");
+                if (Settings.GreetPlayers || !string.IsNullOrEmpty(reason))
+                    Broadcast((reason ?? Settings.MessageLeave).InjectSingleValue("player", displayName));
             }
             if (SpamContexts.TryRemove(session, out SpamContext? spam))
                 spam.Dispose();

@@ -43,7 +43,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
             Logger.Log(LogLevel.INF, "playersession", $"Startup #{ID} {Con}");
-            lock (Server.Sessions)
+            using (Server.ConLock.W())
                 Server.Sessions.Add(this);
             Server.PlayersByCon[Con] = this;
             Server.PlayersByID[ID] = this;
@@ -261,7 +261,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             DataPlayerInfo? playerInfoLast = PlayerInfo;
 
-            lock (Server.Sessions)
+            using (Server.ConLock.W())
                 Server.Sessions.Remove(this);
             Server.PlayersByCon.TryRemove(Con, out _);
             Server.PlayersByID.TryRemove(ID, out _);

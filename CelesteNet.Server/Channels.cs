@@ -79,8 +79,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             OnBroadcastList?.Invoke(this);
 
             lock (All)
-                foreach (CelesteNetPlayerSession session in Server.Sessions.ToArray())
-                    SendListTo(session);
+                using (Server.ConLock.R())
+                    foreach (CelesteNetPlayerSession session in Server.Sessions)
+                        SendListTo(session);
         }
 
         public Channel Get(CelesteNetPlayerSession session) {

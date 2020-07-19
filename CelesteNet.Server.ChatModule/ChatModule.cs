@@ -33,8 +33,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             BroadcastSpamContext = new SpamContext(this);
             Commands = new ChatCommands(this);
             Server.OnSessionStart += OnSessionStart;
-            foreach (CelesteNetPlayerSession session in Server.Sessions.ToArray())
-                session.OnEnd += OnSessionEnd;
+            using (Server.ConLock.R())
+                foreach (CelesteNetPlayerSession session in Server.Sessions)
+                    session.OnEnd += OnSessionEnd;
         }
 
         public override void Dispose() {
@@ -48,8 +49,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             SpamContexts.Clear();
 
             Server.OnSessionStart -= OnSessionStart;
-            foreach (CelesteNetPlayerSession session in Server.Sessions.ToArray())
-                session.OnEnd -= OnSessionEnd;
+            using (Server.ConLock.R())
+                foreach (CelesteNetPlayerSession session in Server.Sessions)
+                    session.OnEnd -= OnSessionEnd;
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {

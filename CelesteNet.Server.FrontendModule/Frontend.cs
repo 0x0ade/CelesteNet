@@ -54,8 +54,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             Server.OnConnect += OnConnect;
             Server.OnSessionStart += OnSessionStart;
-            foreach (CelesteNetPlayerSession session in Server.Sessions.ToArray())
-                session.OnEnd += OnSessionEnd;
+            using (Server.ConLock.R())
+                foreach (CelesteNetPlayerSession session in Server.Sessions)
+                    session.OnEnd += OnSessionEnd;
             Server.OnDisconnect += OnDisconnect;
 
             Server.Channels.OnBroadcastList += OnBroadcastChannels;
@@ -95,8 +96,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             Server.OnConnect -= OnConnect;
             Server.OnSessionStart -= OnSessionStart;
-            foreach (CelesteNetPlayerSession session in Server.Sessions.ToArray())
-                session.OnEnd -= OnSessionEnd;
+            using (Server.ConLock.R())
+                foreach (CelesteNetPlayerSession session in Server.Sessions)
+                    session.OnEnd -= OnSessionEnd;
             Server.OnDisconnect -= OnDisconnect;
 
             Server.Channels.OnBroadcastList -= OnBroadcastChannels;

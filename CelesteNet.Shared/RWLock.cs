@@ -40,10 +40,12 @@ namespace Celeste.Mod.CelesteNet {
             }
 
             public RLock Start() {
+                Inner.EnterReadLock();
                 return this;
             }
 
             public void Dispose() {
+                Inner.ExitReadLock();
             }
         }
 
@@ -55,10 +57,12 @@ namespace Celeste.Mod.CelesteNet {
             }
 
             public WLock Start() {
+                Inner.EnterWriteLock();
                 return this;
             }
 
             public void Dispose() {
+                Inner.ExitWriteLock();
             }
         }
 

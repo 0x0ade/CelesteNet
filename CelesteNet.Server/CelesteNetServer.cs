@@ -39,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly DetourModManager DetourModManager;
 
         public uint PlayerCounter = 0;
-        public readonly ReaderWriterLockSlim ConLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        public readonly RWLock ConLock = new RWLock();
         public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
         public readonly HashSet<CelesteNetPlayerSession> Sessions = new HashSet<CelesteNetPlayerSession>();
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession>();
@@ -178,6 +178,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Channels.Dispose();
             TCPUDP.Dispose();
+            ConLock.Dispose();
         }
 
 
@@ -223,7 +224,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void HandleConnect(CelesteNetConnection con) {
             Logger.Log(LogLevel.INF, "main", $"New connection: {con}");
             con.SendKeepAlive = true;
-            lock (Connections)
+            using (ConLock.W())
                 Connections.Add(con);
             OnConnect?.Invoke(this, con);
             con.OnDisconnect += HandleDisconnect;
@@ -234,7 +235,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void HandleDisconnect(CelesteNetConnection con) {
             Logger.Log(LogLevel.INF, "main", $"Disconnecting: {con}");
 
-            lock (Connections)
+            using (ConLock.W())
                 Connections.Remove(con);
 
             PlayersByCon.TryGetValue(con, out CelesteNetPlayerSession? session);
@@ -248,27 +249,29 @@ namespace Celeste.Mod.CelesteNet.Server {
             => OnSessionStart?.Invoke(session);
 
         public void Broadcast(DataType data) {
-            foreach (CelesteNetConnection con in Connections.ToArray()) {
-                try {
-                    con.Send(data);
-                } catch (Exception e) {
-                    // Whoops, it probably wasn't important anyway.
-                    Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
+            using (ConLock.R())
+                foreach (CelesteNetConnection con in Connections) {
+                    try {
+                        con.Send(data);
+                    } catch (Exception e) {
+                        // Whoops, it probably wasn't important anyway.
+                        Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
+                    }
                 }
-            }
         }
 
         public void Broadcast(DataType data, params CelesteNetConnection[] except) {
-            foreach (CelesteNetConnection con in Connections.ToArray()) {
-                if (except.Contains(con))
-                    continue;
-                try {
-                    con.Send(data);
-                } catch (Exception e) {
-                    // Whoops, it probably wasn't important anyway.
-                    Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
+            using (ConLock.R())
+                foreach (CelesteNetConnection con in Connections) {
+                    if (except.Contains(con))
+                        continue;
+                    try {
+                        con.Send(data);
+                    } catch (Exception e) {
+                        // Whoops, it probably wasn't important anyway.
+                        Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
+                    }
                 }
-            }
         }
 
         #region Handlers

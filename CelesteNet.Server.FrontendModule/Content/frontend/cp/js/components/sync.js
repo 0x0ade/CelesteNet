@@ -64,6 +64,10 @@ export class FrontendSync {
       cmdp.log(`// Status: ${value}`);
   }
 
+  getFallbackCMD(id) {
+    return data => console.log("sync nullcmd", id, data);
+  }
+
   register(id, handler) {
     const existing = this.cmds.get(id);
     if (existing) {
@@ -203,13 +207,7 @@ export class FrontendSync {
 
         case "waitForCMDID":
           console.log("sync cmd", e.data);
-          const cmd = this.cmds.get(e.data);
-          if (!cmd) {
-              this.close("unknown cmd");
-              break;
-          }
-
-          this.currentCMD = cmd;
+          this.currentCMD = this.cmds.get(e.data) || this.getFallbackCMD(e.data);
           this.state = "waitForCMDPayload";
           break;
 

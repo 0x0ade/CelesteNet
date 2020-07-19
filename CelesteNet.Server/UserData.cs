@@ -55,6 +55,8 @@ namespace Celeste.Mod.CelesteNet.Server {
     }
 
     public class BanInfo {
+        public string UID { get; set; } = "";
+        public string Name { get; set; } = "";
         public string Reason { get; set; } = "";
         public DateTime? From { get; set; } = null;
         public DateTime? To { get; set; } = null;

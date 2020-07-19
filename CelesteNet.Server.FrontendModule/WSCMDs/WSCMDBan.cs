@@ -3,6 +3,7 @@ using Celeste.Mod.CelesteNet.Server.Chat;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using MonoMod.Utils;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,29 +15,39 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDBan : WSCMD {
         public override bool Auth => true;
         public override object? Run(dynamic? input) {
-            string? uid = (string?) input?.UID;
+            JArray? uidsRaw = (JArray?) input?.UIDs;
+            string[]? uids = uidsRaw?.Select(t => t.ToString()).ToArray();
             string? reason = (string?) input?.Reason;
-            if ((uid = uid?.Trim() ?? "").IsNullOrEmpty() ||
+            if (uids == null || uids.Length == 0 ||
                 (reason = reason?.Trim() ?? "").IsNullOrEmpty())
                 return null;
 
-            Frontend.Server.UserData.Save(uid, new BanInfo {
+            BanInfo ban = new BanInfo {
+                UID = uids[0],
                 Reason = reason,
                 From = DateTime.UtcNow
-            });
+            };
+
+            foreach (string uid in uids) {
+                lock (Frontend.Server.Connections)
+                    foreach (CelesteNetPlayerSession player in Frontend.Server.PlayersByID.Values.ToArray()) {
+                        if (player.UID != uid && player.ConUID != uid)
+                            continue;
+
+                        if (ban.Name.IsNullOrEmpty())
+                            ban.Name = player.PlayerInfo?.FullName ?? "";
+
+                        ChatModule chat = Frontend.Server.Get<ChatModule>();
+                        new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
+                        player.Dispose();
+                        player.Con.Send(new DataDisconnectReason { Text = "Banned: " + reason });
+                        player.Con.Send(new DataInternalDisconnect());
+                    }
+            }
+
+            foreach (string uid in uids)
+                Frontend.Server.UserData.Save(uid, ban);
             Frontend.BroadcastCMD(true, "update", "/userinfos");
-
-            lock (Frontend.Server.Connections)
-                foreach (CelesteNetPlayerSession player in Frontend.Server.PlayersByID.Values.ToArray()) {
-                    if (player.UID != uid && player.ConUID != uid)
-                        continue;
-
-                    ChatModule chat = Frontend.Server.Get<ChatModule>();
-                    new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
-                    player.Dispose();
-                    player.Con.Send(new DataDisconnectReason { Text = "Banned: " + reason });
-                    player.Con.Send(new DataInternalDisconnect());
-                }
 
             return null;
         }

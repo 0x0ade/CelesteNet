@@ -132,7 +132,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 Modules = f.Server.Modules.Count,
                 f.Server.PlayerCounter,
                 Registered = f.Server.UserData.GetRegisteredCount(),
-                Banned = f.Server.UserData.LoadAll<BanInfo>().Count(ban => !ban.Reason.IsNullOrEmpty()),
+                Banned = f.Server.UserData.LoadAll<BanInfo>().GroupBy(ban => ban.UID).Select(g => g.First()).Count(ban => !ban.Reason.IsNullOrEmpty()),
                 Connections = auth ? f.Server.Connections.Count : (int?) null,
                 PlayersByCon = auth ? f.Server.PlayersByCon.Count : (int?) null,
                 PlayersByID = auth ? f.Server.PlayersByID.Count : (int?) null,
@@ -153,6 +153,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     info.Tags,
                     Key = f.Server.UserData.GetKey(uid),
                     Ban = ban.Reason.IsNullOrEmpty() ? null : new {
+                        ban.Name,
                         ban.Reason,
                         From = ban.From?.ToUnixTime() ?? 0,
                         To = ban.To?.ToUnixTime() ?? 0

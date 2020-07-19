@@ -282,8 +282,7 @@ export class FrontendDialog {
       ban => {
         if (!ban || !(ban.reason = ban.reason.trim()))
           return;
-        for (let uid of ban.uids)
-          this.frontend.sync.run("ban", { UID: uid, Reason: ban.reason });
+        this.frontend.sync.run("ban", { UIDs: ban.uids, Reason: ban.reason });
       }
     );
 

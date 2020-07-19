@@ -17,6 +17,7 @@ const mdc = window["mdc"]; // mdc
   Tags: string[],
   Key: string,
   Ban: {
+    Name: string,
     Reason: string,
     From: number,
     To: number
@@ -60,7 +61,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
         if (p.Tags && p.Tags.length > 0)
           list.add("tags", el => rd$(el)`<span><br><b>Tags: </b>${p.Tags.join(", ")}</span>`);
         if (p.Ban)
-          list.add("ban", el => rd$(el)`<span><br><b>Ban: </b>${this.frontend.utils.datetime(p.Ban.From) + ": " + p.Ban.Reason}</span>`);
+          list.add("ban", el => rd$(el)`<span><br><b>Ban: </b>${(p.Ban.Name ?? "?") + ": " + this.frontend.utils.datetime(p.Ban.From) + ": " + p.Ban.Reason}</span>`);
         if (p.Kicks && p.Kicks.length) {
           list.add("kicks", el => rd$(el)`<span><br><b>Kicks: </b>${p.Kicks.length}</span>`);
           const kick = p.Kicks[p.Kicks.length - 1];

@@ -259,13 +259,13 @@ main {
 }
 
 .panel-status {
-    min-width: 300px;
+    width: 300px;
 }
 
 .panel-cmd,
 .panel-chat,
 .panel-notes {
-    min-width: 400px;
+    width: 600px;
 }
 .panel-cmd > .panel-list,
 .panel-chat > .panel-list,

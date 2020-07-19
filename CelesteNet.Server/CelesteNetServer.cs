@@ -3,6 +3,7 @@ using Mono.Cecil;
 using Mono.Options;
 using MonoMod.RuntimeDetour;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -27,8 +28,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public UserData UserData;
 
-        public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
-
         public readonly Channels Channels;
 
         public bool Initialized = false;
@@ -40,8 +39,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly DetourModManager DetourModManager;
 
         public uint PlayerCounter = 0;
-        public readonly Dictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new Dictionary<CelesteNetConnection, CelesteNetPlayerSession>();
-        public readonly Dictionary<uint, CelesteNetPlayerSession> PlayersByID = new Dictionary<uint, CelesteNetPlayerSession>();
+        public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
+        public readonly HashSet<CelesteNetPlayerSession> Sessions = new HashSet<CelesteNetPlayerSession>();
+        public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession>();
+        public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new ConcurrentDictionary<uint, CelesteNetPlayerSession>();
 
         private readonly ManualResetEvent ShutdownEvent = new ManualResetEvent(false);
 
@@ -223,8 +224,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             con.SendKeepAlive = true;
             lock (Connections)
                 Connections.Add(con);
-            con.OnDisconnect += HandleDisconnect;
             OnConnect?.Invoke(this, con);
+            con.OnDisconnect += HandleDisconnect;
         }
 
         public event Action<CelesteNetServer, CelesteNetConnection, CelesteNetPlayerSession?>? OnDisconnect;
@@ -235,10 +236,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             lock (Connections)
                 Connections.Remove(con);
 
-            CelesteNetPlayerSession? session;
-            lock (Connections)
-                PlayersByCon.TryGetValue(con, out session);
-
+            PlayersByCon.TryGetValue(con, out CelesteNetPlayerSession? session);
             session?.Dispose();
 
             OnDisconnect?.Invoke(this, con, session);
@@ -249,29 +247,25 @@ namespace Celeste.Mod.CelesteNet.Server {
             => OnSessionStart?.Invoke(session);
 
         public void Broadcast(DataType data) {
-            lock (Connections) {
-                foreach (CelesteNetConnection con in Connections) {
-                    try {
-                        con.Send(data);
-                    } catch (Exception e) {
-                        // Whoops, it probably wasn't important anyway.
-                        Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
-                    }
+            foreach (CelesteNetConnection con in Connections) {
+                try {
+                    con.Send(data);
+                } catch (Exception e) {
+                    // Whoops, it probably wasn't important anyway.
+                    Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
                 }
             }
         }
 
         public void Broadcast(DataType data, params CelesteNetConnection[] except) {
-            lock (Connections) {
-                foreach (CelesteNetConnection con in Connections) {
-                    if (except.Contains(con))
-                        continue;
-                    try {
-                        con.Send(data);
-                    } catch (Exception e) {
-                        // Whoops, it probably wasn't important anyway.
-                        Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
-                    }
+            foreach (CelesteNetConnection con in Connections) {
+                if (except.Contains(con))
+                    continue;
+                try {
+                    con.Send(data);
+                } catch (Exception e) {
+                    // Whoops, it probably wasn't important anyway.
+                    Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
                 }
             }
         }

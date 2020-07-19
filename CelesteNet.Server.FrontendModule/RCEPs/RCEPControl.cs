@@ -134,6 +134,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 Registered = f.Server.UserData.GetRegisteredCount(),
                 Banned = f.Server.UserData.LoadAll<BanInfo>().GroupBy(ban => ban.UID).Select(g => g.First()).Count(ban => !ban.Reason.IsNullOrEmpty()),
                 Connections = auth ? f.Server.Connections.Count : (int?) null,
+                Sessions = auth ? f.Server.Sessions.Count : (int?) null,
                 PlayersByCon = auth ? f.Server.PlayersByCon.Count : (int?) null,
                 PlayersByID = auth ? f.Server.PlayersByID.Count : (int?) null,
                 PlayerRefs = f.Server.Data.GetRefs<DataPlayerInfo>().Length

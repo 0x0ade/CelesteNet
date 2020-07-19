@@ -139,21 +139,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public CelesteNetPlayerSession? Session {
             get {
                 if (Type == ChatCMDArgType.Int || Type == ChatCMDArgType.Long) {
-                    lock (Env.Chat.Server.Connections)
-                        if (Env.Chat.Server.PlayersByID.TryGetValue((uint) Long, out CelesteNetPlayerSession? session))
-                            return session;
-                    return null;
+                    if (Env.Chat.Server.PlayersByID.TryGetValue((uint) Long, out CelesteNetPlayerSession? session))
+                        return session;
                 }
 
-                if (Type == ChatCMDArgType.String) {
-                    string stringLower = String.ToLowerInvariant();
-                    lock (Env.Chat.Server.Connections)
-                        return
-                            Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName == String) ??
-                            Env.Chat.Server.PlayersByCon.Values.FirstOrDefault(session => session.PlayerInfo?.FullName.ToLowerInvariant().StartsWith(stringLower) ?? false);
-                }
-
-                return null;
+                string stringLower = String.ToLowerInvariant();
+                CelesteNetPlayerSession[] sessions = Env.Chat.Server.Sessions.ToArray();
+                return
+                    sessions.FirstOrDefault(session => session.PlayerInfo?.FullName == String) ??
+                    sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.ToLowerInvariant().StartsWith(stringLower) ?? false);
             }
         }
 
@@ -261,10 +255,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             get {
                 if (Msg.Player == null)
                     return null;
-                CelesteNetPlayerSession? session;
-                lock (Chat.Server.Connections)
-                    if (!Chat.Server.PlayersByID.TryGetValue(PlayerID, out session))
-                        return null;
+                if (!Chat.Server.PlayersByID.TryGetValue(PlayerID, out CelesteNetPlayerSession? session))
+                    return null;
                 return session;
             }
         }

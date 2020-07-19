@@ -43,10 +43,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
             Logger.Log(LogLevel.INF, "playersession", $"Startup #{ID} {Con}");
-            lock (Server.Connections) {
-                Server.PlayersByCon[Con] = this;
-                Server.PlayersByID[ID] = this;
-            }
+            lock (Server.Sessions)
+                Server.Sessions.Add(this);
+            Server.PlayersByCon[Con] = this;
+            Server.PlayersByID[ID] = this;
 
             if (Server.UserData.TryLoad(UID, out BanInfo ban) && !ban.Reason.IsNullOrEmpty()) {
                 Con.Send(new DataDisconnectReason { Text = $"IP banned: {ban.Reason}" });
@@ -104,11 +104,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             string fullNameSpace = nameSpace;
             string fullName = name;
 
-            lock (Server.Connections)
-                for (int i = 2; Server.PlayersByCon.Values.Any(other => other.PlayerInfo?.FullName == fullName); i++) {
-                    fullNameSpace = $"{nameSpace}#{i}";
-                    fullName = $"{name}#{i}";
-                }
+            for (int i = 2; Server.Sessions.ToArray().Any(other => other.PlayerInfo?.FullName == fullName); i++) {
+                fullNameSpace = $"{nameSpace}#{i}";
+                fullName = $"{name}#{i}";
+            }
 
             string displayName = fullNameSpace;
 
@@ -138,25 +137,23 @@ namespace Celeste.Mod.CelesteNet.Server {
             });
             Con.Send(AvatarEmoji);
 
-            lock (Server.Connections) {
-                foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
-                    if (other == this)
-                        continue;
+            foreach (CelesteNetPlayerSession other in Server.Sessions.ToArray()) {
+                if (other == this)
+                    continue;
 
-                    DataPlayerInfo? otherInfo = other.PlayerInfo;
-                    if (otherInfo == null)
-                        continue;
+                DataPlayerInfo? otherInfo = other.PlayerInfo;
+                if (otherInfo == null)
+                    continue;
 
-                    other.Con.Send(playerInfo);
-                    other.Con.Send(AvatarEmoji);
+                other.Con.Send(playerInfo);
+                other.Con.Send(AvatarEmoji);
 
-                    Con.Send(otherInfo);
-                    Con.Send(other.AvatarEmoji);
+                Con.Send(otherInfo);
+                Con.Send(other.AvatarEmoji);
 
-                    foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || other.Channel.ID == 0)
-                            Con.Send(bound);
-                }
+                foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
+                    if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || other.Channel.ID == 0)
+                        Con.Send(bound);
             }
 
             ResendPlayerStates();
@@ -209,23 +206,21 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void ResendPlayerStates() {
             Channel channel = Channel;
 
-            lock (Server.Connections) {
-                foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
-                    if (other == this)
-                        continue;
+            foreach (CelesteNetPlayerSession other in Server.Sessions.ToArray()) {
+                if (other == this)
+                    continue;
 
-                    foreach (DataType bound in Server.Data.GetBoundRefs(PlayerInfo))
-                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || channel == other.Channel)
-                            other.Con.Send(bound);
+                foreach (DataType bound in Server.Data.GetBoundRefs(PlayerInfo))
+                    if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || channel == other.Channel)
+                        other.Con.Send(bound);
 
-                    DataPlayerInfo? otherInfo = other.PlayerInfo;
-                    if (otherInfo == null)
-                        continue;
+                DataPlayerInfo? otherInfo = other.PlayerInfo;
+                if (otherInfo == null)
+                    continue;
 
-                    foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || channel == other.Channel)
-                            Con.Send(bound);
-                }
+                foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
+                    if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || channel == other.Channel)
+                        Con.Send(bound);
             }
         }
 
@@ -263,10 +258,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             DataPlayerInfo? playerInfoLast = PlayerInfo;
 
-            lock (Server.Connections) {
-                Server.PlayersByCon.Remove(Con);
-                Server.PlayersByID.Remove(ID);
-            }
+            lock (Server.Sessions)
+                Server.Sessions.Remove(this);
+            Server.PlayersByCon.TryRemove(Con, out _);
+            Server.PlayersByID.TryRemove(ID, out _);
 
             if (playerInfoLast != null)
                 Server.Broadcast(new DataPlayerInfo {
@@ -349,13 +344,11 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (con != Con)
                 return;
 
-            lock (Server.Connections) {
-                foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
-                    if (other == this)
-                        continue;
+            foreach (CelesteNetPlayerSession other in Server.Sessions.ToArray()) {
+                if (other == this)
+                    continue;
 
-                    other.Con.Send(updated);
-                }
+                other.Con.Send(updated);
             }
         }
 
@@ -371,19 +364,17 @@ namespace Celeste.Mod.CelesteNet.Server {
                 data.Is<MetaPlayerUpdate>(Server.Data)) {
                 Channel channel = Channel;
 
-                lock (Server.Connections) {
-                    foreach (CelesteNetPlayerSession other in Server.PlayersByCon.Values) {
-                        if (other == this)
-                            continue;
+                foreach (CelesteNetPlayerSession other in Server.Sessions.ToArray()) {
+                    if (other == this)
+                        continue;
 
-                        if (data.Is<MetaPlayerPrivateState>(Server.Data) && channel != other.Channel)
-                            continue;
+                    if (data.Is<MetaPlayerPrivateState>(Server.Data) && channel != other.Channel)
+                        continue;
 
-                        if (data.Is<MetaPlayerUpdate>(Server.Data) && !IsSameArea(channel, state, other))
-                            continue;
+                    if (data.Is<MetaPlayerUpdate>(Server.Data) && !IsSameArea(channel, state, other))
+                        continue;
 
-                        other.Con.Send(data);
-                    }
+                    other.Con.Send(data);
                 }
             }
         }

@@ -33,9 +33,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             BroadcastSpamContext = new SpamContext(this);
             Commands = new ChatCommands(this);
             Server.OnSessionStart += OnSessionStart;
-            lock (Server.Connections)
-                foreach (CelesteNetPlayerSession session in Server.PlayersByCon.Values)
-                    session.OnEnd += OnSessionEnd;
+            foreach (CelesteNetPlayerSession session in Server.Sessions.ToArray())
+                session.OnEnd += OnSessionEnd;
         }
 
         public override void Dispose() {
@@ -49,9 +48,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             SpamContexts.Clear();
 
             Server.OnSessionStart -= OnSessionStart;
-            lock (Server.Connections)
-                foreach (CelesteNetPlayerSession session in Server.PlayersByCon.Values)
-                    session.OnEnd -= OnSessionEnd;
+            foreach (CelesteNetPlayerSession session in Server.Sessions.ToArray())
+                session.OnEnd -= OnSessionEnd;
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
@@ -87,10 +85,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (from == null)
                     return null;
 
-                CelesteNetPlayerSession? player;
-                lock (Server.Connections)
-                    if (!Server.PlayersByCon.TryGetValue(from, out player))
-                        return null;
+                if (!Server.PlayersByCon.TryGetValue(from, out CelesteNetPlayerSession? player))
+                    return null;
 
                 msg.Player = player.PlayerInfo;
                 if (msg.Player == null)
@@ -111,10 +107,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     return null;
 
             } else if (msg.Player != null && (msg.Targets?.Length ?? 1) > 0) {
-                CelesteNetPlayerSession? player;
-                lock (Server.Connections)
-                    if (!Server.PlayersByID.TryGetValue(msg.Player.ID, out player))
-                        return null;
+                if (!Server.PlayersByID.TryGetValue(msg.Player.ID, out CelesteNetPlayerSession? player))
+                    return null;
 
                 if (SpamContexts.TryGetValue(player, out SpamContext? spam) && spam.IsSpam(msg))
                     return null;
@@ -187,10 +181,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (con == null)
                 return;
 
-            CelesteNetPlayerSession? player;
-            lock (Server.Connections)
-                if (!Server.PlayersByCon.TryGetValue(con, out player))
-                    return;
+            if (!Server.PlayersByCon.TryGetValue(con, out CelesteNetPlayerSession? player))
+                return;
 
             DataPlayerInfo? playerInfo = player.PlayerInfo;
             if (playerInfo == null)
@@ -252,13 +244,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 return;
             }
 
-            foreach (DataPlayerInfo playerInfo in msg.Targets) {
-                CelesteNetPlayerSession? player;
-                lock (Server.Connections)
-                    if (!Server.PlayersByID.TryGetValue(playerInfo.ID, out player))
-                        continue;
-                player.Con?.Send(msg);
-            }
+            foreach (DataPlayerInfo playerInfo in msg.Targets)
+                if (Server.PlayersByID.TryGetValue(playerInfo.ID, out CelesteNetPlayerSession? player))
+                    player.Con?.Send(msg);
         }
 
     }

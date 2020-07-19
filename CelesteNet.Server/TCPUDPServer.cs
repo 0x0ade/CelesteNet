@@ -194,9 +194,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return;
             }
 
-            lock (Server.Connections)
-                if (Server.PlayersByCon.ContainsKey(con))
-                    return;
+            // FIXME: Possible race condition on rehandshake after disconnect?
+            if (Server.PlayersByCon.ContainsKey(con))
+                return;
 
             CelesteNetPlayerSession session = new CelesteNetPlayerSession(Server, con, ++Server.PlayerCounter);
             session.Start(handshake);

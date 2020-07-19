@@ -29,20 +29,19 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             };
 
             foreach (string uid in uids) {
-                lock (Frontend.Server.Connections)
-                    foreach (CelesteNetPlayerSession player in Frontend.Server.PlayersByID.Values.ToArray()) {
-                        if (player.UID != uid && player.ConUID != uid)
-                            continue;
+                foreach (CelesteNetPlayerSession player in Frontend.Server.Sessions.ToArray()) {
+                    if (player.UID != uid && player.ConUID != uid)
+                        continue;
 
-                        if (ban.Name.IsNullOrEmpty())
-                            ban.Name = player.PlayerInfo?.FullName ?? "";
+                    if (ban.Name.IsNullOrEmpty())
+                        ban.Name = player.PlayerInfo?.FullName ?? "";
 
-                        ChatModule chat = Frontend.Server.Get<ChatModule>();
-                        new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
-                        player.Dispose();
-                        player.Con.Send(new DataDisconnectReason { Text = "Banned: " + reason });
-                        player.Con.Send(new DataInternalDisconnect());
-                    }
+                    ChatModule chat = Frontend.Server.Get<ChatModule>();
+                    new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
+                    player.Dispose();
+                    player.Con.Send(new DataDisconnectReason { Text = "Banned: " + reason });
+                    player.Con.Send(new DataInternalDisconnect());
+                }
             }
 
             foreach (string uid in uids)

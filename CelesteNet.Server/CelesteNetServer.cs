@@ -39,6 +39,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly DetourModManager DetourModManager;
 
         public uint PlayerCounter = 0;
+        public readonly ReaderWriterLockSlim ConLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
         public readonly HashSet<CelesteNetPlayerSession> Sessions = new HashSet<CelesteNetPlayerSession>();
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession>();

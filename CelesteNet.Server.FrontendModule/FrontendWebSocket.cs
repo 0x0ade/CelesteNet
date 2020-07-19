@@ -27,7 +27,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public WSCommands Commands;
 
-        private IPEndPoint? CurrentEndPoint;
+        public IPEndPoint? CurrentEndPoint { get; private set; }
 
         private new EState State = EState.Invalid;
         private WSCMD? CurrentCommand;

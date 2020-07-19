@@ -239,9 +239,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (WSHost == null)
                 return;
 
-            foreach (FrontendWebSocket session in WSHost.Sessions.Sessions)
+            foreach (FrontendWebSocket session in WSHost.Sessions.Sessions.ToArray())
                 if (!authOnly || session.IsAuthorized)
-                    session.SendRawString(data);
+                    try {
+                        session.SendRawString(data);
+                    } catch (Exception e) {
+                        Logger.Log(LogLevel.VVV, "frontend", $"Failed broadcast:\n{session.CurrentEndPoint}\n{e}");
+                    }
         }
 
         public void BroadcastRawObject(bool authOnly, object obj) {

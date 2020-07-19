@@ -16,10 +16,11 @@ export class FrontendEndpointsPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Endpoints";
+    this.ep = "/eps";
   }
 
   async update() {
-    this.list = await fetch("/eps")
+    this.list = await fetch(this.ep)
       .then(r => r.json())
       .then(r => r.map(ep => [
         el => rd$(el)`<span>

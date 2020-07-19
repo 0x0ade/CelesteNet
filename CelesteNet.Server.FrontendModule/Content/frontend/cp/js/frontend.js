@@ -53,6 +53,7 @@ export class Frontend {
       "channels",
       "cmd",
       "chat",
+      "notes",
       "assemblies",
       "endpoints"
     ]) {

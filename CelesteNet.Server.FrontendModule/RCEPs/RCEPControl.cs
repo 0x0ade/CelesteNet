@@ -261,5 +261,43 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             f.Respond(c, sb.ToString());
         }
 
+        [RCEndpoint(true, "/notes", "", "", "Admin Notes", "Get or set some administrative notes.")]
+        public static void Notes(Frontend f, HttpRequestEventArgs c) {
+            string path = Path.ChangeExtension(f.Settings.FilePath, ".notes.txt");
+            string text;
+
+            if (c.Request.HttpMethod == "POST") {
+                try {
+                    using (StreamReader sr = new StreamReader(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
+                        text = sr.ReadToEnd();
+                    File.WriteAllText(path, text);
+                    f.RespondJSON(c, new {
+                        Info = "Success."
+                    });
+                    return;
+                } catch (Exception e) {
+                    f.RespondJSON(c, new {
+                        Error = e.ToString()
+                    });
+                    return;
+                }
+            }
+
+            if (!File.Exists(path)) {
+                f.Respond(c, "");
+                return;
+            }
+
+            try {
+                text = File.ReadAllText(path);
+                f.Respond(c, text);
+            } catch (Exception e) {
+                f.RespondJSON(c, new {
+                    Error = e.ToString()
+                });
+                return;
+            }
+        }
+
     }
 }

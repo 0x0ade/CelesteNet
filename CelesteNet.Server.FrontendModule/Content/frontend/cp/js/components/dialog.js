@@ -151,6 +151,70 @@ export class FrontendDialog {
     return dialog;
   }
 
+  kick(id) {
+    const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
+    const group = (...items) => el => {
+      el = rd$(el)`<ul class="settings-group"></ul>`;
+
+      let list = new RDOMListHelper(el);
+      for (let i in items) {
+        list.add(i, items[i]);
+      }
+      list.end();
+
+      return el;
+    }
+
+    let el = this.elPopupKick = mdcrd.dialog({
+      title: "Kick",
+      body: el => rd$(el)`
+      <div>
+        ${group(
+          row(`Player ID: ${id}`),
+        )}
+
+        ${group(
+          row("Reason:", el => {
+            el = mdcrd.textField("", "", null, e => {
+              if (e.keyCode === 13) {
+                this.elPopupKick["MDCDialog"].close("0");
+              }
+            })(el);
+            const input = el.querySelector("input");
+            input.id = "kick-reason";
+            return el;
+          }),
+        )}
+      </div>`,
+      defaultButton: "yes",
+      buttons: ["OK"],
+    })(this.elPopupKick);
+
+    document.body.appendChild(el);
+
+    /** @type {import("@material/dialog").MDCDialog & Promise<string>} */
+    let dialog = el["MDCDialog"];
+
+    dialog.open();
+
+    // Blame the Material Design Web Components checkbox stealing focus for this horrible hack.
+    setTimeout(() => el.querySelector("input#kick-reason")["focus"](), 200);
+
+    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && el.querySelector("input#kick-reason")["value"]), { once: true }));
+    dialog["then"] = promise.then.bind(promise);
+    dialog["catch"] = promise.catch.bind(promise);
+
+    dialog.then(
+      kick => {
+        if (!kick || !(kick = kick.trim()))
+          return;
+        this.frontend.sync.run("kickwarn", { ID: id, Reason: kick });
+      }
+    );
+
+    return dialog;
+  }
+
   ban(...uids) {
     const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
     const group = (...items) => el => {

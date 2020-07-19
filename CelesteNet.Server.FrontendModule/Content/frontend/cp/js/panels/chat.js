@@ -150,7 +150,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
 
           opts = [
             ...opts,
-            [ "error_outline", `Kick ${name}`, () => this.frontend.sync.run("kick", data.PlayerID) ],
+            [ "error_outline", `Kick ${name}`, () => this.frontend.dialog.kick(data.PlayerID) ],
             [ "gavel", `Ban ${name}`, () => this.frontend.dialog.ban(player && player.UID, player && player.ConnectionUID) ]
           ];
         }

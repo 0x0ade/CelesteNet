@@ -145,6 +145,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             f.RespondJSON(c, f.Server.UserData.GetAll().Select(uid => {
                 BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
                 BanInfo ban = f.Server.UserData.Load<BanInfo>(uid);
+                KickHistory kicks = f.Server.UserData.Load<KickHistory>(uid);
                 return new {
                     UID = uid,
                     info.Name,
@@ -155,7 +156,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         ban.Reason,
                         From = ban.From?.ToUnixTime() ?? 0,
                         To = ban.To?.ToUnixTime() ?? 0
-                    }
+                    },
+                    Kicks = kicks.Log.Select(e => new {
+                        e.Reason,
+                        From = e.From?.ToUnixTime() ?? 0
+                    }).ToArray()
                 };
             }).ToArray());
         }

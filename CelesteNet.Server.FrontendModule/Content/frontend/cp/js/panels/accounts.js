@@ -20,7 +20,11 @@ const mdc = window["mdc"]; // mdc
     Reason: string,
     From: number,
     To: number
-  }
+  },
+  Kicks: {
+    Reason: string,
+    From: number
+  }[]
 }} UserInfo
  */
 
@@ -57,6 +61,11 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
           list.add("tags", el => rd$(el)`<span><br><b>Tags: </b>${p.Tags.join(", ")}</span>`);
         if (p.Ban)
           list.add("ban", el => rd$(el)`<span><br><b>Ban: </b>${this.frontend.utils.datetime(p.Ban.From) + ": " + p.Ban.Reason}</span>`);
+        if (p.Kicks && p.Kicks.length) {
+          list.add("kicks", el => rd$(el)`<span><br><b>Kicks: </b>${p.Kicks.length}</span>`);
+          const kick = p.Kicks[p.Kicks.length - 1];
+          list.add("lastkick", el => rd$(el)`<span><br><b>Last Kick: </b>${this.frontend.utils.datetime(kick.From) + ": " + kick.Reason}</span>`);
+        }
         list.end();
         return el;
       })(el);

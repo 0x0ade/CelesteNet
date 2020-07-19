@@ -59,4 +59,12 @@ namespace Celeste.Mod.CelesteNet.Server {
         public DateTime? From { get; set; } = null;
         public DateTime? To { get; set; } = null;
     }
+
+    public class KickHistory {
+        public List<Entry> Log { get; set; } = new List<Entry>();
+        public class Entry {
+            public string Reason { get; set; } = "";
+            public DateTime? From { get; set; } = null;
+        }
+    }
 }

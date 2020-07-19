@@ -48,7 +48,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
       )(el);
 
       this.frontend.dom.setContext(el,
-        [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.sync.run("kick", p.ID) ],
+        [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.ID) ],
         [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ]
       );
 

@@ -102,7 +102,7 @@ namespace Celeste.Mod.CelesteNet {
             if (data == null)
                 return;
             data.Meta = data.GenerateMeta(Data);
-            if (!(data is DataInternalDisconnect) && !data.FilterSend(Data))
+            if (!data.FilterSend(Data))
                 return;
             if (!IsAlive)
                 return;
@@ -202,7 +202,7 @@ namespace Celeste.Mod.CelesteNet {
                             data = Queue.Dequeue();
 
                         if (data is DataInternalDisconnect) {
-                            Dispose();
+                            Con.Dispose();
                             return;
                         }
 

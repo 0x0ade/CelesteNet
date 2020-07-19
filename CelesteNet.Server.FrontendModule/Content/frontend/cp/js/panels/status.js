@@ -27,6 +27,7 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
       Registered: 0,
       Banned: 0,
       Connections: 0,
+      Sessions: 0,
       PlayersByCon: 0,
       PlayersByID: 0,
       PlayerRefs: 0,

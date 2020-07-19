@@ -265,7 +265,7 @@ main {
 .panel-cmd,
 .panel-chat,
 .panel-notes {
-    width: 400px;
+    width: 600px;
 }
 .panel-cmd > .panel-list,
 .panel-chat > .panel-list,

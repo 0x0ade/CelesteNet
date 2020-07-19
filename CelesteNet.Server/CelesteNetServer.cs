@@ -247,7 +247,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             => OnSessionStart?.Invoke(session);
 
         public void Broadcast(DataType data) {
-            foreach (CelesteNetConnection con in Connections) {
+            foreach (CelesteNetConnection con in Connections.ToArray()) {
                 try {
                     con.Send(data);
                 } catch (Exception e) {
@@ -258,7 +258,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Broadcast(DataType data, params CelesteNetConnection[] except) {
-            foreach (CelesteNetConnection con in Connections) {
+            foreach (CelesteNetConnection con in Connections.ToArray()) {
                 if (except.Contains(con))
                     continue;
                 try {

@@ -30,7 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             using (Frontend.Server.ConLock.R())
                 foreach (string uid in uids) {
-                    foreach (CelesteNetPlayerSession player in Frontend.Server.Sessions) {
+                    foreach (CelesteNetPlayerSession player in Frontend.Server.Sessions.ToArray()) {
                         if (player.UID != uid && player.ConUID != uid)
                             continue;
 

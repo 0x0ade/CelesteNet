@@ -249,10 +249,11 @@ namespace Celeste.Mod.CelesteNet.Server {
             => OnSessionStart?.Invoke(session);
 
         public void Broadcast(DataType data) {
+            DataInternalBlob blob = new DataInternalBlob(Data, data);
             using (ConLock.R())
                 foreach (CelesteNetConnection con in Connections) {
                     try {
-                        con.Send(data);
+                        con.Send(blob);
                     } catch (Exception e) {
                         // Whoops, it probably wasn't important anyway.
                         Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
@@ -261,12 +262,13 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Broadcast(DataType data, params CelesteNetConnection[] except) {
+            DataInternalBlob blob = new DataInternalBlob(Data, data);
             using (ConLock.R())
                 foreach (CelesteNetConnection con in Connections) {
                     if (except.Contains(con))
                         continue;
                     try {
-                        con.Send(data);
+                        con.Send(blob);
                     } catch (Exception e) {
                         // Whoops, it probably wasn't important anyway.
                         Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");

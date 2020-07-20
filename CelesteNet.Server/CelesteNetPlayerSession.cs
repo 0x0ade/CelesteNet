@@ -138,6 +138,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             });
             Con.Send(AvatarEmoji);
 
+            DataInternalBlob? blobPlayerInfo = DataInternalBlob.For(Server.Data, playerInfo);
+            DataInternalBlob? blobAvatarEmoji = DataInternalBlob.For(Server.Data, AvatarEmoji);
+
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession other in Server.Sessions) {
                     if (other == this)
@@ -147,8 +150,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     if (otherInfo == null)
                         continue;
 
-                    other.Con.Send(playerInfo);
-                    other.Con.Send(AvatarEmoji);
+                    other.Con.Send(blobPlayerInfo);
+                    other.Con.Send(blobAvatarEmoji);
 
                     Con.Send(otherInfo);
                     Con.Send(other.AvatarEmoji);
@@ -208,14 +211,25 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void ResendPlayerStates() {
             Channel channel = Channel;
 
+            DataInternalBlob[] boundAllPrivate = Server.Data.GetBoundRefs(PlayerInfo)
+                .Where(bound => !bound.Is<MetaPlayerPrivateState>(Server.Data))
+                .Select(bound => new DataInternalBlob(Server.Data, bound))
+                .ToArray();
+            DataInternalBlob[] boundAllPublic = Server.Data.GetBoundRefs(PlayerInfo)
+                .Where(bound => bound.Is<MetaPlayerPrivateState>(Server.Data))
+                .Select(bound => new DataInternalBlob(Server.Data, bound))
+                .ToArray();
+
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession other in Server.Sessions) {
                     if (other == this)
                         continue;
 
-                    foreach (DataType bound in Server.Data.GetBoundRefs(PlayerInfo))
-                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || channel == other.Channel)
+                    foreach (DataType bound in boundAllPrivate)
+                        if (channel == other.Channel)
                             other.Con.Send(bound);
+                    foreach (DataType bound in boundAllPublic)
+                        other.Con.Send(bound);
 
                     DataPlayerInfo? otherInfo = other.PlayerInfo;
                     if (otherInfo == null)
@@ -347,12 +361,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (con != Con)
                 return;
 
+            DataInternalBlob blob = new DataInternalBlob(Server.Data, updated);
+
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession other in Server.Sessions) {
                     if (other == this)
                         continue;
 
-                    other.Con.Send(updated);
+                    other.Con.Send(blob);
                 }
         }
 
@@ -368,6 +384,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                 data.Is<MetaPlayerUpdate>(Server.Data)) {
                 Channel channel = Channel;
 
+                DataInternalBlob blob = new DataInternalBlob(Server.Data, data);
+
                 using (Server.ConLock.R())
                     foreach (CelesteNetPlayerSession other in Server.Sessions) {
                         if (other == this)
@@ -379,7 +397,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         if (data.Is<MetaPlayerUpdate>(Server.Data) && !IsSameArea(channel, state, other))
                             continue;
 
-                        other.Con.Send(data);
+                        other.Con.Send(blob);
                     }
             }
         }

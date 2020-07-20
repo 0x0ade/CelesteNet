@@ -117,9 +117,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (session.PlayerInfo != null)
                     c.Add(session);
 
-                DataChannelMove move = new DataChannelMove {
+                DataInternalBlob move = new DataInternalBlob(Server.Data, new DataChannelMove {
                     Player = session.PlayerInfo
-                };
+                });
                 session.Con.Send(move);
                 foreach (CelesteNetPlayerSession other in prev.Players)
                     other.Con.Send(move);

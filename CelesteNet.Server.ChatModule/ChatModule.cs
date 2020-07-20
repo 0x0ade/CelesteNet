@@ -246,9 +246,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 return;
             }
 
+            DataInternalBlob blob = new DataInternalBlob(Server.Data, msg);
             foreach (DataPlayerInfo playerInfo in msg.Targets)
                 if (Server.PlayersByID.TryGetValue(playerInfo.ID, out CelesteNetPlayerSession? player))
-                    player.Con?.Send(msg);
+                    player.Con?.Send(blob);
         }
 
     }

@@ -56,8 +56,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if ((msg.Targets?.Length ?? 0) == 0)
                 return;
 
+            DataInternalBlob blob = new DataInternalBlob(env.Server.Data, msg);
             foreach (CelesteNetPlayerSession other in others)
-                other.Con.Send(msg);
+                other.Con.Send(blob);
         }
 
     }

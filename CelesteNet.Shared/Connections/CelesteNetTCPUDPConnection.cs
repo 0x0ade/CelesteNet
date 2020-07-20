@@ -160,12 +160,20 @@ namespace Celeste.Mod.CelesteNet {
                 return;
             }
 
-            BufferHelper buffer = queue.Buffer;
+            int length;
+            byte[] raw;
 
-            buffer.Stream.Seek(0, SeekOrigin.Begin);
+            if (data is DataInternalBlob blob) {
+                raw = blob.Bytes;
+                length = raw.Length;
+                data = blob.Data ?? throw new NullReferenceException("DataInternalBlob without internal data.");
 
-            int length = Data.Write(buffer.Writer, data);
-            byte[] raw = buffer.Stream.GetBuffer();
+            } else {
+                BufferHelper buffer = queue.Buffer;
+                buffer.Stream.Seek(0, SeekOrigin.Begin);
+                length = Data.Write(buffer.Writer, data);
+                raw = buffer.Stream.GetBuffer();
+            }
 
             if (SendViaUDP(data) && UDP != null) {
                 // Missed updates aren't that bad...

@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             uint id = (uint) input?.ID;
             string? reason = (string?) input?.Reason ?? "";
 
-            lock (Frontend.Server.Connections)
+            using (Frontend.Server.ConLock.R())
                 if (Frontend.Server.PlayersByID.TryGetValue(id, out CelesteNetPlayerSession? player)) {
                     string uid = player.UID;
 

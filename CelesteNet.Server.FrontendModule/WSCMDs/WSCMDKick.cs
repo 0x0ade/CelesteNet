@@ -14,14 +14,15 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDKick : WSCMD<uint> {
         public override bool Auth => true;
         public override object? Run(uint input) {
-            if (Frontend.Server.PlayersByID.TryGetValue(input, out CelesteNetPlayerSession? player)) {
-                ChatModule chat = Frontend.Server.Get<ChatModule>();
-                new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
-                player.Dispose();
-                player.Con.Send(new DataDisconnectReason { Text = "Kicked" });
-                player.Con.Send(new DataInternalDisconnect());
-                return true;
-            }
+            using (Frontend.Server.ConLock.R())
+                if (Frontend.Server.PlayersByID.TryGetValue(input, out CelesteNetPlayerSession? player)) {
+                    ChatModule chat = Frontend.Server.Get<ChatModule>();
+                    new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
+                    player.Dispose();
+                    player.Con.Send(new DataDisconnectReason { Text = "Kicked" });
+                    player.Con.Send(new DataInternalDisconnect());
+                    return true;
+                }
             return null;
         }
     }

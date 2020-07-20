@@ -13,10 +13,12 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataInternalBlob : DataType {
 
-        public DataType Data;
-        public byte[] Bytes = Dummy<byte>.EmptyArray;
+        public readonly DataType Data;
+        public readonly byte[] Bytes = Dummy<byte>.EmptyArray;
 
         public DataInternalBlob(DataContext ctx, DataType data) {
+            while (data is DataInternalBlob blob)
+                data = blob.Data;
             Data = data;
             Bytes = ctx.ToBytes(data);
         }

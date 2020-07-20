@@ -101,7 +101,8 @@ namespace Celeste.Mod.CelesteNet {
         public virtual void Send(DataType? data) {
             if (data == null)
                 return;
-            data.Meta = data.GenerateMeta(Data);
+            if (!(data is DataInternalBlob))
+                data.Meta = data.GenerateMeta(Data);
             if (!data.FilterSend(Data))
                 return;
             if (!IsAlive)

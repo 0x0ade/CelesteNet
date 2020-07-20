@@ -15,12 +15,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataInternalBlob : DataType {
 
         public readonly DataType Data;
-        public readonly byte[] Bytes = Dummy<byte>.EmptyArray;
+        public readonly byte[] Bytes;
 
         public DataInternalBlob(DataContext ctx, DataType data) {
             while (data is DataInternalBlob blob)
                 data = blob.Data;
             Data = data;
+            Data.Meta = Data.GenerateMeta(ctx);
             Bytes = ctx.ToBytes(data);
         }
 
@@ -29,7 +30,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override DataFlags DataFlags => Data.DataFlags;
 
-        public override MetaType[] Meta => Data.Meta;
+        public override MetaType[] Meta {
+            get => Data.Meta;
+            set => Data.Meta = value;
+        }
 
         public override bool FilterHandle(DataContext ctx) => Data.FilterHandle(ctx);
         public override bool FilterSend(DataContext ctx) => Data.FilterSend(ctx);

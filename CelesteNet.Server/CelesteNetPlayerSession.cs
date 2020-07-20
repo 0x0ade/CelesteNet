@@ -211,25 +211,22 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void ResendPlayerStates() {
             Channel channel = Channel;
 
-            DataInternalBlob[] boundAllPrivate = Server.Data.GetBoundRefs(PlayerInfo)
-                .Where(bound => !bound.Is<MetaPlayerPrivateState>(Server.Data))
+            ILookup<bool, DataInternalBlob> boundAll = Server.Data.GetBoundRefs(PlayerInfo)
                 .Select(bound => new DataInternalBlob(Server.Data, bound))
-                .ToArray();
-            DataInternalBlob[] boundAllPublic = Server.Data.GetBoundRefs(PlayerInfo)
-                .Where(bound => bound.Is<MetaPlayerPrivateState>(Server.Data))
-                .Select(bound => new DataInternalBlob(Server.Data, bound))
-                .ToArray();
+                .ToLookup(blob => blob.Data.Is<MetaPlayerPrivateState>(Server.Data));
+            IEnumerable<DataInternalBlob> boundAllPublic = boundAll[false];
+            IEnumerable<DataInternalBlob> boundAllPrivate = boundAll[true];
 
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession other in Server.Sessions) {
                     if (other == this)
                         continue;
 
+                    foreach (DataType bound in boundAllPublic)
+                        other.Con.Send(bound);
                     foreach (DataType bound in boundAllPrivate)
                         if (channel == other.Channel)
                             other.Con.Send(bound);
-                    foreach (DataType bound in boundAllPublic)
-                        other.Con.Send(bound);
 
                     DataPlayerInfo? otherInfo = other.PlayerInfo;
                     if (otherInfo == null)

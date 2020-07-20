@@ -306,6 +306,16 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public int Write(BinaryWriter writer, DataType data) {
+            long start, end;
+
+            if (data is DataInternalBlob blob) {
+                start = writer.BaseStream.Position;
+                writer.Write(blob.Bytes);
+                writer.Flush();
+                end = writer.BaseStream.Position;
+                return (int) (end - start);
+            }
+
             string type = data.GetTypeID(this);
 
             DataFlags flags = data.DataFlags;
@@ -333,7 +343,7 @@ namespace Celeste.Mod.CelesteNet {
             data.Write(this, writer);
             writer.Flush();
 
-            long end = writer.BaseStream.Position;
+            end = writer.BaseStream.Position;
             long length = end - startData;
 
             if (small) {

@@ -215,7 +215,7 @@ namespace Celeste.Mod.CelesteNet {
                             uint id = data.GetDuplicateFilterID();
 
                             lock (Queue)
-                                if (Queue.Where(d => d.GetTypeID(Con.Data) == type && d.GetDuplicateFilterID() == id).Count() > 0)
+                                if (Queue.Any(d => d.GetTypeID(Con.Data) == type && d.GetDuplicateFilterID() == id))
                                     continue;
                         }
 

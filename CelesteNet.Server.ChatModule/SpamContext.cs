@@ -29,7 +29,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public bool IsSpam(DataChat msg) {
             string text = msg.ToString(false, false).ToLowerInvariant().Sanitize();
             lock (Timeouts) {
-                if (!Timeouts.TryGetValue(text, out SpamTimeout entry))
+                if (!Timeouts.TryGetValue(text, out SpamTimeout? entry))
                     Timeouts[text] = entry = new SpamTimeout(this, text);
                 if (entry.Add()) {
                     OnSpam?.Invoke(msg, entry);

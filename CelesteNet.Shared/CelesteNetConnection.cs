@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -153,7 +154,8 @@ namespace Celeste.Mod.CelesteNet {
         private readonly ManualResetEvent Event;
         private readonly WaitHandle[] EventHandles;
         private readonly Thread Thread;
-        private readonly Dictionary<string, DataType> LastSent = new Dictionary<string, DataType>();
+        // FIXME: MEMORY LEAK! Totally not gonna blame Cruor on this tho, as the initial impl was good for its use case.
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>> LastSent = new ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>>();
 
         private DateTime LastUpdate;
         private DateTime LastNonUpdate;
@@ -209,22 +211,26 @@ namespace Celeste.Mod.CelesteNet {
                         }
 
                         if ((data.DataFlags & DataFlags.OnlyLatest) == DataFlags.OnlyLatest) {
-                            string targetId = data.GetTypeID(Con.Data);
+                            string type = data.GetTypeID(Con.Data);
+                            uint id = data.GetDuplicateFilterID();
 
                             lock (Queue)
-                                if (Queue.Where(d => d.GetTypeID(Con.Data) == targetId).Count() > 0)
+                                if (Queue.Where(d => d.GetTypeID(Con.Data) == type && d.GetDuplicateFilterID() == id).Count() > 0)
                                     continue;
                         }
 
                         if ((data.DataFlags & DataFlags.SkipDuplicate) == DataFlags.SkipDuplicate) {
-                            string targetId = data.GetTypeID(Con.Data);
-                            DataType last;
+                            string type = data.GetTypeID(Con.Data);
+                            uint id = data.GetDuplicateFilterID();
 
-                            if (LastSent.TryGetValue(targetId, out last))
+                            if (!LastSent.TryGetValue(type, out ConcurrentDictionary<uint, DataType>? lastByID))
+                                LastSent[type] = lastByID = new ConcurrentDictionary<uint, DataType>();
+
+                            if (lastByID.TryGetValue(id, out DataType? last))
                                 if (last.ConsideredDuplicate(data))
                                     continue;
 
-                            LastSent[targetId] = data;
+                            lastByID[id] = data;
                         }
 
                         Con.SendRaw(this, data);

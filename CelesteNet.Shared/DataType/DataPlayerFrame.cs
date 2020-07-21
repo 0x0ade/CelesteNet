@@ -245,26 +245,28 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         // Contains some sane values to figure out if this is duplicate or not
-        public override bool ConsideredDuplicate(DataType data) {
-            return data is DataPlayerFrame frame &&
-                   Position.Equals(frame.Position) &&
-                   Speed.Equals(frame.Speed) &&
-                   Scale.Equals(frame.Scale) &&
-                   Color.Equals(frame.Color) &&
-                   Facing == frame.Facing &&
-                   Depth == frame.Depth &&
-                   SpriteMode == frame.SpriteMode &&
-                   SpriteRate == frame.SpriteRate &&
-                   EqualityComparer<Vector2?>.Default.Equals(SpriteJustify, frame.SpriteJustify) &&
-                   CurrentAnimationID == frame.CurrentAnimationID &&
-                   CurrentAnimationFrame == frame.CurrentAnimationFrame &&
-                   HairColor.Equals(frame.HairColor) &&
-                   HairSimulateMotion == frame.HairSimulateMotion &&
-                   HairCount == frame.HairCount &&
-                   DashWasB == frame.DashWasB &&
-                   DashDir.Equals(frame.DashDir) &&
-                   Dead == frame.Dead;
-        }
+        public override uint GetDuplicateFilterID()
+            => Player?.ID ?? uint.MaxValue;
+
+        public override bool ConsideredDuplicate(DataType data)
+            => data is DataPlayerFrame frame &&
+                Position.Equals(frame.Position) &&
+                Speed.Equals(frame.Speed) &&
+                Scale.Equals(frame.Scale) &&
+                Color.Equals(frame.Color) &&
+                Facing == frame.Facing &&
+                Depth == frame.Depth &&
+                SpriteMode == frame.SpriteMode &&
+                SpriteRate == frame.SpriteRate &&
+                EqualityComparer<Vector2?>.Default.Equals(SpriteJustify, frame.SpriteJustify) &&
+                CurrentAnimationID == frame.CurrentAnimationID &&
+                CurrentAnimationFrame == frame.CurrentAnimationFrame &&
+                HairColor.Equals(frame.HairColor) &&
+                HairSimulateMotion == frame.HairSimulateMotion &&
+                HairCount == frame.HairCount &&
+                DashWasB == frame.DashWasB &&
+                DashDir.Equals(frame.DashDir) &&
+                Dead == frame.Dead;
 
         public class Entity {
             public Vector2 Position;

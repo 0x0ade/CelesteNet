@@ -19,6 +19,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public virtual bool FilterHandle(DataContext ctx) => true;
         public virtual bool FilterSend(DataContext ctx) => true;
 
+        public virtual uint GetDuplicateFilterID() => uint.MaxValue;
         public virtual bool ConsideredDuplicate(DataType data) => false;
 
         public virtual MetaType[] GenerateMeta(DataContext ctx)

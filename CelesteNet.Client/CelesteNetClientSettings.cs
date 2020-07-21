@@ -86,7 +86,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingRange(1, 4)]
         public int PlayerOpacity { get; set; } = 4;
 
-        [SettingRange(1, 4)]
+        [SettingRange(0, 4)]
         public int NameOpacity { get; set; } = 4;
 
         public bool ShowOwnName { get; set; } = true;

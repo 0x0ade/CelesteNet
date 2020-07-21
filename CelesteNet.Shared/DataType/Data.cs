@@ -19,6 +19,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public virtual bool FilterHandle(DataContext ctx) => true;
         public virtual bool FilterSend(DataContext ctx) => true;
 
+        public virtual bool ConsideredDuplicate(DataType data) => false;
+
         public virtual MetaType[] GenerateMeta(DataContext ctx)
             => Meta;
 
@@ -187,6 +189,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             0b0000000000000001,
         ForceForward =
             0b0000000000000010,
+        OnlyLatest =
+            0b0000000000000100,
+        SkipDuplicate =
+            0b0000000000001000,
 
         Reserved3 =
             0b0000010000000000,

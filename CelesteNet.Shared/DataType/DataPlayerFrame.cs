@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         // Too many too quickly to make tasking worth it.
-        public override DataFlags DataFlags => DataFlags.Update;
+        public override DataFlags DataFlags => DataFlags.Update | DataFlags.OnlyLatest | DataFlags.SkipDuplicate;
 
         public uint UpdateID;
 
@@ -242,6 +242,28 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             }
 
             writer.Write(Dead);
+        }
+
+        // Contains some sane values to figure out if this is duplicate or not
+        public override bool ConsideredDuplicate(DataType data) {
+            return data is DataPlayerFrame frame &&
+                   Position.Equals(frame.Position) &&
+                   Speed.Equals(frame.Speed) &&
+                   Scale.Equals(frame.Scale) &&
+                   Color.Equals(frame.Color) &&
+                   Facing == frame.Facing &&
+                   Depth == frame.Depth &&
+                   SpriteMode == frame.SpriteMode &&
+                   SpriteRate == frame.SpriteRate &&
+                   EqualityComparer<Vector2?>.Default.Equals(SpriteJustify, frame.SpriteJustify) &&
+                   CurrentAnimationID == frame.CurrentAnimationID &&
+                   CurrentAnimationFrame == frame.CurrentAnimationFrame &&
+                   HairColor.Equals(frame.HairColor) &&
+                   HairSimulateMotion == frame.HairSimulateMotion &&
+                   HairCount == frame.HairCount &&
+                   DashWasB == frame.DashWasB &&
+                   DashDir.Equals(frame.DashDir) &&
+                   Dead == frame.Dead;
         }
 
         public class Entity {

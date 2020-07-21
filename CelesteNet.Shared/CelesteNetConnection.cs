@@ -153,6 +153,7 @@ namespace Celeste.Mod.CelesteNet {
         private readonly ManualResetEvent Event;
         private readonly WaitHandle[] EventHandles;
         private readonly Thread Thread;
+        private readonly Dictionary<string, DataType> LastSent = new Dictionary<string, DataType>();
 
         private DateTime LastUpdate;
         private DateTime LastNonUpdate;
@@ -205,6 +206,25 @@ namespace Celeste.Mod.CelesteNet {
                         if (data is DataInternalDisconnect) {
                             Con.Dispose();
                             return;
+                        }
+
+                        if ((data.DataFlags & DataFlags.OnlyLatest) == DataFlags.OnlyLatest) {
+                            string targetId = data.GetTypeID(Con.Data);
+
+                            lock (Queue)
+                                if (Queue.Where(d => d.GetTypeID(Con.Data) == targetId).Count() > 0)
+                                    continue;
+                        }
+
+                        if ((data.DataFlags & DataFlags.SkipDuplicate) == DataFlags.SkipDuplicate) {
+                            string targetId = data.GetTypeID(Con.Data);
+                            DataType last;
+
+                            if (LastSent.TryGetValue(targetId, out last))
+                                if (last.ConsideredDuplicate(data))
+                                    continue;
+
+                            LastSent[targetId] = data;
                         }
 
                         Con.SendRaw(this, data);

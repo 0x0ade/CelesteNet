@@ -46,6 +46,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public GhostNameTag PlayerNameTag;
         public GhostEmote PlayerIdleTag;
         public ConcurrentDictionary<uint, Ghost> Ghosts = new ConcurrentDictionary<uint, Ghost>();
+        public ConcurrentDictionary<uint, DataPlayerFrame> LastFrames = new ConcurrentDictionary<uint, DataPlayerFrame>();
 
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new HashSet<PlayerSpriteMode>();
 
@@ -81,6 +82,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
                     On.Celeste.PlayerSprite.ctor += OnPlayerSpriteCtor;
                     On.Celeste.Level.LoadNewPlayer += OnLoadNewPlayer;
+                    On.Celeste.Player.Added += OnPlayerAdded;
 
                     MethodInfo transitionRoutine =
                         typeof(Level).GetNestedType("<TransitionRoutine>d__24", BindingFlags.NonPublic)
@@ -103,6 +105,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
                 On.Celeste.PlayerSprite.ctor -= OnPlayerSpriteCtor;
                 On.Celeste.Level.LoadNewPlayer -= OnLoadNewPlayer;
+                On.Celeste.Player.Added -= OnPlayerAdded;
 
                 ILHookTransitionRoutine?.Dispose();
                 ILHookTransitionRoutine = null;
@@ -146,6 +149,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (string.IsNullOrEmpty(player.DisplayName)) {
                 ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
                 Ghosts.TryRemove(player.ID, out _);
+                LastFrames.TryRemove(player.ID, out _);
                 Client.Data.FreeOrder<DataPlayerFrame>(player.ID);
                 return;
             }
@@ -206,6 +210,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
+            LastFrames[frame.Player.ID] = frame;
+
             Level level = Engine.Scene as Level;
             Session session = Session;
 
@@ -724,6 +730,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 NextRespawnPosition = null;
             }
             return player;
+        }
+
+        private void OnPlayerAdded(On.Celeste.Player.orig_Added orig, Player self, Scene scene) {
+            orig(self, scene);
+
+            if (Client != null) {
+                foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>())
+                    if (LastFrames.TryGetValue(player.ID, out DataPlayerFrame frame))
+                        Handle(null, frame);
+            }
         }
 
         private void ILTransitionRoutine(ILContext il) {

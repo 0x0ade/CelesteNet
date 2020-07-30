@@ -17,29 +17,28 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             uint id = (uint) input?.ID;
             string? reason = (string?) input?.Reason ?? "";
 
-            using (Frontend.Server.ConLock.R())
-                if (Frontend.Server.PlayersByID.TryGetValue(id, out CelesteNetPlayerSession? player)) {
-                    string uid = player.UID;
+            if (Frontend.Server.PlayersByID.TryGetValue(id, out CelesteNetPlayerSession? player)) {
+                string uid = player.UID;
 
-                    ChatModule chat = Frontend.Server.Get<ChatModule>();
-                    new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
-                    player.Dispose();
-                    player.Con.Send(new DataDisconnectReason { Text = string.IsNullOrEmpty(reason) ? "Kicked" : $"Kicked: {reason}" });
-                    player.Con.Send(new DataInternalDisconnect());
+                ChatModule chat = Frontend.Server.Get<ChatModule>();
+                new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
+                player.Dispose();
+                player.Con.Send(new DataDisconnectReason { Text = string.IsNullOrEmpty(reason) ? "Kicked" : $"Kicked: {reason}" });
+                player.Con.Send(new DataInternalDisconnect());
 
-                    UserData userData = Frontend.Server.UserData;
-                    if (!reason.IsNullOrEmpty() && !userData.GetKey(uid).IsNullOrEmpty()) {
-                        KickHistory kicks = userData.Load<KickHistory>(uid);
-                        kicks.Log.Add(new KickHistory.Entry {
-                            Reason = reason,
-                            From = DateTime.UtcNow
-                        });
-                        userData.Save(uid, kicks);
-                        Frontend.BroadcastCMD(true, "update", "/userinfos");
-                    }
-
-                    return null;
+                UserData userData = Frontend.Server.UserData;
+                if (!reason.IsNullOrEmpty() && !userData.GetKey(uid).IsNullOrEmpty()) {
+                    KickHistory kicks = userData.Load<KickHistory>(uid);
+                    kicks.Log.Add(new KickHistory.Entry {
+                        Reason = reason,
+                        From = DateTime.UtcNow
+                    });
+                    userData.Save(uid, kicks);
+                    Frontend.BroadcastCMD(true, "update", "/userinfos");
                 }
+
+                return null;
+            }
 
             return null;
         }

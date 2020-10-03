@@ -39,7 +39,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             RunOnMainThread(() => {
                 Logger.Log(LogLevel.VVV, "netemoji", $"Registering {netemoji.ID}");
-                // FIXME: UNREGISTER EMOJI!!!!
 
                 bool registered = false;
 
@@ -65,7 +64,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
-            // FIXME: UNREGISTER EMOJI!!!!
+            foreach (string id in Registered)
+                Emoji.Register(id, GFX.Misc["whiteCube"]);
+
+            Emoji.Fill(CelesteNetClientFont.Font);
+
             foreach (string path in RegisteredFiles)
                 if (File.Exists(path))
                     File.Delete(path);

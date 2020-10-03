@@ -114,16 +114,23 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             string key = f.Server.UserData.Create(uid);
             BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
-            info.Name =  userData.username.ToString();
-            info.Discrim =  userData.discriminator.ToString();
+            info.Name = userData.username.ToString();
+            info.Discrim = userData.discriminator.ToString();
             f.Server.UserData.Save(uid, info);
 
             Image avatarOrig;
             using (HttpClient client = new HttpClient()) {
-                using (Stream s = client.GetAsync(
-                    $"https://cdn.discordapp.com/avatars/{uid}/{userData.avatar.ToString()}.png?size=64"
-                ).Await().Content.ReadAsStreamAsync().Await())
-                    avatarOrig = Image.FromStream(s);
+                try {
+                    using (Stream s = client.GetAsync(
+                        $"https://cdn.discordapp.com/avatars/{uid}/{userData.avatar.ToString()}.png?size=64"
+                    ).Await().Content.ReadAsStreamAsync().Await())
+                        avatarOrig = Image.FromStream(s);
+                } catch {
+                    using (Stream s = client.GetAsync(
+                        $"https://cdn.discordapp.com/embed/avatars/{((int) userData.discriminator) % 5}.png"
+                    ).Await().Content.ReadAsStreamAsync().Await())
+                        avatarOrig = Image.FromStream(s);
+                }
             }
             using (avatarOrig)
             using (Image avatarScale = avatarOrig.Width == 64 && avatarOrig.Height == 64 ? avatarOrig : new Bitmap(64, 64, PixelFormat.Format32bppArgb))

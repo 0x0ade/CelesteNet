@@ -212,7 +212,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
             LastFrames[frame.Player.ID] = frame;
 
-            Level level = Engine.Scene as Level;
+            Level level = Player?.Scene as Level;
             Session session = Session;
 
             bool outside =
@@ -735,11 +735,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private void OnPlayerAdded(On.Celeste.Player.orig_Added orig, Player self, Scene scene) {
             orig(self, scene);
 
-            if (Client != null) {
-                foreach (DataPlayerInfo player in Client.Data.GetRefs<DataPlayerInfo>())
-                    if (LastFrames.TryGetValue(player.ID, out DataPlayerFrame frame))
-                        Handle(null, frame);
-            }
+            Session = (scene as Level)?.Session;
+            WasIdle = false;
+            WasInteractive = false;
+            Player = self;
+
+            SendState();
+
+            foreach (DataPlayerFrame frame in LastFrames.Values.ToArray())
+                Handle(null, frame);
         }
 
         private void ILTransitionRoutine(ILContext il) {

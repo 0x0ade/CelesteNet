@@ -39,6 +39,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             base.Initialize();
 
             MainThreadHelper.Do(() => {
+                On.Celeste.Editor.MapEditor.ctor += OnMapEditorCtor;
                 On.Celeste.Editor.MapEditor.Render += OnMapEditorRender;
             });
         }
@@ -47,6 +48,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             base.Dispose(disposing);
 
             MainThreadHelper.Do(() => {
+                On.Celeste.Editor.MapEditor.ctor -= OnMapEditorCtor;
                 On.Celeste.Editor.MapEditor.Render -= OnMapEditorRender;
             });
 
@@ -139,14 +141,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
             }
 
+            VerifyArea();
+        }
+
+        private void VerifyArea() {
             AreaKey area = (AreaKey) f_MapEditor_area.GetValue(null);
             if (LastArea == null || LastArea.Value.SID != area.SID || LastArea.Value.Mode != area.Mode) {
                 LastArea = area;
                 Cleanup();
+                foreach (DataPlayerFrame frame in Context.Main.LastFrames.Values.ToArray())
+                    Handle(null, frame);
             }
         }
 
         #region Hooks
+
+        private void OnMapEditorCtor(On.Celeste.Editor.MapEditor.orig_ctor orig, MapEditor self, AreaKey area, bool reloadMapData) {
+            orig(self, area, reloadMapData);
+            VerifyArea();
+        }
 
         private void OnMapEditorRender(On.Celeste.Editor.MapEditor.orig_Render orig, MapEditor self) {
             orig(self);

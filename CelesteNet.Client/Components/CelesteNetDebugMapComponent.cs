@@ -93,24 +93,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (id == (Client?.PlayerInfo?.ID ?? uint.MaxValue))
                 return;
 
-            AreaKey? area = LastArea;
-            if (area == null)
-                return;
+            lock (Ghosts) {
+                AreaKey? area = LastArea;
+                if (area == null)
+                    return;
 
-            lock (Ghosts)
                 if (Ghosts.TryGetValue(id, out DebugMapGhost ghost) &&
                     (state.SID != area.Value.SID || state.Mode != area.Value.Mode || state.Level == CelesteNetMainComponent.LevelDebugMap))
                     Ghosts.Remove(id);
+            }
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
-            AreaKey? area = LastArea;
-            if (area == null)
-                return;
-
             lock (Ghosts) {
-                if (Ghosts.TryGetValue(frame.Player.ID, out DebugMapGhost ghost) && (
-                        !Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
+                AreaKey? area = LastArea;
+                if (area == null)
+                    return;
+
+                if (!Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
+                    Ghosts.TryGetValue(frame.Player.ID, out DebugMapGhost ghost) && (
                         state.SID != area.Value.SID ||
                         state.Mode != area.Value.Mode ||
                         state.Level == CelesteNetMainComponent.LevelDebugMap
@@ -127,6 +128,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 ghost.Name = frame.Player.DisplayName;
                 ghost.Position = frame.Position;
+                ghost.SID = state.SID;
+                ghost.Mode = state.Mode;
             }
         }
 
@@ -146,11 +149,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private void VerifyArea() {
             AreaKey area = (AreaKey) f_MapEditor_area.GetValue(null);
-            if (LastArea == null || LastArea.Value.SID != area.SID || LastArea.Value.Mode != area.Mode) {
-                LastArea = area;
-                Cleanup();
-                foreach (DataPlayerFrame frame in Context.Main.LastFrames.Values.ToArray())
-                    Handle(null, frame);
+            if (LastArea == null || LastArea.Value.ID != area.ID || LastArea.Value.Mode != area.Mode) {
+                lock (Ghosts) {
+                    LastArea = area;
+                    Cleanup();
+                    foreach (DataPlayerFrame frame in Context.Main.LastFrames.Values.ToArray())
+                        Handle(null, frame);
+                }
             }
         }
 
@@ -163,6 +168,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private void OnMapEditorRender(On.Celeste.Editor.MapEditor.orig_Render orig, MapEditor self) {
             orig(self);
+
+            AreaKey? area = LastArea;
+            string sid = area?.SID;
+            AreaMode mode = area?.Mode ?? (AreaMode) (-1);
 
             Camera camera = (Camera) f_MapEditor_Camera.GetValue(null);
 
@@ -180,7 +189,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 );
 
                 foreach (DebugMapGhost ghost in Ghosts.Values)
-                    MDraw.Rect(ghost.Position.X / 8f, ghost.Position.Y / 8f - 1f, 1f, 1f, Color.HotPink);
+                    if (ghost.SID == sid && ghost.Mode == mode)
+                        MDraw.Rect(ghost.Position.X / 8f, ghost.Position.Y / 8f - 1f, 1f, 1f, Color.HotPink);
 
                 MDraw.SpriteBatch.End();
 
@@ -195,6 +205,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 );
 
                 foreach (DebugMapGhost ghost in Ghosts.Values) {
+                    if (ghost.SID != sid || ghost.Mode != mode)
+                        continue;
                     Vector2 pos = new Vector2(ghost.Position.X / 8f + 0.5f, ghost.Position.Y / 8f - 1.5f);
                     pos -= camera.Position;
                     pos = new Vector2((float) Math.Round(pos.X), (float) Math.Round(pos.Y));
@@ -219,6 +231,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public class DebugMapGhost {
             public string Name;
             public Vector2 Position;
+            public string SID;
+            public AreaMode Mode;
         }
 
     }

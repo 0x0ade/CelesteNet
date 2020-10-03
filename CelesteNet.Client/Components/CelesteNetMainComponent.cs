@@ -438,6 +438,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (GrabbedBy != null && grab.Player.ID != GrabbedBy.PlayerInfo.ID)
                     goto Release;
 
+                if ((GrabbedBy.Position - player.Position).LengthSquared() > 4096f)
+                    goto Release;
+
                 RunOnMainThread(() => {
                     GrabTimeout = 0f;
 

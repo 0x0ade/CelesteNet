@@ -428,8 +428,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 goto Release;
 
             if (grab.Grabbing.ID == Client.PlayerInfo.ID) {
-                if (GrabCooldown > 0f)
+                if (GrabCooldown > 0f) {
+                    GrabCooldown = GrabCooldownMax;
                     goto Release;
+                }
 
                 if (!Ghosts.TryGetValue(grab.Player.ID, out Ghost ghost)) {
                     if (grab.Force == null)

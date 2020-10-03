@@ -176,6 +176,12 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 return;
             }
 
+            if (msg.Player != null && Server.PlayersByID.TryGetValue(msg.Player.ID, out CelesteNetPlayerSession? session) &&
+                Server.UserData.Load<UserChatSettings>(session.UID).AutoChannelChat) {
+                Commands.Get<ChatCMDChannelChat>().ParseAndRun(new ChatCMDEnv(this, msg));
+                return;
+            }
+
             Server.Broadcast(msg);
         }
 
@@ -250,6 +256,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             foreach (DataPlayerInfo playerInfo in msg.Targets)
                 if (Server.PlayersByID.TryGetValue(playerInfo.ID, out CelesteNetPlayerSession? player))
                     player.Con?.Send(blob);
+        }
+
+        public class UserChatSettings {
+            public bool AutoChannelChat { get; set; } = false;
+            public bool Whispers { get; set; } = true;
         }
 
     }

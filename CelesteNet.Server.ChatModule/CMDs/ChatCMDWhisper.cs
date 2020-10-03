@@ -20,17 +20,37 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Args => "<user> <text>";
 
-        public override string Info => "Send a whisper to someone else.";
+        public override string Info => "Send a whisper to someone else or toggle whispers.";
+
+        public override string Help =>
+$@"Send a whisper to someone else or toggle whispers.
+To send a whisper to someone, {Chat.Settings.CommandPrefix}{ID} user text
+To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID}";
 
         public override void Run(ChatCMDEnv env, params ChatCMDArg[] args) {
-            if (args.Length == 0)
-                throw new Exception("No username.");
+            if (args.Length == 0) {
+                CelesteNetPlayerSession? session = env.Session;
+                if (session == null)
+                    return;
+
+                if (env.Server.UserData.GetKey(session.UID).IsNullOrEmpty())
+                    throw new Exception("You must be registered to enable / disable whispers!");
+
+                ChatModule.UserChatSettings settings = env.Server.UserData.Load<ChatModule.UserChatSettings>(session.UID);
+                settings.Whispers = !settings.Whispers;
+                env.Server.UserData.Save(session.UID, settings);
+                env.Send($"{(settings.Whispers ? "Enabled" : "Disabled")} whispers.");
+                return;
+            }
 
             if (args.Length == 1)
                 throw new Exception("No text.");
 
             CelesteNetPlayerSession? other = args[0].Session;
             DataPlayerInfo otherPlayer = other?.PlayerInfo ?? throw new Exception("Invalid username or ID.");
+
+            if (!env.Server.UserData.Load<ChatModule.UserChatSettings>(other.UID).Whispers)
+                throw new Exception($"{otherPlayer.DisplayName} has blocked whispers.");
 
             string text = args[1].Rest;
 

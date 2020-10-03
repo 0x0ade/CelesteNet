@@ -261,7 +261,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
         }
 
-        public void Broadcast(DataType data, params CelesteNetConnection[] except) {
+        public void Broadcast(DataType data, params CelesteNetConnection?[]? except) {
+            if (except == null) {
+                Broadcast(data);
+                return;
+            }
+
             DataInternalBlob blob = new DataInternalBlob(Data, data);
             using (ConLock.R())
                 foreach (CelesteNetConnection con in Connections) {

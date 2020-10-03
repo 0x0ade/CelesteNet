@@ -20,15 +20,32 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Args => "<text>";
 
-        public override string Info => "Send a whisper to everyone in the channel.";
+        public override string Info => "Send a whisper to everyone in the channel or toggle auto channel chat.";
+
+        public override string Help =>
+$@"Send a whisper to everyone in the channel or toggle auto channel chat.
+To send a message in the channel, {Chat.Settings.CommandPrefix}{ID} message here
+To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
 
         public override void ParseAndRun(ChatCMDEnv env) {
             CelesteNetPlayerSession? session = env.Session;
             if (session == null)
                 return;
 
-            DataPlayerInfo? player = env.Player;
             string text = env.Text.Trim();
+
+            if (string.IsNullOrEmpty(text)) {
+                if (env.Server.UserData.GetKey(session.UID).IsNullOrEmpty())
+                    throw new Exception("You must be registered to enable / disable auto channel chat mode!");
+
+                ChatModule.UserChatSettings settings = env.Server.UserData.Load<ChatModule.UserChatSettings>(session.UID);
+                settings.AutoChannelChat = !settings.AutoChannelChat;
+                env.Server.UserData.Save(session.UID, settings);
+                env.Send($"{(settings.AutoChannelChat ? "Enabled" : "Disabled")} auto channel chat.\nFilter out global chat via the mod options.");
+                return;
+            }
+
+            DataPlayerInfo? player = env.Player;
             Channel channel = env.Server.Channels.Get(session);
 
             CelesteNetPlayerSession[] others = channel.Players.Where(p => p != session).ToArray();

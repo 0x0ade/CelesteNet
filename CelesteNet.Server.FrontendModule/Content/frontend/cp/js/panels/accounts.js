@@ -39,6 +39,26 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
     this.ep = "/userinfos";
     /** @type {UserInfo[]} */
     this.data = [];
+
+    /** @type {[string, string, () => void][]} */
+    this.actions = [
+      [
+        "Reload", "refresh",
+        () => {
+          this.refresh();
+        }
+      ],
+
+      [
+        "Toggle Clutter", this.frontend.settings.accountsClutter ? "visibility" : "visibility_off",
+        () => {
+          this.frontend.settings.accountsClutter = !this.frontend.settings.accountsClutter;
+          this.frontend.settings.save();
+          this.actions[1][1] = this.frontend.settings.accountsClutter ? "visibility" : "visibility_off";
+          this.refresh();
+        }
+      ]
+    ];
   }
 
   async update() {
@@ -51,7 +71,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
     });
 
     // @ts-ignore
-    this.list = this.data.map(p => el => {
+    this.list = this.data.filter(p => this.frontend.settings.accountsClutter || p.Ban || (p.Kicks && p.Kicks.length) || (p.Tags && p.Tags.length)).map(p => el => {
       el = mdcrd.list.item(el => {
         el = rd$(el)`<span></span>`;
         const list = new RDOMListHelper(el);

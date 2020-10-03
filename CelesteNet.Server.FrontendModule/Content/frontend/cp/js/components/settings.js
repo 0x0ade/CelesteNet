@@ -37,4 +37,12 @@ export class FrontendSettings {
     this.data.sensitive = value;
   }
 
+  /** @type {boolean} */
+  get accountsClutter() {
+    return this.data.accountsClutter;
+  }
+  set accountsClutter(value) {
+    this.data.accountsClutter = value;
+  }
+
 }

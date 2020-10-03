@@ -53,6 +53,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Ghost GrabbedBy;
         public Vector2 GrabLastSpeed;
         public bool IsGrabbed = false;
+        public float GrabCooldown = 0f;
+        public const float GrabCooldownMax = 0.3f;
         public float GrabTimeout = 0f;
         public const float GrabTimeoutMax = 0.3f;
 
@@ -426,6 +428,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 goto Release;
 
             if (grab.Grabbing.ID == Client.PlayerInfo.ID) {
+                if (GrabCooldown > 0f)
+                    goto Release;
+
                 if (!Ghosts.TryGetValue(grab.Player.ID, out Ghost ghost)) {
                     if (grab.Force == null)
                         goto Release;
@@ -472,10 +477,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             } else if (player.Holding?.Entity is Ghost ghost && ghost.PlayerInfo.ID == grab.Grabbing.ID && grab.Force != null) {
                 RunOnMainThread(() => {
-                    if (ghost?.Holding?.Scene == player.Scene && player.Scene != null) {
+                    if (player.Holding?.Entity == ghost && ghost.Scene == player.Scene && player.Scene != null) {
                         ghost.Collidable = false;
                         player.Drop();
-                        ghost.Collidable = true;
+                        ghost.GrabCooldown = Ghost.GrabCooldownMax;
                     }
                 });
             }
@@ -483,14 +488,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return;
 
             Release:
-            Client?.Send(new DataPlayerGrabPlayer {
-                UpdateID = FrameNextID++,
-
-                Player = Client.PlayerInfo,
-                Grabbing = Client.PlayerInfo,
-
-                Force = new Vector2(0, 0)
-            });
+            SendReleaseMe();
         }
 
         #endregion
@@ -607,6 +605,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 GrabTimeout = 0f;
             }
 
+            GrabCooldown -= Engine.RawDeltaTime;
+            if (GrabCooldown < 0f)
+                GrabCooldown = 0f;
+
             MapEditorArea = null;
 
             if (level.FrozenOrPaused || level.Overlay is PauseUpdateOverlay) {
@@ -659,6 +661,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Player.Speed = GrabLastSpeed;
             if (Player.Holding?.Entity is Ghost ghost && ghost.Scene != level)
                 Player.Holding = null;
+
+            if (IsGrabbed && !idle && Player.StateMachine.State == Player.StFrozen) {
+                if (Input.Jump.Pressed) {
+                    Player.StateMachine.State = Player.StNormal;
+                    Player.Jump(true, true);
+                    GrabCooldown = GrabCooldownMax;
+                    SendReleaseMe();
+                }
+            }
 
             if (PlayerNameTag == null || PlayerNameTag.Tracking != Player || PlayerNameTag.Scene != level) {
                 PlayerNameTag?.RemoveSelf();
@@ -927,6 +938,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendDashTrail:\n{e}");
+                Context.Dispose();
+            }
+        }
+
+        public void SendReleaseMe() {
+            try {
+                Client?.Send(new DataPlayerGrabPlayer {
+                    UpdateID = FrameNextID++,
+
+                    Player = Client.PlayerInfo,
+                    Grabbing = Client.PlayerInfo,
+
+                    Force = new Vector2(0, 0)
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-main", $"Error in SendReleaseMe:\n{e}");
                 Context.Dispose();
             }
         }

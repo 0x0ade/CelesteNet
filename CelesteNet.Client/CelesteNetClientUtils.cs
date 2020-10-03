@@ -17,6 +17,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public static class CelesteNetClientUtils {
@@ -188,6 +189,32 @@ namespace Celeste.Mod.CelesteNet.Client {
             lock (_AsRefCache)
                 _AsRefCache[typeof(T)] = generated;
             return ref generated(value);
+        }
+
+        private static FieldInfo f_StateMachine_begins =
+            typeof(StateMachine).GetField("begins", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static FieldInfo f_StateMachine_updates =
+            typeof(StateMachine).GetField("updates", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static FieldInfo f_StateMachine_ends =
+            typeof(StateMachine).GetField("ends", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static FieldInfo f_StateMachine_coroutines =
+            typeof(StateMachine).GetField("coroutines", BindingFlags.Instance | BindingFlags.NonPublic);
+        public static int AddState(this StateMachine machine, Func<int> onUpdate, Func<IEnumerator> coroutine = null, Action begin = null, Action end = null) {
+            Action[] begins = (Action[]) f_StateMachine_begins.GetValue(machine);
+            Func<int>[] updates = (Func<int>[]) f_StateMachine_updates.GetValue(machine);
+            Action[] ends = (Action[]) f_StateMachine_ends.GetValue(machine);
+            Func<IEnumerator>[] coroutines = (Func<IEnumerator>[]) f_StateMachine_coroutines.GetValue(machine);
+            int nextIndex = begins.Length;
+            Array.Resize(ref begins, begins.Length + 1);
+            Array.Resize(ref updates, begins.Length + 1);
+            Array.Resize(ref ends, begins.Length + 1);
+            Array.Resize(ref coroutines, coroutines.Length + 1);
+            f_StateMachine_begins.SetValue(machine, begins);
+            f_StateMachine_updates.SetValue(machine, updates);
+            f_StateMachine_ends.SetValue(machine, ends);
+            f_StateMachine_coroutines.SetValue(machine, coroutines);
+            machine.SetCallbacks(nextIndex, onUpdate, coroutine, begin, end);
+            return nextIndex;
         }
 
     }

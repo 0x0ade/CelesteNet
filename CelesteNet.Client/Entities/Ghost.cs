@@ -1,4 +1,5 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
+﻿using Celeste.Mod.CelesteNet.Client.Components;
+using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -42,6 +43,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public GhostEntity Holding;
 
         public bool Interactive;
+
+        public float GrabCooldown = 0f;
+        public const float GrabCooldownMax = CelesteNetMainComponent.GrabCooldownMax;
 
         protected Color LastSpriteColor;
         protected Color LastHairColor;
@@ -106,7 +110,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnPlayer(Player player) {
-            if (!Interactive || !CelesteNetClientModule.Settings.Interactions || Context?.Main.GrabbedBy == this)
+            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.Interactions || Context?.Main.GrabbedBy == this)
                 return;
 
             if (player.StateMachine.State == Player.StNormal &&
@@ -128,7 +132,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnCarry(Vector2 position) {
-            if (!Interactive || !CelesteNetClientModule.Settings.Interactions || IdleTag != null)
+            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.Interactions || IdleTag != null)
                 return;
 
             Position = position;
@@ -157,7 +161,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void OnRelease(Vector2 force) {
             Collidable = true;
 
-            if (!Interactive || !CelesteNetClientModule.Settings.Interactions || IdleTag != null)
+            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.Interactions || IdleTag != null)
                 return;
 
             CelesteNetClient client = Context?.Client;
@@ -193,7 +197,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
             }
 
-            bool holdable = Interactive && CelesteNetClientModule.Settings.Interactions && IdleTag == null;
+            bool holdable = Interactive && GrabCooldown <= 0f && CelesteNetClientModule.Settings.Interactions && IdleTag == null;
+
+            GrabCooldown -= Engine.RawDeltaTime;
+            if (GrabCooldown < 0f)
+                GrabCooldown = 0f;
 
             if (!holdable && Holdable.Holder != null) {
                 Collidable = false;

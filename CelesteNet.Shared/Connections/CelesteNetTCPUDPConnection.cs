@@ -153,7 +153,7 @@ namespace Celeste.Mod.CelesteNet {
         public override void SendRaw(CelesteNetSendQueue queue, DataType data) {
             // Let's have some fun with dumb port sniffers.
             if (data is DataTCPHTTPTeapot teapot) {
-                WriteTeapot(teapot.ConnectionToken);
+                WriteTeapot(teapot.ConnectionFeatures, teapot.ConnectionToken);
                 return;
             }
 
@@ -210,22 +210,25 @@ namespace Celeste.Mod.CelesteNet {
                 Receive(msg);
         }
 
-        public uint ReadTeapot() {
-            uint token = 0;
+        public void ReadTeapot(out string features, out uint token) {
+            features = "";
+            token = 0;
             using (StreamReader reader = new StreamReader(TCPStream, Encoding.UTF8, false, 1024, true)) {
                 for (string line; !string.IsNullOrWhiteSpace(line = reader?.ReadLine() ?? "");) {
+                    if (line.StartsWith(CelesteNetUtils.HTTPTeapotConFeatures)) {
+                        features = line.Substring(CelesteNetUtils.HTTPTeapotConFeatures.Length).Trim();
+                    }
                     if (line.StartsWith(CelesteNetUtils.HTTPTeapotConToken)) {
                         token = uint.Parse(line.Substring(CelesteNetUtils.HTTPTeapotConToken.Length).Trim());
                     }
                 }
             }
-            return token;
         }
 
-        public void WriteTeapot(uint token) {
+        public void WriteTeapot(string features, uint token) {
             lock (TCPWriter) {
                 using (StreamWriter writer = new StreamWriter(TCPStream, Encoding.UTF8, 1024, true))
-                    writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, token));
+                    writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, features, token));
                 TCPStream.Flush();
             }
         }

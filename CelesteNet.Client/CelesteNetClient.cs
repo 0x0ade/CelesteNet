@@ -82,7 +82,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         Logger.Log(LogLevel.INF, "main", $"Local endpoints: {con.TCP.Client.LocalEndPoint} / {con.UDP?.Client.LocalEndPoint?.ToString() ?? "null"}");
 
                         // Server replies with a dummy HTTP response to filter out dumb port sniffers.
-                        uint token = con.ReadTeapot();
+                        con.ReadTeapot(out string features, out uint token);
 
                         con.SendKeepAlive = true;
                         con.StartReadTCP();

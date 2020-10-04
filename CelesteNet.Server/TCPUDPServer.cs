@@ -86,6 +86,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         UDPPending[key] = con;
                         con.OnDisconnect += RemoveUDPPending;
                         con.Send(new DataTCPHTTPTeapot() {
+                            ConnectionFeatures = Server.ConnectionFeatures,
                             ConnectionToken = token
                         });
                         con.StartReadTCP();

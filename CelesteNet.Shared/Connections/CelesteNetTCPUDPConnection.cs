@@ -42,6 +42,8 @@ namespace Celeste.Mod.CelesteNet {
         public readonly CelesteNetSendQueue TCPQueue;
         public readonly CelesteNetSendQueue UDPQueue;
 
+        private readonly object TCPReceiveLock = new object();
+
         private readonly object UDPErrorLock = new object();
         private Exception UDPErrorLast;
         private Action<CelesteNetTCPUDPConnection, Exception, bool>? _OnUDPError;
@@ -203,6 +205,11 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
+        protected override void LoopbackReceive(DataInternalLoopbackMessage msg) {
+            lock (TCPReceiveLock)
+                Receive(msg);
+        }
+
         public uint ReadTeapot() {
             uint token = 0;
             using (StreamReader reader = new StreamReader(TCPStream, Encoding.UTF8, false, 1024, true)) {
@@ -236,7 +243,9 @@ namespace Celeste.Mod.CelesteNet {
         protected virtual void ReadTCPLoop() {
             try {
                 while ((TCP?.Connected ?? false) && IsAlive) {
-                    Receive(Data.Read(TCPReader));
+                    DataType data = Data.Read(TCPReader);
+                    lock (TCPReceiveLock)
+                        Receive(data);
                 }
 
             } catch (ThreadAbortException) {
@@ -248,7 +257,6 @@ namespace Celeste.Mod.CelesteNet {
                 Logger.Log(LogLevel.CRI, "tcpudpcon", $"TCP loop error:\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is IOException ? e.Message : e.ToString())}");
                 ReadTCPThread = null;
                 Dispose();
-                return;
             }
         }
 
@@ -286,7 +294,6 @@ namespace Celeste.Mod.CelesteNet {
                         Dispose();
                     }
                 }
-                return;
             }
         }
 

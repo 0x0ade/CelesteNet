@@ -282,13 +282,23 @@ namespace Celeste.Mod.CelesteNet.Server {
                     ID = ID
                 });
 
-            Server.Data.FreeRef<DataPlayerInfo>(ID);
-            Server.Data.FreeOrder<DataPlayerFrame>(ID);
-
             Con.OnSendFilter -= ConSendFilter;
             Server.Data.UnregisterHandlersIn(this);
 
-            OnEnd?.Invoke(this, playerInfoLast);
+            Logger.Log(LogLevel.VVV, "playersession", $"Loopend send #{ID} {Con}");
+            DataInternalLoopbackMessage end = new DataInternalLoopbackMessage();
+            WaitFor<DataInternalLoopbackMessage>((con, data) => {
+                Logger.Log(LogLevel.VVV, "playersession", $"Loopend get #{ID} {Con}");
+                if (data != end)
+                    return false;
+
+                Server.Data.FreeRef<DataPlayerInfo>(ID);
+                Server.Data.FreeOrder<DataPlayerFrame>(ID);
+
+                OnEnd?.Invoke(this, playerInfoLast);
+                return true;
+            });
+            Con.Send(end);
         }
 
 

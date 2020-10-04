@@ -21,7 +21,8 @@ export class FrontendSettings {
     }
 
     this.data = Object.assign({
-      sensitive: true
+      sensitive: true,
+      accountsClutter: false,
     }, this.data || {});
   }
 

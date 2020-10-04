@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly DataContext Data;
         public readonly TCPUDPServer TCPUDP;
 
-        public string ConnectionFeatures = "";
+        public string[] ConnectionFeatures = CelesteNetUtils.ConnectionFeaturesBuiltIn;
 
         public UserData UserData;
 

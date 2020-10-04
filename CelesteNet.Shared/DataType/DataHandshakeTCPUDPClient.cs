@@ -17,18 +17,39 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "hsTUC";
         }
 
+        public string[] ConnectionFeatures = Dummy<string>.EmptyArray;
         public uint ConnectionToken;
 
         public override void Read(DataContext ctx, BinaryReader reader) {
             base.Read(ctx, reader);
 
             ConnectionToken = reader.ReadUInt32();
+
+            // FIXME: Remove this check with the next protocol version.
+            if (ConnectionToken == uint.MaxValue) {
+                ConnectionFeatures = new string[reader.ReadUInt16()];
+                for (int i = 0; i < ConnectionFeatures.Length; i++)
+                    ConnectionFeatures[i] = reader.ReadNetString();
+
+                ConnectionToken = reader.ReadUInt32();
+            }
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
             base.Write(ctx, writer);
 
-            writer.Write(ConnectionToken);
+            // FIXME: Remove this check with the next protocol version.
+            if (ConnectionFeatures.Length == 0) {
+                writer.Write(ConnectionToken);
+            } else {
+                writer.Write(uint.MaxValue);
+
+                writer.Write((ushort) ConnectionFeatures.Length);
+                foreach (string feature in ConnectionFeatures)
+                    writer.WriteNetString(feature);
+
+                writer.Write(ConnectionToken);
+            }
         }
 
     }

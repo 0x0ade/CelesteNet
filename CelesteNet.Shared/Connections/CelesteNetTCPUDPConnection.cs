@@ -210,13 +210,13 @@ namespace Celeste.Mod.CelesteNet {
                 Receive(msg);
         }
 
-        public void ReadTeapot(out string features, out uint token) {
-            features = "";
+        public void ReadTeapot(out string[] features, out uint token) {
+            features = Dummy<string>.EmptyArray;
             token = 0;
             using (StreamReader reader = new StreamReader(TCPStream, Encoding.UTF8, false, 1024, true)) {
                 for (string line; !string.IsNullOrWhiteSpace(line = reader?.ReadLine() ?? "");) {
                     if (line.StartsWith(CelesteNetUtils.HTTPTeapotConFeatures)) {
-                        features = line.Substring(CelesteNetUtils.HTTPTeapotConFeatures.Length).Trim();
+                        features = line.Substring(CelesteNetUtils.HTTPTeapotConFeatures.Length).Trim().Split(CelesteNetUtils.ConnectionFeatureSeparators);
                     }
                     if (line.StartsWith(CelesteNetUtils.HTTPTeapotConToken)) {
                         token = uint.Parse(line.Substring(CelesteNetUtils.HTTPTeapotConToken.Length).Trim());
@@ -225,10 +225,10 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public void WriteTeapot(string features, uint token) {
+        public void WriteTeapot(string[] features, uint token) {
             lock (TCPWriter) {
                 using (StreamWriter writer = new StreamWriter(TCPStream, Encoding.UTF8, 1024, true))
-                    writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, features, token));
+                    writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, string.Join(CelesteNetUtils.ConnectionFeatureSeparator, features), token));
                 TCPStream.Flush();
             }
         }

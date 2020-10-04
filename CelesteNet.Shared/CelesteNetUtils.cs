@@ -26,6 +26,11 @@ namespace Celeste.Mod.CelesteNet {
         public static readonly string HTTPTeapotConToken = "CelesteNet-ConnectionToken: ";
         public static readonly string HTTPTeapot = $"HTTP/1.1 418 I'm a teapot\r\nContent-Length: 0\r\n{HTTPTeapotConFeatures}{{0}}\r\n{HTTPTeapotConToken}{{1}}\r\nConnection: close\r\n\r\n";
 
+        public static readonly char[] ConnectionFeatureSeparators = { ';' };
+        public static readonly string ConnectionFeatureSeparator = ";";
+
+        public static readonly string[] ConnectionFeaturesBuiltIn = { };
+
         // See https://github.com/dotnet/runtime/blob/144e5145453ac3885ac20bc1f1f2641523c6fcea/src/libraries/System.Private.CoreLib/src/System/String.cs#L488
         public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
             => string.IsNullOrEmpty(value);

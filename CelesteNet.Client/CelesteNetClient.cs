@@ -21,6 +21,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetConnection Con;
 
+        public string[] ConnectionFeatures = CelesteNetUtils.ConnectionFeaturesBuiltIn;
+        public string[] ServerConnectionFeatures = Dummy<string>.EmptyArray;
+
         private bool _IsAlive;
         public bool IsAlive {
             get => _IsAlive;
@@ -82,7 +85,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         Logger.Log(LogLevel.INF, "main", $"Local endpoints: {con.TCP.Client.LocalEndPoint} / {con.UDP?.Client.LocalEndPoint?.ToString() ?? "null"}");
 
                         // Server replies with a dummy HTTP response to filter out dumb port sniffers.
-                        con.ReadTeapot(out string features, out uint token);
+                        con.ReadTeapot(out ServerConnectionFeatures, out uint token);
 
                         con.SendKeepAlive = true;
                         con.StartReadTCP();
@@ -90,6 +93,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                         HandshakeClient = new DataHandshakeTCPUDPClient {
                             Name = Settings.Name,
+                            ConnectionFeatures = ServerConnectionFeatures.Length == 0 ? Dummy<string>.EmptyArray : ConnectionFeatures,
                             ConnectionToken = token
                         };
 

@@ -31,7 +31,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public int MainPort { get; set; } = 3802;
 
-        public LogLevel LogLevel { get; set; } = Logger.Level;
+        public LogLevel LogLevel {
+            get => Logger.Level;
+            set => Logger.Level = value;
+        }
 
         public int MaxNameLength { get; set; } = 30;
         public int MaxGuestNameLength { get; set; } = 16;

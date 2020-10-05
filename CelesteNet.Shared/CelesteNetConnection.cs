@@ -106,6 +106,10 @@ namespace Celeste.Mod.CelesteNet {
                 LoopbackReceive(msg);
                 return;
             }
+            if (data is DataInternalLoopend end) {
+                LoopbackReceive(end);
+                return;
+            }
             if (!(data is DataInternalBlob))
                 data.Meta = data.GenerateMeta(Data);
             if (!data.FilterSend(Data))
@@ -133,6 +137,10 @@ namespace Celeste.Mod.CelesteNet {
 
         protected virtual void LoopbackReceive(DataInternalLoopbackMessage msg) {
             Receive(msg);
+        }
+
+        protected virtual void LoopbackReceive(DataInternalLoopend end) {
+            end.Action();
         }
 
         public virtual void LogCreator(LogLevel level) {

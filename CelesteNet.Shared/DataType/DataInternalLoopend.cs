@@ -11,24 +11,20 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public abstract class DataHandshakeClient<T> : DataType<T> where T : DataHandshakeClient<T> {
+    public class DataInternalLoopend : DataType {
 
-        public override DataFlags DataFlags => DataFlags.Small;
+        public Action Action;
 
-        public ushort Version = CelesteNetUtils.Version;
-
-        public string Name = "";
+        public DataInternalLoopend(Action action) {
+            Action = action;
+        }
 
         public override void Read(DataContext ctx, BinaryReader reader) {
-            Version = reader.ReadUInt16();
-
-            Name = reader.ReadNetString();
+            throw new NotImplementedException();
         }
 
         public override void Write(DataContext ctx, BinaryWriter writer) {
-            writer.Write(Version);
-
-            writer.WriteNetString(Name);
+            throw new NotImplementedException();
         }
 
     }

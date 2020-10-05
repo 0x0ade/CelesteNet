@@ -24,6 +24,8 @@ namespace Celeste.Mod.CelesteNet {
         public BinaryReader TCPReader;
         public BinaryWriter TCPWriter;
 
+        protected bool Loopend = false;
+
         public UdpClient? UDP;
         public bool SendUDP = true;
 
@@ -210,6 +212,13 @@ namespace Celeste.Mod.CelesteNet {
                 Receive(msg);
         }
 
+        protected override void LoopbackReceive(DataInternalLoopend end) {
+            lock (TCPReceiveLock) {
+                Loopend = true;
+                end.Action();
+            }
+        }
+
         public void ReadTeapot(out string[] features, out uint token) {
             features = Dummy<string>.EmptyArray;
             token = 0;
@@ -245,10 +254,17 @@ namespace Celeste.Mod.CelesteNet {
 
         protected virtual void ReadTCPLoop() {
             try {
-                while ((TCP?.Connected ?? false) && IsAlive) {
+                bool loopend;
+                lock (TCPReceiveLock)
+                    loopend = Loopend;
+                while ((TCP?.Connected ?? false) && IsAlive && !loopend) {
                     DataType data = Data.Read(TCPReader);
-                    lock (TCPReceiveLock)
+                    lock (TCPReceiveLock) {
+                        loopend = Loopend;
+                        if (loopend)
+                            break;
                         Receive(data);
+                    }
                 }
 
             } catch (ThreadAbortException) {
@@ -267,7 +283,7 @@ namespace Celeste.Mod.CelesteNet {
             try {
                 using (MemoryStream stream = new MemoryStream())
                 using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
-                    while (UDP != null && IsAlive) {
+                    while (UDP != null && IsAlive && !Loopend) {
                         IPEndPoint? remote = null;
                         byte[] raw = UDP.Receive(ref remote);
                         if (UDPRemoteEndPoint != null && !remote.Equals(UDPRemoteEndPoint))

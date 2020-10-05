@@ -240,10 +240,15 @@ namespace Celeste.Mod.CelesteNet.Server {
             using (ConLock.W())
                 Connections.Remove(con);
 
-            PlayersByCon.TryGetValue(con, out CelesteNetPlayerSession? session);
-            session?.Dispose();
+            Logger.Log(LogLevel.VVV, "main", $"Loopend send {con}");
+            con.Send(new DataInternalLoopend(() => {
+                Logger.Log(LogLevel.VVV, "main", $"Loopend run {con}");
 
-            OnDisconnect?.Invoke(this, con, session);
+                PlayersByCon.TryGetValue(con, out CelesteNetPlayerSession? session);
+                session?.Dispose();
+
+                OnDisconnect?.Invoke(this, con, session);
+            }));
         }
 
         public event Action<CelesteNetPlayerSession>? OnSessionStart;

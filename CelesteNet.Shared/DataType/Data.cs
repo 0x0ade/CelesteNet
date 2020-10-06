@@ -31,18 +31,42 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public virtual MetaUpdateContext UpdateMeta(DataContext ctx)
             => new MetaUpdateContext(ctx, this);
 
+        [Obsolete("Use CelesteNetBinaryReader instead.")]
         public virtual void ReadAll(DataContext ctx, BinaryReader reader) {
-            UnwrapMeta(ctx, ctx.ReadMeta(reader));
-            Read(ctx, reader);
+            if (!(reader is CelesteNetBinaryReader cnreader))
+                throw new Exception("Reader must be a CelesteNetBinaryReader.");
+            UnwrapMeta(ctx, ctx.ReadMeta(cnreader));
+            Read(cnreader);
         }
 
+        [Obsolete("Use CelesteNetBinaryWriter instead.")]
         public virtual void WriteAll(DataContext ctx, BinaryWriter writer) {
-            ctx.WriteMeta(writer, WrapMeta(ctx));
-            Write(ctx, writer);
+            if (!(writer is CelesteNetBinaryWriter cnwriter))
+                throw new Exception("Reader must be a CelesteNetBinaryWriter.");
+            ctx.WriteMeta(cnwriter, WrapMeta(ctx));
+            Write(cnwriter);
         }
 
-        public abstract void Read(DataContext ctx, BinaryReader reader);
-        public abstract void Write(DataContext ctx, BinaryWriter writer);
+#pragma warning disable CS0618
+        public virtual void ReadAll(CelesteNetBinaryReader reader)
+            => ReadAll(reader.Data, reader);
+        public virtual void WriteAll(CelesteNetBinaryWriter writer)
+            => WriteAll(writer.Data, writer);
+#pragma warning restore CS0618
+
+        [Obsolete("Use CelesteNetBinaryReader instead.")]
+        public virtual void Read(DataContext ctx, BinaryReader reader)
+            => throw new NotSupportedException($"Obsolete, {GetType()} doesn't implement this anymore. Use Read(CelesteNetBinaryReader) instead.");
+        [Obsolete("Use CelesteNetBinaryWriter instead.")]
+        public virtual void Write(DataContext ctx, BinaryWriter writer)
+            => throw new NotSupportedException($"Obsolete, {GetType()} doesn't implement this anymore. Use Write(CelesteNetBinaryWriter) instead.");
+
+#pragma warning disable CS0618
+        public virtual void Read(CelesteNetBinaryReader reader)
+            => Read(reader.Data, reader);
+        public virtual void Write(CelesteNetBinaryWriter writer)
+            => Write(writer.Data, writer);
+#pragma warning restore CS0618
 
         public virtual bool Is<T>(DataContext ctx) where T : MetaType<T> {
             foreach (MetaType meta in Meta)
@@ -141,13 +165,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataSource = typeof(T).Assembly.GetName().Name ?? DataID;
         }
 
-        public T ReadT(DataContext ctx, BinaryReader reader) {
-            Read(ctx, reader);
+        public T ReadT(CelesteNetBinaryReader reader) {
+            Read(reader);
             return (T) this;
         }
 
-        public T ReadAllT(DataContext ctx, BinaryReader reader) {
-            ReadAll(ctx, reader);
+        public T ReadAllT(CelesteNetBinaryReader reader) {
+            ReadAll(reader);
             return (T) this;
         }
 

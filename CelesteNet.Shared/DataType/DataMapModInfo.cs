@@ -36,7 +36,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             RequestID = Get<MetaRequestResponse>(ctx);
         }
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             MapSID = reader.ReadNetString();
             MapName = reader.ReadNetString();
             ModID = reader.ReadNetString();
@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ModVersion = new Version(reader.ReadNetString());
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(MapSID);
             writer.WriteNetString(MapName);
             writer.WriteNetString(ModID);
@@ -75,11 +75,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ID = Get<MetaRequest>(ctx);
         }
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             MapSID = reader.ReadNetString();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(MapSID);
         }
 

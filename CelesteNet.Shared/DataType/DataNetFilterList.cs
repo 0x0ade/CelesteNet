@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Player = ctx.GetRef<DataPlayerInfo>(Get<MetaBoundRef>(ctx).ID);
         }
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             List = new string[reader.ReadUInt16()];
             for (int i = 0; i < List.Length; i++)
                 List[i] = reader.ReadNetString();
@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Set = new HashSet<string>(List);
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.Write((ushort) List.Length);
             foreach (string mod in List)
                 writer.WriteNetString(mod);

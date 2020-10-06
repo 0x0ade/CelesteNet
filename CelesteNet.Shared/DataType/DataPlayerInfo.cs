@@ -31,13 +31,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ID = Get<MetaRef>(ctx);
         }
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             Name = reader.ReadNetString();
             FullName = reader.ReadNetString();
             DisplayName = reader.ReadNetString();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(Name);
             writer.WriteNetString(FullName);
             writer.WriteNetString(DisplayName);

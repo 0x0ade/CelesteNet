@@ -20,8 +20,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public string[] ConnectionFeatures = Dummy<string>.EmptyArray;
         public uint ConnectionToken;
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
-            base.Read(ctx, reader);
+        public override void Read(CelesteNetBinaryReader reader) {
+            base.Read(reader);
 
             ConnectionToken = reader.ReadUInt32();
 
@@ -35,8 +35,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             }
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
-            base.Write(ctx, writer);
+        public override void Write(CelesteNetBinaryWriter writer) {
+            base.Write(writer);
 
             // FIXME: Remove this check with the next protocol version.
             if (ConnectionFeatures.Length == 0) {

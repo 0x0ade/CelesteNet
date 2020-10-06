@@ -22,12 +22,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public string ID = "";
         public byte[] Data = Dummy<byte>.EmptyArray;
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             ID = reader.ReadNetString();
             Data = reader.ReadBytes(reader.ReadInt32());
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(ID);
             writer.Write(Data.Length);
             writer.Write(Data);

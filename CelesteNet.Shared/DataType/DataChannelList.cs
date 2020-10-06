@@ -19,7 +19,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public Channel[] List = Dummy<Channel>.EmptyArray;
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             List = new Channel[reader.ReadUInt32()];
             for (int ci = 0; ci < List.Length; ci++) {
                 Channel c = List[ci] = new Channel();
@@ -31,7 +31,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             }
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.Write((uint) List.Length);
             foreach (Channel c in List) {
                 writer.WriteNetString(c.Name);

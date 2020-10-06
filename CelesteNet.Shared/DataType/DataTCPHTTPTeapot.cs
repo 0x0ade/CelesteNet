@@ -18,13 +18,5 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public string[] ConnectionFeatures = Dummy<string>.EmptyArray;
         public uint ConnectionToken;
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
-            throw new NotSupportedException();
-        }
-
-        public override void Write(DataContext ctx, BinaryWriter writer) {
-            throw new NotSupportedException();
-        }
-
     }
 }

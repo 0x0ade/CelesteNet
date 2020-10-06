@@ -21,13 +21,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public float Time;
         public bool Spin = true;
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             Text = reader.ReadNetString();
             Time = reader.ReadSingle();
             Spin = reader.ReadBoolean();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(Text);
             writer.Write(Time);
             writer.Write(Spin);

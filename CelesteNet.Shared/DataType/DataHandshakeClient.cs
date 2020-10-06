@@ -19,13 +19,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public string Name = "";
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             Version = reader.ReadUInt16();
 
             Name = reader.ReadNetString();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.Write(Version);
 
             writer.WriteNetString(Name);

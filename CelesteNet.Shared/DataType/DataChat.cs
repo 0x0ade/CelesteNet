@@ -51,9 +51,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override bool FilterSend(DataContext ctx)
             => !Text.IsNullOrEmpty();
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             CreatedByServer = false;
-            Player = ctx.ReadRef<DataPlayerInfo>(reader);
+            Player = reader.ReadRef<DataPlayerInfo>();
             ID = reader.ReadUInt32();
             Tag = reader.ReadNetString();
             Text = reader.ReadNetString();
@@ -62,8 +62,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ReceivedDate = DateTime.UtcNow;
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
-            ctx.WriteOptRef(writer, Player);
+        public override void Write(CelesteNetBinaryWriter writer) {
+            writer.WriteOptRef(Player);
             writer.Write(ID);
             writer.WriteNetString(Tag);
             writer.WriteNetString(Text);

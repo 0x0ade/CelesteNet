@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 Parameters = new List<MEP>(Parameters)
             };
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             Event = reader.ReadNetString();
             Progress = reader.ReadInt32();
 
@@ -42,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 Parameters[i] = new MEP(reader.ReadNetString(), reader.ReadSingle());
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(Event);
             writer.Write(Progress);
 

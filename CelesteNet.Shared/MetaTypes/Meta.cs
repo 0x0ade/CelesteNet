@@ -54,20 +54,20 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             return this;
         }
 
-        public MetaTypeWrap Read(BinaryReader reader) {
-            ID = reader.ReadNetString();
+        public MetaTypeWrap Read(CelesteNetBinaryReader reader) {
+            ID = reader.ReadNetMappedString();
             int count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                Data[reader.ReadNetString()] = reader.ReadNetString();
+                Data[reader.ReadNetMappedString()] = reader.ReadNetMappedString();
             return this;
         }
 
-        public void Write(BinaryWriter writer) {
-            writer.WriteNetString(ID);
+        public void Write(CelesteNetBinaryWriter writer) {
+            writer.WriteNetMappedString(ID);
             writer.Write((byte) Data.Count);
             foreach (KeyValuePair<string, string> kvp in Data) {
-                writer.WriteNetString(kvp.Key);
-                writer.WriteNetString(kvp.Value);
+                writer.WriteNetMappedString(kvp.Key);
+                writer.WriteNetMappedString(kvp.Value);
             }
         }
 

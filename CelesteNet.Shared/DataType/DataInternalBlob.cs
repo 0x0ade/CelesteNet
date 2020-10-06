@@ -15,18 +15,47 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataInternalBlob : DataType {
 
         public readonly DataType Data;
-        public readonly byte[] Bytes;
+        public Part? PartFirst;
+        public Part? PartLast;
 
         public DataInternalBlob(DataContext ctx, DataType data) {
             while (data is DataInternalBlob blob)
                 data = blob.Data;
             Data = data;
             Data.Meta = Data.GenerateMeta(ctx);
-            Bytes = ctx.ToBytes(data);
+
+            using (MemoryStream stream = new MemoryStream())
+            using (CelesteNetBinaryBlobPartWriter writer = new CelesteNetBinaryBlobPartWriter(ctx, this, stream, Encoding.UTF8)) {
+                ctx.Write(writer, data);
+                writer.Flush();
+            }
         }
 
+        [return: NotNullIfNotNull("data")]
         public static DataInternalBlob? For(DataContext ctx, DataType? data)
             => data == null ? null : new DataInternalBlob(ctx, data);
+
+        public int Dump(CelesteNetBinaryWriter writer) {
+            long start = writer.BaseStream.Position;
+            for (Part? part = PartFirst; part != null; part = part.Next)
+                part.Dump(writer);
+            writer.Flush();
+            return (int) (writer.BaseStream.Position - start);
+        }
+
+        public Part PartNext() {
+            Part part = new Part();
+
+            if (PartLast == null) {
+                PartFirst = part;
+                PartLast = part;
+                return part;
+            }
+
+            PartLast.Next = part;
+            PartLast = part;
+            return part;
+        }
 
         public override DataFlags DataFlags => Data.DataFlags;
 
@@ -47,13 +76,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override MetaUpdateContext UpdateMeta(DataContext ctx) => Data.UpdateMeta(ctx);
 
-        public override void ReadAll(DataContext ctx, BinaryReader reader) => Data.ReadAll(ctx, reader);
+        public override void ReadAll(CelesteNetBinaryReader reader) => Data.ReadAll(reader);
 
-        public override void WriteAll(DataContext ctx, BinaryWriter writer) => Data.WriteAll(ctx, writer);
+        public override void WriteAll(CelesteNetBinaryWriter writer) => Data.WriteAll(writer);
 
-        public override void Read(DataContext ctx, BinaryReader reader) => Data.Read(ctx, reader);
+        public override void Read(CelesteNetBinaryReader reader) => Data.Read(reader);
 
-        public override void Write(DataContext ctx, BinaryWriter writer) => Data.Write(ctx, writer);
+        public override void Write(CelesteNetBinaryWriter writer) => Data.Write(writer);
 
         public override bool Is<T>(DataContext ctx) => Data.Is<T>(ctx);
 
@@ -72,6 +101,33 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override string GetTypeID(DataContext ctx) => Data.GetTypeID(ctx);
 
         public override string GetSource(DataContext ctx) => Data.GetSource(ctx);
+
+        public class Part {
+
+            public byte[]? Bytes;
+            public int BytesIndex;
+            public int BytesCount;
+
+            public string? String;
+
+            public byte SizeDummy;
+
+            public Part? Next;
+
+            public void Dump(CelesteNetBinaryWriter writer) {
+                if (Bytes != null)
+                    writer.Write(Bytes, BytesIndex, BytesCount);
+
+                if (String != null)
+                    writer.WriteNetMappedString(String);
+
+                if (SizeDummy == 0xFF)
+                    writer.UpdateSizeDummy();
+                else if (SizeDummy != 0)
+                    writer.WriteSizeDummy(SizeDummy);
+            }
+
+        }
 
     }
 }

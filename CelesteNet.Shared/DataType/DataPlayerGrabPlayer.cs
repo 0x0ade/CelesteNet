@@ -46,8 +46,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Player = playerUpd;
         }
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
-            Grabbing = ctx.ReadOptRef<DataPlayerInfo>(reader);
+        public override void Read(CelesteNetBinaryReader reader) {
+            Grabbing = reader.ReadOptRef<DataPlayerInfo>();
 
             Position = reader.ReadVector2();
 
@@ -55,8 +55,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 Force = reader.ReadVector2();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
-            ctx.WriteRef(writer, Grabbing);
+        public override void Write(CelesteNetBinaryWriter writer) {
+            writer.WriteRef(Grabbing);
 
             writer.Write(Position);
 

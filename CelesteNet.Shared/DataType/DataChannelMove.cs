@@ -21,12 +21,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public DataPlayerInfo? Player;
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
-            Player = ctx.ReadRef<DataPlayerInfo>(reader);
+        public override void Read(CelesteNetBinaryReader reader) {
+            Player = reader.ReadRef<DataPlayerInfo>();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
-            ctx.WriteRef(writer, Player);
+        public override void Write(CelesteNetBinaryWriter writer) {
+            writer.WriteRef(Player);
         }
 
     }

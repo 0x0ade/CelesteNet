@@ -28,33 +28,33 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public AudioState ToState()
             => new AudioState(Music?.ToState(), Ambience?.ToState());
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             if (reader.ReadBoolean()) {
                 Music = new DataPartAudioTrackState();
-                Music.ReadAll(ctx, reader);
+                Music.ReadAll(reader);
             } else {
                 Music = null;
             }
 
             if (reader.ReadBoolean()) {
                 Ambience = new DataPartAudioTrackState();
-                Ambience.ReadAll(ctx, reader);
+                Ambience.ReadAll(reader);
             } else {
                 Ambience = null;
             }
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             if (Music != null) {
                 writer.Write(true);
-                Music.WriteAll(ctx, writer);
+                Music.WriteAll(writer);
             } else {
                 writer.Write(false);
             }
 
             if (Ambience != null) {
                 writer.Write(true);
-                Ambience.WriteAll(ctx, writer);
+                Ambience.WriteAll(writer);
             } else {
                 writer.Write(false);
             }

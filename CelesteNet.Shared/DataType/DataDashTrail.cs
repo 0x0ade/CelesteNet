@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Player = Get<MetaPlayerUpdate>(ctx);
         }
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             Server = reader.ReadBoolean();
 
             Position = reader.ReadVector2();
@@ -53,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if (Server) {
                 Sprite = new DataPartImage();
-                Sprite.ReadAll(ctx, reader);
+                Sprite.ReadAll(reader);
                 Depth = reader.ReadInt32();
                 Duration = reader.ReadSingle();
                 FrozenUpdate = reader.ReadBoolean();
@@ -68,7 +68,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             }
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             if (Player != null || Sprite == null)
                 Server = false;
 
@@ -79,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(Color);
 
             if (Server) {
-                Sprite?.WriteAll(ctx, writer);
+                Sprite?.WriteAll(writer);
                 writer.Write(Depth);
                 writer.Write(Duration);
                 writer.Write(FrozenUpdate);

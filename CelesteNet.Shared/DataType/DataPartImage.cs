@@ -45,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 Effects = Effects
             };
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             AtlasPath = reader.ReadNetString();
             Position = reader.ReadVector2();
             Origin = reader.ReadVector2();
@@ -55,7 +55,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Effects = (SpriteEffects) reader.ReadByte();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(AtlasPath);
             writer.Write(Position);
             writer.Write(Origin);

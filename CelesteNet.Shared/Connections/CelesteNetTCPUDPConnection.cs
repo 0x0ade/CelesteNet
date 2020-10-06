@@ -21,8 +21,8 @@ namespace Celeste.Mod.CelesteNet {
 
         public TcpClient TCP;
         public PositionAwareStream<NetworkStream> TCPStream;
-        public BinaryReader TCPReader;
-        public BinaryWriter TCPWriter;
+        public CelesteNetBinaryReader TCPReader;
+        public CelesteNetBinaryWriter TCPWriter;
 
         protected bool Loopend = false;
 
@@ -71,7 +71,7 @@ namespace Celeste.Mod.CelesteNet {
 
             TCPQueue = DefaultSendQueue;
             TCPQueue.SendKeepAliveUpdate = false;
-            SendQueues.Add(UDPQueue = new CelesteNetSendQueue(this) {
+            SendQueues.Add(UDPQueue = new CelesteNetSendQueue(this, false) {
                 SendKeepAliveUpdate = true,
                 MaxCount = 512
             });
@@ -105,8 +105,8 @@ namespace Celeste.Mod.CelesteNet {
         private void InitTCPUDP(TcpClient tcp, UdpClient? udp) {
             TCP = tcp;
             TCPStream = new PositionAwareStream<NetworkStream>(tcp.GetStream());
-            TCPReader = new BinaryReader(TCPStream, Encoding.UTF8, true);
-            TCPWriter = new BinaryWriter(TCPStream, Encoding.UTF8, true);
+            TCPReader = new CelesteNetBinaryReader(Data, TCPStream, Encoding.UTF8, true);
+            TCPWriter = new CelesteNetBinaryWriter(Data, TCPStream, Encoding.UTF8, true);
 
             UDP = udp;
         }
@@ -164,20 +164,20 @@ namespace Celeste.Mod.CelesteNet {
                 return;
             }
 
+            BufferHelper buffer = queue.Buffer;
             int length;
-            byte[] raw;
 
             if (data is DataInternalBlob blob) {
-                raw = blob.Bytes;
-                length = raw.Length;
-                data = blob.Data ?? throw new NullReferenceException("DataInternalBlob without internal data.");
+                buffer.Stream.Seek(0, SeekOrigin.Begin);
+                length = blob.Dump(buffer.Writer);
 
             } else {
-                BufferHelper buffer = queue.Buffer;
                 buffer.Stream.Seek(0, SeekOrigin.Begin);
                 length = Data.Write(buffer.Writer, data);
-                raw = buffer.Stream.GetBuffer();
             }
+
+            byte[] raw = buffer.Stream.GetBuffer();
+
 
             if (SendViaUDP(data) && UDP != null) {
                 // Missed updates aren't that bad...
@@ -282,7 +282,7 @@ namespace Celeste.Mod.CelesteNet {
         protected virtual void ReadUDPLoop() {
             try {
                 using (MemoryStream stream = new MemoryStream())
-                using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
+                using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Data, stream, Encoding.UTF8)) {
                     while (UDP != null && IsAlive && !Loopend) {
                         IPEndPoint? remote = null;
                         byte[] raw = UDP.Receive(ref remote);

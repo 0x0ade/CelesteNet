@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public Vector2? Position;
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             Force = reader.ReadBoolean();
             SID = reader.ReadNetString();
             Mode = (AreaMode) reader.ReadByte();
@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if (reader.ReadBoolean()) {
                 Session = new DataSession();
-                Session.ReadAll(ctx, reader);
+                Session.ReadAll(reader);
             } else {
                 Session = null;
             }
@@ -43,7 +43,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 Position = reader.ReadVector2();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.Write(Force);
             writer.WriteNetString(SID);
             writer.Write((byte) Mode);
@@ -53,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 writer.Write(false);
             } else {
                 writer.Write(true);
-                Session.WriteAll(ctx, writer);
+                Session.WriteAll(writer);
             }
 
             if (Position == null) {

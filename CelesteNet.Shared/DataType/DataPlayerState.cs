@@ -38,7 +38,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Get<MetaBoundRef>(ctx).ID = Player?.ID ?? uint.MaxValue;
         }
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             SID = reader.ReadNetString();
             Mode = (AreaMode) reader.ReadByte();
             Level = reader.ReadNetString();
@@ -46,7 +46,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Interactive = reader.ReadBoolean();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(SID);
             writer.Write((byte) Mode);
             writer.WriteNetString(Level);

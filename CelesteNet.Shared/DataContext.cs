@@ -248,23 +248,23 @@ namespace Celeste.Mod.CelesteNet {
             return () => UnregisterHandler(handler);
         }
 
-        public MetaTypeWrap[] ReadMeta(BinaryReader reader) {
+        public MetaTypeWrap[] ReadMeta(CelesteNetBinaryReader reader) {
             MetaTypeWrap[] metas = new MetaTypeWrap[reader.ReadByte()];
             for (int i = 0; i < metas.Length; i++)
                 metas[i] = new MetaTypeWrap().Read(reader);
             return metas;
         }
 
-        public DataType Read(BinaryReader reader) {
+        public DataType Read(CelesteNetBinaryReader reader) {
             PositionAwareStream? pas = reader.BaseStream as PositionAwareStream;
             pas?.ResetPosition();
 
-            string id = reader.ReadNetString();
+            string id = reader.ReadNetMappedString();
             DataFlags flags = (DataFlags) reader.ReadUInt16();
             bool small = (flags & DataFlags.Small) == DataFlags.Small;
             bool big = (flags & DataFlags.Big) == DataFlags.Big;
 
-            string source = reader.ReadNetString();
+            string source = reader.ReadNetMappedString();
             MetaTypeWrap[] metas = ReadMeta(reader);
 
             uint length = small ? reader.ReadByte() : big ? reader.ReadUInt32() : reader.ReadUInt16();
@@ -285,7 +285,7 @@ namespace Celeste.Mod.CelesteNet {
 
             try {
                 data.UnwrapMeta(this, metas);
-                data.Read(this, reader);
+                data.Read(reader);
             } catch (Exception e) {
                 throw new Exception($"Exception while reading {id} {flags} {source} {length}", e);
             }
@@ -299,84 +299,41 @@ namespace Celeste.Mod.CelesteNet {
             return data;
         }
 
-        public void WriteMeta(BinaryWriter writer, MetaTypeWrap[] metas) {
+        public void WriteMeta(CelesteNetBinaryWriter writer, MetaTypeWrap[] metas) {
             writer.Write((byte) metas.Length);
             foreach (MetaTypeWrap meta in metas)
                 meta.Write(writer);
         }
 
-        public int Write(BinaryWriter writer, DataType data) {
-            long start, end;
+        public int Write(CelesteNetBinaryWriter writer, DataType data) {
+            long start = writer.BaseStream.Position;
 
             if (data is DataInternalBlob blob) {
-                start = writer.BaseStream.Position;
-                writer.Write(blob.Bytes);
-                writer.Flush();
-                end = writer.BaseStream.Position;
-                return (int) (end - start);
+                blob.Dump(writer);
+                return (int) (writer.BaseStream.Position - start);
             }
 
             string type = data.GetTypeID(this);
 
             DataFlags flags = data.DataFlags;
 
-            long startAll = writer.BaseStream.Position;
+            start = writer.BaseStream.Position;
             bool small = (flags & DataFlags.Small) == DataFlags.Small;
             bool big = (flags & DataFlags.Big) == DataFlags.Big;
 
-            writer.WriteNetString(type);
+            writer.WriteNetMappedString(type);
             writer.Write((ushort) flags);
 
-            writer.WriteNetString(data.GetSource(this));
+            writer.WriteNetMappedString(data.GetSource(this));
             WriteMeta(writer, data.WrapMeta(this));
 
-            if (small)
-                writer.Write((byte) 0); // Filled in later.
-            else if (big)
-                writer.Write((uint) 0); // Filled in later.
-            else
-                writer.Write((ushort) 0); // Filled in later.
-            writer.Flush();
+            writer.WriteSizeDummy(small ? (byte) 1 : big ? (byte) 4 : (byte) 2);
 
-            long startData = writer.BaseStream.Position;
+            data.Write(writer);
 
-            data.Write(this, writer);
-            writer.Flush();
+            writer.UpdateSizeDummy();
 
-            end = writer.BaseStream.Position;
-            long length = end - startData;
-
-            if (small) {
-                writer.BaseStream.Seek(startData - 1, SeekOrigin.Begin);
-                if (length > byte.MaxValue)
-                    length = byte.MaxValue;
-                writer.Write((byte) length);
-
-            } else if (big) {
-                writer.BaseStream.Seek(startData - 4, SeekOrigin.Begin);
-                if (length > uint.MaxValue)
-                    length = uint.MaxValue;
-                writer.Write((uint) length);
-
-            } else {
-                writer.BaseStream.Seek(startData - 2, SeekOrigin.Begin);
-                if (length > ushort.MaxValue)
-                    length = ushort.MaxValue;
-                writer.Write((ushort) length);
-            }
-            writer.Flush();
-            writer.BaseStream.Seek(end, SeekOrigin.Begin);
-
-            return (int) (end - startAll);
-        }
-
-        public byte[] ToBytes(DataType data) {
-            using (MemoryStream stream = new MemoryStream())
-            using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8)) {
-                Write(writer, data);
-                writer.Flush();
-                return stream.ToArray();
-            }
+            return (int) (writer.BaseStream.Position - start);
         }
 
         public void Handle(CelesteNetConnection con, DataType? data)
@@ -442,15 +399,19 @@ namespace Celeste.Mod.CelesteNet {
         }
 
 
+        [Obsolete("Use CelesteNetBinaryReader instead.")]
         public T? ReadRef<T>(BinaryReader reader) where T : DataType<T>
             => GetRef<T>(reader.ReadUInt32());
 
+        [Obsolete("Use CelesteNetBinaryReader instead.")]
         public T? ReadOptRef<T>(BinaryReader reader) where T : DataType<T>
             => TryGetRef(reader.ReadUInt32(), out T? value) ? value : null;
 
+        [Obsolete("Use CelesteNetBinaryWriter instead.")]
         public void WriteRef<T>(BinaryWriter writer, T? data) where T : DataType<T>
             => writer.Write((data ?? throw new Exception($"Expected {DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(this) ?? uint.MaxValue);
 
+        [Obsolete("Use CelesteNetBinaryWriter instead.")]
         public void WriteOptRef<T>(BinaryWriter writer, T? data) where T : DataType<T>
             => writer.Write(data?.GetOpt<MetaRef>(this) ?? uint.MaxValue);
 

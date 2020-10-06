@@ -15,13 +15,5 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public string? Message;
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
-            throw new NotImplementedException();
-        }
-
-        public override void Write(DataContext ctx, BinaryWriter writer) {
-            throw new NotImplementedException();
-        }
-
     }
 }

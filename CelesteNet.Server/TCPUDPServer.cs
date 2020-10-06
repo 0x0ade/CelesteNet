@@ -111,7 +111,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         protected virtual void UDPReadLoop() {
             try {
                 using (MemoryStream stream = new MemoryStream())
-                using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8)) {
+                using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, stream, Encoding.UTF8)) {
                     while (Server.IsAlive && UDP != null) {
                         IPEndPoint? remote = null;
                         byte[] raw;

@@ -24,16 +24,16 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public DataPlayerInfo PlayerInfo;
 #pragma warning restore CS8618
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             Version = reader.ReadUInt16();
 
-            PlayerInfo = new DataPlayerInfo().ReadAllT(ctx, reader);
+            PlayerInfo = new DataPlayerInfo().ReadAllT(reader);
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.Write(Version);
 
-            PlayerInfo.WriteAll(ctx, writer);
+            PlayerInfo.WriteAll(writer);
         }
 
         public override string ToString()

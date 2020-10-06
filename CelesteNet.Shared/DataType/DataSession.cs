@@ -55,7 +55,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             RequestID = Get<MetaRequestResponse>(ctx);
         }
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             InSession = reader.ReadBoolean();
             if (!InSession)
                 return;
@@ -65,7 +65,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if (reader.ReadBoolean()) {
                 Audio = new DataPartAudioState();
-                Audio.ReadAll(ctx, reader);
+                Audio.ReadAll(reader);
             }
 
             if (reader.ReadBoolean())
@@ -140,7 +140,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             CoreMode = (Session.CoreModes) reader.ReadByte();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             if (!InSession) {
                 writer.Write(false);
                 return;
@@ -154,7 +154,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if (Audio != null) {
                 writer.Write(true);
-                Audio.WriteAll(ctx, writer);
+                Audio.WriteAll(writer);
             } else {
                 writer.Write(false);
             }
@@ -251,10 +251,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ID = Get<MetaRequest>(ctx);
         }
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
         }
 
     }

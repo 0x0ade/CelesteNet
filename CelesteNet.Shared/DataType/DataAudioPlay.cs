@@ -40,11 +40,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Player = Get<MetaPlayerUpdate>(ctx);
         }
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             Server = reader.ReadBoolean();
 
-            Sound = reader.ReadNetString();
-            Param = reader.ReadNetString();
+            Sound = reader.ReadNetMappedString();
+            Param = reader.ReadNetMappedString();
             if (!Param.IsNullOrEmpty())
                 Value = reader.ReadSingle();
 
@@ -52,14 +52,14 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 Position = reader.ReadVector2();
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             if (Player != null)
                 Server = false;
 
             writer.Write(Server);
 
-            writer.WriteNetString(Sound);
-            writer.WriteNetString(Param);
+            writer.WriteNetMappedString(Sound);
+            writer.WriteNetMappedString(Param);
             if (!Param.IsNullOrEmpty())
                 writer.Write(Value);
 

@@ -21,13 +21,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public string ModName = "";
         public Version ModVersion = new Version();
 
-        public override void Read(DataContext ctx, BinaryReader reader) {
+        public override void Read(CelesteNetBinaryReader reader) {
             ModID = reader.ReadNetString();
             ModName = reader.ReadNetString();
             ModVersion = new Version(reader.ReadNetString());
         }
 
-        public override void Write(DataContext ctx, BinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(ModID);
             writer.WriteNetString(ModName);
             writer.WriteNetString(ModVersion.ToString());

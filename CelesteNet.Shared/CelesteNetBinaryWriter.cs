@@ -126,7 +126,7 @@ namespace Celeste.Mod.CelesteNet {
                 return;
             }
 
-            Write(0xFF);
+            Write((byte) 0xFF);
             Write(id);
             Write('\0');
         }

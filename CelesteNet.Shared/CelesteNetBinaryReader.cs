@@ -50,6 +50,13 @@ namespace Celeste.Mod.CelesteNet {
             => DateTime.FromBinary(ReadInt64());
 
         public virtual string ReadNetString() {
+            byte b = ReadByte();
+            if (b == 0xFF)
+                throw new Exception("Trying to read a mapped string as a non-mapped string!");
+
+            if (b == 0x00)
+                return "";
+
             StringBuilder sb = new StringBuilder();
             char c;
             while ((c = ReadChar()) != '\0') {

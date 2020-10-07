@@ -11,6 +11,18 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.ObjectFactories;
 
 namespace Celeste.Mod.CelesteNet {
+    /*
+    Coming up with this setup from scratch took me a few attempts and way too much time in general.
+    StringMaps are used per subconnection (for TCPUDP, that's one for TCP and one for UDP).
+    When A CountReads string S often enough, the A asks B to map it to I.
+    B then sends I instead of S, which A can turn back into S.
+    Same goes into the opposite direction too, albeit asymmetrically.
+    If B ignores the <S, I> mapping request, both peers can still communicate fine using S.
+    This isn't done globally as to not introduce wasting every peer's time waiting for mappings to be synced.
+    This isn't done connection-wise as connections can have multiple subconnections (TCPUDP: TCP and UDP) which aren't in sync.
+    This could be improved with acks and resending the mapping in the future.
+    -jade
+    */
     public class StringMap {
 
         public const string ConnectionFeature = "stringmap";

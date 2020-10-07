@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet {
         public TcpClient TCP;
         public PositionAwareStream<NetworkStream> TCPStream;
         public CelesteNetBinaryReader TCPReader;
-        public CelesteNetBinaryWriter TCPWriter;
+        public BinaryWriter TCPWriter;
 
         protected bool Loopend = false;
 
@@ -71,7 +71,7 @@ namespace Celeste.Mod.CelesteNet {
 
             TCPQueue = DefaultSendQueue;
             TCPQueue.SendKeepAliveUpdate = false;
-            SendQueues.Add(UDPQueue = new CelesteNetSendQueue(this, false) {
+            SendQueues.Add(UDPQueue = new CelesteNetSendQueue(this) {
                 SendKeepAliveUpdate = true,
                 MaxCount = 512
             });
@@ -105,8 +105,8 @@ namespace Celeste.Mod.CelesteNet {
         private void InitTCPUDP(TcpClient tcp, UdpClient? udp) {
             TCP = tcp;
             TCPStream = new PositionAwareStream<NetworkStream>(tcp.GetStream());
-            TCPReader = new CelesteNetBinaryReader(Data, TCPStream, Encoding.UTF8, true);
-            TCPWriter = new CelesteNetBinaryWriter(Data, TCPStream, Encoding.UTF8, true);
+            TCPReader = new CelesteNetBinaryReader(Data, DefaultSendQueue.Strings, TCPStream, Encoding.UTF8, true);
+            TCPWriter = new BinaryWriter(TCPStream, Encoding.UTF8, true);
 
             UDP = udp;
         }
@@ -282,7 +282,7 @@ namespace Celeste.Mod.CelesteNet {
         protected virtual void ReadUDPLoop() {
             try {
                 using (MemoryStream stream = new MemoryStream())
-                using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Data, stream, Encoding.UTF8)) {
+                using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Data, UDPQueue.Strings, stream, Encoding.UTF8)) {
                     while (UDP != null && IsAlive && !Loopend) {
                         IPEndPoint? remote = null;
                         byte[] raw = UDP.Receive(ref remote);

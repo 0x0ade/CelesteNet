@@ -15,21 +15,24 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly DataContext Data;
 
-        public StringMap? StringMap;
+        public StringMap? Strings;
 
-        public CelesteNetBinaryReader(DataContext ctx, Stream input)
+        public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input)
             : base(input) {
             Data = ctx;
+            Strings = strings;
         }
 
-        public CelesteNetBinaryReader(DataContext ctx, Stream input, Encoding encoding)
+        public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input, Encoding encoding)
             : base(input, encoding) {
             Data = ctx;
+            Strings = strings;
         }
 
-        public CelesteNetBinaryReader(DataContext ctx, Stream input, Encoding encoding, bool leaveOpen)
+        public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input, Encoding encoding, bool leaveOpen)
             : base(input, encoding, leaveOpen) {
             Data = ctx;
+            Strings = strings;
         }
 
         public virtual Vector2 ReadVector2()
@@ -58,15 +61,20 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public virtual string ReadNetMappedString() {
+            string value;
+
             byte b = ReadByte();
             if (b == 0xFF) {
-                if (StringMap == null)
+                if (Strings == null)
                     throw new Exception("Trying to read a mapped string without a string map!");
-                string value = StringMap.Get(ReadUInt16());
+                value = Strings.Get(ReadUInt16());
                 if (ReadChar() != '\0')
                     throw new Exception("Malformed mapped string.");
                 return value;
             }
+
+            if (b == 0x00)
+                return "";
 
             StringBuilder sb = new StringBuilder();
             sb.Append((char) b);
@@ -76,7 +84,10 @@ namespace Celeste.Mod.CelesteNet {
                 if (sb.Length > 4096)
                     throw new Exception("String too long.");
             }
-            return sb.ToString();
+
+            value = sb.ToString();
+            Strings?.Store(value);
+            return value;
         }
 
         public T? ReadRef<T>() where T : DataType<T>

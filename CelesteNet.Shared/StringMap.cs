@@ -23,26 +23,30 @@ namespace Celeste.Mod.CelesteNet {
         public string Get(ushort id)
             => MapToValue[id];
 
-        public bool TryMap(string? value, out ushort id) {
-            if (value == null || value.Length <= MinLength) {
-                id = 0;
-                return false;
-            }
-
-            if (MapToID.TryGetValue(value, out id))
-                return true;
+        public void Store(string value) {
+            if (value.Length <= MinLength)
+                return;
 
             lock (Pending) {
                 if (MapToID.ContainsKey(value))
-                    return false;
+                    return;
 
                 if (!Pending.TryGetValue(value, out ushort count))
                     count = 0;
                 if (++count > PromotionCount)
                     count = PromotionCount;
                 Pending[value] = count;
+                return;
+            }
+        }
+
+        public bool TryMap(string? value, out ushort id) {
+            if (value == null || value.Length <= MinLength) {
+                id = 0;
                 return false;
             }
+
+            return MapToID.TryGetValue(value, out id);
         }
 
     }

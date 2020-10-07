@@ -93,7 +93,7 @@ namespace Celeste.Mod.CelesteNet {
                 break;
             }
 
-            SendQueues.Add(DefaultSendQueue = new CelesteNetSendQueue(this, true) {
+            SendQueues.Add(DefaultSendQueue = new CelesteNetSendQueue(this) {
                 SendKeepAliveUpdate = true,
                 SendKeepAliveNonUpdate = true
             });
@@ -166,7 +166,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly CelesteNetConnection Con;
 
-        public readonly bool SyncStringMap;
+        public readonly StringMap Strings = new StringMap();
 
         private readonly Queue<DataType> Queue = new Queue<DataType>();
         private readonly ManualResetEvent Event;
@@ -185,12 +185,10 @@ namespace Celeste.Mod.CelesteNet {
 
         public int MaxCount = 0;
 
-        public CelesteNetSendQueue(CelesteNetConnection con, bool syncStringMap) {
+        public CelesteNetSendQueue(CelesteNetConnection con) {
             Con = con;
 
-            SyncStringMap = syncStringMap;
-
-            Buffer = new BufferHelper(con.Data);
+            Buffer = new BufferHelper(con.Data, Strings);
 
             Event = new ManualResetEvent(false);
             EventHandles = new WaitHandle[] { Event };
@@ -318,9 +316,9 @@ namespace Celeste.Mod.CelesteNet {
         public MemoryStream Stream;
         public CelesteNetBinaryWriter Writer;
 
-        public BufferHelper(DataContext ctx) {
+        public BufferHelper(DataContext ctx, StringMap strings) {
             Stream = new MemoryStream();
-            Writer = new CelesteNetBinaryWriter(ctx, Stream, Encoding.UTF8);
+            Writer = new CelesteNetBinaryWriter(ctx, strings, Stream, Encoding.UTF8);
         }
 
         public void Dispose() {

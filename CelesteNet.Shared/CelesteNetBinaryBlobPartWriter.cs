@@ -19,19 +19,19 @@ namespace Celeste.Mod.CelesteNet {
         public int LastSplitPosition;
 
         public CelesteNetBinaryBlobPartWriter(DataContext ctx, DataInternalBlob blob, MemoryStream output)
-            : base(ctx, output) {
+            : base(ctx, null, output) {
             Blob = blob;
             Stream = output;
         }
 
         public CelesteNetBinaryBlobPartWriter(DataContext ctx, DataInternalBlob blob, MemoryStream output, Encoding encoding)
-            : base(ctx, output, encoding) {
+            : base(ctx, null, output, encoding) {
             Blob = blob;
             Stream = output;
         }
 
         public CelesteNetBinaryBlobPartWriter(DataContext ctx, DataInternalBlob blob, MemoryStream output, Encoding encoding, bool leaveOpen)
-            : base(ctx, output, encoding, leaveOpen) {
+            : base(ctx, null, output, encoding, leaveOpen) {
             Blob = blob;
             Stream = output;
         }

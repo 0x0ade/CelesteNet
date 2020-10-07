@@ -15,24 +15,27 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly DataContext Data;
 
-        public StringMap? StringMap;
+        public StringMap? Strings;
 
         protected long SizeDummyIndex;
         protected byte SizeDummySize;
 
-        public CelesteNetBinaryWriter(DataContext ctx, Stream output)
+        public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output)
             : base(output) {
             Data = ctx;
+            Strings = strings;
         }
 
-        public CelesteNetBinaryWriter(DataContext ctx, Stream output, Encoding encoding)
+        public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output, Encoding encoding)
             : base(output, encoding) {
             Data = ctx;
+            Strings = strings;
         }
 
-        public CelesteNetBinaryWriter(DataContext ctx, Stream output, Encoding encoding, bool leaveOpen)
+        public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output, Encoding encoding, bool leaveOpen)
             : base(output, encoding, leaveOpen) {
             Data = ctx;
+            Strings = strings;
         }
 
         public virtual void WriteSizeDummy(byte size) {
@@ -118,7 +121,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public virtual void WriteNetMappedString(string? text) {
-            if (StringMap == null || !StringMap.TryMap(text, out ushort id)) {
+            if (Strings == null || !Strings.TryMap(text, out ushort id)) {
                 WriteNetString(text);
                 return;
             }

@@ -58,6 +58,7 @@ namespace Celeste.Mod.CelesteNet {
                 return "";
 
             StringBuilder sb = new StringBuilder();
+            sb.Append((char) b);
             char c;
             while ((c = ReadChar()) != '\0') {
                 sb.Append(c);

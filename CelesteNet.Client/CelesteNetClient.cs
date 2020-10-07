@@ -88,6 +88,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                         con.ReadTeapot(out ServerConnectionFeatures, out uint token);
 
                         con.SendKeepAlive = true;
+
+                        foreach (string feature in ServerConnectionFeatures)
+                            InitTCPUDPConnectionFeature(con, feature);
+
                         con.StartReadTCP();
                         con.StartReadUDP();
 
@@ -131,6 +135,20 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Con = null;
             }
         }
+
+
+        public event Action<CelesteNetTCPUDPConnection, string> OnInitTCPUDPConnectionFeature;
+
+        public void InitTCPUDPConnectionFeature(CelesteNetTCPUDPConnection con, string feature) {
+            switch (feature) {
+                case StringMap.ConnectionFeature:
+                    con.SendStringMap = true;
+                    break;
+            }
+
+            OnInitTCPUDPConnectionFeature?.Invoke(con, feature);
+        }
+
 
 
         public void SendFilterList() {

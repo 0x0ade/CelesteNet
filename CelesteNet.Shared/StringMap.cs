@@ -13,31 +13,67 @@ using YamlDotNet.Serialization.ObjectFactories;
 namespace Celeste.Mod.CelesteNet {
     public class StringMap {
 
-        public ConcurrentDictionary<ushort, string> MapToValue = new ConcurrentDictionary<ushort, string>();
-        public ConcurrentDictionary<string, ushort> MapToID = new ConcurrentDictionary<string, ushort>();
-        public Dictionary<string, ushort> Pending = new Dictionary<string, ushort>();
+        public const string ConnectionFeature = "stringmap";
+
+        public readonly string Name;
+
+        public readonly ConcurrentDictionary<ushort, string> MapRead = new ConcurrentDictionary<ushort, string>();
+        public readonly ConcurrentDictionary<string, ushort> MapWrite = new ConcurrentDictionary<string, ushort>();
+
+        private readonly Dictionary<string, ushort> Counting = new Dictionary<string, ushort>();
+        private readonly HashSet<string> Pending = new HashSet<string>();
+        private readonly HashSet<string> MappedRead = new HashSet<string>();
+
+        private ushort NextID;
 
         public ushort PromotionCount = 3;
         public ushort MinLength = 8;
 
-        public string Get(ushort id)
-            => MapToValue[id];
+        public StringMap(string name) {
+            Name = name;
+        }
 
-        public void Store(string value) {
+        public string Get(ushort id)
+            => MapRead[id];
+
+        public void CountRead(string value) {
             if (value.Length <= MinLength)
                 return;
 
             lock (Pending) {
-                if (MapToID.ContainsKey(value))
+                if (MappedRead.Contains(value) || Pending.Contains(value))
                     return;
 
-                if (!Pending.TryGetValue(value, out ushort count))
+                if (!Counting.TryGetValue(value, out ushort count))
                     count = 0;
-                if (++count > PromotionCount)
-                    count = PromotionCount;
-                Pending[value] = count;
-                return;
+                if (++count > PromotionCount) {
+                    Counting.Remove(value);
+                    Pending.Add(value);
+                } else {
+                    Counting[value] = count;
+                }
             }
+        }
+
+        public List<Tuple<string, ushort>> PromoteRead() {
+            lock (Pending) {
+                if (Pending.Count == 0)
+                    return Dummy<Tuple<string, ushort>>.EmptyList;
+
+                List<Tuple<string, ushort>> added = new List<Tuple<string, ushort>>();
+                foreach (string value in Pending) {
+                    ushort id = NextID++;
+                    MapRead[id] = value;
+                    MappedRead.Add(value);
+                    added.Add(Tuple.Create(value, id));
+                }
+                Pending.Clear();
+                return added;
+            }
+        }
+
+        public void RegisterWrite(string value, ushort id) {
+            MapWrite[value] = id;
         }
 
         public bool TryMap(string? value, out ushort id) {
@@ -46,7 +82,7 @@ namespace Celeste.Mod.CelesteNet {
                 return false;
             }
 
-            return MapToID.TryGetValue(value, out id);
+            return MapWrite.TryGetValue(value, out id);
         }
 
     }

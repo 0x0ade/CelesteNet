@@ -86,7 +86,7 @@ namespace Celeste.Mod.CelesteNet {
             }
 
             value = sb.ToString();
-            Strings?.Store(value);
+            Strings?.CountRead(value);
             return value;
         }
 

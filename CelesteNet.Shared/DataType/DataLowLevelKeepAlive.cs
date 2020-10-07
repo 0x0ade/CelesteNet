@@ -11,10 +11,10 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataKeepAlive : DataType<DataKeepAlive> {
+    public class DataLowLevelKeepAlive : DataType<DataLowLevelKeepAlive> {
 
-        static DataKeepAlive() {
-            DataID = "keepalive";
+        static DataLowLevelKeepAlive() {
+            DataID = "llka";
         }
 
         public override DataFlags DataFlags => DataFlags.Small | (IsUpdate ? DataFlags.Update : DataFlags.None);

@@ -71,8 +71,10 @@ namespace Celeste.Mod.CelesteNet {
 
             TCPQueue = DefaultSendQueue;
             TCPQueue.SendKeepAliveUpdate = false;
-            SendQueues.Add(UDPQueue = new CelesteNetSendQueue(this) {
+            TCPQueue.SendStringMapUpdate = false;
+            SendQueues.Add(UDPQueue = new CelesteNetSendQueue(this, "udp") {
                 SendKeepAliveUpdate = true,
+                SendStringMapUpdate = true,
                 MaxCount = 512
             });
         }
@@ -205,6 +207,15 @@ namespace Celeste.Mod.CelesteNet {
                 lock (TCPWriter) // This can be theoretically be reached from the UDP queue.
                     TCPWriter.Write(raw, 0, length);
             }
+        }
+
+        protected override void Receive(DataType data) {
+            if (data is DataLowLevelStringMapping mapping) {
+                (mapping.StringMap == "udp" ? UDPQueue : DefaultSendQueue).Strings.RegisterWrite(mapping.Value, mapping.ID);
+                return;
+            }
+
+            base.Receive(data);
         }
 
         protected override void LoopbackReceive(DataInternalLoopbackMessage msg) {

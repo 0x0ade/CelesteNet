@@ -73,7 +73,9 @@ namespace Celeste.Mod.CelesteNet {
         public abstract string ID { get; }
         public abstract string UID { get; }
 
-        public bool SendKeepAlive;
+        public bool SendKeepAlive = false;
+
+        public bool SendStringMap = false;
 
         protected List<CelesteNetSendQueue> SendQueues = new List<CelesteNetSendQueue>();
 
@@ -93,9 +95,10 @@ namespace Celeste.Mod.CelesteNet {
                 break;
             }
 
-            SendQueues.Add(DefaultSendQueue = new CelesteNetSendQueue(this) {
+            SendQueues.Add(DefaultSendQueue = new CelesteNetSendQueue(this, "") {
                 SendKeepAliveUpdate = true,
-                SendKeepAliveNonUpdate = true
+                SendKeepAliveNonUpdate = true,
+                SendStringMapUpdate = false
             });
         }
 
@@ -129,6 +132,11 @@ namespace Celeste.Mod.CelesteNet {
         public abstract void SendRaw(CelesteNetSendQueue queue, DataType data);
 
         protected virtual void Receive(DataType data) {
+            if (data is DataLowLevelStringMapping mapping) {
+                DefaultSendQueue.Strings.RegisterWrite(mapping.Value, mapping.ID);
+                return;
+            }
+
             lock (ReceiveFilterLock)
                 if (!(_OnReceiveFilter?.InvokeWhileTrue(this, data) ?? true))
                     return;
@@ -166,7 +174,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly CelesteNetConnection Con;
 
-        public readonly StringMap Strings = new StringMap();
+        public readonly StringMap Strings;
 
         private readonly Queue<DataType> Queue = new Queue<DataType>();
         private readonly ManualResetEvent Event;
@@ -183,10 +191,14 @@ namespace Celeste.Mod.CelesteNet {
         public bool SendKeepAliveUpdate;
         public bool SendKeepAliveNonUpdate;
 
+        public bool SendStringMapUpdate;
+
         public int MaxCount = 0;
 
-        public CelesteNetSendQueue(CelesteNetConnection con) {
+        public CelesteNetSendQueue(CelesteNetConnection con, string name) {
             Con = con;
+
+            Strings = new StringMap(name);
 
             Buffer = new BufferHelper(con.Data, Strings);
 
@@ -261,15 +273,32 @@ namespace Celeste.Mod.CelesteNet {
                             LastNonUpdate = now;
                     }
 
+                    if (Con.SendStringMap) {
+                        List<Tuple<string, ushort>> added = Strings.PromoteRead();
+                        if (added.Count > 0) {
+                            foreach (Tuple<string, ushort> mapping in added)
+                                Con.SendRaw(this, new DataLowLevelStringMapping {
+                                    IsUpdate = SendStringMapUpdate,
+                                    StringMap = Strings.Name,
+                                    Value = mapping.Item1,
+                                    ID = mapping.Item2
+                                });
+                            if (SendStringMapUpdate)
+                                LastUpdate = now;
+                            else
+                                LastNonUpdate = now;
+                        }
+                    }
+
                     if (Con.SendKeepAlive) {
                         if (SendKeepAliveUpdate && (now - LastUpdate).TotalSeconds >= 1D) {
-                            Con.SendRaw(this, new DataKeepAlive {
+                            Con.SendRaw(this, new DataLowLevelKeepAlive {
                                 IsUpdate = true
                             });
                             LastUpdate = now;
                         }
                         if (SendKeepAliveNonUpdate && (now - LastNonUpdate).TotalSeconds >= 1D) {
-                            Con.SendRaw(this, new DataKeepAlive {
+                            Con.SendRaw(this, new DataLowLevelKeepAlive {
                                 IsUpdate = false
                             });
                             LastNonUpdate = now;

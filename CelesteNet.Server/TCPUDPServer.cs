@@ -187,6 +187,18 @@ namespace Celeste.Mod.CelesteNet.Server {
                 UDPMap.TryRemove(ep, out _);
         }
 
+        public event Action<CelesteNetTCPUDPConnection, string>? OnInitConnectionFeature;
+
+        public void InitConnectionFeature(CelesteNetTCPUDPConnection con, string feature) {
+            switch (feature) {
+                case StringMap.ConnectionFeature:
+                    con.SendStringMap = true;
+                    break;
+            }
+
+            OnInitConnectionFeature?.Invoke(con, feature);
+        }
+
 
         #region Handlers
 
@@ -200,6 +212,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             // FIXME: Possible race condition on rehandshake after disconnect?
             if (Server.PlayersByCon.ContainsKey(con))
                 return;
+
+            foreach (string feature in handshake.ConnectionFeatures)
+                InitConnectionFeature(con, feature);
 
             CelesteNetPlayerSession session = new CelesteNetPlayerSession(Server, con, ++Server.PlayerCounter);
             session.Start(handshake);

@@ -274,9 +274,9 @@ namespace Celeste.Mod.CelesteNet {
                     }
 
                     if (Con.SendStringMap) {
-                        List<Tuple<string, ushort>> added = Strings.PromoteRead();
+                        List<Tuple<string, int>> added = Strings.PromoteRead();
                         if (added.Count > 0) {
-                            foreach (Tuple<string, ushort> mapping in added)
+                            foreach (Tuple<string, int> mapping in added)
                                 Con.SendRaw(this, new DataLowLevelStringMapping {
                                     IsUpdate = SendStringMapUpdate,
                                     StringMap = Strings.Name,

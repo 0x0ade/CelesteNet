@@ -121,14 +121,13 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public virtual void WriteNetMappedString(string? text) {
-            if (Strings == null || !Strings.TryMap(text, out ushort id)) {
+            if (Strings == null || !Strings.TryMap(text, out int id)) {
                 WriteNetString(text);
                 return;
             }
 
             Write((byte) 0xFF);
-            Write(id);
-            Write('\0');
+            Write7BitEncodedInt(id);
         }
 
         public void WriteRef<T>(T? data) where T : DataType<T>

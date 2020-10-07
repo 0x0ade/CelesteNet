@@ -29,23 +29,23 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly string Name;
 
-        public readonly ConcurrentDictionary<ushort, string> MapRead = new ConcurrentDictionary<ushort, string>();
-        public readonly ConcurrentDictionary<string, ushort> MapWrite = new ConcurrentDictionary<string, ushort>();
+        public readonly ConcurrentDictionary<int, string> MapRead = new ConcurrentDictionary<int, string>();
+        public readonly ConcurrentDictionary<string, int> MapWrite = new ConcurrentDictionary<string, int>();
 
-        private readonly Dictionary<string, ushort> Counting = new Dictionary<string, ushort>();
+        private readonly Dictionary<string, int> Counting = new Dictionary<string, int>();
         private readonly HashSet<string> Pending = new HashSet<string>();
         private readonly HashSet<string> MappedRead = new HashSet<string>();
 
-        private ushort NextID;
+        private int NextID;
 
-        public ushort PromotionCount = 3;
-        public ushort MinLength = 8;
+        public int PromotionCount = 3;
+        public int MinLength = 4;
 
         public StringMap(string name) {
             Name = name;
         }
 
-        public string Get(ushort id)
+        public string Get(int id)
             => MapRead[id];
 
         public void CountRead(string value) {
@@ -56,9 +56,9 @@ namespace Celeste.Mod.CelesteNet {
                 if (MappedRead.Contains(value) || Pending.Contains(value))
                     return;
 
-                if (!Counting.TryGetValue(value, out ushort count))
+                if (!Counting.TryGetValue(value, out int count))
                     count = 0;
-                if (++count > PromotionCount) {
+                if (++count >= PromotionCount) {
                     Counting.Remove(value);
                     Pending.Add(value);
                 } else {
@@ -67,14 +67,14 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public List<Tuple<string, ushort>> PromoteRead() {
+        public List<Tuple<string, int>> PromoteRead() {
             lock (Pending) {
                 if (Pending.Count == 0)
-                    return Dummy<Tuple<string, ushort>>.EmptyList;
+                    return Dummy<Tuple<string, int>>.EmptyList;
 
-                List<Tuple<string, ushort>> added = new List<Tuple<string, ushort>>();
+                List<Tuple<string, int>> added = new List<Tuple<string, int>>();
                 foreach (string value in Pending) {
-                    ushort id = NextID++;
+                    int id = NextID++;
                     MapRead[id] = value;
                     MappedRead.Add(value);
                     added.Add(Tuple.Create(value, id));
@@ -84,11 +84,11 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public void RegisterWrite(string value, ushort id) {
+        public void RegisterWrite(string value, int id) {
             MapWrite[value] = id;
         }
 
-        public bool TryMap(string? value, out ushort id) {
+        public bool TryMap(string? value, out int id) {
             if (value == null || value.Length <= MinLength) {
                 id = 0;
                 return false;

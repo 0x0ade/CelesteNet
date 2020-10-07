@@ -75,9 +75,7 @@ namespace Celeste.Mod.CelesteNet {
             if (b == 0xFF) {
                 if (Strings == null)
                     throw new Exception("Trying to read a mapped string without a string map!");
-                value = Strings.Get(ReadUInt16());
-                if (ReadChar() != '\0')
-                    throw new Exception("Malformed mapped string.");
+                value = Strings.Get(Read7BitEncodedInt());
                 return value;
             }
 

@@ -23,7 +23,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public string StringMap = "";
         public string Value = "";
-        public ushort ID;
+        public int ID;
 
         public override bool FilterHandle(DataContext ctx)
             => false;
@@ -31,7 +31,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override void Read(CelesteNetBinaryReader reader) {
             StringMap = reader.ReadNetString();
             Value = reader.ReadNetString();
-            ID = reader.ReadUInt16();
+            ID = reader.ReadInt32();
         }
 
         public override void Write(CelesteNetBinaryWriter writer) {

@@ -20,7 +20,7 @@ namespace Celeste.Mod.CelesteNet {
     public delegate void DataHandler<T>(CelesteNetConnection con, T data) where T : DataType<T>;
     public delegate bool DataFilter(CelesteNetConnection con, DataType data);
     public delegate bool DataFilter<T>(CelesteNetConnection con, T data) where T : DataType<T>;
-    public class DataContext {
+    public class DataContext : IDisposable {
 
         public readonly Dictionary<string, Type> IDToDataType = new Dictionary<string, Type>();
         public readonly Dictionary<Type, string> DataTypeToID = new Dictionary<Type, string>();
@@ -28,6 +28,9 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly Dictionary<string, Type> IDToMetaType = new Dictionary<string, Type>();
         public readonly Dictionary<Type, string> MetaTypeToID = new Dictionary<Type, string>();
+
+        public readonly RWLock HandlersLock = new RWLock();
+        public readonly RWLock FiltersLock = new RWLock();
 
         public readonly ConcurrentDictionary<Type, DataHandler> Handlers = new ConcurrentDictionary<Type, DataHandler>();
         public readonly ConcurrentDictionary<Type, DataFilter> Filters = new ConcurrentDictionary<Type, DataFilter>();
@@ -39,6 +42,7 @@ namespace Celeste.Mod.CelesteNet {
         protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>> Bound = new ConcurrentDictionary<string, ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>>();
 
         protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>> LastOrderedUpdate = new ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>>();
+        private bool IsDisposed;
 
         public DataContext() {
             RescanAllDataTypes();
@@ -127,30 +131,36 @@ namespace Celeste.Mod.CelesteNet {
             => RegisterHandler(typeof(T), (con, data) => handler(con, (T) data));
 
         public void RegisterHandler(Type type, DataHandler handler) {
-            if (Handlers.TryGetValue(type, out DataHandler? existing))
-                handler = existing + handler;
-            Handlers[type] = handler;
+            using (HandlersLock.W()) {
+                if (Handlers.TryGetValue(type, out DataHandler? existing))
+                    handler = existing + handler;
+                Handlers[type] = handler;
+            }
         }
 
         public void RegisterFilter<T>(DataFilter<T> filter) where T : DataType<T>
             => RegisterFilter(typeof(T), (con, data) => filter(con, (T) data));
 
         public void RegisterFilter(Type type, DataFilter filter) {
-            if (Filters.TryGetValue(type, out DataFilter? existing))
-                filter = existing + filter;
-            Filters[type] = filter;
+            using (FiltersLock.W()) {
+                if (Filters.TryGetValue(type, out DataFilter? existing))
+                    filter = existing + filter;
+                Filters[type] = filter;
+            }
         }
 
         public void UnregisterHandler<T>(DataHandler<T> handler) where T : DataType<T>
             => UnregisterHandler(typeof(T), (con, data) => handler(con, (T) data));
 
         public void UnregisterHandler(Type type, DataHandler handler) {
-            if (Handlers.TryGetValue(type, out DataHandler? existing)) {
-                existing -= handler;
-                if (existing != null)
-                    Handlers[type] = existing;
-                else
-                    Handlers.TryRemove(type, out _);
+            using (HandlersLock.W()) {
+                if (Handlers.TryGetValue(type, out DataHandler? existing)) {
+                    existing -= handler;
+                    if (existing != null)
+                        Handlers[type] = existing;
+                    else
+                        Handlers.TryRemove(type, out _);
+                }
             }
         }
 
@@ -158,12 +168,14 @@ namespace Celeste.Mod.CelesteNet {
             => UnregisterFilter(typeof(T), (con, data) => filter(con, (T) data));
 
         public void UnregisterFilter(Type type, DataFilter filter) {
-            if (Filters.TryGetValue(type, out DataFilter? existing)) {
-                existing -= filter;
-                if (existing != null)
-                    Filters[type] = existing;
-                else
-                    Filters.TryRemove(type, out _);
+            using (FiltersLock.W()) {
+                if (Filters.TryGetValue(type, out DataFilter? existing)) {
+                    existing -= filter;
+                    if (existing != null)
+                        Filters[type] = existing;
+                    else
+                        Filters.TryRemove(type, out _);
+                }
             }
         }
 
@@ -361,10 +373,11 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         protected void HandleInner(CelesteNetConnection con, Type type, DataType data) {
-            for (Type btype = type; btype != typeof(object); btype = btype.BaseType ?? typeof(object))
-                if (Filters.TryGetValue(btype, out DataFilter? filter))
-                    if (!filter.InvokeWhileTrue(con, data))
-                        return;
+            using (FiltersLock.RU())
+                for (Type btype = type; btype != typeof(object); btype = btype.BaseType ?? typeof(object))
+                    if (Filters.TryGetValue(btype, out DataFilter? filter))
+                        if (!filter.InvokeWhileTrue(con, data))
+                            return;
 
             if (!data.FilterHandle(this))
                 return;
@@ -393,9 +406,10 @@ namespace Celeste.Mod.CelesteNet {
             if (data.Is<MetaBoundRef>(this))
                 SetBoundRef(data);
 
-            for (Type btype = type; btype != typeof(object); btype = btype.BaseType ?? typeof(object))
-                if (Handlers.TryGetValue(btype, out DataHandler? handler))
-                    handler(con, data);
+            using (HandlersLock.RU())
+                for (Type btype = type; btype != typeof(object); btype = btype.BaseType ?? typeof(object))
+                    if (Handlers.TryGetValue(btype, out DataHandler? handler))
+                        handler(con, data);
         }
 
 
@@ -596,6 +610,25 @@ namespace Celeste.Mod.CelesteNet {
             if (LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, uint>? updateIDs)) {
                 updateIDs.TryRemove(id, out _);
             }
+        }
+
+
+        protected virtual void Dispose(bool disposing) {
+            if (!IsDisposed)
+                return;
+            IsDisposed = true;
+
+            HandlersLock.Dispose();
+            FiltersLock.Dispose();
+        }
+
+        ~DataContext() {
+            Dispose(false);
+        }
+
+        public void Dispose() {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
     }

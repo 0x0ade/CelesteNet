@@ -232,6 +232,9 @@ namespace Celeste.Mod.CelesteNet {
                     if (Queue.Count == 0)
                         WaitHandle.WaitAny(EventHandles, 1000);
 
+                    if (!Con.IsAlive)
+                        return;
+
                     DateTime now = DateTime.UtcNow;
 
                     while (Queue.Count > 0) {

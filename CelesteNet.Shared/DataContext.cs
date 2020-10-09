@@ -213,14 +213,13 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void UnregisterHandlersIn(object owner) {
-            if (!RegisteredHandlers.ContainsKey(owner))
-                return;
+            if (RegisteredHandlers.TryRemove(owner, out List<Tuple<Type, DataHandler>> handlers))
+                foreach (Tuple<Type, DataHandler> tuple in handlers)
+                    UnregisterHandler(tuple.Item1, tuple.Item2);
 
-            foreach (Tuple<Type, DataHandler> tuple in RegisteredHandlers[owner])
-                UnregisterHandler(tuple.Item1, tuple.Item2);
-
-            foreach (Tuple<Type, DataFilter> tuple in RegisteredFilters[owner])
-                UnregisterFilter(tuple.Item1, tuple.Item2);
+            if (RegisteredFilters.TryRemove(owner, out List<Tuple<Type, DataFilter>> filters))
+                foreach (Tuple<Type, DataFilter> tuple in filters)
+                    UnregisterFilter(tuple.Item1, tuple.Item2);
         }
 
         public Action WaitFor<T>(DataFilter<T> cb) where T : DataType<T>

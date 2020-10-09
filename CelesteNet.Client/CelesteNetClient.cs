@@ -133,6 +133,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 HandshakeEvent.Dispose();
                 Con?.Dispose();
                 Con = null;
+
+                Data.Dispose();
             }
         }
 

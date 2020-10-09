@@ -157,6 +157,8 @@ namespace Celeste.Mod.CelesteNet {
 
         protected virtual void Dispose(bool disposing) {
             IsAlive = false;
+            foreach (CelesteNetSendQueue queue in SendQueues)
+                queue.Dispose();
             _OnDisconnect?.Invoke(this);
         }
 

@@ -181,6 +181,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             Channels.Dispose();
             TCPUDP.Dispose();
             ConLock.Dispose();
+
+            Data.Dispose();
         }
 
 

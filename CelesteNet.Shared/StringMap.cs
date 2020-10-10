@@ -21,6 +21,7 @@ namespace Celeste.Mod.CelesteNet {
     This isn't done globally as to not introduce wasting every peer's time waiting for mappings to be synced.
     This isn't done connection-wise as connections can have multiple subconnections (TCPUDP: TCP and UDP) which aren't in sync.
     This could be improved with acks and resending the mapping in the future.
+    Cleaning up the Counting dictionary could be improved too, as it currently halts.
     -jade
     */
     public class StringMap {
@@ -38,7 +39,10 @@ namespace Celeste.Mod.CelesteNet {
 
         private int NextID;
 
-        public int PromotionCount = 3;
+        public int PromotionCount = 18;
+        public int PromotionTreshold = 10;
+        public int MaxCounting = 32;
+        public int DemotionScore = 3;
         public int MinLength = 4;
 
         public StringMap(string name) {
@@ -63,6 +67,23 @@ namespace Celeste.Mod.CelesteNet {
                     Pending.Add(value);
                 } else {
                     Counting[value] = count;
+                }
+
+                if (Counting.Count >= MaxCounting)
+                    Cleanup();
+            }
+        }
+
+        public void Cleanup() {
+            foreach (KeyValuePair<string, int> entry in Counting.ToArray()) {
+                int score = entry.Value - DemotionScore;
+                if (score <= 0) {
+                    Counting.Remove(entry.Key);
+                } else if (score >= PromotionTreshold) {
+                    Counting.Remove(entry.Key);
+                    Pending.Add(entry.Key);
+                } else {
+                    Counting[entry.Key] = score;
                 }
             }
         }

@@ -127,8 +127,11 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public void RegisterHandler<T>(DataHandler<T> handler) where T : DataType<T>
-            => RegisterHandler(typeof(T), (con, data) => handler(con, (T) data));
+        public DataHandler RegisterHandler<T>(DataHandler<T> handler) where T : DataType<T> {
+            DataHandler wrap = (con, data) => handler(con, (T) data);
+            RegisterHandler(typeof(T), wrap);
+            return wrap;
+        }
 
         public void RegisterHandler(Type type, DataHandler handler) {
             using (HandlersLock.W()) {
@@ -138,8 +141,11 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public void RegisterFilter<T>(DataFilter<T> filter) where T : DataType<T>
-            => RegisterFilter(typeof(T), (con, data) => filter(con, (T) data));
+        public DataFilter RegisterFilter<T>(DataFilter<T> filter) where T : DataType<T> {
+            DataFilter wrap = (con, data) => filter(con, (T) data);
+            RegisterFilter(typeof(T), wrap);
+            return wrap;
+        }
 
         public void RegisterFilter(Type type, DataFilter filter) {
             using (FiltersLock.W()) {
@@ -148,9 +154,6 @@ namespace Celeste.Mod.CelesteNet {
                 Filters[type] = filter;
             }
         }
-
-        public void UnregisterHandler<T>(DataHandler<T> handler) where T : DataType<T>
-            => UnregisterHandler(typeof(T), (con, data) => handler(con, (T) data));
 
         public void UnregisterHandler(Type type, DataHandler handler) {
             using (HandlersLock.W()) {
@@ -163,9 +166,6 @@ namespace Celeste.Mod.CelesteNet {
                 }
             }
         }
-
-        public void UnregisterFilter<T>(DataFilter<T> filter) where T : DataType<T>
-            => UnregisterFilter(typeof(T), (con, data) => filter(con, (T) data));
 
         public void UnregisterFilter(Type type, DataFilter filter) {
             using (FiltersLock.W()) {
@@ -213,11 +213,11 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void UnregisterHandlersIn(object owner) {
-            if (RegisteredHandlers.TryRemove(owner, out List<Tuple<Type, DataHandler>> handlers))
+            if (RegisteredHandlers.TryRemove(owner, out List<Tuple<Type, DataHandler>>? handlers))
                 foreach (Tuple<Type, DataHandler> tuple in handlers)
                     UnregisterHandler(tuple.Item1, tuple.Item2);
 
-            if (RegisteredFilters.TryRemove(owner, out List<Tuple<Type, DataFilter>> filters))
+            if (RegisteredFilters.TryRemove(owner, out List<Tuple<Type, DataFilter>>? filters))
                 foreach (Tuple<Type, DataFilter> tuple in filters)
                     UnregisterFilter(tuple.Item1, tuple.Item2);
         }
@@ -228,27 +228,25 @@ namespace Celeste.Mod.CelesteNet {
         public Action WaitFor<T>(int timeout, DataFilter<T> cb, Action? cbTimeout = null) where T : DataType<T> {
             object key = new object();
 
-            DataHandler<T>? handler = null;
-
-            handler = (con, data) => {
+            DataHandler? wrap = null;
+            wrap = RegisterHandler<T>((con, data) => {
                 lock (key) {
-                    if (handler == null || !cb(con, data))
+                    if (wrap == null || !cb(con, data))
                         return;
-                    UnregisterHandler(handler);
-                    handler = null;
+                    UnregisterHandler(typeof(T), wrap);
+                    wrap = null;
                 }
-            };
+            });
 
-            RegisterHandler(handler);
             if (timeout > 0)
                 Task.Run(async () => {
                     await Task.Delay(timeout);
                     lock (key) {
-                        if (handler == null)
+                        if (wrap == null)
                             return;
                         try {
-                            UnregisterHandler(handler);
-                            handler = null;
+                            UnregisterHandler(typeof(T), wrap);
+                            wrap = null;
                             cbTimeout?.Invoke();
                         } catch (Exception e) {
                             Logger.Log(LogLevel.CRI, "data", $"Error in WaitFor timeout callback:\n{typeof(T).FullName}\n{cb}\n{e}");
@@ -256,7 +254,7 @@ namespace Celeste.Mod.CelesteNet {
                     }
                 });
 
-            return () => UnregisterHandler(handler);
+            return () => UnregisterHandler(typeof(T), wrap);
         }
 
         public MetaTypeWrap[] ReadMeta(CelesteNetBinaryReader reader) {

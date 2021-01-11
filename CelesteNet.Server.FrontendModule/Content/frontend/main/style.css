@@ -345,9 +345,10 @@ a.button:hover, a.button:focus, a.button:active {
 }
 
 #dialog {
-    position: relative;
+    position: fixed;
     top: 50%;
-    transform: translateY(-50%);
+    left: 50%;
+    transform: translate(-50%, -50%);
     max-width: 300px;
     margin: auto;
     background: #0e0024;

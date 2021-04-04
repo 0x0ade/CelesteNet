@@ -182,8 +182,10 @@ namespace Celeste.Mod.CelesteNet {
         private readonly ManualResetEvent Event;
         private readonly WaitHandle[] EventHandles;
         private readonly Thread Thread;
-        // FIXME: MEMORY LEAK! Totally not gonna blame Cruor on this tho, as the initial impl was good for its use case.
-        private readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>> LastSent = new ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>>();
+        private readonly Dictionary<string, Dictionary<uint, DataDedupe>> LastSent = new Dictionary<string, Dictionary<uint, DataDedupe>>();
+        private readonly List<DataDedupe> Dedupes = new List<DataDedupe>();
+
+        private ulong DedupeTimestamp;
 
         private DateTime LastUpdate;
         private DateTime LastNonUpdate;
@@ -229,8 +231,26 @@ namespace Celeste.Mod.CelesteNet {
         protected virtual void ThreadLoop() {
             try {
                 while (Con.IsAlive) {
+                    DedupeTimestamp++;
+
+                    int waited = 0;
                     if (Queue.Count == 0)
-                        WaitHandle.WaitAny(EventHandles, 1000);
+                        waited = WaitHandle.WaitAny(EventHandles, 1000);
+
+                    if ((waited == WaitHandle.WaitTimeout || DedupeTimestamp % 10 == 0) && LastSent.Count > 0) {
+                        for (int i = Dedupes.Count - 1; i >= 0; --i) {
+                            DataDedupe slot = Dedupes[i];
+                            if (!slot.Update(DedupeTimestamp)) {
+                                Dedupes.RemoveAt(i);
+                                if (LastSent.TryGetValue(slot.Type, out Dictionary<uint, DataDedupe>? slotByID)) {
+                                    slotByID.Remove(slot.ID);
+                                    if (slotByID.Count == 0) {
+                                        LastSent.Remove(slot.Type);
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     if (!Con.IsAlive)
                         return;
@@ -260,14 +280,19 @@ namespace Celeste.Mod.CelesteNet {
                             string type = data.GetTypeID(Con.Data);
                             uint id = data.GetDuplicateFilterID();
 
-                            if (!LastSent.TryGetValue(type, out ConcurrentDictionary<uint, DataType>? lastByID))
-                                LastSent[type] = lastByID = new ConcurrentDictionary<uint, DataType>();
+                            if (!LastSent.TryGetValue(type, out Dictionary<uint, DataDedupe>? slotByID))
+                                LastSent[type] = slotByID = new Dictionary<uint, DataDedupe>();
 
-                            if (lastByID.TryGetValue(id, out DataType? last))
-                                if (last.ConsideredDuplicate(data))
+                            if (slotByID.TryGetValue(id, out DataDedupe? slot)) {
+                                if (slot.Data?.ConsideredDuplicate(data) ?? false)
                                     continue;
+                                slot.Data = data;
+                                slot.Timestamp = DedupeTimestamp;
+                                slot.Iterations = 0;
+                            } else {
+                                Dedupes.Add(slotByID[id] = new DataDedupe(type, id, data, DedupeTimestamp));
+                            }
 
-                            lastByID[id] = data;
                         }
 
                         Con.SendRaw(this, data);
@@ -341,6 +366,29 @@ namespace Celeste.Mod.CelesteNet {
 
         public void Dispose() {
             Dispose(true);
+        }
+
+    }
+
+    public class DataDedupe {
+
+        public readonly string Type;
+        public readonly uint ID;
+        public DataType? Data;
+        public ulong Timestamp;
+        public int Iterations;
+
+        public DataDedupe(string type, uint id, DataType data, ulong timestamp) {
+            Type = type;
+            ID = id;
+            Data = data;
+            Timestamp = timestamp;
+        }
+
+        public bool Update(ulong timestamp) {
+            if (Timestamp + 100 < timestamp)
+                Iterations++;
+            return Iterations < 3;
         }
 
     }

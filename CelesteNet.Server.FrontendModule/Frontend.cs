@@ -255,7 +255,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
 
             using (MemoryStream ms = new MemoryStream()) {
-                using (StreamWriter sw = new StreamWriter(ms, Encoding.UTF8, 1024, true))
+                using (StreamWriter sw = new StreamWriter(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
                 using (JsonTextWriter jtw = new JsonTextWriter(sw))
                     Serializer.Serialize(jtw, obj);
 
@@ -344,7 +344,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public void RespondJSON(HttpRequestEventArgs c, object obj) {
             using (MemoryStream ms = new MemoryStream()) {
-                using (StreamWriter sw = new StreamWriter(ms, Encoding.UTF8, 1024, true))
+                using (StreamWriter sw = new StreamWriter(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
                 using (JsonTextWriter jtw = new JsonTextWriter(sw))
                     Serializer.Serialize(jtw, obj);
 
@@ -356,7 +356,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         public void Respond(HttpRequestEventArgs c, string str) {
-            Respond(c, Encoding.UTF8.GetBytes(str));
+            Respond(c, CelesteNetUtils.UTF8NoBOM.GetBytes(str));
         }
 
         public void Respond(HttpRequestEventArgs c, byte[] buf) {

@@ -22,6 +22,8 @@ namespace Celeste.Mod.CelesteNet {
         // Port MUST be fixed as the website expects it to be the same for everyone.
         public static readonly int ClientRCPort = 38038;
 
+        public static readonly Encoding UTF8NoBOM = new UTF8Encoding(false);
+
         public static readonly string HTTPTeapotConFeatures = "CelesteNet-ConnectionFeatures: ";
         public static readonly string HTTPTeapotConToken = "CelesteNet-ConnectionToken: ";
         public static readonly string HTTPTeapot = $"HTTP/1.1 418 I'm a teapot\r\nContent-Length: 0\r\n{HTTPTeapotConFeatures}{{0}}\r\n{HTTPTeapotConToken}{{1}}\r\nConnection: close\r\n\r\n";

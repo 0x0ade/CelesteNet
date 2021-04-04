@@ -352,7 +352,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public BufferHelper(DataContext ctx, StringMap strings) {
             Stream = new MemoryStream();
-            Writer = new CelesteNetBinaryWriter(ctx, strings, Stream, Encoding.UTF8);
+            Writer = new CelesteNetBinaryWriter(ctx, strings, Stream, CelesteNetUtils.UTF8NoBOM);
         }
 
         public void Dispose() {

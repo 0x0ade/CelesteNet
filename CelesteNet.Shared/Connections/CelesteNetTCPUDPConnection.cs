@@ -108,7 +108,7 @@ namespace Celeste.Mod.CelesteNet {
             TCP = tcp;
             TCPStream = new PositionAwareStream<NetworkStream>(tcp.GetStream());
             TCPReader = new CelesteNetBinaryReader(Data, DefaultSendQueue.Strings, TCPStream, Encoding.UTF8, true);
-            TCPWriter = new BinaryWriter(TCPStream, Encoding.UTF8, true);
+            TCPWriter = new BinaryWriter(TCPStream, CelesteNetUtils.UTF8NoBOM, true);
 
             UDP = udp;
         }
@@ -247,7 +247,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public void WriteTeapot(string[] features, uint token) {
             lock (TCPWriter) {
-                using (StreamWriter writer = new StreamWriter(TCPStream, Encoding.UTF8, 1024, true))
+                using (StreamWriter writer = new StreamWriter(TCPStream, CelesteNetUtils.UTF8NoBOM, 1024, true))
                     writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, string.Join(CelesteNetUtils.ConnectionFeatureSeparator, features), token));
                 TCPStream.Flush();
             }

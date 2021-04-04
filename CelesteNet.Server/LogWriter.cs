@@ -13,7 +13,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public TextWriter? STDOUT;
         public TextWriter? File;
 
-        public override Encoding Encoding => STDOUT?.Encoding ?? File?.Encoding ?? Encoding.UTF8;
+        public override Encoding Encoding => STDOUT?.Encoding ?? File?.Encoding ?? CelesteNetUtils.UTF8NoBOM;
 
         public override void Write(string? value) {
             STDOUT?.Write(value);

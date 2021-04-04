@@ -57,7 +57,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 object? output = CurrentCommand.Run(input);
 
                 using (MemoryStream ms = new MemoryStream()) {
-                    using (StreamWriter sw = new StreamWriter(ms, Encoding.UTF8, 1024, true))
+                    using (StreamWriter sw = new StreamWriter(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
                     using (JsonTextWriter jtw = new JsonTextWriter(sw))
                         Frontend.Serializer.Serialize(jtw, output);
 

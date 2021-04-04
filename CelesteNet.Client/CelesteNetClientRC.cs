@@ -216,7 +216,7 @@ header {
         }
 
         public static void Write(HttpListenerContext c, string str) {
-            byte[] buf = Encoding.UTF8.GetBytes(str);
+            byte[] buf = CelesteNetUtils.UTF8NoBOM.GetBytes(str);
             c.Response.ContentLength64 = buf.Length;
             c.Response.OutputStream.Write(buf, 0, buf.Length);
         }

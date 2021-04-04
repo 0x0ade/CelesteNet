@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net452;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net452;net5.0</TargetFrameworks>
     <AssemblyName>CelesteNet.Server.ChatModule</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Server.Chat</RootNamespace>
   </PropertyGroup>

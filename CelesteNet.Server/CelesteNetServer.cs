@@ -20,6 +20,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetServer : IDisposable {
 
         public readonly DateTime StartupTime;
+        public readonly long Timestamp;
 
         public readonly CelesteNetServerSettings Settings;
 
@@ -70,6 +71,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public CelesteNetServer(CelesteNetServerSettings settings) {
             StartupTime = DateTime.UtcNow;
+            Timestamp = StartupTime.Ticks / TimeSpan.TicksPerMillisecond;
 
             Settings = settings;
 

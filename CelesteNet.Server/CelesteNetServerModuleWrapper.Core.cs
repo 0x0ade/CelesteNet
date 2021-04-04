@@ -20,9 +20,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         private AssemblyLoadContext? ALC;
 
         private void LoadAssembly() {
-            long stamp = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            long stamp = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
 
-            string dir = Path.Combine(Path.GetTempPath(), "CelesteNetServerModuleCache");
+            string dir = Path.Combine(Path.GetTempPath(), $"CelesteNetServerModuleCache.{Server.Timestamp}");
             if (!Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
 

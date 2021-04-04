@@ -5,13 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Server (dotnet, netcoreapp3.1)",
+            "name": "Launch Server (dotnet, net5.0)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/CelesteNet.Server/bin/Debug/netcoreapp3.1/CelesteNet.Server.dll",
+            "program": "${workspaceFolder}/CelesteNet.Server/bin/Debug/net5.0/CelesteNet.Server.dll",
             "args": [ "--loglevel=-1" ],
-            "cwd": "${workspaceFolder}/CelesteNet.Server/bin/Debug/netcoreapp3.1",
+            "cwd": "${workspaceFolder}/CelesteNet.Server/bin/Debug/net5.0",
             "stopAtEntry": false,
             "justMyCode": false,
             "console": "internalConsole"

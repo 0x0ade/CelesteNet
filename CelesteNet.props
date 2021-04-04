@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <Choose>
-    <When Condition="$(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp'))">
+    <When Condition="$(TargetFramework.Contains('.'))">
       <PropertyGroup>
         <DefineConstants>NETCORE;$(DefineConstants)</DefineConstants>
       </PropertyGroup>
@@ -88,9 +88,9 @@
   </ItemGroup>
 
   <Choose>
-    <When Condition="!Exists('$(CelesteDir)\BuildIsXNA.txt') And ($(TargetFramework.StartsWith('netstandard')) Or $(TargetFramework.StartsWith('netcoreapp')))">
+    <When Condition="!Exists('$(CelesteDir)\BuildIsXNA.txt') And $(TargetFramework.Contains('.'))">
       <ItemGroup>
-        <Reference Include="FNA" HintPath="..\lib\netcoreapp3.1\FNA.dll" Private="!$(IsModule)" />
+        <Reference Include="FNA" HintPath="..\lib\net5.0\FNA.dll" Private="!$(IsModule)" />
       </ItemGroup>
     </When>
 

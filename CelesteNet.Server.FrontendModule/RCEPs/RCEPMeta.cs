@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void Resource(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
-            string id = args["id"];
+            string? id = args["id"];
             if (id.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.NotFound;
                 f.RespondJSON(c, new {

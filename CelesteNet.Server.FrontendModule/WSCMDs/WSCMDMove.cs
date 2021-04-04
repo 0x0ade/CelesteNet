@@ -24,7 +24,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             lock (channels.All) {
                 foreach (Channel c in channels.All) {
-                    CelesteNetPlayerSession p = c.Players.FirstOrDefault(p => p.ID == id);
+                    CelesteNetPlayerSession? p = c.Players.FirstOrDefault(p => p.ID == id);
                     if (p != null) {
                         channels.Move(p, to);
                         return null;

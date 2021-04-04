@@ -56,7 +56,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void SaveRaw<T>(string path, T data) where T : notnull {
             lock (GlobalLock) {
                 string? dir = Path.GetDirectoryName(path);
-                if (!Directory.Exists(dir))
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                     Directory.CreateDirectory(dir);
 
                 using (Stream stream = File.OpenWrite(path + ".tmp"))
@@ -110,7 +110,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public override Stream WriteFile(string uid, string name) {
             string path = GetUserFilePath(uid, name);
             string? dir = Path.GetDirectoryName(path);
-            if (!Directory.Exists(dir))
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
             if (File.Exists(path))
                 File.Delete(path);

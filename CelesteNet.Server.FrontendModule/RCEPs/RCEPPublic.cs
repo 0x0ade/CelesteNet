@@ -52,7 +52,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
-            string code = args["code"];
+            string? code = args["code"];
             if (code.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
                 f.RespondJSON(c, new {
@@ -65,7 +65,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             dynamic? userData;
 
             using (HttpClient client = new HttpClient()) {
-                using (Stream s = client.PostAsync("https://discord.com/api/oauth2/token", new FormUrlEncodedContent(new Dictionary<string, string>() {
+#pragma warning disable CS8714 // new FormUrlEncodedContent expects nullable.
+                using (Stream s = client.PostAsync("https://discord.com/api/oauth2/token", new FormUrlEncodedContent(new Dictionary<string?, string?>() {
+#pragma warning restore CS8714
                     { "client_id", f.Settings.DiscordOAuthClientID },
                     { "client_secret", f.Settings.DiscordOAuthClientSecret },
                     { "grant_type", "authorization_code" },
@@ -178,9 +180,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
-            string uid = args["uid"];
+            string? uid = args["uid"];
             if (uid.IsNullOrEmpty()) {
-                string key = args["key"];
+                string? key = args["key"];
                 if (key.IsNullOrEmpty())
                     key = c.Request.Cookies[COOKIE_KEY]?.Value ?? "";
                 if (key.IsNullOrEmpty()) {
@@ -226,7 +228,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void RevokeKey(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
-            string key = args["key"];
+            string? key = args["key"];
             if (key.IsNullOrEmpty())
                 key = c.Request.Cookies[COOKIE_KEY]?.Value ?? "";
             if (key.IsNullOrEmpty()) {
@@ -256,7 +258,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void Avatar(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
-            string uid = args["uid"];
+            string? uid = args["uid"];
             if (uid.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
                 f.RespondJSON(c, new {

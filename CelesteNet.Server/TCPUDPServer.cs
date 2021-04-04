@@ -70,7 +70,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                     TcpClient client = TCPListener.AcceptTcpClient();
                     CelesteNetTCPUDPConnection? con = null;
                     try {
-                        Logger.Log(LogLevel.VVV, "tcpudp", $"New TCP connection: {client.Client.RemoteEndPoint}");
+                        if (!(client.Client.RemoteEndPoint is IPEndPoint rep))
+                            continue;
+                        Logger.Log(LogLevel.VVV, "tcpudp", $"New TCP connection: {rep}");
 
                         client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 6000);
 
@@ -79,7 +81,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         lock (UDPPending)
                             token = UDPNextID++;
                         UDPPendingKey key = new UDPPendingKey {
-                            IPHash = ((IPEndPoint) client.Client.RemoteEndPoint).Address.GetHashCode(),
+                            IPHash = rep.Address.GetHashCode(),
                             Token = token
                         };
                         UDPKeys[con] = key;
@@ -135,7 +137,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                     con.OnDisconnect -= RemoveUDPPending;
 
                                     con.UDP = UDP;
-                                    con.UDPLocalEndPoint = (IPEndPoint) UDP.Client.LocalEndPoint;
+                                    con.UDPLocalEndPoint = (IPEndPoint?) UDP.Client.LocalEndPoint;
                                     con.UDPRemoteEndPoint = remote;
 
                                     UDPMap[con.UDPRemoteEndPoint] = con;

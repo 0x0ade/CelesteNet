@@ -117,8 +117,8 @@ namespace Celeste.Mod.CelesteNet {
             if (TCP == null || ReadTCPThread != null)
                 return;
 
-            TCPLocalEndPoint = (IPEndPoint) TCP.Client.LocalEndPoint;
-            TCPRemoteEndPoint = (IPEndPoint) TCP.Client.RemoteEndPoint;
+            TCPLocalEndPoint = (IPEndPoint?) TCP.Client.LocalEndPoint;
+            TCPRemoteEndPoint = (IPEndPoint?) TCP.Client.RemoteEndPoint;
 
             ReadTCPThread = new Thread(ReadTCPLoop) {
                 Name = $"{GetType().Name} ReadTCP ({Creator} - {GetHashCode()})",
@@ -131,9 +131,9 @@ namespace Celeste.Mod.CelesteNet {
             if (UDP == null || ReadUDPThread != null)
                 return;
 
-            UDPLocalEndPoint = (IPEndPoint) UDP.Client.LocalEndPoint;
+            UDPLocalEndPoint = (IPEndPoint?) UDP.Client.LocalEndPoint;
             try {
-                UDPRemoteEndPoint = (IPEndPoint) UDP.Client.RemoteEndPoint;
+                UDPRemoteEndPoint = (IPEndPoint?) UDP.Client.RemoteEndPoint;
             } catch (Exception) {
                 UDPRemoteEndPoint = TCPRemoteEndPoint;
             }

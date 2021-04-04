@@ -221,7 +221,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         [RCEndpoint(true, "/settings", "?module={id}", "?module=CelesteNet.Server", "Server Settings", "Get the settings of any server module as YAML.")]
         public static void Settings(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
-            string moduleID = args["module"];
+            string? moduleID = args["module"];
             if (moduleID.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
                 f.RespondJSON(c, new {

@@ -97,7 +97,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "settings", $"Saving {GetType().Name} to {path}");
 
             string? dir = Path.GetDirectoryName(path);
-            if (!Directory.Exists(dir))
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
 
             using (Stream stream = File.OpenWrite(path + ".tmp"))

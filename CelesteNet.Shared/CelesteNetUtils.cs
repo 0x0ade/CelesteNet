@@ -66,7 +66,9 @@ namespace Celeste.Mod.CelesteNet {
             try {
                 return asm.GetTypes();
             } catch (ReflectionTypeLoadException e) {
+#pragma warning disable CS8619 // Compiler thinks this could be <Type?> even though we check for t != null
                 return e.Types.Where(t => t != null);
+#pragma warning restore CS8619
             }
         }
 

@@ -210,7 +210,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (indexOfSplit != -1)
                 url = url.Substring(0, indexOfSplit);
 
-            RCEndpoint endpoint =
+            RCEndpoint? endpoint =
                 EndPoints.FirstOrDefault(ep => ep.Path == c.Request.RawUrl) ??
                 EndPoints.FirstOrDefault(ep => ep.Path == url) ??
                 EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == c.Request.RawUrl.ToLowerInvariant()) ??

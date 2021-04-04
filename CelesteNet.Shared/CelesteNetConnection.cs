@@ -284,7 +284,7 @@ namespace Celeste.Mod.CelesteNet {
                                 LastSent[type] = slotByID = new Dictionary<uint, DataDedupe>();
 
                             if (slotByID.TryGetValue(id, out DataDedupe? slot)) {
-                                if (slot.Data?.ConsideredDuplicate(data) ?? false)
+                                if (slot.Data.ConsideredDuplicate(data))
                                     continue;
                                 slot.Data = data;
                                 slot.Timestamp = DedupeTimestamp;
@@ -374,7 +374,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly string Type;
         public readonly uint ID;
-        public DataType? Data;
+        public DataType Data;
         public ulong Timestamp;
         public int Iterations;
 

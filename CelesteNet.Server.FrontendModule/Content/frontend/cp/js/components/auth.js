@@ -70,6 +70,20 @@ export class FrontendAuth {
       body: el => rd$(el)`
       <div>
         ${group(
+          el => {
+            el = mdcrd.textField("", "", null, e => {
+              if (e.keyCode === 13) {
+                this.elPopup["MDCDialog"].close();
+              }
+            })(el);
+            const input = el.querySelector("input");
+            input.value = "celestenet";
+            input.id = "username";
+            input.type = "text";
+            el.classList.add("hidden");
+            return el;
+          },
+
           row("Password:", el => {
             el = mdcrd.textField("", "", null, e => {
               if (e.keyCode === 13) {
@@ -101,7 +115,7 @@ export class FrontendAuth {
     dialog.scrimClickAction = "";
     dialog.open();
 
-    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(el.querySelector("input").value), { once: true }));
+    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(el.querySelector("input#password")["value"]), { once: true }));
     dialog["then"] = promise.then.bind(promise);
     dialog["catch"] = promise.catch.bind(promise);
 

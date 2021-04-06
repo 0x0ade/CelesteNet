@@ -72,7 +72,7 @@ var mdcrd = {
   el => {
     el = rd$(el)`
     <div class="mdc-text-field mdc-text-field--outlined" ${rd.toggleClass("no-label", "mdc-text-field--no-label")}=${!label}>
-      <input class="mdc-text-field__input" onchange=${cbChange} onkeydown=${cbKey}>
+      <input name=${label} class="mdc-text-field__input" onchange=${cbChange} onkeydown=${cbKey}>
       <div class="mdc-notched-outline">
         <div class="mdc-notched-outline__leading"></div>
         ${el => label ?

@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatModule : CelesteNetServerModule<ChatSettings> {
 
         public readonly ConcurrentDictionary<uint, DataChat> ChatLog = new ConcurrentDictionary<uint, DataChat>();
-        public readonly RingBuffer<DataChat> ChatBuffer = new RingBuffer<DataChat>(3000);
+        public readonly RingBuffer<DataChat?> ChatBuffer = new RingBuffer<DataChat?>(3000);
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
         public ConcurrentDictionary<CelesteNetPlayerSession, SpamContext> SpamContexts = new ConcurrentDictionary<CelesteNetPlayerSession, SpamContext>();
@@ -122,9 +122,13 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (msg.Text.Length == 0)
                 return null;
 
-            ChatLog[msg.ID] = msg;
-            lock (ChatBuffer)
+            lock (ChatBuffer) {
+                DataChat? prev = ChatBuffer.Get();
+                if (prev != null)
+                    ChatLog.TryRemove(prev.ID, out _);
+                ChatLog[msg.ID] = msg;
                 ChatBuffer.Set(msg).Move(1);
+            }
 
             if (!msg.CreatedByServer)
                 Logger.Log(LogLevel.INF, "chatmsg", msg.ToString(false, true));

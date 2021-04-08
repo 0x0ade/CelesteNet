@@ -23,7 +23,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly Channel Default;
         public readonly List<Channel> All = new List<Channel>();
         public readonly Dictionary<uint, Channel> ByID = new Dictionary<uint, Channel>();
-        public readonly Dictionary<CelesteNetPlayerSession, Channel> BySession = new Dictionary<CelesteNetPlayerSession, Channel>();
         public readonly Dictionary<string, Channel> ByName = new Dictionary<string, Channel>();
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
@@ -56,8 +55,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void SendListTo(CelesteNetPlayerSession session) {
-            if (!BySession.TryGetValue(session, out Channel? own))
-                own = Default;
+            Channel own = Get(session);
 
             lock (All)
                 session.Con.Send(new DataChannelList {
@@ -85,10 +83,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public Channel Get(CelesteNetPlayerSession session) {
-            if (BySession.TryGetValue(session, out Channel? c))
-                return c;
-
-            return Default;
+            return session.Get<Channel>(this) ?? Default;
         }
 
         public Tuple<Channel, Channel> Move(CelesteNetPlayerSession session, string name) {
@@ -184,8 +179,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (!Players.Add(session))
                     return;
 
-            Ctx.BySession[session] = this;
-
+            session.Set(Ctx, this);
             session.OnEnd += RemoveByDC;
 
             if (session.PlayerInfo == null)
@@ -197,7 +191,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (!Players.Remove(session))
                     return;
 
-            Ctx.BySession.Remove(session);
+            session.Remove<Session>(Ctx);
             session.OnEnd -= RemoveByDC;
 
             if (ID == 0)

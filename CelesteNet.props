@@ -7,7 +7,12 @@
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
     <IsModule>$(AssemblyName.EndsWith('Module'))</IsModule>
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    <DefineConstants>INTERNAL_NULLABLE_ATTRIBUTES;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\CelesteNet.Shared\NullableAttributes.cs" />
+  </ItemGroup>
 
   <Choose>
     <When Condition="$(TargetFramework.Contains('.'))">

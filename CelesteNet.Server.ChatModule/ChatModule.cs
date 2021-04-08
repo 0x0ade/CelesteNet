@@ -20,8 +20,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public readonly RingBuffer<DataChat?> ChatBuffer = new RingBuffer<DataChat?>(3000);
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
-        public ConcurrentDictionary<CelesteNetPlayerSession, SpamContext> SpamContexts = new ConcurrentDictionary<CelesteNetPlayerSession, SpamContext>();
-
 #pragma warning disable CS8618 // Set on init.
         public SpamContext BroadcastSpamContext;
         public ChatCommands Commands;
@@ -44,9 +42,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             BroadcastSpamContext.Dispose();
             Commands.Dispose();
 
-            foreach (SpamContext spam in SpamContexts.Values)
-                spam.Dispose();
-            SpamContexts.Clear();
+            using (Server.ConLock.R())
+                foreach (CelesteNetPlayerSession session in Server.Sessions)
+                    session.Remove<SpamContext>(this)?.Dispose();
 
             Server.OnSessionStart -= OnSessionStart;
             using (Server.ConLock.R())
@@ -58,7 +56,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (Settings.GreetPlayers)
                 Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.DisplayName ?? "???"));
             SendTo(session, Settings.MessageMOTD);
-            SpamContext spam = SpamContexts[session] = new SpamContext(this);
+            SpamContext spam = session.Set(this, new SpamContext(this));
             spam.OnSpam += (msg, timeout) => {
                 msg.Target = session.PlayerInfo;
                 ForceSend(msg);
@@ -74,8 +72,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (Settings.GreetPlayers || !string.IsNullOrEmpty(reason))
                     Broadcast((reason ?? Settings.MessageLeave).InjectSingleValue("player", displayName));
             }
-            if (SpamContexts.TryRemove(session, out SpamContext? spam))
-                spam.Dispose();
+            session.Remove<SpamContext>(this)?.Dispose();
         }
 
         public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {
@@ -105,14 +102,14 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 msg.Tag = "";
                 msg.Color = Color.White;
 
-                if (SpamContexts.TryGetValue(player, out SpamContext? spam) && spam.IsSpam(msg))
+                if (player.Get<SpamContext>(this)?.IsSpam(msg) ?? false)
                     return null;
 
             } else if (msg.Player != null && (msg.Targets?.Length ?? 1) > 0) {
                 if (!Server.PlayersByID.TryGetValue(msg.Player.ID, out CelesteNetPlayerSession? player))
                     return null;
 
-                if (SpamContexts.TryGetValue(player, out SpamContext? spam) && spam.IsSpam(msg))
+                if (player.Get<SpamContext>(this)?.IsSpam(msg) ?? false)
                     return null;
 
             } else if (msg.Targets == null && BroadcastSpamContext.IsSpam(msg)) {

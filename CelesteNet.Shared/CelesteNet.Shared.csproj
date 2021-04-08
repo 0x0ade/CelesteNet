@@ -6,6 +6,10 @@
     <RootNamespace>Celeste.Mod.CelesteNet</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="..\CelesteNet.Shared\NullableAttributes.cs" />
+  </ItemGroup>
+
   <Import Project="..\CelesteNet.props" />
 
 </Project>

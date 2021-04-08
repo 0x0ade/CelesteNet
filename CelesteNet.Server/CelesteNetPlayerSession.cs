@@ -3,6 +3,7 @@ using Mono.Options;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -22,12 +23,15 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly string ConUID;
         public string UID;
 
+        private readonly RWLock StateLock = new RWLock();
+        private readonly Dictionary<object, Dictionary<Type, object>> StateContexts = new Dictionary<object, Dictionary<Type, object>>();
+
         public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo? value) ? value : null;
         public Channel Channel => Server.Channels.Get(this);
 
         public DataNetEmoji? AvatarEmoji;
 
-        private object RequestNextIDLock = new object();
+        private readonly object RequestNextIDLock = new object();
         private uint RequestNextID = 0;
 
         public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
@@ -39,6 +43,47 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Con.OnSendFilter += ConSendFilter;
             Server.Data.RegisterHandlersIn(this);
+        }
+
+        public T? Get<T>(object ctx) where T : class {
+            using (StateLock.R()) {
+                if (!StateContexts.TryGetValue(ctx, out Dictionary<Type, object>? states))
+                    return null;
+
+                if (!states.TryGetValue(typeof(T), out object? state))
+                    return null;
+
+                return (T) state;
+            }
+        }
+
+        [return: NotNullIfNotNull("state")]
+        public T? Set<T>(object ctx, T? state) where T : class {
+            if (state == null)
+                return Remove<T>(ctx);
+
+            using (StateLock.W()) {
+                if (!StateContexts.TryGetValue(ctx, out Dictionary<Type, object>? states))
+                    StateContexts[ctx] = states = new Dictionary<Type, object>();
+
+                states[typeof(T)] = state;
+                return state;
+            }
+        }
+
+        public T? Remove<T>(object ctx) where T : class {
+            using (StateLock.W()) {
+                if (!StateContexts.TryGetValue(ctx, out Dictionary<Type, object>? states))
+                    return null;
+
+                if (!states.TryGetValue(typeof(T), out object? state))
+                    return null;
+
+                states.Remove(typeof(T));
+                if (states.Count == 0)
+                    StateContexts.Remove(ctx);
+                return (T) state;
+            }
         }
 
         public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
@@ -294,6 +339,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 OnEnd?.Invoke(this, playerInfoLast);
             }));
+
+            StateLock.Dispose();
         }
 
 

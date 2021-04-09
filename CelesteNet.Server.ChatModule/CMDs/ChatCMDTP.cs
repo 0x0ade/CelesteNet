@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (!env.Server.UserData.Load<TPSettings>(other.UID).Enabled)
                 throw new Exception($"{otherPlayer.DisplayName} has blocked teleports.");
 
-            if (env.Server.Channels.Get(self) != env.Server.Channels.Get(other))
+            if (self.Channel != other.Channel)
                 throw new Exception($"{otherPlayer.DisplayName} is in a different channel.");
 
             if (!env.Server.Data.TryGetBoundRef(otherPlayer, out DataPlayerState? otherState) ||

@@ -57,7 +57,7 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Chat.Serve
                 if (page == 0)
                     builder
                         .Append("You're in ")
-                        .Append(channels.Get(session).Name)
+                        .Append(session.Channel.Name)
                         .AppendLine();
 
                 for (int i = page * pageSize; i < (page + 1) * pageSize && i < channels.All.Count; i++) {

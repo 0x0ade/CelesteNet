@@ -55,7 +55,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void SendListTo(CelesteNetPlayerSession session) {
-            Channel own = Get(session);
+            Channel own = session.Channel;
 
             lock (All)
                 session.Con.Send(new DataChannelList {
@@ -87,10 +87,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                         SendListTo(session);
         }
 
-        public Channel Get(CelesteNetPlayerSession session) {
-            return session.Get<Channel>(this) ?? Default;
-        }
-
         public Tuple<Channel, Channel> Move(CelesteNetPlayerSession session, string name) {
             name = name.Sanitize();
             if (name.Length > Server.Settings.MaxChannelNameLength)
@@ -99,7 +95,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 throw new Exception("Invalid private channel name.");
 
             lock (All) {
-                Channel prev = Get(session);
+                Channel prev = session.Channel;
 
                 Channel c;
 
@@ -186,7 +182,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (!Players.Add(session))
                     return;
 
-            session.Set(Ctx, this);
+            session.Channel = this;
             session.OnEnd += RemoveByDC;
 
             if (session.PlayerInfo == null)
@@ -198,7 +194,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (!Players.Remove(session))
                     return;
 
-            session.Remove<Session>(Ctx);
+            // Hopefully nobody will get stuck in channel limbo...
             session.OnEnd -= RemoveByDC;
 
             if (ID == 0)

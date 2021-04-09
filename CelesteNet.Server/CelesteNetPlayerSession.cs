@@ -27,7 +27,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         private readonly Dictionary<object, Dictionary<Type, object>> StateContexts = new Dictionary<object, Dictionary<Type, object>>();
 
         public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo? value) ? value : null;
-        public Channel Channel => Server.Channels.Get(this);
+
+        public Channel Channel;
 
         public DataNetEmoji? AvatarEmoji;
 
@@ -40,6 +41,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             ID = id;
 
             ConUID = UID = $"con-{con.UID}";
+
+            Channel = server.Channels.Default;
 
             Con.OnSendFilter += ConSendFilter;
             Server.Data.RegisterHandlersIn(this);
@@ -282,13 +285,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                             Con.Send(bound);
                 }
         }
-
-        public bool IsSameChannel(CelesteNetPlayerSession other)
-            => Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state) && state != null && IsSameChannel(Channel, state, other);
-
-        public bool IsSameChannel(Channel channel, DataPlayerState? state, CelesteNetPlayerSession other)
-            =>  state != null &&
-                other.Channel == channel;
 
         public bool IsSameArea(CelesteNetPlayerSession other)
             => Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state) && state != null && IsSameArea(Channel, state, other);

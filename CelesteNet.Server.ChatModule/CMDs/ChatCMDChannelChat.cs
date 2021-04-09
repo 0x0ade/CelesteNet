@@ -46,7 +46,7 @@ To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
             }
 
             DataPlayerInfo? player = env.Player;
-            Channel channel = env.Server.Channels.Get(session);
+            Channel channel = session.Channel;
 
             using (ListSnapshot<CelesteNetPlayerSession> others = channel.Players.Where(p => p != session).ToSnapshot(channel.Lock)) {
                 DataChat? msg = Chat.PrepareAndLog(null, new DataChat {

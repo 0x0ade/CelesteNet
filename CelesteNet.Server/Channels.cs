@@ -59,10 +59,15 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             lock (All)
                 session.Con.Send(new DataChannelList {
-                    List = All.Where(c => !c.IsPrivate || c == own).Select(c => new DataChannelList.Channel {
-                        Name = c.Name,
-                        ID = c.ID,
-                        Players = c.Players.Select(p => p.ID).ToArray()
+                    List = All.Where(c => !c.IsPrivate || c == own).Select(c => {
+                        uint[] players;
+                        using (c.Lock.R())
+                            players = c.Players.Select(p => p.ID).ToArray();
+                        return new DataChannelList.Channel {
+                            Name = c.Name,
+                            ID = c.ID,
+                            Players = players
+                        };
                     }).ToArray()
                 });
         }
@@ -70,8 +75,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public Action<Channels>? OnBroadcastList;
 
         public void BroadcastList() {
-            lock (All)
-                foreach (Channel c in All.ToArray())
+            using (ListSnapshot<Channel> snapshot = All.ToSnapshot())
+                foreach (Channel c in snapshot)
                     c.RemoveStale();
 
             OnBroadcastList?.Invoke(this);
@@ -116,8 +121,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                     Player = session.PlayerInfo
                 });
                 session.Con.Send(move);
-                foreach (CelesteNetPlayerSession other in prev.Players)
-                    other.Con.Send(move);
+                using (prev.Lock.R())
+                    foreach (CelesteNetPlayerSession other in prev.Players)
+                        other.Con.Send(move);
 
                 BroadcastList();
 
@@ -135,10 +141,11 @@ namespace Celeste.Mod.CelesteNet.Server {
 
     }
 
-    public class Channel {
+    public class Channel : IDisposable {
         public readonly Channels Ctx;
         public readonly string Name;
         public readonly uint ID;
+        public readonly RWLock Lock = new RWLock();
         public readonly HashSet<CelesteNetPlayerSession> Players = new HashSet<CelesteNetPlayerSession>();
 
         public readonly bool IsPrivate;
@@ -164,8 +171,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void RemoveStale() {
-            lock (Players) {
-                HashSet<CelesteNetPlayerSession> stale = new HashSet<CelesteNetPlayerSession>();
+            using (Lock.W()) {
+                List<CelesteNetPlayerSession> stale = new List<CelesteNetPlayerSession>();
                 foreach (CelesteNetPlayerSession session in Players)
                     if (session.PlayerInfo == null)
                         stale.Add(session);
@@ -175,7 +182,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Add(CelesteNetPlayerSession session) {
-            lock (Players)
+            using (Lock.W())
                 if (!Players.Add(session))
                     return;
 
@@ -187,7 +194,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Remove(CelesteNetPlayerSession session) {
-            lock (Players)
+            using (Lock.W())
                 if (!Players.Remove(session))
                     return;
 
@@ -210,6 +217,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         private void RemoveByDC(CelesteNetPlayerSession session, DataPlayerInfo? lastInfo) {
             Remove(session);
             Ctx.BroadcastList();
+        }
+
+        public void Dispose() {
+            Lock.Dispose();
         }
     }
 

@@ -284,7 +284,7 @@ namespace Celeste.Mod.CelesteNet {
                     InnerID = id,
                     InnerSource = source,
                     InnerFlags = flags,
-                    InnerMeta = metas,
+                    InnerMeta = new List<MetaTypeWrap>(metas),
                     InnerData = reader.ReadBytes((int) length)
                 };
 

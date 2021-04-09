@@ -41,9 +41,8 @@ To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
             }
 
             DataPlayerInfo? player = env.Player;
-            Channel channel = env.Server.Channels.Get(session);
-
-            CelesteNetPlayerSession[] others = channel.Players.Where(p => p != session).ToArray();
+            if (player == null)
+                return;
 
             DataChat? msg = Chat.PrepareAndLog(null, new DataChat {
                 Player = player,
@@ -53,13 +52,11 @@ To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
             if (msg == null)
                 return;
 
-            if (player != null) {
-                env.Msg.Text = text;
-                env.Msg.Tag = "";
-                env.Msg.Color = Color.White;
-                env.Msg.Target = null;
-                Chat.ForceSend(env.Msg);
-            }
+            env.Msg.Text = text;
+            env.Msg.Tag = "";
+            env.Msg.Color = Color.White;
+            env.Msg.Target = null;
+            Chat.ForceSend(env.Msg);
         }
 
     }

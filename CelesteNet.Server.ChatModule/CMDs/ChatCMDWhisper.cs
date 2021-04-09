@@ -27,8 +27,8 @@ $@"Send a whisper to someone else or toggle whispers.
 To send a whisper to someone, {Chat.Settings.CommandPrefix}{ID} user text
 To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID}";
 
-        public override void Run(ChatCMDEnv env, params ChatCMDArg[] args) {
-            if (args.Length == 0) {
+        public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
+            if (args.Count == 0) {
                 CelesteNetPlayerSession? session = env.Session;
                 if (session == null)
                     return;
@@ -43,7 +43,7 @@ To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID
                 return;
             }
 
-            if (args.Length == 1)
+            if (args.Count == 1)
                 throw new Exception("No text.");
 
             CelesteNetPlayerSession? other = args[0].Session;

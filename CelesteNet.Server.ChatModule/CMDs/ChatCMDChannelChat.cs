@@ -48,34 +48,35 @@ To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
             DataPlayerInfo? player = env.Player;
             Channel channel = env.Server.Channels.Get(session);
 
-            CelesteNetPlayerSession[] others = channel.Players.Where(p => p != session).ToArray();
+            using (ListSnapshot<CelesteNetPlayerSession> others = channel.Players.Where(p => p != session).ToSnapshot(channel.Lock)) {
+                DataChat? msg = Chat.PrepareAndLog(null, new DataChat {
+                    Player = player,
+    #pragma warning disable CS8619 // LINQ is dumb.
+                    Targets = others.Select(p => p.PlayerInfo).Where(p => p != null).ToArray(),
+    #pragma warning restore CS8619
+                    Tag = $"channel {channel.Name}",
+                    Text = text,
+                    Color = Chat.Settings.ColorWhisper
+                });
 
-            DataChat? msg = Chat.PrepareAndLog(null, new DataChat {
-                Player = player,
-#pragma warning disable CS8619 // LINQ is dumb.
-                Targets = others.Select(p => p.PlayerInfo).Where(p => p != null).ToArray(),
-#pragma warning restore CS8619
-                Tag = $"channel {channel.Name}",
-                Text = text,
-                Color = Chat.Settings.ColorWhisper
-            });
+                if (msg == null)
+                    return;
 
-            if (msg == null)
-                return;
+                if (player != null) {
+                    env.Msg.Tag = $"channel {channel.Name}";
+                    env.Msg.Text = text;
+                    env.Msg.Color = Chat.Settings.ColorWhisper;
+                    Chat.ForceSend(env.Msg);
+                }
 
-            if (player != null) {
-                env.Msg.Tag = $"channel {channel.Name}";
-                env.Msg.Text = text;
-                env.Msg.Color = Chat.Settings.ColorWhisper;
-                Chat.ForceSend(env.Msg);
+                // FIXME: ForceSend doesn't already do this..?
+                if ((msg.Targets?.Length ?? 0) == 0)
+                    return;
+
+                DataInternalBlob blob = new DataInternalBlob(env.Server.Data, msg);
+                foreach (CelesteNetPlayerSession other in others)
+                    other.Con.Send(blob);
             }
-
-            if ((msg.Targets?.Length ?? 0) == 0)
-                return;
-
-            DataInternalBlob blob = new DataInternalBlob(env.Server.Data, msg);
-            foreach (CelesteNetPlayerSession other in others)
-                other.Con.Send(blob);
         }
 
     }

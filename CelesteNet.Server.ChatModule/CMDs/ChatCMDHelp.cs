@@ -17,8 +17,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override int HelpOrder => int.MinValue;
 
-        public override void Run(ChatCMDEnv env, params ChatCMDArg[] args) {
-            if (args.Length == 1) {
+        public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
+            if (args.Count == 1) {
                 if (args[0].Type == ChatCMDArgType.Int) {
                     env.Send(GetCommandPage(env, args[0].Int - 1));
                     return;

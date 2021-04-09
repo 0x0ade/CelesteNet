@@ -17,15 +17,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Info => "Teleport to another player.";
 
-        public override void Run(ChatCMDEnv env, params ChatCMDArg[] args) {
+        public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
             CelesteNetPlayerSession? self = env.Session;
             if (self == null || env.Player == null)
                 throw new Exception("Are you trying to TP as the server?");
 
-            if (args.Length == 0)
+            if (args.Count == 0)
                 throw new Exception("No username.");
 
-            if (args.Length > 1)
+            if (args.Count > 1)
                 throw new Exception("Invalid username or ID.");
 
             CelesteNetPlayerSession? other = args[0].Session;

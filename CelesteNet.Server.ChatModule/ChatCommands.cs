@@ -108,10 +108,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 }
             }
 
-            Run(env, args.ToArray());
+            Run(env, args);
         }
 
-        public virtual void Run(ChatCMDEnv env, params ChatCMDArg[] args) {
+        public virtual void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
         }
 
     }

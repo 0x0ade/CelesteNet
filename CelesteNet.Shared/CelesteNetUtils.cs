@@ -105,8 +105,12 @@ namespace Celeste.Mod.CelesteNet {
         public static byte[] ToBytes(this Stream stream) {
             using (MemoryStream ms = new MemoryStream()) {
                 stream.CopyTo(ms);
+                long length = ms.Position;
                 ms.Seek(0, SeekOrigin.Begin);
-                return ms.ToArray();
+                byte[] buffer = ms.GetBuffer();
+                if (buffer.Length != length)
+                    buffer = ms.ToArray();
+                return buffer;
             }
         }
 

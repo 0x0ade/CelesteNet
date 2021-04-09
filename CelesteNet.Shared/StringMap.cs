@@ -14,7 +14,7 @@ namespace Celeste.Mod.CelesteNet {
     /*
     Coming up with this setup from scratch took me a few attempts and way too much time in general.
     StringMaps are used per subconnection (for TCPUDP, that's one for TCP and one for UDP).
-    When A CountReads string S often enough, the A asks B to map it to I.
+    When A CountReads string S often enough, A asks B to map it to I.
     B then sends I instead of S, which A can turn back into S.
     Same goes into the opposite direction too, albeit asymmetrically.
     If B ignores the <S, I> mapping request, both peers can still communicate fine using S.
@@ -36,6 +36,7 @@ namespace Celeste.Mod.CelesteNet {
         private readonly Dictionary<string, int> Counting = new Dictionary<string, int>();
         private readonly HashSet<string> Pending = new HashSet<string>();
         private readonly HashSet<string> MappedRead = new HashSet<string>();
+        private readonly List<string> Uncounted = new List<string>();
 
         private int NextID;
 
@@ -75,16 +76,20 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void Cleanup() {
-            foreach (KeyValuePair<string, int> entry in Counting.ToArray()) {
-                int score = entry.Value - DemotionScore;
-                if (score <= 0) {
-                    Counting.Remove(entry.Key);
-                } else if (score >= PromotionTreshold) {
-                    Counting.Remove(entry.Key);
-                    Pending.Add(entry.Key);
-                } else {
-                    Counting[entry.Key] = score;
+            lock (Pending) {
+                foreach (KeyValuePair<string, int> entry in Counting) {
+                    int score = entry.Value - DemotionScore;
+                    if (score <= 0) {
+                        Uncounted.Add(entry.Key);
+                    } else if (score >= PromotionTreshold) {
+                        Uncounted.Add(entry.Key);
+                        Pending.Add(entry.Key);
+                    } else {
+                        Counting[entry.Key] = score;
+                    }
                 }
+                foreach (string value in Uncounted)
+                    Counting.Remove(value);
             }
         }
 

@@ -16,11 +16,15 @@ namespace Celeste.Mod.CelesteNet {
 
         internal bool Disposed;
         public readonly ListSnapshotPool<T> Pool;
-        public List<T> List;
+        public readonly List<T> List = new List<T>();
 
-        public ListSnapshot(ListSnapshotPool<T> pool, List<T> list) {
+        public ListSnapshot(ListSnapshotPool<T> pool) {
             Pool = pool;
-            List = list;
+        }
+
+        public void Set(IEnumerable<T> list) {
+            List.Clear();
+            List.AddRange(list);
         }
 
         public void Dispose() {
@@ -84,14 +88,14 @@ namespace Celeste.Mod.CelesteNet {
 
         public uint MaxCount;
 
-        public ListSnapshot<T> Get(List<T> list) {
+        public ListSnapshot<T> Get() {
             if (Bag.TryTake(out ListSnapshot<T>? snapshot)) {
                 snapshot.Disposed = false;
-                snapshot.List = list;
+                snapshot.Clear();
                 return snapshot;
             }
 
-            return new ListSnapshot<T>(this, list);
+            return new ListSnapshot<T>(this);
         }
 
         public void Add(ListSnapshot<T> snapshot) {
@@ -99,7 +103,7 @@ namespace Celeste.Mod.CelesteNet {
                 return;
             Count++;
             snapshot.Disposed = true;
-            snapshot.List = Dummy<T>.EmptyList;
+            snapshot.Clear();
             Bag.Add(snapshot);
         }
 
@@ -114,28 +118,28 @@ namespace Celeste.Mod.CelesteNet {
     public static class ListSnapshotStaticPool {
 
         public static ListSnapshot<T> ToSnapshot<T>(this IEnumerable<T> list, RWLock rwlock) {
-            List<T> copy;
+            ListSnapshot<T> snapshot = ListSnapshotStaticPool<T>.Pool.Get();
             using (rwlock.R())
-                copy = new List<T>(list);
-            return ListSnapshotStaticPool<T>.Pool.Get(copy);
+                snapshot.Set(list);
+            return snapshot;
         }
 
         public static ListSnapshot<T> ToSnapshot<T>(this IEnumerable<T> list, object rlock) {
-            List<T> copy;
+            ListSnapshot<T> snapshot = ListSnapshotStaticPool<T>.Pool.Get();
             if (rlock != null) {
                 lock (rlock)
-                    copy = new List<T>(list);
+                    snapshot.Set(list);
             } else {
-                copy = new List<T>(list);
+                snapshot.Set(list);
             }
-            return ListSnapshotStaticPool<T>.Pool.Get(copy);
+            return snapshot;
         }
 
         public static ListSnapshot<T> ToSnapshot<T>(this IEnumerable<T> list) {
-            List<T> copy;
+            ListSnapshot<T> snapshot = ListSnapshotStaticPool<T>.Pool.Get();
             lock (list)
-                copy = new List<T>(list);
-            return ListSnapshotStaticPool<T>.Pool.Get(copy);
+                snapshot.Set(list);
+            return snapshot;
         }
 
     }

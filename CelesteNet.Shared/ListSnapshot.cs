@@ -111,7 +111,9 @@ namespace Celeste.Mod.CelesteNet {
 
     public static class ListSnapshotStaticPool<T> {
 
-        public static ListSnapshotPool<T> Pool = new ListSnapshotPool<T>();
+        [ThreadStatic]
+        private static ListSnapshotPool<T>? _Pool;
+        public static ListSnapshotPool<T> Pool => _Pool ??= new ListSnapshotPool<T>();
 
     }
 

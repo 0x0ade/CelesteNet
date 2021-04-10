@@ -49,6 +49,9 @@ namespace Celeste.Mod.CelesteNet {
         public virtual DateTime ReadDateTime()
             => DateTime.FromBinary(ReadInt64());
 
+        [ThreadStatic]
+        private static StringBuilder? reusedStringBuilder;
+
         public virtual string ReadNetString() {
             byte b = ReadByte();
             if (b == 0xFF)
@@ -57,7 +60,7 @@ namespace Celeste.Mod.CelesteNet {
             if (b == 0x00)
                 return "";
 
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = reusedStringBuilder ??= new StringBuilder();
             sb.Append((char) b);
             char c;
             while ((c = ReadChar()) != '\0') {
@@ -65,7 +68,9 @@ namespace Celeste.Mod.CelesteNet {
                 if (sb.Length > 4096)
                     throw new Exception("String too long.");
             }
-            return sb.ToString();
+            string value = sb.ToString();
+            sb.Clear();
+            return value;
         }
 
         public virtual string ReadNetMappedString() {
@@ -82,7 +87,8 @@ namespace Celeste.Mod.CelesteNet {
             if (b == 0x00)
                 return "";
 
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = reusedStringBuilder ??= new StringBuilder();
+            sb.Clear();
             sb.Append((char) b);
             char c;
             while ((c = ReadChar()) != '\0') {
@@ -92,6 +98,7 @@ namespace Celeste.Mod.CelesteNet {
             }
 
             value = sb.ToString();
+            sb.Clear();
             Strings?.CountRead(value);
             return value;
         }

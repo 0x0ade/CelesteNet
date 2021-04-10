@@ -15,9 +15,16 @@ namespace Celeste.Mod.CelesteNet {
     // Because String.Intern is too global for my liking. -jade
     public static unsafe class StringDedupeExtension {
 
+        public class DedupeInfo {
+            public int Refs;
+            public readonly List<string> Strings = new List<string>();
+        }
+
+        public static int MinimumRefs = 32;
+
         [ThreadStatic]
-        private static Dictionary<int, List<string>>? _Map;
-        public static Dictionary<int, List<string>> Map => _Map ??= new Dictionary<int, List<string>>();
+        private static Dictionary<int, DedupeInfo>? _Map;
+        public static Dictionary<int, DedupeInfo> Map => _Map ??= new Dictionary<int, DedupeInfo>();
 
         private static int GetHash(char* ptr, int length) {
             // Based off of .NET reference code.
@@ -64,20 +71,16 @@ namespace Celeste.Mod.CelesteNet {
             fixed (char* ptr = value)
                 hash = GetHash(ptr, value.Length);
 
-            Dictionary<int, List<string>> hashes = Map;
+            Dictionary<int, DedupeInfo> hashes = Map;
+            if (!hashes.TryGetValue(hash, out DedupeInfo? dedupe))
+                hashes[hash] = dedupe = new DedupeInfo();
 
-            if (!hashes.TryGetValue(hash, out List<string>? strings)) {
-                strings = new List<string>();
-                hashes[hash] = strings;
-                strings.Add(value);
-                return value;
-            }
-
-            foreach (string other in strings)
+            foreach (string other in dedupe.Strings)
                 if (other == value)
                     return other;
 
-            strings.Add(value);
+            if (++dedupe.Refs >= MinimumRefs)
+                dedupe.Strings.Add(value);
             return value;
         }
 
@@ -86,22 +89,17 @@ namespace Celeste.Mod.CelesteNet {
                 int hash = GetHash(ptr, count);
                 string value;
 
-                Dictionary<int, List<string>> hashes = Map;
+                Dictionary<int, DedupeInfo> hashes = Map;
+                if (!hashes.TryGetValue(hash, out DedupeInfo? dedupe))
+                    hashes[hash] = dedupe = new DedupeInfo();
 
-                if (!hashes.TryGetValue(hash, out List<string>? strings)) {
-                    strings = new List<string>();
-                    hashes[hash] = strings;
-                    value = new string(ptr, 0, count);
-                    strings.Add(value);
-                    return value;
-                }
-
-                foreach (string other in strings)
+                foreach (string other in dedupe.Strings)
                     if (count == other.Length && Equals(ptr, other))
                         return other;
 
                 value = new string(ptr, 0, count);
-                strings.Add(value);
+                if (++dedupe.Refs >= MinimumRefs)
+                    dedupe.Strings.Add(value);
                 return value;
             }
         }

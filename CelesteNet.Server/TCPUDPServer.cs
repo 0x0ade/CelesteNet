@@ -176,9 +176,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private void RemoveUDPPending(CelesteNetConnection _con) {
             CelesteNetTCPUDPConnection con = (CelesteNetTCPUDPConnection) _con;
-            if (UDPKeys.TryGetValue(con, out UDPPendingKey key)) {
+            if (UDPKeys.TryRemove(con, out UDPPendingKey key))
                 UDPPending.TryRemove(key, out _);
-            }
         }
 
         private void RemoveUDPMap(CelesteNetConnection _con) {

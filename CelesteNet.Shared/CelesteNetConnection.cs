@@ -400,7 +400,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public BufferHelper(DataContext ctx, StringMap strings) {
             Stream = new MemoryStream();
-            Writer = new CelesteNetBinaryWriter(ctx, strings, Stream, CelesteNetUtils.UTF8NoBOM);
+            Writer = new CelesteNetBinaryWriter(ctx, strings, Stream);
         }
 
         public void Dispose() {

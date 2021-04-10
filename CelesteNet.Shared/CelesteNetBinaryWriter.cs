@@ -21,19 +21,13 @@ namespace Celeste.Mod.CelesteNet {
         protected byte SizeDummySize;
 
         public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output)
-            : base(output) {
+            : base(output, CelesteNetUtils.UTF8NoBOM) {
             Data = ctx;
             Strings = strings;
         }
 
-        public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output, Encoding encoding)
-            : base(output, encoding) {
-            Data = ctx;
-            Strings = strings;
-        }
-
-        public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output, Encoding encoding, bool leaveOpen)
-            : base(output, encoding, leaveOpen) {
+        public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output, bool leaveOpen)
+            : base(output, CelesteNetUtils.UTF8NoBOM, leaveOpen) {
             Data = ctx;
             Strings = strings;
         }
@@ -108,13 +102,15 @@ namespace Celeste.Mod.CelesteNet {
             Write(value.ToBinary());
         }
 
-        public virtual void WriteNetString(string? text) {
+        public virtual unsafe void WriteNetString(string? text) {
             if (text != null) {
                 if (text.Length > 4096)
                     throw new Exception("String too long.");
-                for (int i = 0; i < text.Length; i++) {
-                    char c = text[i];
-                    Write(c);
+                fixed (char* src = text) {
+                    char* ptr = src;
+                    for (int i = text.Length; i > 0; i--) {
+                        Write(*ptr++);
+                    }
                 }
             }
             Write('\0');

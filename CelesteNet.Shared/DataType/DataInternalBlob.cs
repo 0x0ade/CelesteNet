@@ -25,7 +25,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Data.Meta = Data.GenerateMeta(ctx);
 
             using (MemoryStream stream = new MemoryStream())
-            using (CelesteNetBinaryBlobPartWriter writer = new CelesteNetBinaryBlobPartWriter(ctx, this, stream, CelesteNetUtils.UTF8NoBOM)) {
+            using (CelesteNetBinaryBlobPartWriter writer = new CelesteNetBinaryBlobPartWriter(ctx, this, stream)) {
                 ctx.Write(writer, data);
                 writer.Flush();
             }

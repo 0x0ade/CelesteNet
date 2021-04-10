@@ -18,19 +18,13 @@ namespace Celeste.Mod.CelesteNet {
         public StringMap? Strings;
 
         public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input)
-            : base(input) {
+            : base(input, CelesteNetUtils.UTF8NoBOM) {
             Data = ctx;
             Strings = strings;
         }
 
-        public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input, Encoding encoding)
-            : base(input, encoding) {
-            Data = ctx;
-            Strings = strings;
-        }
-
-        public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input, Encoding encoding, bool leaveOpen)
-            : base(input, encoding, leaveOpen) {
+        public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input, bool leaveOpen)
+            : base(input, CelesteNetUtils.UTF8NoBOM, leaveOpen) {
             Data = ctx;
             Strings = strings;
         }
@@ -50,55 +44,65 @@ namespace Celeste.Mod.CelesteNet {
             => DateTime.FromBinary(ReadInt64());
 
         [ThreadStatic]
-        private static StringBuilder? reusedStringBuilder;
+        private static char[]? charsShared;
+        private unsafe void ReadNetStringCore(char c, out char[] chars, out int i) {
+            const int buffer = 8;
+            chars = charsShared ?? new char[128];
+            int length = chars.Length;
+            i = 0;
+            goto Read;
+
+            Resize:
+            length *= 2;
+            Array.Resize(ref chars, length);
+
+            Read:
+            fixed (char* ptr = chars) {
+                ptr[i++] = c;
+                while ((c = ReadChar()) != '\0') {
+                    if (i > 4096)
+                        throw new Exception("String too long.");
+                    if ((i + buffer) >= length)
+                        goto Resize;
+                    ptr[i++] = c;
+                }
+                for (int j = 0; j < buffer; j++)
+                    ptr[i++] = '\0';
+                i -= buffer;
+            }
+
+            charsShared = chars;
+        }
 
         public virtual string ReadNetString() {
-            byte b = ReadByte();
-            if (b == 0xFF)
+            char c = (char) ReadByte();
+            if (c == 0xFF)
                 throw new Exception("Trying to read a mapped string as a non-mapped string!");
 
-            if (b == 0x00)
+            if (c == 0x00)
                 return "";
 
-            StringBuilder sb = reusedStringBuilder ??= new StringBuilder();
-            sb.Append((char) b);
-            char c;
-            while ((c = ReadChar()) != '\0') {
-                sb.Append(c);
-                if (sb.Length > 4096)
-                    throw new Exception("String too long.");
-            }
-            string value = sb.ToString();
-            sb.Clear();
-            return value;
+            ReadNetStringCore(c, out char[] chars, out int i);
+            return chars.ToDedupedString(i);
         }
 
         public virtual string ReadNetMappedString() {
             string value;
 
-            byte b = ReadByte();
-            if (b == 0xFF) {
+            char c = (char) ReadByte();
+            if (c == 0xFF) {
                 if (Strings == null)
                     throw new Exception("Trying to read a mapped string without a string map!");
                 value = Strings.Get(Read7BitEncodedInt());
                 return value;
             }
 
-            if (b == 0x00)
+            if (c == 0x00)
                 return "";
 
-            StringBuilder sb = reusedStringBuilder ??= new StringBuilder();
-            sb.Clear();
-            sb.Append((char) b);
-            char c;
-            while ((c = ReadChar()) != '\0') {
-                sb.Append(c);
-                if (sb.Length > 4096)
-                    throw new Exception("String too long.");
-            }
+            ReadNetStringCore(c, out char[] chars, out int i);
+            value = chars.ToDedupedString(i);
 
-            value = sb.ToString();
-            sb.Clear();
             Strings?.CountRead(value);
             return value;
         }

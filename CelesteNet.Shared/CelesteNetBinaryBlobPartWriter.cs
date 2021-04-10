@@ -24,14 +24,8 @@ namespace Celeste.Mod.CelesteNet {
             Stream = output;
         }
 
-        public CelesteNetBinaryBlobPartWriter(DataContext ctx, DataInternalBlob blob, MemoryStream output, Encoding encoding)
-            : base(ctx, null, output, encoding) {
-            Blob = blob;
-            Stream = output;
-        }
-
-        public CelesteNetBinaryBlobPartWriter(DataContext ctx, DataInternalBlob blob, MemoryStream output, Encoding encoding, bool leaveOpen)
-            : base(ctx, null, output, encoding, leaveOpen) {
+        public CelesteNetBinaryBlobPartWriter(DataContext ctx, DataInternalBlob blob, MemoryStream output, bool leaveOpen)
+            : base(ctx, null, output, leaveOpen) {
             Blob = blob;
             Stream = output;
         }

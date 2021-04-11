@@ -425,15 +425,16 @@ namespace Celeste.Mod.CelesteNet.Server {
                 state = null;
 
             bool isPrivate = data.Is<MetaPlayerPrivateState>(Server.Data);
+            bool isUpdate = data.Is<MetaPlayerUpdate>(Server.Data);
             if (data.Is<MetaPlayerPublicState>(Server.Data) ||
                 isPrivate ||
-                data.Is<MetaPlayerUpdate>(Server.Data)) {
+                isUpdate) {
                 Channel channel = Channel;
 
                 DataInternalBlob blob = new DataInternalBlob(Server.Data, data);
 
-                HashSet<CelesteNetPlayerSession> others = isPrivate ? channel.Players : Server.Sessions;
-                using (isPrivate ? channel.Lock.R() :  Server.ConLock.R())
+                HashSet<CelesteNetPlayerSession> others = isPrivate || isUpdate ? channel.Players : Server.Sessions;
+                using (isPrivate || isUpdate ? channel.Lock.R() :  Server.ConLock.R())
                     foreach (CelesteNetPlayerSession other in others) {
                         if (other == this)
                             continue;
@@ -443,7 +444,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                             continue;
                         */
 
-                        if (data.Is<MetaPlayerUpdate>(Server.Data) && !IsSameArea(channel, state, other))
+                        if (isUpdate && !IsSameArea(channel, state, other))
                             continue;
 
                         other.Con.Send(blob);

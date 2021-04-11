@@ -319,7 +319,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.PlayersByID.TryRemove(ID, out _);
 
             if (playerInfoLast != null)
-                Server.Broadcast(new DataPlayerInfo {
+                Server.BroadcastAsync(new DataPlayerInfo {
                     ID = ID
                 });
 
@@ -424,20 +424,24 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (!Server.Data.TryGetBoundRef(PlayerInfo, out DataPlayerState? state))
                 state = null;
 
+            bool isPrivate = data.Is<MetaPlayerPrivateState>(Server.Data);
             if (data.Is<MetaPlayerPublicState>(Server.Data) ||
-                data.Is<MetaPlayerPrivateState>(Server.Data) ||
+                isPrivate ||
                 data.Is<MetaPlayerUpdate>(Server.Data)) {
                 Channel channel = Channel;
 
                 DataInternalBlob blob = new DataInternalBlob(Server.Data, data);
 
-                using (Server.ConLock.R())
-                    foreach (CelesteNetPlayerSession other in Server.Sessions) {
+                HashSet<CelesteNetPlayerSession> others = isPrivate ? channel.Players : Server.Sessions;
+                using (isPrivate ? channel.Lock.R() :  Server.ConLock.R())
+                    foreach (CelesteNetPlayerSession other in others) {
                         if (other == this)
                             continue;
 
+                        /*
                         if (data.Is<MetaPlayerPrivateState>(Server.Data) && channel != other.Channel)
                             continue;
+                        */
 
                         if (data.Is<MetaPlayerUpdate>(Server.Data) && !IsSameArea(channel, state, other))
                             continue;

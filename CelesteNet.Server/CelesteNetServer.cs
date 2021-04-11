@@ -267,28 +267,23 @@ namespace Celeste.Mod.CelesteNet.Server {
                         con.Send(blob);
                     } catch (Exception e) {
                         // Whoops, it probably wasn't important anyway.
-                        Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
+                        Logger.Log(LogLevel.DEV, "main", $"Broadcast (sync) failed:\n{data}\n{con}\n{e}");
                     }
-                }
+                };
         }
 
-        public void Broadcast(DataType data, params CelesteNetConnection?[]? except) {
-            if (except == null) {
-                Broadcast(data);
-                return;
-            }
-
+        public void BroadcastAsync(DataType data) {
             DataInternalBlob blob = new DataInternalBlob(Data, data);
             using (ConLock.R())
                 foreach (CelesteNetConnection con in Connections) {
-                    if (except.Contains(con))
-                        continue;
-                    try {
-                        con.Send(blob);
-                    } catch (Exception e) {
-                        // Whoops, it probably wasn't important anyway.
-                        Logger.Log(LogLevel.DEV, "main", $"Broadcast failed:\n{data}\n{con}\n{e}");
-                    }
+                    Task.Run(() => {
+                        try {
+                            con.Send(blob);
+                        } catch (Exception e) {
+                            // Whoops, it probably wasn't important anyway.
+                            Logger.Log(LogLevel.DEV, "main", $"Broadcast (async) failed:\n{data}\n{con}\n{e}");
+                        }
+                    });
                 }
         }
 

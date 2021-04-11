@@ -184,7 +184,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 return;
             }
 
-            Server.Broadcast(msg);
+            Server.BroadcastAsync(msg);
         }
 
         public void Handle(CelesteNetConnection con, DataEmote emote) {
@@ -250,7 +250,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             OnForceSend?.Invoke(this, msg);
 
             if (msg.Targets == null) {
-                Server.Broadcast(msg);
+                Server.BroadcastAsync(msg);
                 return;
             }
 

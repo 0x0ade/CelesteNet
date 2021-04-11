@@ -90,6 +90,7 @@ namespace Celeste.Mod.CelesteNet {
                 }
                 foreach (string value in Uncounted)
                     Counting.Remove(value);
+                Uncounted.Clear();
             }
         }
 

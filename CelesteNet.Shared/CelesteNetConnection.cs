@@ -177,7 +177,10 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly StringMap Strings;
 
-        private readonly Queue<DataType> Queue = new Queue<DataType>();
+        private DataType?[] Queue = new DataType?[512];
+        private int QueueSendNext = 0;
+        private int QueueAddNext = 0;
+        private int QueueCount = 0;
         private readonly ManualResetEvent Event;
         private readonly WaitHandle[] EventHandles;
         private readonly Thread Thread;
@@ -217,9 +220,27 @@ namespace Celeste.Mod.CelesteNet {
 
         public void Enqueue(DataType data) {
             lock (Queue) {
-                if (MaxCount > 0 && Queue.Count >= MaxCount)
-                    Queue.Dequeue();
-                Queue.Enqueue(data);
+                int count;
+                if (MaxCount > 0 && Interlocked.CompareExchange(ref QueueCount, 0, 0) == MaxCount) {
+                    QueueSendNext = (QueueSendNext + 1) % Queue.Length;
+
+                } else if ((count = Interlocked.Increment(ref QueueCount)) > Queue.Length) {
+                    count--;
+                    DataType?[] old = Queue;
+                    DataType?[] resized = Queue = new DataType?[Queue.Length * 2];
+                    if (QueueSendNext + count <= Queue.Length) {
+                        Array.Copy(old, QueueSendNext, resized, 0, count);
+                    } else {
+                        Array.Copy(old, QueueSendNext, resized, 0, Queue.Length - QueueSendNext);
+                        Array.Copy(old, 0, resized, Queue.Length - QueueSendNext, count - QueueSendNext);
+                    }
+                    QueueSendNext = 0;
+                    QueueAddNext = count;
+                }
+
+                Queue[QueueAddNext] = data;
+                QueueAddNext = (QueueAddNext + 1) % Queue.Length;
+
                 try {
                     Event.Set();
                 } catch (ObjectDisposedException) {
@@ -233,7 +254,7 @@ namespace Celeste.Mod.CelesteNet {
                     DedupeTimestamp++;
 
                     int waited = 0;
-                    if (Queue.Count == 0)
+                    if (Interlocked.CompareExchange(ref QueueCount, 0, 0) == 0)
                         waited = WaitHandle.WaitAny(EventHandles, 1000);
 
                     if ((waited == WaitHandle.WaitTimeout || DedupeTimestamp % 10 == 0) && LastSent.Count > 0) {
@@ -256,10 +277,18 @@ namespace Celeste.Mod.CelesteNet {
 
                     DateTime now = DateTime.UtcNow;
 
-                    while (Queue.Count > 0) {
-                        DataType data;
-                        lock (Queue)
-                            data = Queue.Dequeue();
+                    while (Interlocked.CompareExchange(ref QueueCount, 0, 0) != 0) {
+                        DataType? data;
+                        lock (Queue) {
+                            int next = QueueSendNext;
+                            data = Queue[next];
+                            Queue[next] = null;
+                            QueueSendNext = (next + 1) % Queue.Length;
+                            Interlocked.Decrement(ref QueueCount);
+                        }
+
+                        if (data == null)
+                            continue;
 
                         if (data is DataInternalDisconnect) {
                             Con.Dispose();
@@ -270,13 +299,19 @@ namespace Celeste.Mod.CelesteNet {
                             string type = data.GetTypeID(Con.Data);
                             uint id = data.GetDuplicateFilterID();
 
-                            bool old = false;
-                            lock (Queue)
-                                foreach (DataType d in Queue)
-                                    if (old = d.GetTypeID(Con.Data) == type && d.GetDuplicateFilterID() == id)
-                                        break;
-                            if (old)
-                                continue;
+                            lock (Queue) {
+                                int next = QueueSendNext;
+                                int count = Interlocked.CompareExchange(ref QueueCount, 0, 0);
+                                int length = Queue.Length;
+                                for (int ii = 0; ii < count; ii++) {
+                                    int i = (next + ii) % length;
+                                    DataType? d = Queue[i];
+                                    if (d != null && d.GetTypeID(Con.Data) == type && d.GetDuplicateFilterID() == id) {
+                                        data = d;
+                                        Queue[i] = null;
+                                    }
+                                }
+                            }
                         }
 
                         if ((data.DataFlags & DataFlags.SkipDuplicate) == DataFlags.SkipDuplicate) {
@@ -339,7 +374,7 @@ namespace Celeste.Mod.CelesteNet {
                     }
 
                     lock (Queue)
-                        if (Queue.Count == 0)
+                        if (Interlocked.CompareExchange(ref QueueCount, 0, 0) == 0)
                             Event.Reset();
                 }
 

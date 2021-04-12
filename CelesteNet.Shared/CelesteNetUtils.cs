@@ -83,8 +83,6 @@ namespace Celeste.Mod.CelesteNet {
             throw new Exception($"Invalid requested type: {t.FullName}");
         }
 
-        public static readonly Regex SanitizeRegex = new Regex(@"[^\w\.@-_^°]", RegexOptions.None, TimeSpan.FromSeconds(1.5));
-
         [ThreadStatic]
         private static char[]? sanitizedShared;
         public static unsafe string Sanitize(this string? value, HashSet<char>? illegal = null, bool space = false) {

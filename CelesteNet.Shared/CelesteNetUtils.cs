@@ -157,7 +157,7 @@ namespace Celeste.Mod.CelesteNet {
             if (last == (char*) IntPtr.Zero)
                 return "";
 
-            return new string(sanitized, 0, (int) (last - sanitized) + 1);
+            return StringDedupeStaticContext.ToDedupedString(sanitized, (int) (last - sanitized) + 1);
         }
 
         public static T Await<T>(this Task<T> task) {

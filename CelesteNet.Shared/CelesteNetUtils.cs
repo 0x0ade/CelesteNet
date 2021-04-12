@@ -85,14 +85,23 @@ namespace Celeste.Mod.CelesteNet {
 
         public static readonly Regex SanitizeRegex = new Regex(@"[^\w\.@-_^°]", RegexOptions.None, TimeSpan.FromSeconds(1.5));
 
+        [ThreadStatic]
+        private static char[]? sanitizedShared;
         public static unsafe string Sanitize(this string? value, HashSet<char>? illegal = null, bool space = false) {
+            const int buffer = 64;
+
             if (value.IsNullOrEmpty())
                 return "";
 
-            char* sanitized = stackalloc char[value.Length];
-            char* to = sanitized;
-            char* last = (char*) IntPtr.Zero;
+            char[] sanitizedArray = sanitizedShared ?? new char[value.Length + buffer];
+            if (sanitizedArray.Length < value.Length)
+                sanitizedArray = new char[value.Length + buffer];
+            sanitizedShared = sanitizedArray;
+
+            fixed (char* sanitized = sanitizedArray)
             fixed (char* raw = value) {
+                char* to = sanitized;
+                char* last = (char*) IntPtr.Zero;
                 char* from = raw;
                 if (illegal != null && illegal.Count != 0) {
                     if (!space) {
@@ -152,12 +161,12 @@ namespace Celeste.Mod.CelesteNet {
                         }
                     }
                 }
+
+                if (last == (char*) IntPtr.Zero)
+                    return "";
+
+                return StringDedupeStaticContext.ToDedupedString(sanitized, (int) (last - sanitized) + 1);
             }
-
-            if (last == (char*) IntPtr.Zero)
-                return "";
-
-            return StringDedupeStaticContext.ToDedupedString(sanitized, (int) (last - sanitized) + 1);
         }
 
         public static T Await<T>(this Task<T> task) {

@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetPlayerSession : IDisposable {
 
-        public static readonly char[] IllegalNameChars = new char[] { ':', '#', '|' };
+        public static readonly HashSet<char> IllegalNameChars = new HashSet<char>() { ':', '#', '|' };
 
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
@@ -152,11 +152,20 @@ namespace Celeste.Mod.CelesteNet.Server {
             string fullNameSpace = nameSpace;
             string fullName = name;
 
-            using (Server.ConLock.R())
-                for (int i = 2; Server.Sessions.Any(other => other.PlayerInfo?.FullName == fullName); i++) {
+            using (Server.ConLock.R()) {
+                int i = 1;
+                while (true) {
+                    bool conflict = false;
+                    foreach (CelesteNetPlayerSession other in Server.Sessions)
+                        if (conflict = other.PlayerInfo?.FullName == fullName)
+                            break;
+                    if (!conflict)
+                        break;
+                    i++;
                     fullNameSpace = $"{nameSpace}#{i}";
                     fullName = $"{name}#{i}";
                 }
+            }
 
             string displayName = fullNameSpace;
 

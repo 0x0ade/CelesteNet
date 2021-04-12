@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -271,9 +270,13 @@ namespace Celeste.Mod.CelesteNet {
                             string type = data.GetTypeID(Con.Data);
                             uint id = data.GetDuplicateFilterID();
 
+                            bool old = false;
                             lock (Queue)
-                                if (Queue.Any(d => d.GetTypeID(Con.Data) == type && d.GetDuplicateFilterID() == id))
-                                    continue;
+                                foreach (DataType d in Queue)
+                                    if (old = d.GetTypeID(Con.Data) == type && d.GetDuplicateFilterID() == id)
+                                        break;
+                            if (old)
+                                continue;
                         }
 
                         if ((data.DataFlags & DataFlags.SkipDuplicate) == DataFlags.SkipDuplicate) {

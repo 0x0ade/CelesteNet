@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -92,20 +91,34 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public virtual void Set<T>(DataContext ctx, T? value) where T : MetaType<T> {
+            MetaType[] metas = Meta;
+
             if (value == null) {
-                Meta = Meta.Where(m => !(m is T)).ToArray();
+                for (int i = 0; i < metas.Length; i++) {
+                    MetaType meta = metas[i];
+                    if (meta is T) {
+                        if (i != metas.Length - 1)
+                            Array.Copy(metas, i + 1, metas, i, metas.Length - i - 1);
+                        Array.Resize(ref metas, metas.Length - 1);
+                        Meta = metas;
+                        return;
+                    }
+                }
                 return;
             }
 
-            for (int i = 0; i < Meta.Length; i++) {
-                MetaType meta = Meta[i];
+            for (int i = 0; i < metas.Length; i++) {
+                MetaType meta = metas[i];
                 if (meta == value || meta is T) {
-                    Meta[i] = value;
+                    metas[i] = value;
+                    Meta = metas;
                     return;
                 }
             }
 
-            Meta = Meta.Concat(new MetaType[] { value }).ToArray();
+            Array.Resize(ref metas, metas.Length + 1);
+            metas[metas.Length - 1] = value;
+            Meta = metas;
         }
 
         public virtual MetaTypeWrap[] WrapMeta(DataContext ctx) {

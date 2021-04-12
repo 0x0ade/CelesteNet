@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -47,8 +46,14 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 writer.WriteNetString(mod);
         }
 
-        public bool Contains(string mod)
-            => Set?.Contains(mod) ?? List.Contains(mod);
+        public bool Contains(string mod) {
+            if (Set != null)
+                return Set.Contains(mod);
+            foreach (string other in List)
+                if (other == mod)
+                    return true;
+            return false;
+        }
 
     }
 }

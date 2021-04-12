@@ -764,7 +764,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private void ILTransitionRoutine(ILContext il) {
             ILCursor c = new ILCursor(il);
-            
+
             if (c.TryGotoNext(i => i.MatchLdstr("Celeste"))) {
                 c.Next.Operand = "";
             }

@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -57,19 +56,30 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void SendListTo(CelesteNetPlayerSession session) {
             Channel own = session.Channel;
 
-            lock (All)
-                session.Con.Send(new DataChannelList {
-                    List = All.Where(c => !c.IsPrivate || c == own).Select(c => {
-                        uint[] players;
-                        using (c.Lock.R())
-                            players = c.Players.Select(p => p.ID).ToArray();
-                        return new DataChannelList.Channel {
-                            Name = c.Name,
-                            ID = c.ID,
-                            Players = players
-                        };
-                    }).ToArray()
-                });
+            List<DataChannelList.Channel> channels;
+            lock (All) {
+                channels = new List<DataChannelList.Channel>(All.Count);
+                foreach (Channel c in All) {
+                    if (c.IsPrivate && c != own)
+                        continue;
+                    uint[] players;
+                    using (c.Lock.R()) {
+                        players = new uint[c.Players.Count];
+                        int i = 0;
+                        foreach (CelesteNetPlayerSession p in c.Players)
+                            players[i++] = p.ID;
+                    }
+                    channels.Add(new DataChannelList.Channel {
+                        Name = c.Name,
+                        ID = c.ID,
+                        Players = players
+                    });
+                }
+            }
+
+            session.Con.Send(new DataChannelList {
+                List = channels.ToArray()
+            });
         }
 
         public Action<Channels>? OnBroadcastList;

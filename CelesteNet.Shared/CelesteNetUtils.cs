@@ -75,23 +75,89 @@ namespace Celeste.Mod.CelesteNet {
         public static string ToHex(this Color c)
             => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
-        public static Type GetRequestType(this Type t)
-            => t
-            .GetInterfaces()
-            .FirstOrDefault(t => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDataRequestable<>))
-            ?.GetGenericArguments()[0]
-            ?? throw new Exception($"Invalid requested type: {t.FullName}");
+        public static Type GetRequestType(this Type t) {
+            Type[] interfaces = t.GetInterfaces();
+            foreach (Type i in interfaces)
+                if (i.IsConstructedGenericType && i.GetGenericTypeDefinition() == typeof(IDataRequestable<>))
+                    return i.GetGenericArguments()[0];
+            throw new Exception($"Invalid requested type: {t.FullName}");
+        }
 
         public static readonly Regex SanitizeRegex = new Regex(@"[^\w\.@-_^°]", RegexOptions.None, TimeSpan.FromSeconds(1.5));
 
-        public static string Sanitize(this string? value, char[]? illegal = null, bool space = false) {
-            value = value == null ? "" : string.Join("", value.Where(c => (space || !char.IsWhiteSpace(c)) && EnglishFontChars.Contains(c))).Trim();
-            if (illegal == null)
-                return value;
+        public static unsafe string Sanitize(this string? value, HashSet<char>? illegal = null, bool space = false) {
+            if (value.IsNullOrEmpty())
+                return "";
 
-            foreach (char c in illegal)
-                value = value.Replace(c, '\0');
-            return value.Replace("\0", "").Trim();
+            char* sanitized = stackalloc char[value.Length];
+            char* to = sanitized;
+            char* last = (char*) IntPtr.Zero;
+            fixed (char* raw = value) {
+                char* from = raw;
+                if (illegal != null && illegal.Count != 0) {
+                    if (!space) {
+                        for (int i = value.Length; i > 0; --i) {
+                            char c = *from++;
+                            if (char.IsWhiteSpace(c))
+                                continue;
+                            else
+                                last = to;
+                            if (!EnglishFontCharsSet.Contains(c))
+                                continue;
+                            if (illegal.Contains(c))
+                                continue;
+                            *to++ = c;
+                        }
+                    } else {
+                        bool isStart = true;
+                        for (int i = value.Length; i > 0; --i) {
+                            char c = *from++;
+                            if (isStart && char.IsWhiteSpace(c))
+                                continue;
+                            else
+                                last = to;
+                            isStart = false;
+                            if (!EnglishFontCharsSet.Contains(c))
+                                continue;
+                            if (illegal.Contains(c))
+                                continue;
+                            *to++ = c;
+                        }
+                    }
+
+                } else {
+                     if (!space) {
+                        for (int i = value.Length; i > 0; --i) {
+                            char c = *from++;
+                            if (char.IsWhiteSpace(c))
+                                continue;
+                            else
+                                last = to;
+                            if (!EnglishFontCharsSet.Contains(c))
+                                continue;
+                            *to++ = c;
+                        }
+                    } else {
+                        bool isStart = true;
+                        for (int i = value.Length; i > 0; --i) {
+                            char c = *from++;
+                            if (isStart && char.IsWhiteSpace(c))
+                                continue;
+                            else
+                                last = to;
+                            isStart = false;
+                            if (!EnglishFontCharsSet.Contains(c))
+                                continue;
+                            *to++ = c;
+                        }
+                    }
+                }
+            }
+
+            if (last == (char*) IntPtr.Zero)
+                return "";
+
+            return new string(sanitized, 0, (int) (last - sanitized) + 1);
         }
 
         public static T Await<T>(this Task<T> task) {

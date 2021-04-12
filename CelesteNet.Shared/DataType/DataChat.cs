@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -75,7 +74,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             => ToString(true, false);
 
         public string ToString(bool displayName, bool id)
-            => $"{(id ? $"{{{ID}}} " : "")}{(Tag.IsNullOrEmpty() ? "" : $"[{Tag}] ")}{(displayName ? Player?.DisplayName : Player?.FullName) ?? "**SERVER**"}{(Target != null ? " @ " + Target.DisplayName : "")}:{(Text.Contains('\n') ? "\n" : " ")}{Text}";
+            => $"{(id ? $"{{{ID}}} " : "")}{(Tag.IsNullOrEmpty() ? "" : $"[{Tag}] ")}{(displayName ? Player?.DisplayName : Player?.FullName) ?? "**SERVER**"}{(Target != null ? " @ " + Target.DisplayName : "")}:{(Text.IndexOf('\n') != -1 ? "\n" : " ")}{Text}";
 
 
     }

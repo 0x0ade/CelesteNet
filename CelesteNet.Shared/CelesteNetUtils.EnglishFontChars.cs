@@ -328,5 +328,7 @@ namespace Celeste.Mod.CelesteNet {
             0x2265, // ≥
         }.Select(i => (char) i).ToArray();
 
+        public static readonly HashSet<char> EnglishFontCharsSet = new HashSet<char>(EnglishFontChars);
+
     }
 }

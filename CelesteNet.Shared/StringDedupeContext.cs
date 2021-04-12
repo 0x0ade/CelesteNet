@@ -5,7 +5,6 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using YamlDotNet.Serialization;
@@ -107,6 +106,9 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public string Dedupe(string value) {
+            if (value.Length == 0)
+                return "";
+
             if (value.Length < MinLength ||
                 value.Length > MaxLength)
                 return value;
@@ -131,33 +133,47 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public string ToDedupedString(char[] chars, int count) {
+            if (count == 0)
+                return "";
+
             if (count < MinLength ||
                 count > MaxLength)
                 return new string(chars, 0, count);
 
             fixed (char* ptr = chars) {
-                int hash = GetHash(ptr, count);
-
-                if (Map.TryGetValue(hash, out DedupeInfo? dedupe)) {
-                    dedupe.Refs++;
-
-                    foreach (string other in dedupe.Strings)
-                        if (count == other.Length && Equals(ptr, other))
-                            return other;
-
-                    string value = new string(ptr, 0, count);
-                    dedupe.Strings.Add(value);
-                    return value;
-                }
-
-                Count(hash);
-                return new string(ptr, 0, count);
+                return ToDedupedString(ptr, count);
             }
+        }
+
+        public string ToDedupedString(char* chars, int count) {
+            if (count == 0)
+                return "";
+
+            if (count < MinLength ||
+                count > MaxLength)
+                return new string(chars, 0, count);
+
+            int hash = GetHash(chars, count);
+
+            if (Map.TryGetValue(hash, out DedupeInfo? dedupe)) {
+                dedupe.Refs++;
+
+                foreach (string other in dedupe.Strings)
+                    if (count == other.Length && Equals(chars, other))
+                        return other;
+
+                string value = new string(chars, 0, count);
+                dedupe.Strings.Add(value);
+                return value;
+            }
+
+            Count(hash);
+            return new string(chars, 0, count);
         }
 
     }
 
-    public static class StringDedupeContextExtension {
+    public static unsafe class StringDedupeStaticContext {
 
         [ThreadStatic]
         private static StringDedupeContext? _Ctx;
@@ -167,6 +183,9 @@ namespace Celeste.Mod.CelesteNet {
             => Ctx.Dedupe(value);
 
         public static string ToDedupedString(this char[] chars, int count)
+            => Ctx.ToDedupedString(chars, count);
+
+        public static string ToDedupedString(char* chars, int count)
             => Ctx.ToDedupedString(chars, count);
 
     }

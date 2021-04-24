@@ -37,7 +37,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void Start() {
             Logger.Log(LogLevel.CRI, "tcpudp", $"Startup on port {Server.Settings.MainPort}");
 
-            TCPListener = new TcpListener(IPAddress.Any, Server.Settings.MainPort);
+            TCPListener = new TcpListener(IPAddress.IPv6Any, Server.Settings.MainPort);
+            TCPListener.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
             TCPListener.Start();
 
             TCPListenerThread = new Thread(TCPListenerLoop) {
@@ -46,7 +47,12 @@ namespace Celeste.Mod.CelesteNet.Server {
             };
             TCPListenerThread.Start();
 
-            UDP = new UdpClient(Server.Settings.MainPort);
+            Socket udpSocket = new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
+            udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+            udpSocket.Bind(new IPEndPoint(IPAddress.IPv6Any, Server.Settings.MainPort));
+            UDP = new UdpClient(AddressFamily.InterNetworkV6);
+            UDP.Client.Dispose();
+            UDP.Client = udpSocket;
 
             UDPReadThread = new Thread(UDPReadLoop) {
                 Name = $"TCPUDPServer UDPRead ({GetHashCode()})",

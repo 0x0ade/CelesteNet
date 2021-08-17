@@ -45,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore]
 #endif
         [SettingSubText("modoptions_celestenetclient_devonlyhint")]
-        public string Server { get; set; } = "celeste.0x0ade.ga";
+        public string Server { get; set; } = "celeste.0x0a.de";
         [YamlIgnore]
         [SettingIgnore]
         public TextMenu.Button ServerEntry { get; protected set; }

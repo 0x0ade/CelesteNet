@@ -85,6 +85,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override void LoadSettings() {
             base.LoadSettings();
 
+            // .ga domains have become inaccessible for some people.
+            if (Settings.Server == "celeste.0x0ade.ga")
+                Settings.Server = "celeste.0x0a.de";
+
             if (Settings.Emotes == null || Settings.Emotes.Length == 0) {
                 Settings.Emotes = new string[] {
                     "i:collectables/heartgem/0/spin",

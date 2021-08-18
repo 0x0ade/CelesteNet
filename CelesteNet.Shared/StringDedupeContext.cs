@@ -19,10 +19,19 @@ namespace Celeste.Mod.CelesteNet {
             public readonly List<string> Strings = new List<string>();
         }
 
+        private struct CountingUpdate {
+            public int Key;
+            public int? Value;
+            public CountingUpdate(int key, int? value) {
+                Key = key;
+                Value = value;
+            }
+        }
+
         public readonly Dictionary<int, DedupeInfo> Map = new Dictionary<int, DedupeInfo>();
 
         private readonly Dictionary<int, int> Counting = new Dictionary<int, int>();
-        private readonly List<int> Uncounted = new List<int>();
+        private readonly List<CountingUpdate> CountingUpdates = new List<CountingUpdate>();
 
         public int PromotionCount = 18;
         public int PromotionTreshold = 10;
@@ -92,17 +101,21 @@ namespace Celeste.Mod.CelesteNet {
             foreach (KeyValuePair<int, int> entry in Counting) {
                 int score = entry.Value - DemotionScore;
                 if (score <= 0) {
-                    Uncounted.Add(entry.Key);
+                    CountingUpdates.Add(new CountingUpdate(entry.Key, null));
                 } else if (score >= PromotionTreshold) {
-                    Uncounted.Add(entry.Key);
+                    CountingUpdates.Add(new CountingUpdate(entry.Key, null));
                     Map[entry.Key] = new DedupeInfo();
                 } else {
-                    Counting[entry.Key] = score;
+                    CountingUpdates.Add(new CountingUpdate(entry.Key, score));
                 }
             }
-            foreach (int value in Uncounted)
-                Counting.Remove(value);
-            Uncounted.Clear();
+            foreach (CountingUpdate update in CountingUpdates) {
+                if (update.Value == null)
+                    Counting.Remove(update.Key);
+                else
+                    Counting[update.Key] = update.Value.Value;
+            }
+            CountingUpdates.Clear();
         }
 
         public string Dedupe(string value) {

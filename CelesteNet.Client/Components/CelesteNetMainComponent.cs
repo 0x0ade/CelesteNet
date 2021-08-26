@@ -40,15 +40,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public uint FrameNextID;
 
-        public HashSet<string> ForceIdle = new HashSet<string>();
+        public HashSet<string> ForceIdle = new();
         public bool StateUpdated;
 
         public GhostNameTag PlayerNameTag;
         public GhostEmote PlayerIdleTag;
-        public ConcurrentDictionary<uint, Ghost> Ghosts = new ConcurrentDictionary<uint, Ghost>();
-        public ConcurrentDictionary<uint, DataPlayerFrame> LastFrames = new ConcurrentDictionary<uint, DataPlayerFrame>();
+        public ConcurrentDictionary<uint, Ghost> Ghosts = new();
+        public ConcurrentDictionary<uint, DataPlayerFrame> LastFrames = new();
 
-        public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new HashSet<PlayerSpriteMode>();
+        public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new();
 
         public Ghost GrabbedBy;
         public Vector2 GrabLastSpeed;
@@ -90,7 +90,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         typeof(Level).GetNestedType("<TransitionRoutine>d__24", BindingFlags.NonPublic)
                         ?.GetMethod("MoveNext");
                     if (transitionRoutine != null)
-                        ILHookTransitionRoutine = new ILHook(transitionRoutine, ILTransitionRoutine);
+                        ILHookTransitionRoutine = new(transitionRoutine, ILTransitionRoutine);
                 }
             });
         }
@@ -242,7 +242,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             if (ghost == null) {
-                Ghosts[frame.Player.ID] = ghost = new Ghost(Context, frame.Player, frame.SpriteMode);
+                Ghosts[frame.Player.ID] = ghost = new(Context, frame.Player, frame.SpriteMode);
                 ghost.Active = false;
                 ghost.NameTag.Name = frame.Player.DisplayName;
                 if (ghost.Sprite.Mode != frame.SpriteMode)
@@ -269,7 +269,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataAudioPlay audio) {
-            if ((Settings.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0 || !(Engine.Scene is Level level) || level.Paused)
+            if ((Settings.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0 || Engine.Scene is not Level level || level.Paused)
                 return;
 
             if (audio.Position == null) {
@@ -291,7 +291,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataDashTrail trail) {
-            if (!(Engine.Scene is Level level) || level.Paused)
+            if (Engine.Scene is not Level level || level.Paused)
                 return;
 
             Ghost ghost = null;
@@ -359,7 +359,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             message = message.Replace("((sid))", target.SID);
 
                             LevelEnterExt.ErrorMessage = message;
-                            LevelEnter.Go(new Session(new AreaKey(1).SetSID("")), false);
+                            LevelEnter.Go(new(new AreaKey(1).SetSID("")), false);
                         });
                     }
                     return;
@@ -369,16 +369,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     if (session != null)
                         UserIO.SaveHandler(true, true);
 
-                    session = new Session(area.ToKey(target.Mode));
+                    session = new(area.ToKey(target.Mode));
 
                 } else if (session != null) {
                     // Best™ way to clone the session.
-                    XmlSerializer serializer = new XmlSerializer(typeof(Session));
-                    using (MemoryStream ms = new MemoryStream()) {
-                        serializer.Serialize(ms, session);
-                        ms.Seek(0, SeekOrigin.Begin);
-                        session = (Session) serializer.Deserialize(ms);
-                    }
+                    XmlSerializer serializer = new(typeof(Session));
+                    using MemoryStream ms = new();
+                    serializer.Serialize(ms, session);
+                    ms.Seek(0, SeekOrigin.Begin);
+                    session = (Session) serializer.Deserialize(ms);
                 }
 
                 if (!string.IsNullOrEmpty(target.Level) && session.MapData.Get(target.Level) != null) {
@@ -424,7 +423,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataPlayerGrabPlayer grab) {
             Player player = Player;
-            if (!(Engine.Scene is Level level) || level.Paused || player == null || !Settings.Interactions)
+            if (Engine.Scene is not Level level || level.Paused || player == null || !Settings.Interactions)
                 goto Release;
 
             if (grab.Grabbing.ID == Client.PlayerInfo.ID) {
@@ -511,15 +510,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     RequestID = request.ID,
                     InSession = true,
 
-                    Audio = new DataPartAudioState(session.Audio),
+                    Audio = new(session.Audio),
                     RespawnPoint = session.RespawnPoint,
                     Inventory = session.Inventory,
-                    Flags = new HashSet<string>(session.Flags ?? new HashSet<string>()),
-                    LevelFlags = new HashSet<string>(session.LevelFlags ?? new HashSet<string>()),
-                    Strawberries = new HashSet<EntityID>(session.Strawberries ?? new HashSet<EntityID>()),
-                    DoNotLoad = new HashSet<EntityID>(session.DoNotLoad ?? new HashSet<EntityID>()),
-                    Keys = new HashSet<EntityID>(session.Keys ?? new HashSet<EntityID>()),
-                    Counters = new List<Session.Counter>(Session.Counters ?? new List<Session.Counter>()),
+                    Flags = new(session.Flags ?? new HashSet<string>()),
+                    LevelFlags = new(session.LevelFlags ?? new HashSet<string>()),
+                    Strawberries = new(session.Strawberries ?? new HashSet<EntityID>()),
+                    DoNotLoad = new(session.DoNotLoad ?? new HashSet<EntityID>()),
+                    Keys = new(session.Keys ?? new HashSet<EntityID>()),
+                    Counters = new(Session.Counters ?? new List<Session.Counter>()),
                     FurthestSeenLevel = session.FurthestSeenLevel,
                     StartCheckpoint = session.StartCheckpoint,
                     ColorGrade = session.ColorGrade,
@@ -542,7 +541,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #endregion
 
         public void UpdateIdleTag(Entity target, ref GhostEmote idleTag, bool idle) {
-            if (!(Engine.Scene is Level level)) {
+            if (Engine.Scene is not Level level) {
                 idle = false;
                 level = null;
             }
@@ -551,7 +550,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 idle = false;
 
             if (idle && idleTag == null) {
-                level.Add(idleTag = new GhostEmote(target, "i:hover/idle") {
+                level.Add(idleTag = new(target, "i:hover/idle") {
                     Position = target.Position,
                     PopIn = true,
                     Float = true
@@ -568,7 +567,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             base.Update(gameTime);
 
             bool ready = Client != null && Client.IsReady && Client.PlayerInfo != null;
-            if (!(Engine.Scene is Level level) || !ready) {
+            if (Engine.Scene is not Level level || !ready) {
                 GrabbedBy = null;
 
                 if (ready && Engine.Scene is MapEditor) {
@@ -675,7 +674,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (PlayerNameTag == null || PlayerNameTag.Tracking != Player || PlayerNameTag.Scene != level) {
                 PlayerNameTag?.RemoveSelf();
-                level.Add(PlayerNameTag = new GhostNameTag(Player, Client.PlayerInfo.DisplayName));
+                level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
             }
             PlayerNameTag.Alpha = Settings.ShowOwnName ? 1f : 0f;
 
@@ -763,7 +762,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         private void ILTransitionRoutine(ILContext il) {
-            ILCursor c = new ILCursor(il);
+            ILCursor c = new(il);
 
             if (c.TryGotoNext(i => i.MatchLdstr("Celeste"))) {
                 c.Next.Operand = "";
@@ -823,7 +822,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Entity f = leader.Followers[i]?.Entity;
                     Sprite s = f?.Get<Sprite>();
                     if (s == null) {
-                        followers[i] = new DataPlayerFrame.Entity {
+                        followers[i] = new() {
                             Scale = Vector2.One,
                             Color = Color.White,
                             Depth = -1000000,
@@ -836,7 +835,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         continue;
                     }
 
-                    followers[i] = new DataPlayerFrame.Entity {
+                    followers[i] = new() {
                         Scale = s.Scale,
                         Color = s.Color,
                         Depth = f.Depth,
@@ -852,7 +851,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (holdable != null) {
                     Sprite s = holdable.Get<Sprite>();
                     if (s?.GetType() == typeof(Sprite)) {
-                        holding = new DataPlayerFrame.Entity {
+                        holding = new() {
                             Position = holdable.Position,
                             Scale = s.Scale,
                             Color = s.Color,
@@ -930,7 +929,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Client?.Send(new DataDashTrail {
                     Player = Client.PlayerInfo,
                     Position = position,
-                    Sprite = new DataPartImage(sprite),
+                    Sprite = new(sprite),
                     Scale = scale,
                     Color = color,
                     Depth = depth,
@@ -952,7 +951,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Player = Client.PlayerInfo,
                     Grabbing = Client.PlayerInfo,
 
-                    Force = new Vector2(0, 0)
+                    Force = new(0, 0)
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendReleaseMe:\n{e}");

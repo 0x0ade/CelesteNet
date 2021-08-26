@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet {
         /// <returns>A version of the formatString string with keys replaced by (formatted) key values.</returns>
         public static string Inject(this string formatString, object injectionObject) {
             if (injectionObject is IDictionary dictionary)
-                return formatString.Inject(new Hashtable(dictionary));
+                return formatString.Inject(new(dictionary));
             return formatString.Inject(GetPropertyHash(injectionObject));
         }
 
@@ -28,7 +28,7 @@ namespace Celeste.Mod.CelesteNet {
         /// <param name="dictionary">An <see cref="IDictionary"/> with keys and values to inject into the string</param>
         /// <returns>A version of the formatString string with dictionary keys replaced by (formatted) key values.</returns>
         public static string Inject(this string formatString, IDictionary dictionary) {
-            return formatString.Inject(new Hashtable(dictionary));
+            return formatString.Inject(new(dictionary));
         }
 
         /// <summary>
@@ -61,8 +61,8 @@ namespace Celeste.Mod.CelesteNet {
         public static string InjectSingleValue(this string formatString, string key, object replacementValue) {
             string result = formatString;
             //regex replacement of key with value, where the generic key format is:
-            //Regex foo = new Regex("{(foo)(?:}|(?::(.[^}]*)}))");
-            Regex attributeRegex = new Regex("{(" + key + ")(?:}|(?::(.[^}]*)}))");  //for key = foo, matches {foo} and {foo:SomeFormat}
+            //Regex foo = new("{(foo)(?:}|(?::(.[^}]*)}))");
+            Regex attributeRegex = new("{(" + key + ")(?:}|(?::(.[^}]*)}))");  //for key = foo, matches {foo} and {foo:SomeFormat}
 
             //loop through matches, since each key may be used more than once (and with a different format string)
             foreach (Match? m in attributeRegex.Matches(formatString)) {
@@ -94,7 +94,7 @@ namespace Celeste.Mod.CelesteNet {
         /// <param name="properties">The object from which to get the properties</param>
         /// <returns>A <see cref="Hashtable"/> containing the object instance's property names and their values</returns>
         private static Hashtable GetPropertyHash(object properties) {
-            Hashtable values = new Hashtable();
+            Hashtable values = new();
             if (properties != null) {
                 PropertyDescriptorCollection props = TypeDescriptor.GetProperties(properties);
                 foreach (PropertyDescriptor? prop in props) {

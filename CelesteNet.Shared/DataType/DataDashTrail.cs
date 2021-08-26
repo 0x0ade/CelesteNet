@@ -52,7 +52,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Color = reader.ReadColor();
 
             if (Server) {
-                Sprite = new DataPartImage();
+                Sprite = new();
                 Sprite.ReadAll(reader);
                 Depth = reader.ReadInt32();
                 Duration = reader.ReadSingle();

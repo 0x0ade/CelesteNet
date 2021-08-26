@@ -21,7 +21,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected float popupTime = 100f;
         protected bool timeRateSet = false;
 
-        public HashSet<string> TimeRateSkip = new HashSet<string>();
+        public HashSet<string> TimeRateSkip = new();
         public bool ForceSetTimeRate;
 
         public float Angle = 0f;
@@ -196,7 +196,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                     if (icon == null)
                         continue;
 
-                    Vector2 iconSize = new Vector2(icon.Width, icon.Height);
+                    Vector2 iconSize = new(icon.Width, icon.Height);
                     float iconScale = (GhostEmote.Size / Math.Max(iconSize.X, iconSize.Y)) * 0.24f * popupScale;
 
                     icon.DrawCentered(
@@ -212,7 +212,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                     CelesteNetClientFont.DrawOutline(
                         emote,
                         emotePos,
-                        new Vector2(0.5f, 0.5f),
+                        new(0.5f, 0.5f),
                         Vector2.One * (Selected == i ? selectedScale : 1f) * textScale,
                         (Selected == i ? (Calc.BetweenInterval(selectedTime, 0.1f) ? TextSelectColorA : TextSelectColorB) : Color.LightSlateGray) * alpha,
                         2f,

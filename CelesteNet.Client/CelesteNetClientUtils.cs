@@ -32,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             pos -= cam.Position;
 
-            Vector2 size = new Vector2(320f, 180f);
+            Vector2 size = new(320f, 180f);
             Vector2 sizeScaled = size / level.ZoomTarget;
             Vector2 offs = level.ZoomTarget != 1f ? (level.ZoomFocusPoint - sizeScaled / 2f) / (size - sizeScaled) * size : Vector2.Zero;
             float scale = level.GetScreenScale();
@@ -70,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             => (TrailManager.Snapshot[]) f_TrailManager_shapshots.GetValue(self);
 
         private delegate IntPtr _AsPointer<T>(ref T value);
-        private static readonly Dictionary<Type, Delegate> _AsPointerCache = new Dictionary<Type, Delegate>();
+        private static readonly Dictionary<Type, Delegate> _AsPointerCache = new();
         private static MethodInfo _AsPointerHelper;
         public static IntPtr AsPointer<T>(ref T value) {
             Delegate cached;
@@ -94,7 +94,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     }
                 )) {
 
-                    TypeDefinition type = new TypeDefinition(
+                    TypeDefinition type = new(
                         @namespace,
                         @name,
                         MC.TypeAttributes.Public | MC.TypeAttributes.Abstract | MC.TypeAttributes.Sealed
@@ -103,13 +103,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                     };
                     module.Types.Add(type);
 
-                    MethodDefinition method = new MethodDefinition(@name,
+                    MethodDefinition method = new(@name,
                         MC.MethodAttributes.Public | MC.MethodAttributes.Static | MC.MethodAttributes.HideBySig,
                         module.TypeSystem.Int32
                     );
-                    GenericParameter genParam = new GenericParameter("T", method);
+                    GenericParameter genParam = new("T", method);
                     method.GenericParameters.Add(genParam);
-                    method.Parameters.Add(new ParameterDefinition("value", MC.ParameterAttributes.None, new ByReferenceType(genParam)));
+                    method.Parameters.Add(new("value", MC.ParameterAttributes.None, new ByReferenceType(genParam)));
                     type.Methods.Add(method);
 
                     ILProcessor il = method.Body.GetILProcessor();
@@ -130,7 +130,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         private delegate ref T _AsRef<T>(IntPtr value);
-        private static readonly Dictionary<Type, Delegate> _AsRefCache = new Dictionary<Type, Delegate>();
+        private static readonly Dictionary<Type, Delegate> _AsRefCache = new();
         private static MethodInfo _AsRefHelper;
         public static ref T AsRef<T>(IntPtr value) {
             Delegate cached;
@@ -154,7 +154,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     }
                 )) {
 
-                    TypeDefinition type = new TypeDefinition(
+                    TypeDefinition type = new(
                         @namespace,
                         @name,
                         MC.TypeAttributes.Public | MC.TypeAttributes.Abstract | MC.TypeAttributes.Sealed
@@ -163,14 +163,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                     };
                     module.Types.Add(type);
 
-                    MethodDefinition method = new MethodDefinition(@name,
+                    MethodDefinition method = new(@name,
                         MC.MethodAttributes.Public | MC.MethodAttributes.Static | MC.MethodAttributes.HideBySig,
                         module.TypeSystem.Int32
                     );
-                    GenericParameter genParam = new GenericParameter("T", method);
+                    GenericParameter genParam = new("T", method);
                     method.GenericParameters.Add(genParam);
-                    method.Parameters.Add(new ParameterDefinition("value", MC.ParameterAttributes.None, new ByReferenceType(module.TypeSystem.Int32)));
-                    method.Body.Variables.Add(new VariableDefinition(new ByReferenceType(genParam)));
+                    method.Parameters.Add(new("value", MC.ParameterAttributes.None, new ByReferenceType(module.TypeSystem.Int32)));
+                    method.Body.Variables.Add(new(new ByReferenceType(genParam)));
                     type.Methods.Add(method);
 
                     ILProcessor il = method.Body.GetILProcessor();

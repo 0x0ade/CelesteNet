@@ -37,7 +37,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             for (int i = 0; i < List.Length; i++)
                 List[i] = reader.ReadNetString();
 
-            Set = new HashSet<string>(List);
+            Set = new(List);
         }
 
         public override void Write(CelesteNetBinaryWriter writer) {

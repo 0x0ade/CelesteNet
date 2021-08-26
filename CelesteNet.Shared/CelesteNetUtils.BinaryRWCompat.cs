@@ -21,10 +21,10 @@ namespace Celeste.Mod.CelesteNet {
 
         [Obsolete("Use CelesteNetBinaryReader instead.")]
         public static Vector2 ReadVector2(this BinaryReader reader)
-            => new Vector2(reader.ReadSingle(), reader.ReadSingle());
+            => new(reader.ReadSingle(), reader.ReadSingle());
         [Obsolete("Use CelesteNetBinaryReader instead.")]
         public static Vector2 ReadVector2Scale(this BinaryReader reader)
-            => new Vector2(Calc.Clamp(reader.ReadSingle(), -3f, 3f), Calc.Clamp(reader.ReadSingle(), -3f, 3f));
+            => new(Calc.Clamp(reader.ReadSingle(), -3f, 3f), Calc.Clamp(reader.ReadSingle(), -3f, 3f));
         [Obsolete("Use CelesteNetBinaryWriter instead.")]
         public static void Write(this BinaryWriter writer, Vector2 value) {
             writer.Write(value.X);
@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet {
 
         [Obsolete("Use CelesteNetBinaryReader instead.")]
         public static Color ReadColor(this BinaryReader reader)
-            => new Color(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+            => new(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
         [Obsolete("Use CelesteNetBinaryWriter instead.")]
         public static void Write(this BinaryWriter writer, Color value) {
             writer.Write(value.R);
@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet {
 
         [Obsolete("Use CelesteNetBinaryReader instead.")]
         public static Color ReadColorNoA(this BinaryReader reader)
-            => new Color(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), 255);
+            => new(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), 255);
         [Obsolete("Use CelesteNetBinaryWriter instead.")]
         public static void WriteNoA(this BinaryWriter writer, Color value) {
             writer.Write(value.R);
@@ -62,7 +62,7 @@ namespace Celeste.Mod.CelesteNet {
 
         [Obsolete("Use CelesteNetBinaryReader instead.")]
         public static string ReadNetString(this BinaryReader stream) {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             char c;
             while ((c = stream.ReadChar()) != '\0') {
                 sb.Append(c);

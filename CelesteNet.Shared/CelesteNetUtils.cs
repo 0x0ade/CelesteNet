@@ -168,7 +168,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public static T Await<T>(this Task<T> task) {
-            T result = default;
+            T? result = default;
             task.ContinueWith(_ => result = task.Result).Wait();
             if (result is null)
                 throw new NullReferenceException("Task returned null: " + task);
@@ -176,9 +176,31 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public static byte[] ToBytes(this Stream stream) {
-            using (MemoryStream ms = new MemoryStream()) {
+            if (stream is MemoryStream ms)
+                return ms.ToArray();
+
+            long length;
+            if (stream.CanSeek) {
+                try {
+                    length = stream.Length - stream.Position;
+                } catch {
+                    length = 0;
+                }
+            } else {
+                length = 0;
+            }
+
+            if (length != 0) {
+                byte[] data = new byte[length];
+                using (ms = new MemoryStream(data, 0, (int) length, true, true)) {
+                    stream.CopyTo(ms);
+                }
+                return data;
+            }
+
+            using (ms = new()) {
                 stream.CopyTo(ms);
-                long length = ms.Position;
+                length = ms.Position;
                 ms.Seek(0, SeekOrigin.Begin);
                 byte[] buffer = ms.GetBuffer();
                 if (buffer.Length != length)

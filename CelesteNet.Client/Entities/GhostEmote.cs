@@ -45,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Update() {
             base.Update();
 
-            if (!(Scene is Level level))
+            if (Scene is not Level level)
                 return;
 
             if (Tracking?.Scene != Scene)
@@ -109,7 +109,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Render() {
             base.Render();
 
-            if (!(Scene is Level level))
+            if (Scene is not Level level)
                 return;
 
             float popupScale = PopupScale * level.GetScreenScale();
@@ -136,7 +136,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 pos.Y -= (float) Math.Sin(Time * 2f) * 4f;
 
             if (icon != null) {
-                Vector2 size = new Vector2(icon.Width, icon.Height);
+                Vector2 size = new(icon.Width, icon.Height);
                 float scale = (Size / Math.Max(size.X, size.Y)) * 0.5f * popupScale;
                 size *= scale;
 
@@ -147,7 +147,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
                 icon.DrawJustified(
                     pos,
-                    new Vector2(0.5f, 1f),
+                    new(0.5f, 1f),
                     Color.White * alpha,
                     Vector2.One * scale
                 );
@@ -165,7 +165,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 CelesteNetClientFont.DrawOutline(
                     text,
                     pos,
-                    new Vector2(0.5f, 1f),
+                    new(0.5f, 1f),
                     Vector2.One * scale,
                     Color.White * alpha,
                     2f,
@@ -182,7 +182,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             return GetIconAtlas(ref emote) != null;
         }
 
-        private static Atlas FallbackIconAtlas = new Atlas();
+        private static Atlas FallbackIconAtlas = new();
         public static Atlas GetIconAtlas(ref string emote) {
             if (emote.StartsWith("i:")) {
                 emote = emote.Substring(2);
@@ -207,7 +207,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if ((atlas = GetIconAtlas(ref emote)) == null)
                 return null;
 
-            List<string> iconPaths = new List<string>(emote.Split(' '));
+            List<string> iconPaths = new(emote.Split(' '));
             if (iconPaths.Count > 1 && int.TryParse(iconPaths[0], out int fps)) {
                 iconPaths.RemoveAt(0);
             } else {

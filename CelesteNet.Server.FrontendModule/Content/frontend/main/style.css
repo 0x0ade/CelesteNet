@@ -284,6 +284,14 @@ a.button:hover, a.button:focus, a.button:active {
     background-image: url("./lock.png");
 }
 
+.censor .censor-content {
+    transition: filter 0.2s;
+    filter: blur(8px);
+}
+.censor:hover .censor-content {
+    filter: blur(0px);
+}
+
 .discord-avatar {
     border-radius: 100%;
     float: right;

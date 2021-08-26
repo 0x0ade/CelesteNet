@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return;
 
             try {
-                Listener = new HttpListener();
+                Listener = new();
                 // Port MUST be fixed as the website expects it to be the same for everyone.
                 Listener.Prefixes.Add($"http://localhost:{CelesteNetUtils.ClientRCPort}/");
                 Listener.Start();
@@ -45,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return;
             }
 
-            ListenerThread = new Thread(ListenerLoop) {
+            ListenerThread = new(ListenerLoop) {
                 IsBackground = true,
                 Priority = ThreadPriority.BelowNormal
             };
@@ -125,7 +125,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         #region Read / Parse Helpers
 
         public static NameValueCollection ParseQueryString(string url) {
-            NameValueCollection nvc = new NameValueCollection();
+            NameValueCollection nvc = new();
 
             int indexOfSplit = url.IndexOf('?');
             if (indexOfSplit == -1)
@@ -225,14 +225,14 @@ header {
 
         #region Default RCEndPoint Handlers
 
-        public static List<RCEndPoint> EndPoints = new List<RCEndPoint> {
+        public static List<RCEndPoint> EndPoints = new() {
 
                 new RCEndPoint {
                     Path = "/",
                     Name = "Info",
                     InfoHTML = "Basic CelesteNet ClientRC info.",
                     Handle = c => {
-                        StringBuilder builder = new StringBuilder();
+                        StringBuilder builder = new();
 
                         WriteHTMLStart(c, builder);
 

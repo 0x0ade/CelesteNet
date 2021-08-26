@@ -44,8 +44,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (args["error"] == "access_denied") {
                 c.Response.StatusCode = (int) HttpStatusCode.Redirect;
                 c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/");
-                c.Response.SetCookie(new Cookie(COOKIE_KEY, ""));
-                c.Response.SetCookie(new Cookie(COOKIE_DISCORDAUTH, ""));
+                c.Response.SetCookie(new(COOKIE_KEY, ""));
+                c.Response.SetCookie(new(COOKIE_DISCORDAUTH, ""));
                 f.RespondJSON(c, new {
                     Info = "Denied - redirecting to /"
                 });
@@ -64,7 +64,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             dynamic? tokenData;
             dynamic? userData;
 
-            using (HttpClient client = new HttpClient()) {
+            using (HttpClient client = new()) {
 #pragma warning disable CS8714 // new FormUrlEncodedContent expects nullable.
                 using (Stream s = client.PostAsync("https://discord.com/api/oauth2/token", new FormUrlEncodedContent(new Dictionary<string?, string?>() {
 #pragma warning restore CS8714
@@ -75,8 +75,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     { "redirect_uri", f.Settings.DiscordOAuthRedirectURL },
                     { "scope", "identity" }
                 })).Await().Content.ReadAsStreamAsync().Await())
-                using (StreamReader sr = new StreamReader(s))
-                using (JsonTextReader jtr = new JsonTextReader(sr))
+                using (StreamReader sr = new(s))
+                using (JsonTextReader jtr = new(sr))
                     tokenData = f.Serializer.Deserialize<dynamic>(jtr);
 
                 if (!(tokenData?.access_token?.ToString() is string token) ||
@@ -93,14 +93,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
 
                 using (Stream s = client.SendAsync(new HttpRequestMessage {
-                    RequestUri = new Uri("https://discord.com/api/users/@me"),
+                    RequestUri = new("https://discord.com/api/users/@me"),
                     Method = HttpMethod.Get,
                     Headers = {
                         { "Authorization", $"{tokenType} {token}" }
                     }
                 }).Await().Content.ReadAsStreamAsync().Await())
-                using (StreamReader sr = new StreamReader(s))
-                using (JsonTextReader jtr = new JsonTextReader(sr))
+                using (StreamReader sr = new(s))
+                using (JsonTextReader jtr = new(sr))
                     userData = f.Serializer.Deserialize<dynamic>(jtr);
             }
 
@@ -121,54 +121,51 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             f.Server.UserData.Save(uid, info);
 
             Image avatarOrig;
-            using (HttpClient client = new HttpClient()) {
+            using (HttpClient client = new()) {
                 try {
-                    using (Stream s = client.GetAsync(
+                    using Stream s = client.GetAsync(
                         $"https://cdn.discordapp.com/avatars/{uid}/{userData.avatar.ToString()}.png?size=64"
-                    ).Await().Content.ReadAsStreamAsync().Await())
-                        avatarOrig = Image.FromStream(s);
+                    ).Await().Content.ReadAsStreamAsync().Await();
+                    avatarOrig = Image.FromStream(s);
                 } catch {
-                    using (Stream s = client.GetAsync(
+                    using Stream s = client.GetAsync(
                         $"https://cdn.discordapp.com/embed/avatars/{((int) userData.discriminator) % 5}.png"
-                    ).Await().Content.ReadAsStreamAsync().Await())
-                        avatarOrig = Image.FromStream(s);
+                    ).Await().Content.ReadAsStreamAsync().Await();
+                    avatarOrig = Image.FromStream(s);
                 }
             }
             using (avatarOrig)
             using (Image avatarScale = avatarOrig.Width == 64 && avatarOrig.Height == 64 ? avatarOrig : new Bitmap(64, 64, PixelFormat.Format32bppArgb))
-            using (Image avatar = new Bitmap(64, 64, PixelFormat.Format32bppArgb)) {
+            using (Bitmap avatar = new(64, 64, PixelFormat.Format32bppArgb)) {
                 if (avatarScale != avatarOrig) {
-                    using (Graphics g = Graphics.FromImage(avatar)) {
-                        g.DrawImage(avatarOrig, 0, 0, 64, 64);
-                    }
+                    using Graphics g = Graphics.FromImage(avatar);
+                    g.DrawImage(avatarOrig, 0, 0, 64, 64);
                 }
 
                 using (Graphics g = Graphics.FromImage(avatar)) {
                     g.SmoothingMode = SmoothingMode.AntiAlias;
 
-                    using (TextureBrush tbr = new TextureBrush(avatarScale)) {
+                    using (TextureBrush tbr = new(avatarScale))
                         g.FillEllipse(tbr, 0, 0, 64, 64);
-                    }
 
                     foreach (string tagName in info.Tags) {
-                        using (Stream? asset = f.OpenContent($"frontend/assets/tags/{tagName}.png", out _, out _)) {
-                            if (asset == null)
-                                continue;
+                        using Stream? asset = f.OpenContent($"frontend/assets/tags/{tagName}.png", out _, out _);
+                        if (asset == null)
+                            continue;
 
-                            using (Image tag = Image.FromStream(asset))
-                                g.DrawImageUnscaled(tag, 0, 0);
-                        }
+                        using Image tag = Image.FromStream(asset);
+                        g.DrawImageUnscaled(tag, 0, 0);
                     }
                 }
 
-                using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.png"))
-                    avatar.Save(s, ImageFormat.Png);
+                using Stream s = f.Server.UserData.WriteFile(uid, "avatar.png");
+                avatar.Save(s, ImageFormat.Png);
             }
 
             c.Response.StatusCode = (int) HttpStatusCode.Redirect;
             c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/");
-            c.Response.SetCookie(new Cookie(COOKIE_KEY, key));
-            c.Response.SetCookie(new Cookie(COOKIE_DISCORDAUTH, code));
+            c.Response.SetCookie(new(COOKIE_KEY, key));
+            c.Response.SetCookie(new(COOKIE_DISCORDAUTH, code));
             f.RespondJSON(c, new {
                 Info = "Success - redirecting to /"
             });

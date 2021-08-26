@@ -19,12 +19,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public string ModID = "";
         public string ModName = "";
-        public Version ModVersion = new Version();
+        public Version ModVersion = new();
 
         public override void Read(CelesteNetBinaryReader reader) {
             ModID = reader.ReadNetString();
             ModName = reader.ReadNetString();
-            ModVersion = new Version(reader.ReadNetString());
+            ModVersion = new(reader.ReadNetString());
         }
 
         public override void Write(CelesteNetBinaryWriter writer) {

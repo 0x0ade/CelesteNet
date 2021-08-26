@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override void Read(CelesteNetBinaryReader reader) {
             List = new Channel[reader.ReadUInt32()];
             for (int ci = 0; ci < List.Length; ci++) {
-                Channel c = List[ci] = new Channel();
+                Channel c = List[ci] = new();
                 c.Name = reader.ReadNetString();
                 c.ID = reader.ReadUInt32();
                 c.Players = new uint[reader.ReadUInt32()];

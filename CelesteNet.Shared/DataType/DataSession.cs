@@ -64,49 +64,49 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             int count;
 
             if (reader.ReadBoolean()) {
-                Audio = new DataPartAudioState();
+                Audio = new();
                 Audio.ReadAll(reader);
             }
 
             if (reader.ReadBoolean())
-                RespawnPoint = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+                RespawnPoint = new(reader.ReadSingle(), reader.ReadSingle());
 
-            Inventory = new PlayerInventory();
+            Inventory = new();
             bools = reader.ReadByte();
             Inventory.Backpack = UnpackBool(bools, 0);
             Inventory.DreamDash = UnpackBool(bools, 1);
             Inventory.NoRefills = UnpackBool(bools, 2);
             Inventory.Dashes = reader.ReadByte();
 
-            Flags = new HashSet<string>();
+            Flags = new();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
                 Flags.Add(reader.ReadNetString());
 
-            LevelFlags = new HashSet<string>();
+            LevelFlags = new();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
                 LevelFlags.Add(reader.ReadNetString());
 
-            Strawberries = new HashSet<EntityID>();
+            Strawberries = new();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                Strawberries.Add(new EntityID(reader.ReadNetString(), reader.ReadInt32()));
+                Strawberries.Add(new(reader.ReadNetString(), reader.ReadInt32()));
 
-            DoNotLoad = new HashSet<EntityID>();
+            DoNotLoad = new();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                DoNotLoad.Add(new EntityID(reader.ReadNetString(), reader.ReadInt32()));
+                DoNotLoad.Add(new(reader.ReadNetString(), reader.ReadInt32()));
 
-            Keys = new HashSet<EntityID>();
+            Keys = new();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                Keys.Add(new EntityID(reader.ReadNetString(), reader.ReadInt32()));
+                Keys.Add(new(reader.ReadNetString(), reader.ReadInt32()));
 
-            Counters = new List<Session.Counter>();
+            Counters = new();
             count = reader.ReadByte();
             for (int i = 0; i < count; i++)
-                Counters.Add(new Session.Counter {
+                Counters.Add(new() {
                     Key = reader.ReadNetString(),
                     Value = reader.ReadInt32()
                 });

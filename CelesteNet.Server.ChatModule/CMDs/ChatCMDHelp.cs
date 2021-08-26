@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             const int pageSize = 8;
 
             string prefix = Chat.Settings.CommandPrefix;
-            StringBuilder builder = new StringBuilder();
+            StringBuilder builder = new();
 
             int pages = (int) Math.Ceiling(Chat.Commands.All.Count / (float) pageSize);
             if (page < 0 || pages <= page)
@@ -70,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public string Help_GetCommandSnippet(ChatCMDEnv env, ChatCMD cmd) {
             string prefix = Chat.Settings.CommandPrefix;
-            StringBuilder builder = new StringBuilder();
+            StringBuilder builder = new();
 
             builder
                 .Append(prefix)

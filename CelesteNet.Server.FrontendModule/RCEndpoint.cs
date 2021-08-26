@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class RCEndpointAttribute : Attribute {
 
-        public RCEndpoint Data { get; set; } = new RCEndpoint();
+        public RCEndpoint Data { get; set; } = new();
 
         public bool Auth {
             get => Data.Auth;

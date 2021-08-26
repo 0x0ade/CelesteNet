@@ -15,8 +15,8 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetEmojiComponent : CelesteNetGameComponent {
 
-        public HashSet<string> Registered = new HashSet<string>();
-        public HashSet<string> RegisteredFiles = new HashSet<string>();
+        public HashSet<string> Registered = new();
+        public HashSet<string> RegisteredFiles = new();
 
         public CelesteNetEmojiComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             string path = Path.Combine(dir, $"{netemoji.ID}-{netemoji.GetHashCode():X8}.png");
             using (FileStream fs = File.OpenWrite(path))
-            using (MemoryStream ms = new MemoryStream(netemoji.Data))
+            using (MemoryStream ms = new(netemoji.Data))
                 ms.CopyTo(fs);
 
             RunOnMainThread(() => {
@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 try {
                     VirtualTexture vt = VirtualContent.CreateTexture(path);
-                    MTexture mt = new MTexture(vt);
+                    MTexture mt = new(vt);
                     if (vt.Texture_Safe == null) // Needed to trigger lazy loading.
                         throw new Exception($"Couldn't load emoji {netemoji.ID}");
 

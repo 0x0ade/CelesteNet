@@ -17,14 +17,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return null;
 
             if (input is string inputText) {
-                Frontend.Server.BroadcastAsync(new DataServerStatus {
+                Frontend.Server.BroadcastAsync(new DataServerStatus() {
                     Text = inputText
                 });
                 return null;
             }
 
             dynamic data = input;
-            DataServerStatus status = new DataServerStatus();
+            DataServerStatus status = new();
             if (data.Text is string text)
                 status.Text = text;
             if (data.Time is float time)

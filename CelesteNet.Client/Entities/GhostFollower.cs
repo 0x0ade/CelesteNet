@@ -13,7 +13,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public GhostFollower(Ghost ghost)
             : base(ghost) {
-            Add(Follower = new Follower());
+            Add(Follower = new());
         }
 
         public override void Added(Scene scene) {

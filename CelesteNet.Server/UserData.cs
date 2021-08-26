@@ -12,13 +12,15 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server {
-    public abstract class UserData {
+    public abstract class UserData : IDisposable {
 
         public readonly CelesteNetServer Server;
 
         public UserData(CelesteNetServer server) {
             Server = server;
         }
+
+        public abstract void Dispose();
 
         public abstract string GetUID(string key);
         public abstract string GetKey(string uid);
@@ -45,13 +47,14 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract string Create(string uid);
         public abstract void RevokeKey(string key);
 
+
     }
 
     public class BasicUserInfo {
         public string Name { get; set; } = "";
         // TODO: Move into separate Discord module!
         public string Discrim { get; set; } = "";
-        public HashSet<string> Tags { get; set; } = new HashSet<string>();
+        public HashSet<string> Tags { get; set; } = new();
     }
 
     public class BanInfo {
@@ -63,7 +66,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     }
 
     public class KickHistory {
-        public List<Entry> Log { get; set; } = new List<Entry>();
+        public List<Entry> Log { get; set; } = new();
         public class Entry {
             public string Reason { get; set; } = "";
             public DateTime? From { get; set; } = null;

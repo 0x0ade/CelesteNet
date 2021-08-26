@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <LangVersion>9</LangVersion> <!-- FIXME: Figure out why dotnet needs this! -->
+    <TargetFrameworks>net5.0</TargetFrameworks>
+    <AssemblyName>CelesteNet.Server.SqliteModule</AssemblyName>
+    <RootNamespace>Celeste.Mod.CelesteNet.Server.Sqlite</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="..\CelesteNet.props" />
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="5.0.9" />
+    <PackageReference Include="MessagePack" Version="2.3.75" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.3.75" />
+  </ItemGroup>
+
+</Project>

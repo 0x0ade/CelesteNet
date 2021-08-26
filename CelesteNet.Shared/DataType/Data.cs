@@ -28,11 +28,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public virtual MetaUpdateContext UpdateMeta(DataContext ctx)
-            => new MetaUpdateContext(ctx, this);
+            => new(ctx, this);
 
         [Obsolete("Use CelesteNetBinaryReader instead.")]
         public virtual void ReadAll(DataContext ctx, BinaryReader reader) {
-            if (!(reader is CelesteNetBinaryReader cnreader))
+            if (reader is not CelesteNetBinaryReader cnreader)
                 throw new Exception("Reader must be a CelesteNetBinaryReader.");
             UnwrapMeta(ctx, ctx.ReadMeta(cnreader));
             Read(cnreader);
@@ -40,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         [Obsolete("Use CelesteNetBinaryWriter instead.")]
         public virtual void WriteAll(DataContext ctx, BinaryWriter writer) {
-            if (!(writer is CelesteNetBinaryWriter cnwriter))
+            if (writer is not CelesteNetBinaryWriter cnwriter)
                 throw new Exception("Reader must be a CelesteNetBinaryWriter.");
             ctx.WriteMeta(cnwriter, WrapMeta(ctx));
             Write(cnwriter);

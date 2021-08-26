@@ -12,9 +12,9 @@ using Microsoft.Xna.Framework;
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCommands : IDisposable {
 
-        public readonly List<ChatCMD> All = new List<ChatCMD>();
-        public readonly Dictionary<string, ChatCMD> ByID = new Dictionary<string, ChatCMD>();
-        public readonly Dictionary<Type, ChatCMD> ByType = new Dictionary<Type, ChatCMD>();
+        public readonly List<ChatCMD> All = new();
+        public readonly Dictionary<string, ChatCMD> ByID = new();
+        public readonly Dictionary<Type, ChatCMD> ByType = new();
 
         public ChatCommands(ChatModule chat) {
             foreach (Type type in CelesteNetUtils.GetTypes()) {
@@ -81,7 +81,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             string raw = env.FullText;
 
             int index = Chat.Settings.CommandPrefix.Length + ID.Length - 1; // - 1 because next space required
-            List<ChatCMDArg> args = new List<ChatCMDArg>();
+            List<ChatCMDArg> args = new();
             while (
                 index + 1 < raw.Length &&
                 (index = raw.IndexOf(' ', index + 1)) >= 0

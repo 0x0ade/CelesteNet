@@ -83,9 +83,9 @@ function renderUser() {
 		list.add("key", el => rd$(el)`
 		<p>
 			Your key:<br>
-			<a id="button-copykey" class="button" onclick=${() => navigator.clipboard.writeText("#" + info.Key)}>
+			<a id="button-copykey" class="button censor" onclick=${() => navigator.clipboard.writeText("#" + info.Key)}>
 				<span class="button-icon"></span>
-				<span class="button-text">#${info.Key}</span>
+				<span class="button-text censor-content">#${info.Key}</span>
 			</a><br>
 			<a id="button-sendkey" class="button" onclick=${() => sendKey(info.Key)}>
 				<span class="button-icon"></span>

@@ -103,29 +103,13 @@ namespace Celeste.Mod.CelesteNet.Client {
         public float UIScaleOverride { get; set; } = 0f;
         [SettingIgnore]
         [YamlIgnore]
-        public float UIScale {
-            get {
-                if (UIScaleOverride > 0f)
-                    return UIScaleOverride;
-
-                switch (UISize) {
-                    case 1:
-                        return 0.25f;
-
-                    case 2:
-                        return 0.4f;
-
-                    case 3:
-                        return 0.6f;
-
-                    case 4:
-                        return 0.75f;
-
-                    default:
-                        return 0.5f + 0.5f * ((UISize - 1f) / (UISizeMax - 1f));
-                }
-            }
-        }
+        public float UIScale => UIScaleOverride > 0f ? UIScaleOverride : UISize switch {
+            1 => 0.25f,
+            2 => 0.4f,
+            3 => 0.6f,
+            4 => 0.75f,
+            _ => 0.5f + 0.5f * ((UISize - 1f) / (UISizeMax - 1f)),
+        };
 
         [SettingSubText("modoptions_celestenetclient_uiblurhint")]
         public CelesteNetRenderHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetRenderHelperComponent.BlurQuality.MEDIUM;

@@ -34,7 +34,7 @@ p:10 FRM1 FRM2 FRM3 plays the animation at 10 FPS.";
             if (env.Session == null || string.IsNullOrWhiteSpace(env.Text))
                 return;
 
-            DataEmote emote = new DataEmote {
+            DataEmote emote = new() {
                 Player = env.Player,
                 Text = env.Text.Trim()
             };

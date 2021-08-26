@@ -28,9 +28,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public AudioTrackState ToState()
-            => new AudioTrackState(Event) {
+            => new(Event) {
                 Progress = Progress,
-                Parameters = new List<MEP>(Parameters)
+                Parameters = new(Parameters)
             };
 
         public override void Read(CelesteNetBinaryReader reader) {
@@ -39,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             Parameters = new MEP[reader.ReadByte()];
             for (int i = 0; i < Parameters.Length; i++)
-                Parameters[i] = new MEP(reader.ReadNetString(), reader.ReadSingle());
+                Parameters[i] = new(reader.ReadNetString(), reader.ReadSingle());
         }
 
         public override void Write(CelesteNetBinaryWriter writer) {

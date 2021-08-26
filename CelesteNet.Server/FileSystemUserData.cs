@@ -14,13 +14,16 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public class FileSystemUserData : UserData {
 
-        public readonly object GlobalLock = new object();
+        public readonly object GlobalLock = new();
 
         public string UserRoot => Path.Combine(Server.Settings.UserDataRoot, "User");
         public string GlobalPath => Path.Combine(Server.Settings.UserDataRoot, "Global.yaml");
 
         public FileSystemUserData(CelesteNetServer server)
             : base(server) {
+        }
+
+        public override void Dispose() {
         }
 
         public string GetUserDir(string uid)
@@ -32,21 +35,20 @@ namespace Celeste.Mod.CelesteNet.Server {
         public string GetUserFilePath<T>(string uid)
             => Path.Combine(UserRoot, uid, GetFileName<T>());
 
-        public string GetFileName<T>()
+        public static string GetFileName<T>()
             => (typeof(T)?.FullName ?? "unknown") + ".yaml";
 
         public bool TryLoadRaw<T>(string path, out T value) where T : new() {
             lock (GlobalLock) {
                 if (!File.Exists(path)) {
-                    value = new T();
+                    value = new();
                     return false;
                 }
 
-                using (Stream stream = File.OpenRead(path))
-                using (StreamReader reader = new StreamReader(stream)) {
-                    value = YamlHelper.Deserializer.Deserialize<T>(reader) ?? new T();
-                    return true;
-                }
+                using Stream stream = File.OpenRead(path);
+                using StreamReader reader = new(stream);
+                value = YamlHelper.Deserializer.Deserialize<T>(reader) ?? new();
+                return true;
             }
         }
 
@@ -60,7 +62,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     Directory.CreateDirectory(dir);
 
                 using (Stream stream = File.OpenWrite(path + ".tmp"))
-                using (StreamWriter writer = new StreamWriter(stream))
+                using (StreamWriter writer = new(stream))
                     YamlHelper.Serializer.Serialize(writer, data, typeof(T));
 
                 if (File.Exists(path))
@@ -204,7 +206,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public class Global {
-            public Dictionary<string, string> UIDs { get; set; } = new Dictionary<string, string>();
+            public Dictionary<string, string> UIDs { get; set; } = new();
         }
 
         public class PrivateUserInfo {

@@ -53,15 +53,15 @@ namespace Celeste.Mod.CelesteNet.Server {
 
     public abstract class CelesteNetServerModule<TSettings> : CelesteNetServerModule where TSettings : CelesteNetServerModuleSettings, new() {
 
-        public TSettings Settings = new TSettings();
+        public TSettings Settings = new();
         public override CelesteNetServerModuleSettings? GetSettings() => Settings;
 
         public override void LoadSettings() {
-            (Settings ??= new TSettings()).Load(Path.Combine(Path.GetFullPath(Server.Settings.ModuleConfigRoot), $"{Wrapper.ID}.yaml"));
+            (Settings ??= new()).Load(Path.Combine(Path.GetFullPath(Server.Settings.ModuleConfigRoot), $"{Wrapper.ID}.yaml"));
         }
 
         public override void SaveSettings() {
-            (Settings ??= new TSettings()).Save(Path.Combine(Path.GetFullPath(Server.Settings.ModuleConfigRoot), $"{Wrapper.ID}.yaml"));
+            (Settings ??= new()).Save(Path.Combine(Path.GetFullPath(Server.Settings.ModuleConfigRoot), $"{Wrapper.ID}.yaml"));
         }
 
     }
@@ -82,9 +82,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Logger.Log(LogLevel.INF, "settings", $"Loading {GetType().Name} from {path}");
 
-            using (Stream stream = File.OpenRead(path))
-            using (StreamReader reader = new StreamReader(stream))
-                Load(reader);
+            using Stream stream = File.OpenRead(path);
+            using StreamReader reader = new(stream);
+            Load(reader);
         }
 
         public virtual void Load(TextReader reader) {
@@ -101,7 +101,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Directory.CreateDirectory(dir);
 
             using (Stream stream = File.OpenWrite(path + ".tmp"))
-            using (StreamWriter writer = new StreamWriter(stream))
+            using (StreamWriter writer = new(stream))
                 Save(writer);
 
             if (File.Exists(path))

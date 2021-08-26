@@ -23,17 +23,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public static readonly string COOKIE_SESSION = "celestenet-session";
 
-        public readonly List<RCEndpoint> EndPoints = new List<RCEndpoint>();
-        public readonly HashSet<string> CurrentSessionKeys = new HashSet<string>();
+        public readonly List<RCEndpoint> EndPoints = new();
+        public readonly HashSet<string> CurrentSessionKeys = new();
 
         private HttpServer? HTTPServer;
         private WebSocketServiceHost? WSHost;
 
 #if NETCORE
-        private readonly FileExtensionContentTypeProvider ContentTypeProvider = new FileExtensionContentTypeProvider();
+        private readonly FileExtensionContentTypeProvider ContentTypeProvider = new();
 #endif
 
-        public JsonSerializer Serializer = new JsonSerializer() {
+        public JsonSerializer Serializer = new() {
             Formatting = Formatting.Indented
         };
 
@@ -71,7 +71,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             Logger.Log(LogLevel.INF, "frontend", $"Startup on port {Settings.Port}");
 
-            HTTPServer = new HttpServer(Settings.Port);
+            HTTPServer = new(Settings.Port);
 
             HTTPServer.OnGet += HandleRequestRaw;
             HTTPServer.OnPost += HandleRequestRaw;
@@ -254,16 +254,15 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (WSHost == null)
                 return;
 
-            using (MemoryStream ms = new MemoryStream()) {
-                using (StreamWriter sw = new StreamWriter(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
-                using (JsonTextWriter jtw = new JsonTextWriter(sw))
-                    Serializer.Serialize(jtw, obj);
+            using MemoryStream ms = new();
+            using (StreamWriter sw = new(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
+            using (JsonTextWriter jtw = new(sw))
+                Serializer.Serialize(jtw, obj);
 
-                ms.Seek(0, SeekOrigin.Begin);
+            ms.Seek(0, SeekOrigin.Begin);
 
-                using (StreamReader sr = new StreamReader(ms, Encoding.UTF8, false, 1024, true))
-                    BroadcastRawString(authOnly, sr.ReadToEnd());
-            }
+            using StreamReader sr = new(ms, Encoding.UTF8, false, 1024, true);
+            BroadcastRawString(authOnly, sr.ReadToEnd());
         }
 
         public void BroadcastCMD(bool authOnly, string id, object obj) {
@@ -275,7 +274,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         #region Read / Parse Helpers
 
         public NameValueCollection ParseQueryString(string url) {
-            NameValueCollection nvc = new NameValueCollection();
+            NameValueCollection nvc = new();
 
             int indexOfSplit = url.IndexOf('?');
             if (indexOfSplit == -1)
@@ -298,61 +297,50 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         #region Write Helpers
 
         public void RespondContent(HttpRequestEventArgs c, string id) {
-            using (MemoryStream ms = new MemoryStream())
-            using (Stream? s = OpenContent(id, out string pathNew, out DateTime? lastMod)) {
-                if (s == null) {
-                    c.Response.StatusCode = (int) HttpStatusCode.NotFound;
-                    RespondJSON(c, new {
-                        Error = "Resource not found."
-                    });
-                    return;
-                }
+            using Stream? s = OpenContent(id, out string pathNew, out DateTime? lastMod);
+            if (s == null) {
+                c.Response.StatusCode = (int) HttpStatusCode.NotFound;
+                RespondJSON(c, new {
+                    Error = "Resource not found."
+                });
+                return;
+            }
 
-                if (id != pathNew && pathNew.StartsWith("frontend/")) {
-                    // c.Response.Redirect($"http://{c.Request.UserHostName}/{pathNew.Substring(9)}");
-                    c.Response.StatusCode = (int) HttpStatusCode.Moved;
-                    c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/{pathNew.Substring(9)}");
-                    Respond(c, $"Redirecting to /{pathNew.Substring(9)}");
-                    return;
-                }
+            if (id != pathNew && pathNew.StartsWith("frontend/")) {
+                // c.Response.Redirect($"http://{c.Request.UserHostName}/{pathNew.Substring(9)}");
+                c.Response.StatusCode = (int) HttpStatusCode.Moved;
+                c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/{pathNew.Substring(9)}");
+                Respond(c, $"Redirecting to /{pathNew.Substring(9)}");
+                return;
+            }
 
-                if (lastMod != null)
-                    c.Response.Headers.Set("Last-Modified", lastMod.Value.ToString("r"));
-
-                s.CopyTo(ms);
-
-                ms.Seek(0, SeekOrigin.Begin);
+            if (lastMod != null)
+                c.Response.Headers.Set("Last-Modified", lastMod.Value.ToString("r"));
 
 #if NETCORE
                 if (ContentTypeProvider.TryGetContentType(id, out string contentType))
                     c.Response.ContentType = contentType;
 #else
-                c.Response.ContentType = MimeMapping.GetMimeMapping(id);
+            c.Response.ContentType = MimeMapping.GetMimeMapping(id);
 #endif
 
-                Respond(c, ms.ToArray());
-            }
+            Respond(c, s.ToBytes());
         }
 
         public void RespondContent(HttpRequestEventArgs c, Stream s) {
-            using (MemoryStream ms = new MemoryStream()) {
-                s.CopyTo(ms);
-                ms.Seek(0, SeekOrigin.Begin);
-                Respond(c, ms.ToArray());
-            }
+            Respond(c, s.ToBytes());
         }
 
         public void RespondJSON(HttpRequestEventArgs c, object obj) {
-            using (MemoryStream ms = new MemoryStream()) {
-                using (StreamWriter sw = new StreamWriter(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
-                using (JsonTextWriter jtw = new JsonTextWriter(sw))
-                    Serializer.Serialize(jtw, obj);
+            using MemoryStream ms = new();
+            using (StreamWriter sw = new(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
+            using (JsonTextWriter jtw = new(sw))
+                Serializer.Serialize(jtw, obj);
 
-                ms.Seek(0, SeekOrigin.Begin);
+            ms.Seek(0, SeekOrigin.Begin);
 
-                c.Response.ContentType = "application/json";
-                Respond(c, ms.ToArray());
-            }
+            c.Response.ContentType = "application/json";
+            Respond(c, ms.ToArray());
         }
 
         public void Respond(HttpRequestEventArgs c, string str) {

@@ -39,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public bool Dead;
 
-        public List<GhostFollower> Followers = new List<GhostFollower>();
+        public List<GhostFollower> Followers = new();
         public GhostEntity Holding;
 
         public bool Interactive;
@@ -52,7 +52,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected int LastDepth;
         protected int DepthOffset;
 
-        protected Queue<Action<Ghost>> UpdateQueue = new Queue<Action<Ghost>>();
+        protected Queue<Action<Ghost>> UpdateQueue = new();
         protected bool IsUpdating;
 
         public Ghost(CelesteNetClientContext context, DataPlayerInfo playerInfo, PlayerSpriteMode spriteMode)
@@ -64,7 +64,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             RetryPlayerSprite:
             try {
-                Sprite = new PlayerSprite(spriteMode | (PlayerSpriteMode) (1 << 31));
+                Sprite = new(spriteMode | (PlayerSpriteMode) (1 << 31));
             } catch (Exception) {
                 if (spriteMode != PlayerSpriteMode.Madeline) {
                     spriteMode = PlayerSpriteMode.Madeline;
@@ -73,11 +73,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 throw;
             }
 
-            Add(Hair = new PlayerHair(Sprite));
+            Add(Hair = new(Sprite));
             Add(Sprite);
             Hair.Color = Player.NormalHairColor;
-            Add(Leader = new Leader(new Vector2(0f, -8f)));
-            Holdable = new Holdable() {
+            Add(Leader = new(new(0f, -8f)));
+            Holdable = new() {
                 OnCarry = OnCarry,
                 OnRelease = OnRelease
             };
@@ -86,7 +86,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Collider = new Hitbox(8f, 11f, -4f, -11f);
             Add(new PlayerCollider(OnPlayer));
 
-            NameTag = new GhostNameTag(this, "");
+            NameTag = new(this, "");
             NameTag.Alpha = 0.85f;
 
             Dead = false;
@@ -241,7 +241,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             base.Update();
 
-            if (!(Scene is Level level))
+            if (Scene is not Level level)
                 return;
 
             if (!level.GetUpdateHair() || level.Overlay is PauseUpdateOverlay)
@@ -268,24 +268,23 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
             }
 
-            using (ManualResetEvent waiter = wait ? new ManualResetEvent(false) : null) {
-                if (wait) {
-                    Action<Ghost> real = action;
-                    action = g => {
-                        try {
-                            real(g);
-                        } finally {
-                            waiter.Set();
-                        }
-                    };
-                }
-
-                lock (UpdateQueue)
-                    UpdateQueue.Enqueue(action);
-
-                if (wait)
-                    WaitHandle.WaitAny(new WaitHandle[] { waiter });
+            using ManualResetEvent waiter = wait ? new ManualResetEvent(false) : null;
+            if (wait) {
+                Action<Ghost> real = action;
+                action = g => {
+                    try {
+                        real(g);
+                    } finally {
+                        waiter.Set();
+                    }
+                };
             }
+
+            lock (UpdateQueue)
+                UpdateQueue.Enqueue(action);
+
+            if (wait)
+                WaitHandle.WaitAny(new WaitHandle[] { waiter });
         }
 
         public void UpdateHair(Facings facing, Color color, bool simulateMotion, int count, Color[] colors, string[] textures) {
@@ -356,7 +355,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 DataPlayerFrame.Entity f = followers[i];
                 GhostFollower gf;
                 if (i >= Followers.Count) {
-                    gf = new GhostFollower(this);
+                    gf = new(this);
                     gf.Position = Position + Leader.Position;
                     Followers.Add(gf);
                 } else {
@@ -381,14 +380,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             }
 
             if (Holding == null)
-                Holding = new GhostEntity(this);
+                Holding = new(this);
             Holding.Position = h.Position;
             Holding.UpdateSprite(h.Scale, h.Depth, h.Color, h.SpriteRate, h.SpriteJustify, h.SpriteID, h.CurrentAnimationID, h.CurrentAnimationFrame);
         }
 
 
         public void HandleDeath() {
-            if (!(Scene is Level level) ||
+            if (Scene is not Level level ||
                 level.Paused || level.Overlay != null)
                 return;
             level.Add(new GhostDeadBody(this, Vector2.Zero));

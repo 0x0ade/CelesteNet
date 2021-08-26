@@ -17,7 +17,7 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetModShareComponent : CelesteNetGameComponent {
 
-        public List<EverestModuleMetadata> Requested = new List<EverestModuleMetadata>();
+        public List<EverestModuleMetadata> Requested = new();
 
         public CelesteNetModShareComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -82,7 +82,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (index != -1) {
                     Requested[index].Version = rec.ModVersion;
                 } else {
-                    Requested.Add(new EverestModuleMetadata {
+                    Requested.Add(new() {
                         Name = rec.ModID,
                         Version = rec.ModVersion,
                         DLL = rec.ModName

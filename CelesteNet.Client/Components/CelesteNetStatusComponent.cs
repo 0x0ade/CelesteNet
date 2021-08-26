@@ -112,7 +112,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected override void Render(GameTime gameTime, bool toBuffer) {
             float a = Ease.SineInOut(show ? (time / timeIn) : (1f - (time - timeIn) / timeOut));
 
-            Vector2 anchor = new Vector2(96f, UI_HEIGHT - 96f);
+            Vector2 anchor = new(96f, UI_HEIGHT - 96f);
 
             Vector2 pos = anchor + new Vector2(0f, 0f);
             float cogScale = MathHelper.Lerp(0.2f, 0.25f, Ease.CubeOut(a));
@@ -129,7 +129,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             string text = this.text;
             if (!string.IsNullOrEmpty(text) && Dialog.Language != null && CelesteNetClientFont.Font != null) {
                 Vector2 size = CelesteNetClientFont.Measure(text);
-                CelesteNetClientFont.DrawOutline(text, pos + new Vector2(size.X * 0.5f, 0f), new Vector2(0.5f, 0.5f), Vector2.One * MathHelper.Lerp(0.8f, 1f, Ease.CubeOut(a)), Color.White * a, 2f, Color.Black * a * a * a * a);
+                CelesteNetClientFont.DrawOutline(text, pos + new Vector2(size.X * 0.5f, 0f), new(0.5f, 0.5f), Vector2.One * MathHelper.Lerp(0.8f, 1f, Ease.CubeOut(a)), Color.White * a, 2f, Color.Black * a * a * a * a);
             }
         }
 

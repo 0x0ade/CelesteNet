@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <LangVersion>9</LangVersion> <!-- FIXME: Figure out why dotnet needs this! -->
     <TargetFrameworks>net452;net5.0</TargetFrameworks>
     <AssemblyName>CelesteNet.Shared</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet</RootNamespace>

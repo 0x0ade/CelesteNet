@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private AreaKey? LastArea;
 
-        public Dictionary<uint, DebugMapGhost> Ghosts = new Dictionary<uint, DebugMapGhost>();
+        public Dictionary<uint, DebugMapGhost> Ghosts = new();
 
         public CelesteNetDebugMapComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -122,7 +122,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
 
                 if (ghost == null) {
-                    ghost = new DebugMapGhost();
+                    ghost = new();
                     Ghosts[frame.Player.ID] = ghost;
                 }
 
@@ -207,15 +207,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 foreach (DebugMapGhost ghost in Ghosts.Values) {
                     if (ghost.SID != sid || ghost.Mode != mode)
                         continue;
-                    Vector2 pos = new Vector2(ghost.Position.X / 8f + 0.5f, ghost.Position.Y / 8f - 1.5f);
+                    Vector2 pos = new(ghost.Position.X / 8f + 0.5f, ghost.Position.Y / 8f - 1.5f);
                     pos -= camera.Position;
-                    pos = new Vector2((float) Math.Round(pos.X), (float) Math.Round(pos.Y));
+                    pos = new((float) Math.Round(pos.X), (float) Math.Round(pos.Y));
                     pos *= camera.Zoom;
                     pos += new Vector2(960f, 540f);
                     CelesteNetClientFont.DrawOutline(
                         ghost.Name,
                         pos,
-                        new Vector2(0.5f, 1f),
+                        new(0.5f, 1f),
                         Vector2.One * 0.5f,
                         Color.White * 0.8f,
                         2f, Color.Black * 0.5f

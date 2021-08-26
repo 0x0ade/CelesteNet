@@ -34,21 +34,21 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly Channels Channels;
 
         public bool Initialized = false;
-        public readonly List<CelesteNetServerModuleWrapper> ModuleWrappers = new List<CelesteNetServerModuleWrapper>();
-        public readonly List<CelesteNetServerModule> Modules = new List<CelesteNetServerModule>();
-        public readonly Dictionary<Type, CelesteNetServerModule> ModuleMap = new Dictionary<Type, CelesteNetServerModule>();
+        public readonly List<CelesteNetServerModuleWrapper> ModuleWrappers = new();
+        public readonly List<CelesteNetServerModule> Modules = new();
+        public readonly Dictionary<Type, CelesteNetServerModule> ModuleMap = new();
         public readonly FileSystemWatcher ModulesFSWatcher;
 
         public readonly DetourModManager DetourModManager;
 
         public uint PlayerCounter = 0;
-        public readonly RWLock ConLock = new RWLock();
-        public readonly HashSet<CelesteNetConnection> Connections = new HashSet<CelesteNetConnection>();
-        public readonly HashSet<CelesteNetPlayerSession> Sessions = new HashSet<CelesteNetPlayerSession>();
-        public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession>();
-        public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new ConcurrentDictionary<uint, CelesteNetPlayerSession>();
+        public readonly RWLock ConLock = new();
+        public readonly HashSet<CelesteNetConnection> Connections = new();
+        public readonly HashSet<CelesteNetPlayerSession> Sessions = new();
+        public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new();
+        public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new();
 
-        private readonly ManualResetEvent ShutdownEvent = new ManualResetEvent(false);
+        private readonly ManualResetEvent ShutdownEvent = new(false);
 
         private bool _IsAlive;
         public bool IsAlive {
@@ -66,7 +66,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public CelesteNetServer()
-            : this(new CelesteNetServerSettings()) {
+            : this(new()) {
         }
 
         public CelesteNetServer(CelesteNetServerSettings settings) {
@@ -75,13 +75,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Settings = settings;
 
-            DetourModManager = new DetourModManager();
+            DetourModManager = new();
 
             AppDomain.CurrentDomain.AssemblyResolve += (sender, args) => {
                 if (args.Name == null)
                     return null;
 
-                AssemblyName name = new AssemblyName(args.Name);
+                AssemblyName name = new(args.Name);
                 if (ModuleWrappers.Any(wrapper => wrapper.ID == name.Name))
                     return null;
 
@@ -96,10 +96,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (Path.GetFileName(file).StartsWith("CelesteNet.Server.") && file.EndsWith("Module.dll"))
                     RegisterModule(file);
 
-            Data = new DataContext();
+            Data = new();
             Data.RegisterHandlersIn(this);
 
-            Channels = new Channels(this);
+            Channels = new(this);
 
             UserData = new FileSystemUserData(this);
 
@@ -111,7 +111,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            ModulesFSWatcher = new FileSystemWatcher {
+            ModulesFSWatcher = new() {
                 Path = Path.GetFullPath(Settings.ModuleRoot),
                 Filter = "*.dll",
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime
@@ -127,7 +127,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ModulesFSWatcher.EnableRaisingEvents = true;
 
-            TCPUDP = new TCPUDPServer(this);
+            TCPUDP = new(this);
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
@@ -184,12 +184,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             TCPUDP.Dispose();
             ConLock.Dispose();
 
+            UserData.Dispose();
+
             Data.Dispose();
         }
 
 
         public void RegisterModule(string path) {
-            ModuleWrappers.Add(new CelesteNetServerModuleWrapper(this, path));
+            ModuleWrappers.Add(new(this, path));
 
             Reload:
             foreach (CelesteNetServerModuleWrapper wrapper in ModuleWrappers) {
@@ -260,7 +262,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             => OnSessionStart?.Invoke(session);
 
         public void Broadcast(DataType data) {
-            DataInternalBlob blob = new DataInternalBlob(Data, data);
+            DataInternalBlob blob = new(Data, data);
             using (ConLock.R())
                 foreach (CelesteNetConnection con in Connections) {
                     try {
@@ -273,7 +275,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void BroadcastAsync(DataType data) {
-            DataInternalBlob blob = new DataInternalBlob(Data, data);
+            DataInternalBlob blob = new(Data, data);
             using (ConLock.R())
                 foreach (CelesteNetConnection con in Connections) {
                     Task.Run(() => {

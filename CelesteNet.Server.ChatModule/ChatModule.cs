@@ -16,8 +16,8 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatModule : CelesteNetServerModule<ChatSettings> {
 
-        public readonly ConcurrentDictionary<uint, DataChat> ChatLog = new ConcurrentDictionary<uint, DataChat>();
-        public readonly RingBuffer<DataChat?> ChatBuffer = new RingBuffer<DataChat?>(3000);
+        public readonly ConcurrentDictionary<uint, DataChat> ChatLog = new();
+        public readonly RingBuffer<DataChat?> ChatBuffer = new(3000);
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
 #pragma warning disable CS8618 // Set on init.
@@ -28,8 +28,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public override void Init(CelesteNetServerModuleWrapper wrapper) {
             base.Init(wrapper);
 
-            BroadcastSpamContext = new SpamContext(this);
-            Commands = new ChatCommands(this);
+            BroadcastSpamContext = new(this);
+            Commands = new(this);
             Server.OnSessionStart += OnSessionStart;
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession session in Server.Sessions)
@@ -152,7 +152,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
                 // TODO: Improve or rewrite. This comes from GhostNet, which adopted it from disbot (0x0ade's C# Discord bot).
 
-                ChatCMDEnv env = new ChatCMDEnv(this, msg);
+                ChatCMDEnv env = new(this, msg);
 
                 string cmdName = env.FullText.Substring(Settings.CommandPrefix.Length);
                 cmdName = cmdName.Split(ChatCMD.NameDelimiters)[0].ToLowerInvariant();
@@ -198,7 +198,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (playerInfo == null)
                 return;
 
-            DataChat msg = new DataChat {
+            DataChat msg = new() {
                 Player = playerInfo,
                 Targets = new DataPlayerInfo[0],
                 Text = emote.Text,
@@ -216,7 +216,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public DataChat Broadcast(string text, string? tag = null, Color? color = null) {
             Logger.Log(LogLevel.INF, "chat", $"Broadcasting: {text}");
-            DataChat msg = new DataChat() {
+            DataChat msg = new() {
                 Text = text,
                 Tag = tag ?? "",
                 Color = color ?? Settings.ColorBroadcast
@@ -226,7 +226,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         public DataChat? SendTo(CelesteNetPlayerSession? player, string text, string? tag = null, Color? color = null) {
-            DataChat msg = new DataChat() {
+            DataChat msg = new() {
                 Target = player?.PlayerInfo,
                 Text = text,
                 Tag = tag ?? "",
@@ -254,7 +254,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 return;
             }
 
-            DataInternalBlob blob = new DataInternalBlob(Server.Data, msg);
+            DataInternalBlob blob = new(Server.Data, msg);
             foreach (DataPlayerInfo playerInfo in msg.Targets)
                 if (Server.PlayersByID.TryGetValue(playerInfo.ID, out CelesteNetPlayerSession? player))
                     player.Con?.Send(blob);

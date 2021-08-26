@@ -65,7 +65,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     return;
                 }
 
-            MetaTypeWrap wrap = new MetaTypeWrap();
+            MetaTypeWrap wrap = new();
             wrap.Wrap(ctx, value);
             InnerMeta.Add(wrap);
             InnerMetaStatus++;
@@ -84,7 +84,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void UnwrapMeta(DataContext ctx, MetaTypeWrap[] wraps)
-            => InnerMeta = new List<MetaTypeWrap>(wraps);
+            => InnerMeta = new(wraps);
 
         public override string GetTypeID(DataContext ctx)
             => InnerID;

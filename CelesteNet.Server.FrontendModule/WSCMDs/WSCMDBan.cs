@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 (reason = reason?.Trim() ?? "").IsNullOrEmpty())
                 return null;
 
-            BanInfo ban = new BanInfo {
+            BanInfo ban = new() {
                 UID = uids[0],
                 Reason = reason,
                 From = DateTime.UtcNow

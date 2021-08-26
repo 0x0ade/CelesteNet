@@ -21,10 +21,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetStatusComponent Status;
         public CelesteNetChatComponent Chat;
 
-        public Dictionary<Type, CelesteNetGameComponent> Components = new Dictionary<Type, CelesteNetGameComponent>();
+        public Dictionary<Type, CelesteNetGameComponent> Components = new();
         public List<CelesteNetGameComponent> DrawableComponents;
 
-        protected Queue<Action> MainThreadQueue = new Queue<Action>();
+        protected Queue<Action> MainThreadQueue = new();
 
         private bool Started = false;
 
@@ -39,10 +39,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Celeste.Instance.Components.Add(this);
 
-            Add(Main = new CelesteNetMainComponent(this, game));
-            Add(RenderHelper = new CelesteNetRenderHelperComponent(this, game));
-            Add(Status = new CelesteNetStatusComponent(this, game));
-            Add(Chat = new CelesteNetChatComponent(this, game));
+            Add(Main = new(this, game));
+            Add(RenderHelper = new(this, game));
+            Add(Status = new(this, game));
+            Add(Chat = new(this, game));
 
             foreach (Type type in FakeAssembly.GetFakeEntryAssembly().GetTypes()) {
                 if (type.IsAbstract || !typeof(CelesteNetGameComponent).IsAssignableFrom(type) || Components.ContainsKey(type))
@@ -68,7 +68,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public static event Action<CelesteNetClientContext> OnInit;
 
         public void Init(CelesteNetClientSettings settings) {
-            Client = new CelesteNetClient(settings);
+            Client = new(settings);
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Init();
             OnInit?.Invoke(this);
@@ -108,24 +108,23 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return;
             }
 
-            using (ManualResetEvent waiter = wait ? new ManualResetEvent(false) : null) {
-                if (wait) {
-                    Action real = action;
-                    action = () => {
-                        try {
-                            real();
-                        } finally {
-                            waiter.Set();
-                        }
-                    };
-                }
-
-                lock (MainThreadQueue)
-                    MainThreadQueue.Enqueue(action);
-
-                if (wait)
-                    WaitHandle.WaitAny(new WaitHandle[] { waiter });
+            using ManualResetEvent waiter = wait ? new ManualResetEvent(false) : null;
+            if (wait) {
+                Action real = action;
+                action = () => {
+                    try {
+                        real();
+                    } finally {
+                        waiter.Set();
+                    }
+                };
             }
+
+            lock (MainThreadQueue)
+                MainThreadQueue.Enqueue(action);
+
+            if (wait)
+                WaitHandle.WaitAny(new WaitHandle[] { waiter });
         }
 
         public static event Action<CelesteNetClientContext> OnDispose;

@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 #pragma warning disable CS8618 // Fully initialized after construction.
         public FrontendWebSocket() {
 #pragma warning restore CS8618
-            Commands = new WSCommands(this);
+            Commands = new(this);
         }
 
         private void Close(string reason) {
@@ -56,17 +56,16 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             try {
                 object? output = CurrentCommand.Run(input);
 
-                using (MemoryStream ms = new MemoryStream()) {
-                    using (StreamWriter sw = new StreamWriter(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
-                    using (JsonTextWriter jtw = new JsonTextWriter(sw))
-                        Frontend.Serializer.Serialize(jtw, output);
+                using MemoryStream ms = new();
+                using (StreamWriter sw = new(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
+                using (JsonTextWriter jtw = new(sw))
+                    Frontend.Serializer.Serialize(jtw, output);
 
-                    ms.Seek(0, SeekOrigin.Begin);
+                ms.Seek(0, SeekOrigin.Begin);
 
-                    Send("data");
-                    using (StreamReader sr = new StreamReader(ms, Encoding.UTF8, false, 1024, true))
-                        Send(sr.ReadToEnd());
-                }
+                Send("data");
+                using StreamReader sr = new(ms, Encoding.UTF8, false, 1024, true);
+                Send(sr.ReadToEnd());
 
                 State = EState.WaitForType;
             } catch (Exception e) {
@@ -137,12 +136,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     object? input = null;
 
                     try {
-                        using (MemoryStream ms = new MemoryStream(c.RawData))
-                        using (StreamReader sr = new StreamReader(ms, Encoding.UTF8, false, 1024, true))
-                        using (JsonTextReader jtr = new JsonTextReader(sr))
-                            input =
-                                CurrentCommand?.InputType != null ? Frontend.Serializer.Deserialize(jtr, CurrentCommand.InputType) :
-                                Frontend.Serializer.Deserialize<dynamic>(jtr);
+                        using MemoryStream ms = new(c.RawData);
+                        using StreamReader sr = new(ms, Encoding.UTF8, false, 1024, true);
+                        using JsonTextReader jtr = new(sr);
+                        input =
+                            CurrentCommand?.InputType != null ? Frontend.Serializer.Deserialize(jtr, CurrentCommand.InputType) :
+                            Frontend.Serializer.Deserialize<dynamic>(jtr);
                     } catch (Exception e) {
                         Logger.Log(LogLevel.ERR, "frontend-ws", e.ToString());
                         Close("error on cmd data parse");

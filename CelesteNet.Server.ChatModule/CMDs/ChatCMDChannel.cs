@@ -47,7 +47,7 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Chat.Serve
 
                 const int pageSize = 8;
 
-                StringBuilder builder = new StringBuilder();
+                StringBuilder builder = new();
 
                 page--;
                 int pages = (int) Math.Ceiling(channels.All.Count / (float) pageSize);

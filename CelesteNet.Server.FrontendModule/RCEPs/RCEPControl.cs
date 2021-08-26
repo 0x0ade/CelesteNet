@@ -26,9 +26,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             string? pass;
 
             try {
-                using (StreamReader sr = new StreamReader(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
-                using (JsonTextReader jtr = new JsonTextReader(sr))
-                    pass = f.Serializer.Deserialize<string>(jtr);
+                using StreamReader sr = new(c.Request.InputStream, Encoding.UTF8, false, 1024, true);
+                using JsonTextReader jtr = new(sr);
+                pass = f.Serializer.Deserialize<string>(jtr);
             } catch (Exception e) {
                 Logger.Log(LogLevel.DEV, "frontend-auth", e.ToString());
                 pass = null;
@@ -62,7 +62,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (pass == f.Settings.Password) {
                 key = Guid.NewGuid().ToString();
                 f.CurrentSessionKeys.Add(key);
-                c.Response.SetCookie(new Cookie(Frontend.COOKIE_SESSION, key));
+                c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key));
                 f.RespondJSON(c, new {
                     Key = key
                 });
@@ -207,7 +207,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 detailed = false;
 
             ChatModule chat = f.Server.Get<ChatModule>();
-            List<object> log = new List<object>();
+            List<object> log = new();
             RingBuffer<DataChat?> buffer = chat.ChatBuffer;
             lock (buffer) {
                 for (int i = Math.Max(-buffer.Moved, -count); i < 0; i++) {
@@ -250,7 +250,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             if (c.Request.HttpMethod == "POST") {
                 try {
-                    using (StreamReader sr = new StreamReader(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
+                    using (StreamReader sr = new(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
                         settings.Load(sr);
                     settings.Save();
                     f.RespondJSON(c, new {
@@ -265,8 +265,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 }
             }
 
-            StringBuilder sb = new StringBuilder();
-            using (StringWriter sw = new StringWriter(sb))
+            StringBuilder sb = new();
+            using (StringWriter sw = new(sb))
                 settings.Save(sw);
             f.Respond(c, sb.ToString());
         }
@@ -278,7 +278,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             if (c.Request.HttpMethod == "POST") {
                 try {
-                    using (StreamReader sr = new StreamReader(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
+                    using (StreamReader sr = new(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
                         text = sr.ReadToEnd();
                     File.WriteAllText(path, text);
                     f.RespondJSON(c, new {

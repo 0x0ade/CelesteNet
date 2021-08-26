@@ -82,7 +82,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Client == null || !Client.IsReady)
                 goto End;
 
-            if (!(Engine.Scene is Level level))
+            if (Engine.Scene is not Level level)
                 goto End;
 
             if (Player == null || Player.Scene != level)
@@ -97,7 +97,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 goto End;
 
             if (Wheel == null)
-                level.Add(Wheel = new GhostEmoteWheel(Player));
+                level.Add(Wheel = new(Player));
 
             if (!level.Paused && Settings.EmoteWheel && !Player.Dead) {
                 Wheel.Shown = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f;

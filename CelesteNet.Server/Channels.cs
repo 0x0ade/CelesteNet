@@ -20,9 +20,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetServer Server;
 
         public readonly Channel Default;
-        public readonly List<Channel> All = new List<Channel>();
-        public readonly Dictionary<uint, Channel> ByID = new Dictionary<uint, Channel>();
-        public readonly Dictionary<string, Channel> ByName = new Dictionary<string, Channel>();
+        public readonly List<Channel> All = new();
+        public readonly Dictionary<uint, Channel> ByID = new();
+        public readonly Dictionary<string, Channel> ByName = new();
         public uint NextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
 
         public Channels(CelesteNetServer server) {
@@ -30,7 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Server.Data.RegisterHandlersIn(this);
 
-            Default = new Channel(this, NameDefault, 0);
+            Default = new(this, NameDefault, 0);
 
             Server.OnSessionStart += OnSessionStart;
         }
@@ -58,7 +58,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             List<DataChannelList.Channel> channels;
             lock (All) {
-                channels = new List<DataChannelList.Channel>(All.Count);
+                channels = new(All.Count);
                 foreach (Channel c in All) {
                     if (c.IsPrivate && c != own)
                         continue;
@@ -115,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         return Tuple.Create(c, c);
 
                 } else {
-                    c = new Channel(this, name, NextID++);
+                    c = new(this, name, NextID++);
                 }
 
                 prev.Remove(session);
@@ -123,7 +123,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (session.PlayerInfo != null)
                     c.Add(session);
 
-                DataInternalBlob move = new DataInternalBlob(Server.Data, new DataChannelMove {
+                DataInternalBlob move = new(Server.Data, new DataChannelMove {
                     Player = session.PlayerInfo
                 });
                 session.Con.Send(move);
@@ -151,8 +151,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly Channels Ctx;
         public readonly string Name;
         public readonly uint ID;
-        public readonly RWLock Lock = new RWLock();
-        public readonly HashSet<CelesteNetPlayerSession> Players = new HashSet<CelesteNetPlayerSession>();
+        public readonly RWLock Lock = new();
+        public readonly HashSet<CelesteNetPlayerSession> Players = new();
 
         public readonly bool IsPrivate;
         public readonly string PublicName;
@@ -178,7 +178,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void RemoveStale() {
             using (Lock.W()) {
-                List<CelesteNetPlayerSession> stale = new List<CelesteNetPlayerSession>();
+                List<CelesteNetPlayerSession> stale = new();
                 foreach (CelesteNetPlayerSession session in Players)
                     if (session.PlayerInfo == null)
                         stale.Add(session);

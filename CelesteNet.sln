@@ -13,13 +13,14 @@ Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "Celeste", "..\..\Celeste.ex
 	ProjectSection(DebuggerProjectSystem) = preProject
 		PortSupplier = 00000000-0000-0000-0000-000000000000
 		Executable = D:\Program Files (x86)\Steam\steamapps\common\Celeste\Celeste.exe
-		RemoteMachine = MAIK-MEDIONPC-W
+		RemoteMachine = ade-main-win
 		StartingDirectory = D:\Program Files (x86)\Steam\steamapps\common\Celeste
 		Environment = Default
 		LaunchingEngine = 00000000-0000-0000-0000-000000000000
 		UseLegacyDebugEngines = No
 		LaunchSQLEngine = No
 		AttachLaunchAction = No
+		IORedirection = Auto
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A2A695E6-AD24-4BF9-AE44-3B3FC4F0A0B3}"
@@ -59,6 +60,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "emoji", "emoji", "{273EB989
 		Graphics\Atlases\Gui\emoji\celestenet_idle.png = Graphics\Atlases\Gui\emoji\celestenet_idle.png
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Server.SqliteModule", "CelesteNet.Server.SqliteModule\CelesteNet.Server.SqliteModule.csproj", "{A43B6AC6-3305-4DCC-B8AE-A3FD7ACB3547}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +90,10 @@ Global
 		{D58962F4-3A09-4D56-9516-C46AD9AAECBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D58962F4-3A09-4D56-9516-C46AD9AAECBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D58962F4-3A09-4D56-9516-C46AD9AAECBA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A43B6AC6-3305-4DCC-B8AE-A3FD7ACB3547}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A43B6AC6-3305-4DCC-B8AE-A3FD7ACB3547}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A43B6AC6-3305-4DCC-B8AE-A3FD7ACB3547}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A43B6AC6-3305-4DCC-B8AE-A3FD7ACB3547}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -25,7 +25,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public string MapName = "";
         public string ModID = "";
         public string ModName = "";
-        public Version ModVersion = new Version();
+        public Version ModVersion = new();
 
         public override MetaType[] GenerateMeta(DataContext ctx)
             => new MetaType[] {
@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             MapName = reader.ReadNetString();
             ModID = reader.ReadNetString();
             ModName = reader.ReadNetString();
-            ModVersion = new Version(reader.ReadNetString());
+            ModVersion = new(reader.ReadNetString());
         }
 
         public override void Write(CelesteNetBinaryWriter writer) {

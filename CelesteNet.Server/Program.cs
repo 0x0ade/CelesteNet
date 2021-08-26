@@ -50,14 +50,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             LogHeader(Console.Out);
             Thread.CurrentThread.Name = "Main Thread";
 
-            CelesteNetServerSettings settings = new CelesteNetServerSettings();
+            CelesteNetServerSettings settings = new();
             settings.Load();
             settings.Save();
 
 
             bool showHelp = false;
             string? logFile = "log-celestenet.txt";
-            OptionSet options = new OptionSet {
+            OptionSet options = new() {
                 {
                     "v|loglevel:",
                     $"Change the log level, ranging from {LogLevel.CRI} ({(int) LogLevel.CRI}) to {LogLevel.DEV} ({(int) LogLevel.DEV}). Defaults to {LogLevel.INF} ({(int) LogLevel.INF}).",
@@ -105,33 +105,31 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (File.Exists(logFile))
                 File.Delete(logFile);
 
-            using (Stream fileStream = new FileStream(logFile, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
-            using (StreamWriter fileWriter = new StreamWriter(fileStream, Console.OutputEncoding))
-            using (LogWriter logWriter = new LogWriter {
+            using FileStream fileStream = new(logFile, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+            using StreamWriter fileWriter = new(fileStream, Console.OutputEncoding);
+            using LogWriter logWriter = new() {
                 STDOUT = Console.Out,
                 File = fileWriter
-            }) {
-                LogHeader(fileWriter);
+            };
+            LogHeader(fileWriter);
 
-                try {
-                    Console.SetOut(logWriter);
-                    MainRun(settings);
+            try {
+                Console.SetOut(logWriter);
+                MainRun(settings);
 
-                } finally {
-                    if (logWriter.STDOUT != null) {
-                        Console.SetOut(logWriter.STDOUT);
-                        logWriter.STDOUT = null;
-                    }
+            } finally {
+                if (logWriter.STDOUT != null) {
+                    Console.SetOut(logWriter.STDOUT);
+                    logWriter.STDOUT = null;
                 }
             }
         }
 
         private static void MainRun(CelesteNetServerSettings settings) {
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
-            using (CelesteNetServer server = new CelesteNetServer(settings)) {
-                server.Start();
-                server.Wait();
-            }
+            using CelesteNetServer server = new(settings);
+            server.Start();
+            server.Wait();
         }
 
         private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e) {

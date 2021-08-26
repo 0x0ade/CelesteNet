@@ -24,11 +24,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Data = data;
             Data.Meta = Data.GenerateMeta(ctx);
 
-            using (MemoryStream stream = new MemoryStream())
-            using (CelesteNetBinaryBlobPartWriter writer = new CelesteNetBinaryBlobPartWriter(ctx, this, stream)) {
-                ctx.Write(writer, data);
-                writer.Flush();
-            }
+            using MemoryStream stream = new();
+            using CelesteNetBinaryBlobPartWriter writer = new(ctx, this, stream);
+            ctx.Write(writer, data);
+            writer.Flush();
         }
 
         [return: NotNullIfNotNull("data")]
@@ -44,7 +43,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public Part PartNext() {
-            Part part = new Part();
+            Part part = new();
 
             if (PartLast == null) {
                 PartFirst = part;

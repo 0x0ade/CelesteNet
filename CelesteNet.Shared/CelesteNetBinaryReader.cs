@@ -30,15 +30,15 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public virtual Vector2 ReadVector2()
-            => new Vector2(ReadSingle(), ReadSingle());
+            => new(ReadSingle(), ReadSingle());
         public virtual Vector2 ReadVector2Scale()
-            => new Vector2(Calc.Clamp(ReadSingle(), -3f, 3f), Calc.Clamp(ReadSingle(), -3f, 3f));
+            => new(Calc.Clamp(ReadSingle(), -3f, 3f), Calc.Clamp(ReadSingle(), -3f, 3f));
 
         public virtual Color ReadColor()
-            => new Color(ReadByte(), ReadByte(), ReadByte(), ReadByte());
+            => new(ReadByte(), ReadByte(), ReadByte(), ReadByte());
 
         public virtual Color ReadColorNoA()
-            => new Color(ReadByte(), ReadByte(), ReadByte(), 255);
+            => new(ReadByte(), ReadByte(), ReadByte(), 255);
 
         public virtual DateTime ReadDateTime()
             => DateTime.FromBinary(ReadInt64());

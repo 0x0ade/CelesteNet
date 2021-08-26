@@ -51,7 +51,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public object ReadYaml(IParser parser, Type type) {
             if (parser.TryConsume(out MappingStart _)) {
-                Color c = new Color(0, 0, 0, 255);
+                Color c = new(0, 0, 0, 255);
                 do {
                     switch (parser.Consume<Scalar>().Value.ToUpperInvariant()) {
                         case "R":

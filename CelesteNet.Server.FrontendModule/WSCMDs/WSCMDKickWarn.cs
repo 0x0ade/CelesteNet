@@ -29,7 +29,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 UserData userData = Frontend.Server.UserData;
                 if (!reason.IsNullOrEmpty() && !userData.GetKey(uid).IsNullOrEmpty()) {
                     KickHistory kicks = userData.Load<KickHistory>(uid);
-                    kicks.Log.Add(new KickHistory.Entry {
+                    kicks.Log.Add(new() {
                         Reason = reason,
                         From = DateTime.UtcNow
                     });

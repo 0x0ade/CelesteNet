@@ -20,9 +20,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         protected Overlay _DummyOverlay = new PauseUpdateOverlay();
 
-        public List<DataChat> Log = new List<DataChat>();
-        public List<DataChat> LogSpecial = new List<DataChat>();
-        public Dictionary<string, DataChat> Pending = new Dictionary<string, DataChat>();
+        public List<DataChat> Log = new();
+        public List<DataChat> LogSpecial = new();
+        public Dictionary<string, DataChat> Pending = new();
         public string Typing = "";
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Off
         }
 
-        public List<string> Repeat = new List<string>() {
+        public List<string> Repeat = new() {
             ""
         };
 
@@ -101,7 +101,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             lock (Log) {
                 if (Pending.ContainsKey(text))
                     return;
-                DataChat msg = new DataChat {
+                DataChat msg = new() {
                     Player = Client.PlayerInfo,
                     Text = text
                 };
@@ -225,7 +225,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 CelesteNetClientFont.Draw(
                     ">",
-                    new Vector2(50f * scale, UI_HEIGHT - 105f * scale),
+                    new(50f * scale, UI_HEIGHT - 105f * scale),
                     Vector2.Zero,
                     fontScale * new Vector2(0.5f, 1f),
                     Color.White * 0.5f
@@ -235,7 +235,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 string text = Typing;
                 CelesteNetClientFont.Draw(
                     text,
-                    new Vector2(50f * scale + offs, UI_HEIGHT - 105f * scale),
+                    new(50f * scale + offs, UI_HEIGHT - 105f * scale),
                     Vector2.Zero,
                     fontScale,
                     Color.White
@@ -245,7 +245,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     offs += CelesteNetClientFont.Measure(text).X * scale;
                     CelesteNetClientFont.Draw(
                         "_",
-                        new Vector2(50f * scale + offs, UI_HEIGHT - 105f * scale),
+                        new(50f * scale + offs, UI_HEIGHT - 105f * scale),
                         Vector2.Zero,
                         fontScale,
                         Color.White * 0.5f
@@ -254,21 +254,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             lock (Log) {
-                List<DataChat> log;
-                switch (Mode) {
-                    case ChatMode.All:
-                    default:
-                        log = Log;
-                        break;
-
-                    case ChatMode.Special:
-                        log = LogSpecial;
-                        break;
-
-                    case ChatMode.Off:
-                        log = Dummy<DataChat>.EmptyList;
-                        break;
-                }
+                List<DataChat> log = Mode switch {
+                    ChatMode.Special => LogSpecial,
+                    ChatMode.Off => Dummy<DataChat>.EmptyList,
+                    _ => Log,
+                };
 
                 int count = log.Count;
                 if (count > 0) {
@@ -301,7 +291,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                         Vector2 sizeTime = CelesteNetClientFontMono.Measure(time) * lineFontScale;
                         Vector2 sizeText = CelesteNetClientFont.Measure(text) * lineFontScale;
-                        Vector2 size = new Vector2(sizeTime.X + 25f * scale + sizeText.X, Math.Max(sizeTime.Y - 5f * scale, sizeText.Y));
+                        Vector2 size = new(sizeTime.X + 25f * scale + sizeText.X, Math.Max(sizeTime.Y - 5f * scale, sizeText.Y));
 
                         if ((size.X + 100f * scale) > UI_WIDTH && lineScaleTry < 4) {
                             lineScaleTry++;
@@ -316,14 +306,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         Context.RenderHelper.Rect(25f * scale, y, size.X + 50f * scale, height, Color.Black * 0.8f * alpha);
                         CelesteNetClientFontMono.Draw(
                             time,
-                            new Vector2(50f * scale, y + 20f * scale),
+                            new(50f * scale, y + 20f * scale),
                             Vector2.Zero,
                             lineFontScale,
                             msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)
                         );
                         CelesteNetClientFont.Draw(
                             text,
-                            new Vector2(75f * scale + sizeTime.X, y + 25f * scale),
+                            new(75f * scale + sizeTime.X, y + 25f * scale),
                             Vector2.Zero,
                             lineFontScale,
                             msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)

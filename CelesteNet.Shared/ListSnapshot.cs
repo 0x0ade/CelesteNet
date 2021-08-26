@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet {
 
         internal bool Disposed;
         public readonly ListSnapshotPool<T> Pool;
-        public readonly List<T> List = new List<T>();
+        public readonly List<T> List = new();
 
         public ListSnapshot(ListSnapshotPool<T> pool) {
             Pool = pool;
@@ -83,7 +83,7 @@ namespace Celeste.Mod.CelesteNet {
 
     public class ListSnapshotPool<T> {
 
-        private readonly ConcurrentBag<ListSnapshot<T>> Bag = new ConcurrentBag<ListSnapshot<T>>();
+        private readonly ConcurrentBag<ListSnapshot<T>> Bag = new();
         private uint Count;
 
         public uint MaxCount;
@@ -113,7 +113,7 @@ namespace Celeste.Mod.CelesteNet {
 
         [ThreadStatic]
         private static ListSnapshotPool<T>? _Pool;
-        public static ListSnapshotPool<T> Pool => _Pool ??= new ListSnapshotPool<T>();
+        public static ListSnapshotPool<T> Pool => _Pool ??= new();
 
     }
 

@@ -44,9 +44,9 @@ namespace Celeste.Mod.CelesteNet {
         public readonly CelesteNetSendQueue TCPQueue;
         public readonly CelesteNetSendQueue UDPQueue;
 
-        private readonly object TCPReceiveLock = new object();
+        private readonly object TCPReceiveLock = new();
 
-        private readonly object UDPErrorLock = new object();
+        private readonly object UDPErrorLock = new();
         private Exception UDPErrorLast;
         private Action<CelesteNetTCPUDPConnection, Exception, bool>? _OnUDPError;
         public event Action<CelesteNetTCPUDPConnection, Exception, bool> OnUDPError {
@@ -72,7 +72,7 @@ namespace Celeste.Mod.CelesteNet {
             TCPQueue = DefaultSendQueue;
             TCPQueue.SendKeepAliveUpdate = false;
             TCPQueue.SendStringMapUpdate = false;
-            SendQueues.Add(UDPQueue = new CelesteNetSendQueue(this, "udp") {
+            SendQueues.Add(UDPQueue = new(this, "udp") {
                 SendKeepAliveUpdate = true,
                 SendStringMapUpdate = true,
                 MaxCount = 512
@@ -81,7 +81,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public CelesteNetTCPUDPConnection(DataContext data, string host, int port, bool canUDP)
             : this(data) {
-            TcpClient tcp = new TcpClient(host, port);
+            TcpClient tcp = new(host, port);
             tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, 3000);
             tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 3000);
 
@@ -106,9 +106,9 @@ namespace Celeste.Mod.CelesteNet {
 
         private void InitTCPUDP(TcpClient tcp, UdpClient? udp) {
             TCP = tcp;
-            TCPStream = new PositionAwareStream<NetworkStream>(tcp.GetStream());
-            TCPReader = new CelesteNetBinaryReader(Data, DefaultSendQueue.Strings, TCPStream, true);
-            TCPWriter = new BinaryWriter(TCPStream, CelesteNetUtils.UTF8NoBOM, true);
+            TCPStream = new(tcp.GetStream());
+            TCPReader = new(Data, DefaultSendQueue.Strings, TCPStream, true);
+            TCPWriter = new(TCPStream, CelesteNetUtils.UTF8NoBOM, true);
 
             UDP = udp;
         }
@@ -120,7 +120,7 @@ namespace Celeste.Mod.CelesteNet {
             TCPLocalEndPoint = (IPEndPoint?) TCP.Client.LocalEndPoint;
             TCPRemoteEndPoint = (IPEndPoint?) TCP.Client.RemoteEndPoint;
 
-            ReadTCPThread = new Thread(ReadTCPLoop) {
+            ReadTCPThread = new(ReadTCPLoop) {
                 Name = $"{GetType().Name} ReadTCP ({Creator} - {GetHashCode()})",
                 IsBackground = true
             };
@@ -138,7 +138,7 @@ namespace Celeste.Mod.CelesteNet {
                 UDPRemoteEndPoint = TCPRemoteEndPoint;
             }
 
-            ReadUDPThread = new Thread(ReadUDPLoop) {
+            ReadUDPThread = new(ReadUDPLoop) {
                 Name = $"{GetType().Name} ReadUDP ({Creator} - {GetHashCode()})",
                 IsBackground = true
             };
@@ -233,21 +233,20 @@ namespace Celeste.Mod.CelesteNet {
         public void ReadTeapot(out string[] features, out uint token) {
             features = Dummy<string>.EmptyArray;
             token = 0;
-            using (StreamReader reader = new StreamReader(TCPStream, Encoding.UTF8, false, 1024, true)) {
-                for (string line; !string.IsNullOrWhiteSpace(line = reader?.ReadLine() ?? "");) {
-                    if (line.StartsWith(CelesteNetUtils.HTTPTeapotConFeatures)) {
-                        features = line.Substring(CelesteNetUtils.HTTPTeapotConFeatures.Length).Trim().Split(CelesteNetUtils.ConnectionFeatureSeparators);
-                    }
-                    if (line.StartsWith(CelesteNetUtils.HTTPTeapotConToken)) {
-                        token = uint.Parse(line.Substring(CelesteNetUtils.HTTPTeapotConToken.Length).Trim());
-                    }
+            using StreamReader reader = new(TCPStream, Encoding.UTF8, false, 1024, true);
+            for (string line; !string.IsNullOrWhiteSpace(line = reader?.ReadLine() ?? "");) {
+                if (line.StartsWith(CelesteNetUtils.HTTPTeapotConFeatures)) {
+                    features = line.Substring(CelesteNetUtils.HTTPTeapotConFeatures.Length).Trim().Split(CelesteNetUtils.ConnectionFeatureSeparators);
+                }
+                if (line.StartsWith(CelesteNetUtils.HTTPTeapotConToken)) {
+                    token = uint.Parse(line.Substring(CelesteNetUtils.HTTPTeapotConToken.Length).Trim());
                 }
             }
         }
 
         public void WriteTeapot(string[] features, uint token) {
             lock (TCPWriter) {
-                using (StreamWriter writer = new StreamWriter(TCPStream, CelesteNetUtils.UTF8NoBOM, 1024, true))
+                using (StreamWriter writer = new(TCPStream, CelesteNetUtils.UTF8NoBOM, 1024, true))
                     writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, string.Join(CelesteNetUtils.ConnectionFeatureSeparator, features), token));
                 TCPStream.Flush();
             }
@@ -292,20 +291,19 @@ namespace Celeste.Mod.CelesteNet {
 
         protected virtual void ReadUDPLoop() {
             try {
-                using (MemoryStream stream = new MemoryStream())
-                using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Data, UDPQueue.Strings, stream)) {
-                    while (UDP != null && IsAlive && !Loopend) {
-                        IPEndPoint? remote = null;
-                        byte[] raw = UDP.Receive(ref remote);
-                        if (UDPRemoteEndPoint != null && !remote.Equals(UDPRemoteEndPoint))
-                            continue;
+                using MemoryStream stream = new();
+                using CelesteNetBinaryReader reader = new(Data, UDPQueue.Strings, stream);
+                while (UDP != null && IsAlive && !Loopend) {
+                    IPEndPoint? remote = null;
+                    byte[] raw = UDP.Receive(ref remote);
+                    if (UDPRemoteEndPoint != null && !remote.Equals(UDPRemoteEndPoint))
+                        continue;
 
-                        stream.Seek(0, SeekOrigin.Begin);
-                        stream.Write(raw, 0, raw.Length);
+                    stream.Seek(0, SeekOrigin.Begin);
+                    stream.Write(raw, 0, raw.Length);
 
-                        stream.Seek(0, SeekOrigin.Begin);
-                        Receive(Data.Read(reader));
-                    }
+                    stream.Seek(0, SeekOrigin.Begin);
+                    Receive(Data.Read(reader));
                 }
 
             } catch (ThreadAbortException) {

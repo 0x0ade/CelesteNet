@@ -22,26 +22,26 @@ namespace Celeste.Mod.CelesteNet {
     public delegate bool DataFilter<T>(CelesteNetConnection con, T data) where T : DataType<T>;
     public class DataContext : IDisposable {
 
-        public readonly Dictionary<string, Type> IDToDataType = new Dictionary<string, Type>();
-        public readonly Dictionary<Type, string> DataTypeToID = new Dictionary<Type, string>();
-        public readonly Dictionary<Type, string> DataTypeToSource = new Dictionary<Type, string>();
+        public readonly Dictionary<string, Type> IDToDataType = new();
+        public readonly Dictionary<Type, string> DataTypeToID = new();
+        public readonly Dictionary<Type, string> DataTypeToSource = new();
 
-        public readonly Dictionary<string, Type> IDToMetaType = new Dictionary<string, Type>();
-        public readonly Dictionary<Type, string> MetaTypeToID = new Dictionary<Type, string>();
+        public readonly Dictionary<string, Type> IDToMetaType = new ();
+        public readonly Dictionary<Type, string> MetaTypeToID = new();
 
-        public readonly object HandlersLock = new object();
-        public readonly object FiltersLock = new object();
+        public readonly object HandlersLock = new();
+        public readonly object FiltersLock = new();
 
-        public readonly ConcurrentDictionary<Type, DataHandler> Handlers = new ConcurrentDictionary<Type, DataHandler>();
-        public readonly ConcurrentDictionary<Type, DataFilter> Filters = new ConcurrentDictionary<Type, DataFilter>();
+        public readonly ConcurrentDictionary<Type, DataHandler> Handlers = new();
+        public readonly ConcurrentDictionary<Type, DataFilter> Filters = new();
 
-        private readonly ConcurrentDictionary<object, List<Tuple<Type, DataHandler>>> RegisteredHandlers = new ConcurrentDictionary<object, List<Tuple<Type, DataHandler>>>();
-        private readonly ConcurrentDictionary<object, List<Tuple<Type, DataFilter>>> RegisteredFilters = new ConcurrentDictionary<object, List<Tuple<Type, DataFilter>>>();
+        private readonly ConcurrentDictionary<object, List<Tuple<Type, DataHandler>>> RegisteredHandlers = new();
+        private readonly ConcurrentDictionary<object, List<Tuple<Type, DataFilter>>> RegisteredFilters = new();
 
-        protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>> References = new ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>>();
-        protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>> Bound = new ConcurrentDictionary<string, ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>>();
+        protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>> References = new();
+        protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>> Bound = new();
 
-        protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>> LastOrderedUpdate = new ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>>();
+        protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>> LastOrderedUpdate = new();
         private bool IsDisposed;
 
         public DataContext() {
@@ -183,8 +183,8 @@ namespace Celeste.Mod.CelesteNet {
             if (RegisteredHandlers.ContainsKey(owner))
                 return;
 
-            List<Tuple<Type, DataHandler>> handlers = RegisteredHandlers[owner] = new List<Tuple<Type, DataHandler>>();
-            List<Tuple<Type, DataFilter>> filters = RegisteredFilters[owner] = new List<Tuple<Type, DataFilter>>();
+            List<Tuple<Type, DataHandler>> handlers = RegisteredHandlers[owner] = new();
+            List<Tuple<Type, DataFilter>> filters = RegisteredFilters[owner] = new();
 
             foreach (MethodInfo method in owner.GetType().GetMethods()) {
                 if (method.Name == "Handle" || method.Name == "Filter") {
@@ -226,7 +226,7 @@ namespace Celeste.Mod.CelesteNet {
             => WaitFor(0, cb, null);
 
         public Action WaitFor<T>(int timeout, DataFilter<T> cb, Action? cbTimeout = null) where T : DataType<T> {
-            object key = new object();
+            object key = new();
 
             DataHandler? wrap = null;
             wrap = RegisterHandler<T>((con, data) => {
@@ -284,7 +284,7 @@ namespace Celeste.Mod.CelesteNet {
                     InnerID = id,
                     InnerSource = source,
                     InnerFlags = flags,
-                    InnerMeta = new List<MetaTypeWrap>(metas),
+                    InnerMeta = new(metas),
                     InnerData = reader.ReadBytes((int) length)
                 };
 
@@ -380,7 +380,7 @@ namespace Celeste.Mod.CelesteNet {
 
             if (data.TryGet(this, out MetaOrderedUpdate? update)) {
                 if (!LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, uint>? updateIDs)) {
-                    updateIDs = new ConcurrentDictionary<uint, uint>();
+                    updateIDs = new();
                     LastOrderedUpdate[type] = updateIDs;
                 }
 
@@ -526,7 +526,7 @@ namespace Celeste.Mod.CelesteNet {
             }
 
             if (!References.TryGetValue(type, out ConcurrentDictionary<uint, DataType>? refs)) {
-                refs = new ConcurrentDictionary<uint, DataType>();
+                refs = new();
                 References[type] = refs;
             }
 
@@ -554,12 +554,12 @@ namespace Celeste.Mod.CelesteNet {
                 throw new Exception($"Cannot bind {type} to unknown reference {typeBoundTo} ID {id}");
 
             if (!Bound.TryGetValue(typeBoundTo, out ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>? boundByID)) {
-                boundByID = new ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>();
+                boundByID = new();
                 Bound[typeBoundTo] = boundByID;
             }
 
             if (!boundByID.TryGetValue(id, out ConcurrentDictionary<string, DataType>? boundByType)) {
-                boundByType = new ConcurrentDictionary<string, DataType>();
+                boundByType = new();
                 boundByID[id] = boundByType;
             }
 

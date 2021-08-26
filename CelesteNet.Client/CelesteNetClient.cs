@@ -39,10 +39,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public DataPlayerInfo PlayerInfo;
 
-        private readonly ManualResetEvent HandshakeEvent = new ManualResetEvent(false);
+        private readonly ManualResetEvent HandshakeEvent = new(false);
         private DataType HandshakeClient;
 
-        private readonly object StartStopLock = new object();
+        private readonly object StartStopLock = new();
 
         private const int UDPDeathScoreMin = -1;
         private const int UDPDeathScoreMax = 5;
@@ -51,13 +51,13 @@ namespace Celeste.Mod.CelesteNet.Client {
         private int UDPAliveScore;
 
         public CelesteNetClient()
-            : this(new CelesteNetClientSettings()) {
+            : this(new()) {
         }
 
         public CelesteNetClient(CelesteNetClientSettings settings) {
             Settings = settings;
 
-            Data = new DataContext();
+            Data = new();
             Data.RegisterHandlersIn(this);
         }
 
@@ -77,7 +77,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     case ConnectionType.TCP:
                         Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {Settings.Host}:{Settings.Port}");
 
-                        CelesteNetTCPUDPConnection con = new CelesteNetTCPUDPConnection(Data, Settings.Host, Settings.Port, Settings.ConnectionType != ConnectionType.TCP);
+                        CelesteNetTCPUDPConnection con = new(Data, Settings.Host, Settings.Port, Settings.ConnectionType != ConnectionType.TCP);
                         con.SendUDP = false;
                         con.OnDisconnect += _ => Dispose();
                         con.OnUDPError += OnUDPError;
@@ -95,7 +95,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         con.StartReadTCP();
                         con.StartReadUDP();
 
-                        HandshakeClient = new DataHandshakeTCPUDPClient {
+                        HandshakeClient = new DataHandshakeTCPUDPClient() {
                             Name = Settings.Name,
                             ConnectionFeatures = ServerConnectionFeatures.Length == 0 ? Dummy<string>.EmptyArray : ConnectionFeatures,
                             ConnectionToken = token

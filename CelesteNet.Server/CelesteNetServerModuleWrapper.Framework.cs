@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public partial class CelesteNetServerModuleWrapper {
 
-        private static readonly Dictionary<string, string> AssemblyNameMap = new Dictionary<string, string>();
+        private static readonly Dictionary<string, string> AssemblyNameMap = new();
 
         private AssemblyName? AssemblyNameReal;
         private AssemblyName? AssemblyNameNew;
@@ -32,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             string path = Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(AssemblyPath)}.{stamp}.dll");
 
             using (ModuleDefinition module = ModuleDefinition.ReadModule(AssemblyPath)) {
-                AssemblyNameReal = new AssemblyName(module.Assembly.Name.FullName);
+                AssemblyNameReal = new(module.Assembly.Name.FullName);
 
                 module.Name += "." + stamp;
                 module.Assembly.Name.Name += "." + stamp;
@@ -43,7 +43,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 module.Write(path);
 
-                AssemblyNameNew = new AssemblyName(module.Assembly.Name.FullName);
+                AssemblyNameNew = new(module.Assembly.Name.FullName);
                 AssemblyNameMap[AssemblyNameReal.Name] = AssemblyNameNew.Name;
             }
 
@@ -57,7 +57,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 AssemblyNameNew == null)
                 return null;
 
-            AssemblyName name = new AssemblyName(args.Name);
+            AssemblyName name = new(args.Name);
             if (name.FullName == AssemblyNameReal.FullName ||
                 name.FullName == AssemblyNameNew.FullName ||
                 name.Name == AssemblyNameReal.Name ||

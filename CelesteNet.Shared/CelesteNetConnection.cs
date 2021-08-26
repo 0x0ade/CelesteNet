@@ -19,7 +19,7 @@ namespace Celeste.Mod.CelesteNet {
         public readonly string Creator = "Unknown";
         public readonly DataContext Data;
 
-        protected readonly object DisposeLock = new object();
+        protected readonly object DisposeLock = new();
 
         private Action<CelesteNetConnection>? _OnDisconnect;
         public event Action<CelesteNetConnection> OnDisconnect {
@@ -37,7 +37,7 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        private readonly object SendFilterLock = new object();
+        private readonly object SendFilterLock = new();
         private DataFilter? _OnSendFilter;
         public event DataFilter OnSendFilter {
             add {
@@ -52,7 +52,7 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        private readonly object ReceiveFilterLock = new object();
+        private readonly object ReceiveFilterLock = new();
         private DataFilter? _OnReceiveFilter;
         public event DataFilter OnReceiveFilter {
             add {
@@ -76,14 +76,14 @@ namespace Celeste.Mod.CelesteNet {
 
         public bool SendStringMap = false;
 
-        protected List<CelesteNetSendQueue> SendQueues = new List<CelesteNetSendQueue>();
+        protected List<CelesteNetSendQueue> SendQueues = new();
 
         public readonly CelesteNetSendQueue DefaultSendQueue;
 
         public CelesteNetConnection(DataContext data) {
             Data = data;
 
-            StackTrace trace = new StackTrace();
+            StackTrace trace = new();
             foreach (StackFrame? frame in trace.GetFrames()) {
                 MethodBase? method = frame?.GetMethod();
                 if (method == null || method.IsConstructor)
@@ -94,7 +94,7 @@ namespace Celeste.Mod.CelesteNet {
                 break;
             }
 
-            SendQueues.Add(DefaultSendQueue = new CelesteNetSendQueue(this, "") {
+            SendQueues.Add(DefaultSendQueue = new(this, "") {
                 SendKeepAliveUpdate = true,
                 SendKeepAliveNonUpdate = true,
                 SendStringMapUpdate = false
@@ -177,7 +177,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly StringMap Strings;
 
-        private readonly object QueueLock = new object();
+        private readonly object QueueLock = new();
         private DataType?[] Queue = new DataType?[256];
         private int QueueSendNext = 0;
         private int QueueAddNext = 0;
@@ -185,8 +185,8 @@ namespace Celeste.Mod.CelesteNet {
         private readonly ManualResetEvent Event;
         private readonly WaitHandle[] EventHandles;
         private readonly Thread Thread;
-        private readonly Dictionary<string, Dictionary<uint, DataDedupe>> LastSent = new Dictionary<string, Dictionary<uint, DataDedupe>>();
-        private readonly List<DataDedupe> Dedupes = new List<DataDedupe>();
+        private readonly Dictionary<string, Dictionary<uint, DataDedupe>> LastSent = new();
+        private readonly List<DataDedupe> Dedupes = new();
 
         private ulong DedupeTimestamp;
 
@@ -205,14 +205,14 @@ namespace Celeste.Mod.CelesteNet {
         public CelesteNetSendQueue(CelesteNetConnection con, string name) {
             Con = con;
 
-            Strings = new StringMap(name);
+            Strings = new(name);
 
-            Buffer = new BufferHelper(con.Data, Strings);
+            Buffer = new(con.Data, Strings);
 
-            Event = new ManualResetEvent(false);
+            Event = new(false);
             EventHandles = new WaitHandle[] { Event };
 
-            Thread = new Thread(ThreadLoop) {
+            Thread = new(ThreadLoop) {
                 Name = $"{GetType().Name} #{GetHashCode()} for {con}",
                 IsBackground = true
             };
@@ -322,7 +322,7 @@ namespace Celeste.Mod.CelesteNet {
                             uint id = data.GetDuplicateFilterID();
 
                             if (!LastSent.TryGetValue(type, out Dictionary<uint, DataDedupe>? slotByID))
-                                LastSent[type] = slotByID = new Dictionary<uint, DataDedupe>();
+                                LastSent[type] = slotByID = new();
 
                             if (slotByID.TryGetValue(id, out DataDedupe? slot)) {
                                 if (slot.Data.ConsideredDuplicate(data))
@@ -331,7 +331,7 @@ namespace Celeste.Mod.CelesteNet {
                                 slot.Timestamp = DedupeTimestamp;
                                 slot.Iterations = 0;
                             } else {
-                                Dedupes.Add(slotByID[id] = new DataDedupe(type, id, data, DedupeTimestamp));
+                                Dedupes.Add(slotByID[id] = new(type, id, data, DedupeTimestamp));
                             }
 
                         }
@@ -440,8 +440,8 @@ namespace Celeste.Mod.CelesteNet {
         public CelesteNetBinaryWriter Writer;
 
         public BufferHelper(DataContext ctx, StringMap strings) {
-            Stream = new MemoryStream();
-            Writer = new CelesteNetBinaryWriter(ctx, strings, Stream);
+            Stream = new();
+            Writer = new(ctx, strings, Stream);
         }
 
         public void Dispose() {

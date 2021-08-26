@@ -36,7 +36,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public Image ToImage()
-            => new Image(GFX.Game[AtlasPath]) {
+            => new(GFX.Game[AtlasPath]) {
                 Position = Position,
                 Origin = Origin,
                 Scale = Scale,

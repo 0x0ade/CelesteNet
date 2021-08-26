@@ -39,13 +39,13 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly string Name;
 
-        public readonly ConcurrentDictionary<int, string> MapRead = new ConcurrentDictionary<int, string>();
-        public readonly ConcurrentDictionary<string, int> MapWrite = new ConcurrentDictionary<string, int>();
+        public readonly ConcurrentDictionary<int, string> MapRead = new();
+        public readonly ConcurrentDictionary<string, int> MapWrite = new();
 
-        private readonly Dictionary<string, int> Counting = new Dictionary<string, int>();
-        private readonly HashSet<string> Pending = new HashSet<string>();
-        private readonly HashSet<string> MappedRead = new HashSet<string>();
-        private readonly List<CountingUpdate> CountingUpdates = new List<CountingUpdate>();
+        private readonly Dictionary<string, int> Counting = new();
+        private readonly HashSet<string> Pending = new();
+        private readonly HashSet<string> MappedRead = new();
+        private readonly List<CountingUpdate> CountingUpdates = new();
 
         private int NextID;
 
@@ -89,12 +89,12 @@ namespace Celeste.Mod.CelesteNet {
                 foreach (KeyValuePair<string, int> entry in Counting) {
                     int score = entry.Value - DemotionScore;
                     if (score <= 0) {
-                        CountingUpdates.Add(new CountingUpdate(entry.Key, null));
+                        CountingUpdates.Add(new(entry.Key, null));
                     } else if (score >= PromotionTreshold) {
-                        CountingUpdates.Add(new CountingUpdate(entry.Key, null));
+                        CountingUpdates.Add(new(entry.Key, null));
                         Pending.Add(entry.Key);
                     } else {
-                        CountingUpdates.Add(new CountingUpdate(entry.Key, score));
+                        CountingUpdates.Add(new(entry.Key, score));
                     }
                 }
                 foreach (CountingUpdate update in CountingUpdates) {
@@ -112,7 +112,7 @@ namespace Celeste.Mod.CelesteNet {
                 if (Pending.Count == 0)
                     return Dummy<Tuple<string, int>>.EmptyList;
 
-                List<Tuple<string, int>> added = new List<Tuple<string, int>>();
+                List<Tuple<string, int>> added = new();
                 foreach (string value in Pending) {
                     int id = NextID++;
                     MapRead[id] = value;

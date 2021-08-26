@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public bool Active;
 
-        private List<Blob> List = new List<Blob>();
+        private List<Blob> List = new();
 
         public DataChannelList Channels;
 
@@ -47,14 +47,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
 
-            List<Blob> list = new List<Blob>();
+            List<Blob> list = new() {
+                new Blob {
+                    Text = $"{all.Length} player{(all.Length == 1 ? "" : "s")}",
+                    Color = ColorCountHeader
+                }
+            };
 
-            list.Add(new Blob {
-                Text = $"{all.Length} player{(all.Length == 1 ? "" : "s")}",
-                Color = ColorCountHeader
-            });
-
-            StringBuilder builder = new StringBuilder();
+            StringBuilder builder = new();
 
 
             switch (Mode) {
@@ -78,19 +78,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         builder.AppendLine();
                     }
 
-                    list.Add(new Blob {
+                    list.Add(new() {
                         Text = builder.ToString().Trim(),
                         ScaleFactor = 1f
                     });
                     break;
 
                 case ListMode.Channels:
-                    HashSet<DataPlayerInfo> listed = new HashSet<DataPlayerInfo>();
+                    HashSet<DataPlayerInfo> listed = new();
 
                     DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
                     if (own != null) {
-                        list.Add(new Blob {
+                        list.Add(new() {
                             Text = own.Name,
                             Color = ColorChannelHeaderOwn
                         });
@@ -98,7 +98,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         builder.Clear();
                         foreach (DataPlayerInfo player in own.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) 
                             listed.Add(ListPlayerUnderChannel(builder, player));
-                        list.Add(new Blob {
+                        list.Add(new() {
                             Text = builder.ToString().Trim(),
                             ScaleFactor = 0.5f
                         });
@@ -108,7 +108,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         if (channel == own)
                             continue;
 
-                        list.Add(new Blob {
+                        list.Add(new() {
                             Text = channel.Name,
                             Color = ColorChannelHeader
                         });
@@ -116,7 +116,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         builder.Clear();
                         foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p)))
                             listed.Add(ListPlayerUnderChannel(builder, player));
-                        list.Add(new Blob {
+                        list.Add(new() {
                             Text = builder.ToString().Trim(),
                             ScaleFactor = 1f
                         });
@@ -131,7 +131,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                         if (!wrotePrivate) {
                             wrotePrivate = true;
-                            list.Add(new Blob {
+                            list.Add(new() {
                                 Text = "!<private>",
                                 Color = ColorChannelHeaderPrivate
                             });
@@ -141,7 +141,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     }
 
                     if (wrotePrivate) {
-                        list.Add(new Blob {
+                        list.Add(new() {
                             Text = builder.ToString().Trim(),
                             ScaleFactor = 1f
                         });
@@ -279,9 +279,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             foreach (Blob blob in list) {
                 CelesteNetClientFont.Draw(
                     blob.Text,
-                    new Vector2(50f * scale, y + blob.DynY),
+                    new(50f * scale, y + blob.DynY),
                     Vector2.Zero,
-                    new Vector2(blob.DynScale, blob.DynScale),
+                    new(blob.DynScale, blob.DynScale),
                     blob.Color
                 );
             }

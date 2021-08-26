@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public class DedupeInfo {
             public int Refs;
-            public readonly List<string> Strings = new List<string>();
+            public readonly List<string> Strings = new();
         }
 
         private struct CountingUpdate {
@@ -28,10 +28,10 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public readonly Dictionary<int, DedupeInfo> Map = new Dictionary<int, DedupeInfo>();
+        public readonly Dictionary<int, DedupeInfo> Map = new();
 
-        private readonly Dictionary<int, int> Counting = new Dictionary<int, int>();
-        private readonly List<CountingUpdate> CountingUpdates = new List<CountingUpdate>();
+        private readonly Dictionary<int, int> Counting = new();
+        private readonly List<CountingUpdate> CountingUpdates = new();
 
         public int PromotionCount = 18;
         public int PromotionTreshold = 10;
@@ -88,7 +88,7 @@ namespace Celeste.Mod.CelesteNet {
                 count = 0;
             if (++count >= PromotionCount) {
                 Counting.Remove(value);
-                Map[value] = new DedupeInfo();
+                Map[value] = new();
             } else {
                 Counting[value] = count;
             }
@@ -101,12 +101,12 @@ namespace Celeste.Mod.CelesteNet {
             foreach (KeyValuePair<int, int> entry in Counting) {
                 int score = entry.Value - DemotionScore;
                 if (score <= 0) {
-                    CountingUpdates.Add(new CountingUpdate(entry.Key, null));
+                    CountingUpdates.Add(new(entry.Key, null));
                 } else if (score >= PromotionTreshold) {
-                    CountingUpdates.Add(new CountingUpdate(entry.Key, null));
-                    Map[entry.Key] = new DedupeInfo();
+                    CountingUpdates.Add(new(entry.Key, null));
+                    Map[entry.Key] = new();
                 } else {
-                    CountingUpdates.Add(new CountingUpdate(entry.Key, score));
+                    CountingUpdates.Add(new(entry.Key, score));
                 }
             }
             foreach (CountingUpdate update in CountingUpdates) {
@@ -175,7 +175,7 @@ namespace Celeste.Mod.CelesteNet {
                     if (count == other.Length && Equals(chars, other))
                         return other;
 
-                string value = new string(chars, 0, count);
+                string value = new(chars, 0, count);
                 dedupe.Strings.Add(value);
                 return value;
             }
@@ -190,7 +190,7 @@ namespace Celeste.Mod.CelesteNet {
 
         [ThreadStatic]
         private static StringDedupeContext? _Ctx;
-        public static StringDedupeContext Ctx => _Ctx ??= new StringDedupeContext();
+        public static StringDedupeContext Ctx => _Ctx ??= new();
 
         public static string Dedupe(this string value)
             => Ctx.Dedupe(value);

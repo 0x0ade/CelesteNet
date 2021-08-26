@@ -59,7 +59,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             CelesteNetClientFont.DrawOutline(
                 Name,
                 pos,
-                new Vector2(0.5f, 1f),
+                new(0.5f, 1f),
                 Vector2.One * 0.5f * scale,
                 Color.White * a,
                 2f,

@@ -25,20 +25,19 @@ namespace Celeste.Mod.CelesteNet.Server {
         public Assembly? Assembly;
 
         public HashSet<string> References;
-        public HashSet<CelesteNetServerModuleWrapper> ReferredBy = new HashSet<CelesteNetServerModuleWrapper>();
+        public HashSet<CelesteNetServerModuleWrapper> ReferredBy = new();
 
         public CelesteNetServerModuleWrapper(CelesteNetServer server, string path) {
             Server = server;
             AssemblyPath = path;
 
-            using (ModuleDefinition module = ModuleDefinition.ReadModule(AssemblyPath)) {
-                ID = module.Assembly.Name.Name;
-                References = new HashSet<string>(
-                    module.AssemblyReferences
-                    .Select(name => name.Name)
-                    .Where(name => name.StartsWith("CelesteNet.Server.") && name.EndsWith("Module"))
-                );
-            }
+            using ModuleDefinition module = ModuleDefinition.ReadModule(AssemblyPath);
+            ID = module.Assembly.Name.Name;
+            References = new(
+                module.AssemblyReferences
+                .Select(name => name.Name)
+                .Where(name => name.StartsWith("CelesteNet.Server.") && name.EndsWith("Module"))
+            );
 
             Logger.Log(LogLevel.INF, "module", $"New module {ID} - {path}");
         }

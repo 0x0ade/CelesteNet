@@ -32,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetClientContext ContextLast;
         public CelesteNetClientContext Context;
         public CelesteNetClient Client => Context?.Client;
-        private readonly object ClientLock = new object();
+        private readonly object ClientLock = new();
 
         private Thread _StartThread;
         public bool IsAlive => Context != null;
@@ -52,7 +52,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             // Dirty hackfix for Everest not reloading Monocle debug commands at runtime.
             if (Engine.Commands != null) {
-                DynamicData cmds = new DynamicData(Engine.Commands);
+                DynamicData cmds = new(Engine.Commands);
                 cmds.Get<IDictionary>("commands").Clear();
                 cmds.Get<IList>("sorted").Clear();
                 cmds.Invoke("BuildCommandsList");
@@ -106,10 +106,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override void OnInputInitialize() {
             base.OnInputInitialize();
 
-            JoystickEmoteWheel = new VirtualJoystick(true,
+            JoystickEmoteWheel = new(true,
                 new VirtualJoystick.PadRightStick(Input.Gamepad, 0.2f)
             );
-            ButtonEmoteSend = new VirtualButton(
+            ButtonEmoteSend = new(
                 new VirtualButton.KeyboardKey(Keys.Q),
                 new VirtualButton.PadButton(Input.Gamepad, Buttons.RightStick)
             );
@@ -158,13 +158,13 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 last?.Status?.Set(null);
 
-                Context = new CelesteNetClientContext(Celeste.Instance);
+                Context = new(Celeste.Instance);
                 ContextLast = Context;
 
                 Context.Status.Set("Initializing...");
             }
 
-            _StartThread = new Thread(() => {
+            _StartThread = new(() => {
                 CelesteNetClientContext context = Context;
                 try {
                     context.Init(Settings);

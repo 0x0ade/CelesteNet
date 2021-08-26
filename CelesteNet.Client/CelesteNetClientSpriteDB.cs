@@ -21,9 +21,9 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Client {
     public static class CelesteNetClientSpriteDB {
 
-        private static ConditionalWeakTable<Sprite, SpriteExt> SpriteExts = new ConditionalWeakTable<Sprite, SpriteExt>();
+        private static ConditionalWeakTable<Sprite, SpriteExt> SpriteExts = new();
 
-        public static Dictionary<string, SpriteMeta> SpriteMetas = new Dictionary<string, SpriteMeta>() {
+        public static Dictionary<string, SpriteMeta> SpriteMetas = new() {
             { "glider", new SpriteMeta {
                 ForceOutline = true
             } },
@@ -64,7 +64,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             string id = self.GetID();
             if (SpriteMetas.TryGetValue(id, out SpriteMeta meta))
                 return meta;
-            return SpriteMetas[id] = new SpriteMeta();
+            return SpriteMetas[id] = new();
         }
 
         private class SpriteExt {

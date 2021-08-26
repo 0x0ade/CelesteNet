@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public readonly ChatModule Chat;
 
-        public readonly Dictionary<string, SpamTimeout> Timeouts = new Dictionary<string, SpamTimeout>();
+        public readonly Dictionary<string, SpamTimeout> Timeouts = new();
 
         public event Action<DataChat, SpamTimeout>? OnSpam;
 
@@ -30,7 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             string text = msg.ToString(false, false).ToLowerInvariant().Sanitize();
             lock (Timeouts) {
                 if (!Timeouts.TryGetValue(text, out SpamTimeout? entry))
-                    Timeouts[text] = entry = new SpamTimeout(this, text);
+                    Timeouts[text] = entry = new(this, text);
                 if (entry.Add()) {
                     OnSpam?.Invoke(msg, entry);
                     return true;

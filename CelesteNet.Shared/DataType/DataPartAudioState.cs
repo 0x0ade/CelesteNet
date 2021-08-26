@@ -26,18 +26,18 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public AudioState ToState()
-            => new AudioState(Music?.ToState(), Ambience?.ToState());
+            => new(Music?.ToState(), Ambience?.ToState());
 
         public override void Read(CelesteNetBinaryReader reader) {
             if (reader.ReadBoolean()) {
-                Music = new DataPartAudioTrackState();
+                Music = new();
                 Music.ReadAll(reader);
             } else {
                 Music = null;
             }
 
             if (reader.ReadBoolean()) {
-                Ambience = new DataPartAudioTrackState();
+                Ambience = new();
                 Ambience.ReadAll(reader);
             } else {
                 Ambience = null;

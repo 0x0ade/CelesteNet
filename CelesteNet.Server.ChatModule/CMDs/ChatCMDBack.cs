@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (self == null || env.Player == null)
                 throw new Exception("Are you trying to TP as the server?");
 
-            DynamicData selfData = new DynamicData(self);
+            DynamicData selfData = new(self);
             TPHistoryEntry? back = selfData.Get<TPHistoryEntry>("tpHistory");
             if (back?.State == null || back?.Session == null)
                 throw new Exception("Got nowhere to teleport back to.");

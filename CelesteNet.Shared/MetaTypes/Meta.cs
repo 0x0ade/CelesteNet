@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public class MetaTypeWrap {
 
         public string ID = "";
-        public Dictionary<string, string> Data = new Dictionary<string, string>();
+        public Dictionary<string, string> Data = new();
 
         public string this[string key] {
             get => Data[key];

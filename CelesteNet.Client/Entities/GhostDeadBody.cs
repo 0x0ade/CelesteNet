@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             level.Displacement.AddBurst(Position, 0.3f, 0f, 80f);
             Input.Rumble(RumbleStrength.Strong, RumbleLength.Long);
             Audio.Play("event:/char/madeline/death", Position);
-            Add(deathEffect = new DeathEffect(initialHairColor, Center - Position));
+            Add(deathEffect = new(initialHairColor, Center - Position));
             yield return deathEffect.Duration * 1.0f;
             player.RemoveSelf();
             RemoveSelf();

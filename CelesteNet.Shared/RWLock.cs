@@ -16,15 +16,15 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet {
     public class RWLock : IDisposable {
 
-        public readonly ReaderWriterLockSlim Inner = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        public readonly ReaderWriterLockSlim Inner = new(LockRecursionPolicy.SupportsRecursion);
         private readonly RLock _R;
         private readonly RULock _RU;
         private readonly WLock _W;
 
         public RWLock() {
-            _R = new RLock(Inner);
-            _RU = new RULock(Inner);
-            _W = new WLock(Inner);
+            _R = new(Inner);
+            _RU = new(Inner);
+            _W = new(Inner);
         }
 
         public RLock R() => _R.Start();

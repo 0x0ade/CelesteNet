@@ -13,7 +13,9 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server {
-    internal static class Program {
+    public static class Program {
+
+        public static CelesteNetServer? Server;
 
         private static void LogHeader(TextWriter w) {
             w.WriteLine("CelesteNet.Server");
@@ -127,9 +129,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private static void MainRun(CelesteNetServerSettings settings) {
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
-            using CelesteNetServer server = new(settings);
+            using CelesteNetServer server = Server = new(settings);
             server.Start();
             server.Wait();
+            Server = null;
         }
 
         private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e) {

@@ -16,6 +16,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public int Port { get; set; } = 3800;
         public string Password { get; set; } = "actuallyHosts";
+        public string PasswordExec { get; set; } = "replaceThisASAP";
 
         public string ContentRoot { get; set; } = "Content";
 

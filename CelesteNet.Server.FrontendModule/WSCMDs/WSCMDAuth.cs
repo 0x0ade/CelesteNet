@@ -12,8 +12,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDAuth : WSCMD<string> {
         public override bool Auth => false;
         public override object? Run(string data) {
+            if (data == Frontend.Settings.PasswordExec) {
+                do {
+                    data = Guid.NewGuid().ToString();
+                } while (!Frontend.CurrentSessionKeys.Add(data) || !Frontend.CurrentSessionExecKeys.Add(data));
+                WS.SessionKey = data;
+                return data;
+            }
             if (data == Frontend.Settings.Password) {
-                data = Guid.NewGuid().ToString();
+                do {
+                    data = Guid.NewGuid().ToString();
+                } while (!Frontend.CurrentSessionKeys.Add(data));
                 Frontend.CurrentSessionKeys.Add(data);
                 WS.SessionKey = data;
                 return data;

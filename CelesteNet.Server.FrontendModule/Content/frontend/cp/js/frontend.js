@@ -54,6 +54,7 @@ export class Frontend {
       "cmd",
       "chat",
       "notes",
+      "exec",
       "assemblies",
       "endpoints"
     ]) {

@@ -47,6 +47,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract string Create(string uid);
         public abstract void RevokeKey(string key);
 
+        public abstract void CopyTo(UserData other);
+        public abstract void Insert(string uid, string key, string keyFull, bool registered);
+        public abstract void InsertData(string uid, string name, Type? type, Stream stream);
+        public abstract void InsertFile(string uid, string name, Stream stream);
 
     }
 

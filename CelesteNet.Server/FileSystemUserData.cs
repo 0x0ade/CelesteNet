@@ -29,14 +29,18 @@ namespace Celeste.Mod.CelesteNet.Server {
         public string GetUserDir(string uid)
             => Path.Combine(UserRoot, uid);
 
+        public string GetUserDataFilePath(string uid, Type type)
+            => Path.Combine(UserRoot, uid, GetDataFileName(type));
+
+        public string GetUserDataFilePath(string uid, string name)
+            => Path.Combine(UserRoot, uid, name + ".yaml");
+
         public string GetUserFilePath(string uid, string name)
+            // Misnomer: "data" in this case should be "raw". Can't change without breaking compat tho.
             => Path.Combine(UserRoot, uid, "data", name);
 
-        public string GetUserFilePath<T>(string uid)
-            => Path.Combine(UserRoot, uid, GetFileName<T>());
-
-        public static string GetFileName<T>()
-            => (typeof(T)?.FullName ?? "unknown") + ".yaml";
+        public static string GetDataFileName(Type type)
+            => (type?.FullName ?? "unknown") + ".yaml";
 
         public bool TryLoadRaw<T>(string path, out T value) where T : new() {
             lock (GlobalLock) {
@@ -97,7 +101,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             => Load<PrivateUserInfo>(uid).Key;
 
         public override bool TryLoad<T>(string uid, out T value)
-            => TryLoadRaw(GetUserFilePath<T>(uid), out value);
+            => TryLoadRaw(GetUserDataFilePath(uid, typeof(T)), out value);
 
         public override Stream? ReadFile(string uid, string name) {
             string path = GetUserFilePath(uid, name);
@@ -107,7 +111,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override void Save<T>(string uid, T value)
-            => SaveRaw(GetUserFilePath<T>(uid), value);
+            => SaveRaw(GetUserDataFilePath(uid, typeof(T)), value);
 
         public override Stream WriteFile(string uid, string name) {
             string path = GetUserFilePath(uid, name);
@@ -120,7 +124,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override void Delete<T>(string uid) {
-            DeleteRaw(GetUserFilePath<T>(uid));
+            DeleteRaw(GetUserDataFilePath(uid, typeof(T)));
             CheckCleanup(uid);
         }
 
@@ -150,7 +154,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             lock (GlobalLock) {
                 if (!Directory.Exists(UserRoot))
                     return Dummy<T>.EmptyArray;
-                string name = GetFileName<T>();
+                string name = GetDataFileName(typeof(T));
                 return Directory.GetDirectories(UserRoot).Select(dir => LoadRaw<T>(Path.Combine(dir, name))).ToArray();
             }
         }
@@ -159,7 +163,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             => LoadRaw<Global>(GlobalPath).UIDs.Values.ToArray();
 
         public override string[] GetAll()
-            =>  !Directory.Exists(UserRoot) ? Dummy<string>.EmptyArray : Directory.GetDirectories(UserRoot).Select(name => Path.GetFileName(name)).ToArray();
+            => !Directory.Exists(UserRoot) ? Dummy<string>.EmptyArray : Directory.GetDirectories(UserRoot).Select(name => Path.GetFileName(name)).ToArray();
 
         public override int GetRegisteredCount()
             => LoadRaw<Global>(GlobalPath).UIDs.Count;
@@ -204,6 +208,77 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Delete<PrivateUserInfo>(uid);
             }
         }
+
+        public override void CopyTo(UserData other) {
+            lock (GlobalLock) {
+                Global global = LoadRaw<Global>(GlobalPath);
+
+                Dictionary<string, Type?> types = new();
+                Assembly[] asms = AppDomain.CurrentDomain.GetAssemblies();
+
+                foreach (string uid in GetAll()) {
+                    PrivateUserInfo info = Load<PrivateUserInfo>(uid);
+                    other.Insert(uid, info.Key, info.KeyFull, !info.KeyFull.IsNullOrEmpty());
+
+                    foreach (string path in Directory.GetFiles(Path.Combine(UserRoot, uid))) {
+                        string name = Path.GetFileNameWithoutExtension(path);
+                        if (name == typeof(PrivateUserInfo).FullName)
+                            continue;
+
+                        if (!types.TryGetValue(name, out Type? type)) {
+                            foreach (Assembly asm in asms)
+                                if ((type = asm.GetType(name)) != null)
+                                    break;
+                            types[name] = type;
+                        }
+
+                        using Stream stream = File.OpenRead(path);
+                        other.InsertData(uid, name, type, stream);
+                    }
+
+                    string dir = Path.Combine(UserRoot, uid, "data");
+                    if (Directory.Exists(dir)) {
+                        foreach (string path in Directory.GetFiles(dir)) {
+                            string name = Path.GetFileName(path);
+                            using Stream stream = File.OpenRead(path);
+                            other.InsertFile(uid, name, stream);
+                        }
+                    }
+                }
+            }
+        }
+
+        public override void Insert(string uid, string key, string keyFull, bool registered) {
+            lock (GlobalLock) {
+                Global global = LoadRaw<Global>(GlobalPath);
+                global.UIDs[key] = uid;
+                SaveRaw(GlobalPath, global);
+
+                Save<PrivateUserInfo>(uid, new() {
+                    Key = key,
+                    KeyFull = keyFull
+                });
+            }
+        }
+
+        private void InsertFileRaw(string path, Stream stream) {
+            lock (GlobalLock) {
+                string? dir = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+
+                if (File.Exists(path))
+                    File.Delete(path);
+                Stream target = File.OpenWrite(path);
+                stream.CopyTo(target);
+            }
+        }
+
+        public override void InsertData(string uid, string name, Type? type, Stream stream)
+            => InsertFileRaw(type != null ? GetUserDataFilePath(uid, type) : GetUserDataFilePath(uid, name), stream);
+
+        public override void InsertFile(string uid, string name, Stream stream)
+            => InsertFileRaw(GetUserFilePath(uid, name), stream);
 
         public class Global {
             public Dictionary<string, string> UIDs { get; set; } = new();

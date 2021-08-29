@@ -15,6 +15,10 @@ using WebSocketSharp.Server;
 
 #if NETCORE
 using System.Runtime.Loader;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Emit;
+using Microsoft.CodeAnalysis.Text;
 #endif
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
@@ -59,9 +63,21 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
+            if (pass == f.Settings.PasswordExec) {
+                do {
+                    key = Guid.NewGuid().ToString();
+                } while (!f.CurrentSessionKeys.Add(key) || !f.CurrentSessionExecKeys.Add(key));
+                c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key));
+                f.RespondJSON(c, new {
+                    Key = key
+                });
+                return;
+            }
+
             if (pass == f.Settings.Password) {
-                key = Guid.NewGuid().ToString();
-                f.CurrentSessionKeys.Add(key);
+                do {
+                    key = Guid.NewGuid().ToString();
+                } while (!f.CurrentSessionKeys.Add(key));
                 c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key));
                 f.RespondJSON(c, new {
                     Key = key
@@ -308,6 +324,99 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
         }
+
+#if NETCORE
+        [RCEndpoint(true, "/exec", "", "", "Execute C#", "Run some C# code. Highly dangerous!")]
+        public static void Exec(Frontend f, HttpRequestEventArgs c) {
+            if (!f.IsAuthorizedExec(c))
+                f.Respond(c, "Unauthorized!");
+
+            ExecALC? alc = null;
+
+            try {
+                string name = $"CelesteNet.Server.FrontendModule.REPL.{Guid.NewGuid().ToString().Replace("-", "")}";
+
+                string code;
+                using (StreamReader sr = new(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
+                    code = sr.ReadToEnd();
+
+                List<MetadataReference> refs = new();
+                foreach (Assembly asmLoaded in AppDomain.CurrentDomain.GetAssemblies()) {
+                    try {
+                        string asmPath = asmLoaded.Location;
+                        if (asmPath.IsNullOrEmpty() || !File.Exists(asmPath))
+                            continue;
+                        refs.Add(MetadataReference.CreateFromFile(asmPath));
+                    } catch {
+                    }
+                }
+
+                CSharpCompilation comp = CSharpCompilation.Create(
+                    $"{name}.dll",
+                    new SyntaxTree[] {
+                        SyntaxFactory.ParseSyntaxTree(code, CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest))
+                    },
+                    refs,
+                    new(
+                        OutputKind.ConsoleApplication,
+                        optimizationLevel: OptimizationLevel.Release,
+                        assemblyIdentityComparer: DesktopAssemblyIdentityComparer.Default
+                    )
+                );
+
+                using MemoryStream ms = new();
+                EmitResult result = comp.Emit(ms);
+                if (!result.Success) {
+                    throw new Exception("Failed building:\n" +
+                        string.Join('\n', result.Diagnostics
+                            .Where(d => d.IsWarningAsError || d.Severity == DiagnosticSeverity.Error)
+                            .Select(d => $"{d.Id}: {d.GetMessage()}"))
+                    );
+                }
+
+                ms.Seek(0, SeekOrigin.Begin);
+
+                alc = new(name);
+                alc.Resolving += (ctx, name) => {
+                    foreach (CelesteNetServerModuleWrapper wrapper in f.Server.ModuleWrappers)
+                        if (wrapper.ID == name.Name)
+                            return wrapper.Assembly;
+                    return null;
+                };
+
+                Assembly asm = alc.LoadFromStream(ms);
+                if (asm.EntryPoint == null)
+                    throw new Exception("No entry point found");
+
+                try {
+                    object? rv = asm.EntryPoint.Invoke(null, new object[asm.EntryPoint.GetParameters().Length]);
+                    f.Respond(c, rv?.ToString() ?? "null");
+                } catch (TargetInvocationException tie) when (tie.InnerException is Exception e && e.TargetSite == asm.EntryPoint) {
+                    f.Respond(c, e.Message);
+                }
+
+            } catch (Exception e) {
+                Logger.Log(LogLevel.DEV, "frontend-exec", e.ToString());
+                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                f.Respond(c, $"Error:\n{e}");
+
+            } finally {
+                alc?.Unload();
+            }
+        }
+
+        private class ExecALC : AssemblyLoadContext {
+
+            public ExecALC(string name)
+                : base(name, isCollectible: true) {
+            }
+
+            protected override Assembly? Load(AssemblyName name) {
+                return null;
+            }
+
+        }
+#endif
 
     }
 }

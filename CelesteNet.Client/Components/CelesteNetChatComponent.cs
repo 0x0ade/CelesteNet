@@ -272,15 +272,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     // extra CursorIndex check since at index=1 using trim=1 is fine
                     if (_ControlHeld && _CursorIndex > 1) {
                         // adjust Ctrl+Backspace for having a space right before cursor
+                        int _adjustedCursor = CursorIndex;
                         if (Typing[_CursorIndex - 1] == ' ')
-                            CursorIndex--;
-                        int prevWord = Typing.LastIndexOf(" ", _CursorIndex - 1);
+                            _adjustedCursor--;
+                        int prevWord = Typing.LastIndexOf(" ", _adjustedCursor - 1);
                         // if control is held and a space is found, trim from cursor back to space
                         if (prevWord >= 0)
-                            trim = _CursorIndex - prevWord;
+                            trim = _adjustedCursor - prevWord;
                         // otherwise trim whole input back from cursor as it is one word
                         else
-                            trim = _CursorIndex;
+                            trim = _adjustedCursor;
                     }
                     // remove <trim> amount of characters before cursor
                     Typing = Typing.Remove(_CursorIndex - trim, trim);

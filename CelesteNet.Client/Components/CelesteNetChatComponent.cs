@@ -328,8 +328,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Active) {
                 Context.RenderHelper.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
 
-                //string prompt = "(" + Typing.IndexOf(" ", _CursorIndex) + (_directionHeldLast ? "+" : "-") + (_CursorMoveFast ? "^" : "-") + Typing.LastIndexOf(" ", _CursorIndex - (_CursorIndex > 0 ? 1 : 0)) + ") >";
-                
                 CelesteNetClientFont.Draw(
                     ">",
                     new(50f * scale, UI_HEIGHT - 105f * scale),

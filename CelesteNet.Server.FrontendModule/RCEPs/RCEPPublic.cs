@@ -221,7 +221,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             });
         }
 
-        [RCEndpoint(false, "/revokekey", "?&key={key}", "", "Revoke Key", "Revoke the given key.")]
+        [RCEndpoint(false, "/revokekey", "?key={key}", "", "Revoke Key", "Revoke the given key.")]
         public static void RevokeKey(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 

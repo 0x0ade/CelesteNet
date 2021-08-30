@@ -210,6 +210,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override void CopyTo(UserData other) {
+            using UserDataBatchContext batch = other.OpenBatch();
             lock (GlobalLock) {
                 Global global = LoadRaw<Global>(GlobalPath);
 

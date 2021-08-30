@@ -158,9 +158,21 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             });
         }
 
-        [RCEndpoint(true, "/userinfos", "", "", "User Infos", "Get some basic information about ALL users.")]
+        [RCEndpoint(true, "/userinfos", "?from={first}&count={count}", "?from=0&count=100", "User Infos", "Get some basic information about ALL users.")]
         public static void UserInfos(Frontend f, HttpRequestEventArgs c) {
-            f.RespondJSON(c, f.Server.UserData.GetAll().Select(uid => {
+            using UserDataBatchContext ctx = f.Server.UserData.OpenBatch();
+
+            string[] uids = f.Server.UserData.GetAll();
+
+            NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
+            if (!int.TryParse(args["from"], out int from) || from <= 0)
+                from = 0;
+            if (!int.TryParse(args["count"], out int count) || count <= 0)
+                count = 100;
+            if (from + count > uids.Length)
+                count = uids.Length - from;
+
+            f.RespondJSON(c, uids.Skip(from).Take(count).Select(uid => {
                 BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
                 BanInfo ban = f.Server.UserData.Load<BanInfo>(uid);
                 KickHistory kicks = f.Server.UserData.Load<KickHistory>(uid);

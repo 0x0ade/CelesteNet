@@ -34,8 +34,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 msg.Text
             };
 
+        private static readonly DateTime UnixTimeStart = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         public static double ToUnixTime(this DateTime time)
-            => time.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+            => time.Subtract(UnixTimeStart).TotalMilliseconds;
 
     }
 }

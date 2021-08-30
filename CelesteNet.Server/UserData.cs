@@ -22,6 +22,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public abstract void Dispose();
 
+        public virtual UserDataBatchContext OpenBatch() => UserDataBatchContext.Nop;
+
         public abstract string GetUID(string key);
         public abstract string GetKey(string uid);
 
@@ -51,6 +53,18 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract void Insert(string uid, string key, string keyFull, bool registered);
         public abstract void InsertData(string uid, string name, Type? type, Stream stream);
         public abstract void InsertFile(string uid, string name, Stream stream);
+
+    }
+
+    public class UserDataBatchContext : IDisposable {
+
+        public static readonly UserDataBatchContext Nop = new();
+
+        protected UserDataBatchContext() {
+        }
+
+        public virtual void Dispose() {
+        }
 
     }
 

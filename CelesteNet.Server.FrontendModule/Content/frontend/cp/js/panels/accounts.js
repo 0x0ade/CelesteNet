@@ -36,7 +36,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Accounts";
-    this.ep = "/userinfos";
+    this.ep = "/userinfos?from=0&count=100000";
     /** @type {UserInfo[]} */
     this.data = [];
 

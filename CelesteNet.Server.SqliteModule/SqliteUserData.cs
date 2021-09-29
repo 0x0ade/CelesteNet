@@ -237,6 +237,8 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
         }
 
         public override string GetUID(string key) {
+            if (key.IsNullOrEmpty())
+                return "";
             using MiniCommand mini = new(this) {
                 SqliteOpenMode.ReadOnly,
                 @"
@@ -252,6 +254,8 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
         }
 
         public override string GetKey(string uid) {
+            if (uid.IsNullOrEmpty())
+                return "";
             using MiniCommand mini = new(this) {
                 SqliteOpenMode.ReadOnly,
                 @"

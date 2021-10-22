@@ -83,7 +83,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }
 
-        [SettingRange(1, 4)]
+        [SettingRange(0, 4)]
         public int PlayerOpacity { get; set; } = 4;
 
         [SettingRange(0, 4)]

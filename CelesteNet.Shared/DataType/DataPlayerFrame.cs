@@ -81,7 +81,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Facing = reader.ReadBoolean() ? Facings.Left : Facings.Right;
             Depth = reader.ReadInt32();
 
-            SpriteMode = (PlayerSpriteMode) reader.ReadByte();
+            SpriteMode = (PlayerSpriteMode) reader.ReadInt32();
             SpriteRate = reader.ReadSingle();
             SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null;
 

@@ -143,7 +143,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             BroadcastCMD(msg.Targets != null, "chat", msg.ToFrontendChat());
         }
 
-        public Stream? OpenContent(string path, out string pathNew, out DateTime? lastMod) {
+        private string? GetContentType(string path) {
+#if NETCORE
+            if (ContentTypeProvider.TryGetContentType(path, out string contentType))
+                return contentType;
+            return null;
+#else
+            return MimeMapping.GetMimeMapping(path);
+#endif
+        }
+
+        public Stream? OpenContent(string path, out string pathNew, out DateTime? lastMod, out string? contentType) {
             pathNew = path;
 
             try {
@@ -151,6 +161,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 string pathFS = Path.GetFullPath(Path.Combine(dir, path));
                 if (pathFS.StartsWith(dir) && File.Exists(pathFS)) {
                     lastMod = File.GetLastWriteTimeUtc(pathFS);
+                    contentType = GetContentType(pathFS);
                     return File.OpenRead(pathFS);
                 }
             } catch {
@@ -162,6 +173,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 string pathFS = Path.GetFullPath(Path.Combine(dir, path));
                 if (pathFS.StartsWith(dir) && File.Exists(pathFS)) {
                     lastMod = File.GetLastWriteTimeUtc(pathFS);
+                    contentType = GetContentType(pathFS);
                     return File.OpenRead(pathFS);
                 }
             } catch {
@@ -172,6 +184,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 string pathFS = Path.GetFullPath(Path.Combine(dir, path));
                 if (pathFS.StartsWith(dir) && File.Exists(pathFS)) {
                     lastMod = File.GetLastWriteTimeUtc(pathFS);
+                    contentType = GetContentType(pathFS);
                     return File.OpenRead(pathFS);
                 }
             } catch {
@@ -180,7 +193,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             if (!path.EndsWith("/index.html")) {
                 path = path.EndsWith("/") ? path : (path + "/");
-                Stream? index = OpenContent(path + "index.html", out _, out lastMod);
+                Stream? index = OpenContent(path + "index.html", out _, out lastMod, out contentType);
                 if (index != null) {
                     pathNew = path;
                     return index;
@@ -188,6 +201,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
 
             lastMod = null;
+            contentType = GetContentType(path);
             return typeof(CelesteNetServer).Assembly.GetManifestResourceStream("Celeste.Mod.CelesteNet.Server.Content." + path.Replace("/", "."));
         }
 
@@ -303,7 +317,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         #region Write Helpers
 
         public void RespondContent(HttpRequestEventArgs c, string id) {
-            using Stream? s = OpenContent(id, out string pathNew, out DateTime? lastMod);
+            using Stream? s = OpenContent(id, out string pathNew, out DateTime? lastMod, out string? contentType);
             if (s == null) {
                 c.Response.StatusCode = (int) HttpStatusCode.NotFound;
                 RespondJSON(c, new {
@@ -323,12 +337,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (lastMod != null)
                 c.Response.Headers.Set("Last-Modified", lastMod.Value.ToString("r"));
 
-#if NETCORE
-                if (ContentTypeProvider.TryGetContentType(id, out string contentType))
-                    c.Response.ContentType = contentType;
-#else
-            c.Response.ContentType = MimeMapping.GetMimeMapping(id);
-#endif
+            if (contentType != null)
+                c.Response.ContentType = contentType;
 
             Respond(c, s.ToBytes());
         }

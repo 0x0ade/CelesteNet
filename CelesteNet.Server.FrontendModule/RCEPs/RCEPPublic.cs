@@ -149,7 +149,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         g.FillEllipse(tbr, 0, 0, 64, 64);
 
                     foreach (string tagName in info.Tags) {
-                        using Stream? asset = f.OpenContent($"frontend/assets/tags/{tagName}.png", out _, out _);
+                        using Stream? asset = f.OpenContent($"frontend/assets/tags/{tagName}.png", out _, out _, out _);
                         if (asset == null)
                             continue;
 

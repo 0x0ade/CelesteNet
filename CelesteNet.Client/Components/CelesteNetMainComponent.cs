@@ -447,6 +447,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if ((ghost.Position - player.Position).LengthSquared() > 4096f)
                     goto Release;
 
+                if ((grab.Position - player.Position).LengthSquared() > 4096f)
+                    goto Release;
+
                 RunOnMainThread(() => {
                     GrabTimeout = 0f;
 

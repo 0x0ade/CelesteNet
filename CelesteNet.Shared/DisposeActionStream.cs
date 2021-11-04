@@ -43,13 +43,13 @@ namespace Celeste.Mod.CelesteNet {
 
         public override void Write(byte[] buffer, int offset, int count) => Inner.Write(buffer, offset, count);
 
-        public override IAsyncResult BeginRead(byte[] array, int offset, int count, AsyncCallback callback, object state) => Inner.BeginRead(array, offset, count, callback, state);
+        public override IAsyncResult BeginRead(byte[] array, int offset, int count, AsyncCallback? callback, object? state) => Inner.BeginRead(array, offset, count, callback, state);
 
         public override int EndRead(IAsyncResult asyncResult) => Inner.EndRead(asyncResult);
 
         public override int ReadByte() => Inner.ReadByte();
 
-        public override IAsyncResult BeginWrite(byte[] array, int offset, int count, AsyncCallback callback, object state) => Inner.BeginWrite(array, offset, count, callback, state);
+        public override IAsyncResult BeginWrite(byte[] array, int offset, int count, AsyncCallback? callback, object? state) => Inner.BeginWrite(array, offset, count, callback, state);
 
         public override void EndWrite(IAsyncResult asyncResult) => Inner.EndWrite(asyncResult);
 

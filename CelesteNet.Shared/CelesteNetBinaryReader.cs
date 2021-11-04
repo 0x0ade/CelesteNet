@@ -29,6 +29,9 @@ namespace Celeste.Mod.CelesteNet {
             Strings = strings;
         }
 
+        public new int Read7BitEncodedInt()
+            => base.Read7BitEncodedInt();
+
         public virtual Vector2 ReadVector2()
             => new(ReadSingle(), ReadSingle());
         public virtual Vector2 ReadVector2Scale()

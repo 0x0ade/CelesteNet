@@ -74,6 +74,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public bool SendKeepAlive = false;
 
+        // TODO: Merge these features with the next protocol version bump.
         public bool SendStringMap = false;
 
         protected List<CelesteNetSendQueue> SendQueues = new();

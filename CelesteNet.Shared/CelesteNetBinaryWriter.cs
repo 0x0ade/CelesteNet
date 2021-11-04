@@ -80,6 +80,9 @@ namespace Celeste.Mod.CelesteNet {
             BaseStream.Seek(end, SeekOrigin.Begin);
         }
 
+        public new void Write7BitEncodedInt(int value)
+            => base.Write7BitEncodedInt(value);
+
         public virtual void Write(Vector2 value) {
             Write(value.X);
             Write(value.Y);

@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
     public class ChatCMDEmote : ChatCMD {
 
-        public override string Args => "<text> | i:<img> | p:<img>";
+        public override string Args => "<text> | i:<img> | p:<img> | g:<img>";
 
         public override string Info => "Send an emote appearing over your player.";
         public override string Help =>
@@ -27,6 +27,7 @@ Normal text appears over your player.
 This syntax also works for your ""favorites"" (settings file).
 i:TEXTURE shows TEXTURE from the GUI atlas.
 p:TEXTURE shows TEXTURE from the Portraits atlas.
+g:TEXTURE shows TEXTURE from the Gameplay atlas.
 p:FRM1 FRM2 FRM3 plays an animation, 7 FPS by default.
 p:10 FRM1 FRM2 FRM3 plays the animation at 10 FPS.";
 

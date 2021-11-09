@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet {
     */
     public class StringMap {
 
-        private struct CountingUpdate {
+        private class CountingUpdate {
             public string Key;
             public int? Value;
             public CountingUpdate(string key, int? value) {

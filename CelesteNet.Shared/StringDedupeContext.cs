@@ -19,7 +19,7 @@ namespace Celeste.Mod.CelesteNet {
             public readonly List<string> Strings = new();
         }
 
-        private struct CountingUpdate {
+        private class CountingUpdate {
             public int Key;
             public int? Value;
             public CountingUpdate(int key, int? value) {

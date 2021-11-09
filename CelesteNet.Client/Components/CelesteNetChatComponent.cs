@@ -58,9 +58,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public int CursorIndex {
             get => _CursorIndex;
             set {
-                // this is "+1" because the Cursor can be at position 0 to Typing.Length
-                // where 0 is before the first char, Typing.Length-1 is before the last, and Typing.Length is after
-                _CursorIndex = value % (Typing.Length + 1);
+                if (value < 0)
+                    value = 0;
+
+                // This deliberately exceeds the Typing string's indices since the cursor
+                // 1. ... at index 0 is before the first char,
+                // 2. ... at Typing.Length-1 is before the last char,
+                // and at Typing.Length is _after_ the last char.
+                if (value > Typing.Length)
+                    value = Typing.Length;
+
+                _CursorIndex = value;
             }
         }
 
@@ -182,7 +190,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 _ControlHeld = MInput.Keyboard.Check(Keys.LeftControl) || MInput.Keyboard.Check(Keys.RightControl);
 
-                if(!MInput.Keyboard.Check(Keys.Left) && !MInput.Keyboard.Check(Keys.Right)) {
+                if (!MInput.Keyboard.Check(Keys.Left) && !MInput.Keyboard.Check(Keys.Right)) {
                     _CursorMoveFast = false;
                     _TimeSinceCursorMove = 0;
                 }
@@ -309,7 +317,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 _RepeatIndex = 0;
                 _Time = 0;
             } else if (!char.IsControl(c)) {
-                if(CursorIndex == Typing.Length) {
+                if (CursorIndex == Typing.Length) {
                     // Any other character - append.
                     Typing += c;
                 } else {
@@ -349,7 +357,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (!Calc.BetweenInterval(_Time, 0.5f)) {
 
-                    if(CursorIndex == Typing.Length) {
+                    if (CursorIndex == Typing.Length) {
                         offs += CelesteNetClientFont.Measure(text).X * scale;
                         CelesteNetClientFont.Draw(
                             "_",

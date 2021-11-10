@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <LangVersion>9</LangVersion> <!-- FIXME: Figure out why dotnet needs this! -->
-    <TargetFrameworks>net5.0</TargetFrameworks>
+    <TargetFrameworks>net6.0</TargetFrameworks>
     <AssemblyName>CelesteNet.Server.SqliteModule</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Server.Sqlite</RootNamespace>
   </PropertyGroup>

@@ -216,9 +216,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 HoldableAdded = false;
                 Remove(Holdable);
             }
-            if(CelesteNetClientModule.Settings.PlayerOpacity == 0){
+            if (CelesteNetClientModule.Settings.PlayerOpacity == 0) {
                 Alpha = 0f;
-            }else{
+            } else {
                 Alpha = 0.875f * ((CelesteNetClientModule.Settings.PlayerOpacity + 2) / 6f);
             }
             DepthOffset = 0;

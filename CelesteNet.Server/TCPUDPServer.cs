@@ -16,13 +16,15 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server {
     public class TCPUDPServer : IDisposable {
 
+        public const int NUM_UDP_THREADS = 8;
+
         public readonly CelesteNetServer Server;
 
         protected TcpListener? TCPListener;
-        protected UdpClient? UDP;
+        protected UdpClient?[] UDPs;
 
         private Thread? TCPListenerThread;
-        private Thread? UDPReadThread;
+        private Thread?[] UDPReadThreads;
 
         private uint UDPNextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
         private readonly ConcurrentDictionary<CelesteNetTCPUDPConnection, UDPPendingKey> UDPKeys = new();
@@ -47,25 +49,31 @@ namespace Celeste.Mod.CelesteNet.Server {
             };
             TCPListenerThread.Start();
 
-            Socket udpSocket = new(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
-            udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
-            udpSocket.Bind(new IPEndPoint(IPAddress.IPv6Any, Server.Settings.MainPort));
-            UDP = new(AddressFamily.InterNetworkV6);
-            UDP.Client.Dispose();
-            UDP.Client = udpSocket;
+            UDPs = new UdpClient?[NUM_UDP_THREADS];
+            UDPReadThreads = new Thread?[NUM_UDP_THREADS];
+            for (int i = 0; i < NUM_UDP_THREADS; i++) {
+                Socket udpSocket = new(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
+                udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+                udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
+                udpSocket.Bind(new IPEndPoint(IPAddress.IPv6Any, Server.Settings.MainPort));
+                UDPs[i] = new(AddressFamily.InterNetworkV6);
+                UDPs[i].Client.Dispose();
+                UDPs[i].Client = udpSocket;
 
-            UDPReadThread = new(UDPReadLoop) {
-                Name = $"TCPUDPServer UDPRead ({GetHashCode()})",
-                IsBackground = true
-            };
-            UDPReadThread.Start();
+                int idx = i;
+                UDPReadThreads[i] = new(() => UDPReadLoop(idx)) {
+                    Name = $"TCPUDPServer UDPRead {i} ({GetHashCode()})",
+                    IsBackground = true
+                };
+                UDPReadThreads[i].Start();
+            }
         }
 
         public void Dispose() {
             Logger.Log(LogLevel.INF, "tcpudp", "Shutdown");
 
             TCPListener?.Stop();
-            UDP?.Close();
+            foreach (UdpClient? UDP in UDPs) UDP?.Close();
 
             Server.Data.UnregisterHandlersIn(this);
         }
@@ -116,15 +124,15 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        protected virtual void UDPReadLoop() {
+        protected virtual void UDPReadLoop(int idx) {
             try {
                 using MemoryStream stream = new();
                 using CelesteNetBinaryReader reader = new(Server.Data, null, stream);
-                while (Server.IsAlive && UDP != null) {
+                while (Server.IsAlive && UDPs[idx] != null) {
                     IPEndPoint? remote = null;
                     byte[] raw;
                     try {
-                        raw = UDP.Receive(ref remote);
+                        raw = UDPs[idx].Receive(ref remote);
                     } catch (SocketException) {
                         continue;
                     }
@@ -139,11 +147,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 Token = BitConverter.ToUInt32(raw, 0)
                             };
                             if (UDPPending.TryRemove(key, out con)) {
-                                Logger.Log(LogLevel.CRI, "tcpudp", $"New UDP connection: {remote}");
+                                Logger.Log(LogLevel.CRI, "tcpudp", $"New UDP connection on thread {idx}: {remote}");
                                 con.OnDisconnect -= RemoveUDPPending;
 
-                                con.UDP = UDP;
-                                con.UDPLocalEndPoint = (IPEndPoint?) UDP.Client.LocalEndPoint;
+                                con.UDP = UDPs[idx];
+                                con.UDPLocalEndPoint = (IPEndPoint?) UDPs[idx].Client.LocalEndPoint;
                                 con.UDPRemoteEndPoint = remote;
 
                                 UDPMap[con.UDPRemoteEndPoint] = con;
@@ -165,7 +173,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         stream.Seek(0, SeekOrigin.Begin);
                         Server.Data.Handle(con, Server.Data.Read(reader));
                     } catch (Exception e) {
-                        Logger.Log(LogLevel.CRI, "tcpudp", $"Failed handling UDP data, {raw.Length} bytes:\n{con}\n{e}");
+                        Logger.Log(LogLevel.CRI, "tcpudp", $"Failed handling UDP data on thread {idx}, {raw.Length} bytes:\n{con}\n{e}");
                         // Sometimes we receive garbage via UDP. Oh well...
                         Handle(con, new DataTCPOnlyDowngrade());
                     }
@@ -174,7 +182,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             } catch (ThreadAbortException) {
 
             } catch (Exception e) {
-                Logger.Log(LogLevel.CRI, "tcpudp", $"Failed waiting for UDP data:\n{e}");
+                Logger.Log(LogLevel.CRI, "tcpudp", $"Failed waiting for UDP data on thread {idx}:\n{e}");
                 Server.Dispose();
             }
         }

@@ -24,10 +24,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetServer Server;
 
         protected TcpListener? TCPListener;
-        protected UdpClient?[] UDPs;
+        protected UdpClient[]? UDPs;
 
         private Thread? TCPListenerThread;
-        private Thread?[] UDPReadThreads;
+        private Thread[]? UDPReadThreads;
 
         private uint UDPNextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
         private readonly ConcurrentDictionary<CelesteNetTCPUDPConnection, UDPPendingKey> UDPKeys = new();
@@ -64,8 +64,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
             Logger.Log(LogLevel.CRI, "tcpudp", $"Starting {numUdpThreads} UDP threads");
 
-            UDPs = new UdpClient?[numUdpThreads];
-            UDPReadThreads = new Thread?[numUdpThreads];
+            UDPs = new UdpClient[numUdpThreads];
+            UDPReadThreads = new Thread[numUdpThreads];
             for (int i = 0; i < numUdpThreads; i++) {
                 Socket udpSocket = new(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
                 udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
@@ -111,7 +111,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "tcpudp", "Shutdown");
 
             TCPListener?.Stop();
-            foreach (UdpClient? UDP in UDPs) UDP?.Close();
+            if (UDPs != null) 
+                foreach (UdpClient UDP in UDPs) UDP.Close();
 
             Server.Data.UnregisterHandlersIn(this);
         }
@@ -166,7 +167,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             try {
                 using MemoryStream stream = new();
                 using CelesteNetBinaryReader reader = new(Server.Data, null, stream);
-                while (Server.IsAlive && UDPs[idx] != null) {
+                while (Server.IsAlive && UDPs?[idx] != null) {
                     IPEndPoint? remote = null;
                     byte[] raw;
                     try {

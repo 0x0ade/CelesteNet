@@ -216,8 +216,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 HoldableAdded = false;
                 Remove(Holdable);
             }
-
-            Alpha = 0.875f * ((CelesteNetClientModule.Settings.PlayerOpacity + 2) / 6f);
+            if (CelesteNetClientModule.Settings.PlayerOpacity == 0) {
+                Alpha = 0f;
+            } else {
+                Alpha = 0.875f * ((CelesteNetClientModule.Settings.PlayerOpacity + 2) / 6f);
+            }
             DepthOffset = 0;
             Player p = Scene.Tracker.GetEntity<Player>();
             if (p != null) {

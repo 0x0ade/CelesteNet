@@ -12,11 +12,16 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class TCPUDPServer : IDisposable {
 
         public const int NUM_UDP_THREADS = 8;
+
+        private const int SOL_SOCKET = 1, SO_REUSEPORT = 15;
+        [DllImport("libc", SetLastError = true)] 
+        private static extern int setsockopt(IntPtr socket, int level, int opt, in int[] val, int len);
 
         public readonly CelesteNetServer Server;
 
@@ -55,6 +60,16 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Socket udpSocket = new(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
                 udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
                 udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
+
+                // Some Linux runtimes don't also set SO_REUSPORT, so set that manualy
+                if (Environment.OSVersion.Platform == PlatformID.Unix) {
+                    if (setsockopt(udpSocket.Handle, SOL_SOCKET, SO_REUSEPORT, new[] { 1 }, sizeof(int)) < 0) {
+                        // Even though the method is named GetLastWin32Error, it still works on Linux
+                        // NET 6.0 added the better named method GetLastPInvokeError, which does the same thing
+                        Logger.Log(LogLevel.WRN, "tcpudp", $"Failed enabling UDP socket option SO_REUSEPORT: {Marshal.GetLastWin32Error()}");
+                    }
+                }
+
                 udpSocket.Bind(new IPEndPoint(IPAddress.IPv6Any, Server.Settings.MainPort));
                 UDPs[i] = new(AddressFamily.InterNetworkV6);
                 UDPs[i].Client.Dispose();

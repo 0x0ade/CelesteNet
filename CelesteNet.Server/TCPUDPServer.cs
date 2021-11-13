@@ -21,7 +21,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private const int SOL_SOCKET = 1, SO_REUSEPORT = 15;
         [DllImport("libc", SetLastError = true)] 
-        private static extern int setsockopt(IntPtr socket, int level, int opt, in int[] val, int len);
+        private static extern int setsockopt(IntPtr socket, int level, int opt, [In, MarshalAs(UnmanagedType.LPArray)] int[] val, int len);
 
         public readonly CelesteNetServer Server;
 
@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
                 udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
 
-                // Some Linux runtimes don't also set SO_REUSPORT, so set that manualy
+                // Some Linux runtimes don't also set SO_REUSPORT, so set that explicitly
                 if (Environment.OSVersion.Platform == PlatformID.Unix) {
                     if (setsockopt(udpSocket.Handle, SOL_SOCKET, SO_REUSEPORT, new[] { 1 }, sizeof(int)) < 0) {
                         // Even though the method is named GetLastWin32Error, it still works on Linux

@@ -17,8 +17,6 @@ using System.Runtime.InteropServices;
 namespace Celeste.Mod.CelesteNet.Server {
     public class TCPUDPServer : IDisposable {
 
-        public const int NUM_UDP_THREADS = 8;
-
         private const int SOL_SOCKET = 1, SO_REUSEPORT = 15;
         [DllImport("libc", SetLastError = true)] 
         private static extern int setsockopt(IntPtr socket, int level, int opt, [In, MarshalAs(UnmanagedType.LPArray)] int[] val, int len);
@@ -54,20 +52,37 @@ namespace Celeste.Mod.CelesteNet.Server {
             };
             TCPListenerThread.Start();
 
-            UDPs = new UdpClient?[NUM_UDP_THREADS];
-            UDPReadThreads = new Thread?[NUM_UDP_THREADS];
-            for (int i = 0; i < NUM_UDP_THREADS; i++) {
+            int numUdpThreads = Server.Settings.NumUDPThreads;
+            if (numUdpThreads < 0) {
+                // Determine suitable number of UDP threads
+                // On Windows, having multiple threads isn't an advantage at all, so start spawn one
+                // On Linux/MacOS, spawn one thread for each logical core
+                if (Environment.OSVersion.Platform != PlatformID.Unix && Environment.OSVersion.Platform != PlatformID.MacOSX) 
+                    numUdpThreads = 1; 
+                else 
+                    numUdpThreads = Environment.ProcessorCount;
+            }
+            Logger.Log(LogLevel.CRI, "tcpudp", $"Starting {numUdpThreads} UDP threads");
+
+            UDPs = new UdpClient?[numUdpThreads];
+            UDPReadThreads = new Thread?[numUdpThreads];
+            for (int i = 0; i < numUdpThreads; i++) {
                 Socket udpSocket = new(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
                 udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
-                udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
 
-                // Some Linux runtimes don't also set SO_REUSPORT, so set that explicitly
-                if (Environment.OSVersion.Platform == PlatformID.Unix) {
-                    if (setsockopt(udpSocket.Handle, SOL_SOCKET, SO_REUSEPORT, new[] { 1 }, sizeof(int)) < 0) {
-                        // Even though the method is named GetLastWin32Error, it still works on Linux
-                        // NET 6.0 added the better named method GetLastPInvokeError, which does the same thing
-                        Logger.Log(LogLevel.WRN, "tcpudp", $"Failed enabling UDP socket option SO_REUSEPORT: {Marshal.GetLastWin32Error()}");
-                    }
+                if (numUdpThreads > 1) {
+                    udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
+
+                    // Some Linux/MacOS runtimes don't set SO_REUSPORT (the option we care about), so set that explicitly
+                    if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX) {
+                        if (setsockopt(udpSocket.Handle, SOL_SOCKET, SO_REUSEPORT, new[] { 1 }, sizeof(int)) < 0) {
+                            // Even though the method is named GetLastWin32Error, it still works on other platforms
+                            // NET 6.0 added the better named method GetLastPInvokeError, which does the same thing
+                            // However, still use GetLastWin32Error to remain compatible with the net452 build target
+                            Logger.Log(LogLevel.WRN, "tcpudp", $"Failed enabling UDP socket option SO_REUSEPORT for socket {i}: {Marshal.GetLastWin32Error()}");
+                        }
+                    } else if (i == 0)
+                        Logger.Log(LogLevel.WRN, "tcpudp", "Starting more than one UDP thread on a platform without SO_REUSEPORT!");
                 }
 
                 udpSocket.Bind(new IPEndPoint(IPAddress.IPv6Any, Server.Settings.MainPort));
@@ -75,6 +90,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 UDPs[i].Client.Dispose();
                 UDPs[i].Client = udpSocket;
 
+                // This is neccessary, as otherwise i could increment before the thread function is called
                 int idx = i;
                 UDPReadThreads[i] = new(() => UDPReadLoop(idx)) {
                     Name = $"TCPUDPServer UDPRead {i} ({GetHashCode()})",

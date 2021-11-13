@@ -30,6 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public string UserDataRoot { get; set; } = "UserData";
 
         public int MainPort { get; set; } = 3802;
+        public int NumUDPThreads { get; set; } = -1;
 
         public LogLevel LogLevel {
             get => Logger.Level;

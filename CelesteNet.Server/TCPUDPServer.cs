@@ -55,7 +55,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             int numUdpThreads = Server.Settings.NumUDPThreads;
             if (numUdpThreads < 0) {
                 // Determine suitable number of UDP threads
-                // On Windows, having multiple threads isn't an advantage at all, so start spawn one
+                // On Windows, having multiple threads isn't an advantage at all, so start only one
                 // On Linux/MacOS, spawn one thread for each logical core
                 if (Environment.OSVersion.Platform != PlatformID.Unix && Environment.OSVersion.Platform != PlatformID.MacOSX) 
                     numUdpThreads = 1; 
@@ -73,7 +73,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (numUdpThreads > 1) {
                     udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
 
-                    // Some Linux/MacOS runtimes don't set SO_REUSPORT (the option we care about), so set that explicitly
+                    // Some Linux/MacOS runtimes don't automatically set SO_REUSEPORT (the option we care about), so set it directly, just in case
                     if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX) {
                         if (setsockopt(udpSocket.Handle, SOL_SOCKET, SO_REUSEPORT, new[] { 1 }, sizeof(int)) < 0) {
                             // Even though the method is named GetLastWin32Error, it still works on other platforms
@@ -81,8 +81,15 @@ namespace Celeste.Mod.CelesteNet.Server {
                             // However, still use GetLastWin32Error to remain compatible with the net452 build target
                             Logger.Log(LogLevel.WRN, "tcpudp", $"Failed enabling UDP socket option SO_REUSEPORT for socket {i}: {Marshal.GetLastWin32Error()}");
                         }
-                    } else if (i == 0)
+                    } else if (i == 0) {
+                        // We only have an advantage with multiple threads when SO_REUSEPORT is supported
+                        // It tells the Linux kernel to distribute incoming packets evenly among all sockets bound to that port
+                        // However, Windows doesn't support it, and it's SO_REUSEADDR behaviour is that only one socket will receive everything 
+                        // As such only one thread will handle all messages and actually do any work
+                        // TODO BSD/MacOS also supports SO_REUSEPORT, but I couldn't find any explicit mention of the load-balancing behaviour we're looking for
+                        // So it might be better to also warn on BSD/MacOS, or make this feature Linux exclusive
                         Logger.Log(LogLevel.WRN, "tcpudp", "Starting more than one UDP thread on a platform without SO_REUSEPORT!");
+                    }
                 }
 
                 udpSocket.Bind(new IPEndPoint(IPAddress.IPv6Any, Server.Settings.MainPort));

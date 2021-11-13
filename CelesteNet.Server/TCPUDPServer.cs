@@ -12,17 +12,22 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class TCPUDPServer : IDisposable {
 
+        private const int SOL_SOCKET = 1, SO_REUSEPORT = 15;
+        [DllImport("libc", SetLastError = true)] 
+        private static extern int setsockopt(IntPtr socket, int level, int opt, [In, MarshalAs(UnmanagedType.LPArray)] int[] val, int len);
+
         public readonly CelesteNetServer Server;
 
         protected TcpListener? TCPListener;
-        protected UdpClient? UDP;
+        protected UdpClient[]? UDPs;
 
         private Thread? TCPListenerThread;
-        private Thread? UDPReadThread;
+        private Thread[]? UDPReadThreads;
 
         private uint UDPNextID = (uint) (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond);
         private readonly ConcurrentDictionary<CelesteNetTCPUDPConnection, UDPPendingKey> UDPKeys = new();
@@ -47,25 +52,68 @@ namespace Celeste.Mod.CelesteNet.Server {
             };
             TCPListenerThread.Start();
 
-            Socket udpSocket = new(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
-            udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
-            udpSocket.Bind(new IPEndPoint(IPAddress.IPv6Any, Server.Settings.MainPort));
-            UDP = new(AddressFamily.InterNetworkV6);
-            UDP.Client.Dispose();
-            UDP.Client = udpSocket;
+            int numUdpThreads = Server.Settings.NumUDPThreads;
+            if (numUdpThreads < 0) {
+                // Determine suitable number of UDP threads
+                // On Windows, having multiple threads isn't an advantage at all, so start only one
+                // On Linux/MacOS, spawn one thread for each logical core
+                if (Environment.OSVersion.Platform != PlatformID.Unix && Environment.OSVersion.Platform != PlatformID.MacOSX)
+                    numUdpThreads = 1;
+                else
+                    numUdpThreads = Environment.ProcessorCount;
+            }
+            Logger.Log(LogLevel.CRI, "tcpudp", $"Starting {numUdpThreads} UDP threads");
 
-            UDPReadThread = new(UDPReadLoop) {
-                Name = $"TCPUDPServer UDPRead ({GetHashCode()})",
-                IsBackground = true
-            };
-            UDPReadThread.Start();
+            UDPs = new UdpClient[numUdpThreads];
+            UDPReadThreads = new Thread[numUdpThreads];
+            for (int i = 0; i < numUdpThreads; i++) {
+                Socket udpSocket = new(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
+                udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+
+                if (numUdpThreads > 1) {
+                    udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
+
+                    // Some Linux/MacOS runtimes don't automatically set SO_REUSEPORT (the option we care about), so set it directly, just in case
+                    if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX) {
+                        if (setsockopt(udpSocket.Handle, SOL_SOCKET, SO_REUSEPORT, new[] { 1 }, sizeof(int)) < 0) {
+                            // Even though the method is named GetLastWin32Error, it still works on other platforms
+                            // NET 6.0 added the better named method GetLastPInvokeError, which does the same thing
+                            // However, still use GetLastWin32Error to remain compatible with the net452 build target
+                            Logger.Log(LogLevel.WRN, "tcpudp", $"Failed enabling UDP socket option SO_REUSEPORT for socket {i}: {Marshal.GetLastWin32Error()}");
+                        }
+                    } else if (i == 0) {
+                        // We only have an advantage with multiple threads when SO_REUSEPORT is supported
+                        // It tells the Linux kernel to distribute incoming packets evenly among all sockets bound to that port
+                        // However, Windows doesn't support it, and it's SO_REUSEADDR behaviour is that only one socket will receive everything 
+                        // As such only one thread will handle all messages and actually do any work
+                        // TODO BSD/MacOS also supports SO_REUSEPORT, but I couldn't find any explicit mention of the load-balancing behaviour we're looking for
+                        // So it might be better to also warn on BSD/MacOS, or make this feature Linux exclusive
+                        Logger.Log(LogLevel.WRN, "tcpudp", "Starting more than one UDP thread on a platform without SO_REUSEPORT!");
+                    }
+                }
+
+                udpSocket.Bind(new IPEndPoint(IPAddress.IPv6Any, Server.Settings.MainPort));
+                UDPs[i] = new(AddressFamily.InterNetworkV6);
+                UDPs[i].Client.Dispose();
+                UDPs[i].Client = udpSocket;
+
+                // This is neccessary, as otherwise i could increment before the thread function is called
+                int idx = i;
+                UDPReadThreads[i] = new(() => UDPReadLoop(idx)) {
+                    Name = $"TCPUDPServer UDPRead {i} ({GetHashCode()})",
+                    IsBackground = true
+                };
+                UDPReadThreads[i].Start();
+            }
         }
 
         public void Dispose() {
             Logger.Log(LogLevel.INF, "tcpudp", "Shutdown");
 
             TCPListener?.Stop();
-            UDP?.Close();
+            if (UDPs != null) 
+                foreach (UdpClient UDP in UDPs) 
+                    UDP.Close();
 
             Server.Data.UnregisterHandlersIn(this);
         }
@@ -116,15 +164,15 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        protected virtual void UDPReadLoop() {
+        protected virtual void UDPReadLoop(int idx) {
             try {
                 using MemoryStream stream = new();
                 using CelesteNetBinaryReader reader = new(Server.Data, null, stream);
-                while (Server.IsAlive && UDP != null) {
+                while (Server.IsAlive && UDPs?[idx] != null) {
                     IPEndPoint? remote = null;
                     byte[] raw;
                     try {
-                        raw = UDP.Receive(ref remote);
+                        raw = UDPs[idx].Receive(ref remote);
                     } catch (SocketException) {
                         continue;
                     }
@@ -139,11 +187,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 Token = BitConverter.ToUInt32(raw, 0)
                             };
                             if (UDPPending.TryRemove(key, out con)) {
-                                Logger.Log(LogLevel.CRI, "tcpudp", $"New UDP connection: {remote}");
+                                Logger.Log(LogLevel.CRI, "tcpudp", $"New UDP connection on thread {idx}: {remote}");
                                 con.OnDisconnect -= RemoveUDPPending;
 
-                                con.UDP = UDP;
-                                con.UDPLocalEndPoint = (IPEndPoint?) UDP.Client.LocalEndPoint;
+                                con.UDP = UDPs[idx];
+                                con.UDPLocalEndPoint = (IPEndPoint?) UDPs[idx].Client.LocalEndPoint;
                                 con.UDPRemoteEndPoint = remote;
 
                                 UDPMap[con.UDPRemoteEndPoint] = con;
@@ -165,7 +213,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         stream.Seek(0, SeekOrigin.Begin);
                         Server.Data.Handle(con, Server.Data.Read(reader));
                     } catch (Exception e) {
-                        Logger.Log(LogLevel.CRI, "tcpudp", $"Failed handling UDP data, {raw.Length} bytes:\n{con}\n{e}");
+                        Logger.Log(LogLevel.CRI, "tcpudp", $"Failed handling UDP data on thread {idx}, {raw.Length} bytes:\n{con}\n{e}");
                         // Sometimes we receive garbage via UDP. Oh well...
                         Handle(con, new DataTCPOnlyDowngrade());
                     }
@@ -174,7 +222,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             } catch (ThreadAbortException) {
 
             } catch (Exception e) {
-                Logger.Log(LogLevel.CRI, "tcpudp", $"Failed waiting for UDP data:\n{e}");
+                Logger.Log(LogLevel.CRI, "tcpudp", $"Failed waiting for UDP data on thread {idx}:\n{e}");
                 Server.Dispose();
             }
         }

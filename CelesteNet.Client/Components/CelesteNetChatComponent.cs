@@ -50,8 +50,34 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Repeat[0] = Typing;
                 Typing = Repeat[value];
                 _RepeatIndex = value;
+                _CursorIndex = Typing.Length;
             }
         }
+
+        protected int _CursorIndex = 0;
+        public int CursorIndex {
+            get => _CursorIndex;
+            set {
+                if (value < 0)
+                    value = 0;
+
+                // This deliberately exceeds the Typing string's indices since the cursor
+                // 1. ... at index 0 is before the first char,
+                // 2. ... at Typing.Length-1 is before the last char,
+                // and at Typing.Length is _after_ the last char.
+                if (value > Typing.Length)
+                    value = Typing.Length;
+
+                _CursorIndex = value;
+            }
+        }
+
+        protected bool _ControlHeld = false;
+        protected bool _CursorMoveFast = false;
+
+        protected float _TimeSinceCursorMove = 0;
+        protected float _CursorInitialMoveDelay = 0.4f;
+        protected float _CursorMoveDelay = 0.1f;
 
         protected bool _SceneWasPaused;
         protected int _ConsumeInput;
@@ -75,6 +101,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 } else {
                     Typing = "";
+                    CursorIndex = 0;
                     Engine.Scene.Paused = _SceneWasPaused;
                     _ConsumeInput = 2;
                     if (Engine.Scene is Level level && level.Overlay == _DummyOverlay)
@@ -144,6 +171,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             base.Update(gameTime);
 
             _Time += Engine.RawDeltaTime;
+            _TimeSinceCursorMove += Engine.RawDeltaTime;
 
             bool isRebinding = Engine.Scene == null ||
                 Engine.Scene.Entities.FindFirst<KeyboardConfigUI>() != null ||
@@ -157,9 +185,27 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (!Active && !isRebinding && Settings.ButtonChat.Button.Pressed) {
                 Active = true;
-
             } else if (Active) {
                 Engine.Commands.Open = false;
+
+                _ControlHeld = MInput.Keyboard.Check(Keys.LeftControl) || MInput.Keyboard.Check(Keys.RightControl);
+
+                if (!MInput.Keyboard.Check(Keys.Left) && !MInput.Keyboard.Check(Keys.Right)) {
+                    _CursorMoveFast = false;
+                    _TimeSinceCursorMove = 0;
+                }
+
+                // boolean to determine if Left or Right were already held on previous frame
+                bool _directionHeldLast = MInput.Keyboard.PreviousState[Keys.Left] == KeyState.Down
+                                       || MInput.Keyboard.PreviousState[Keys.Right] == KeyState.Down;
+
+                bool _cursorCanMove = true;
+                // conditions for the cursor to be moving:
+                // 1. Don't apply delays on first frame Left/Right is pressed
+                if (_directionHeldLast) {
+                    // 2. Delay time depends on whether this is the initial delay or subsequent "scrolling" left or right
+                    _cursorCanMove = _TimeSinceCursorMove > (_CursorMoveFast ? _CursorMoveDelay : _CursorInitialMoveDelay);
+                }
 
                 if (MInput.Keyboard.Pressed(Keys.Enter)) {
                     if (!string.IsNullOrWhiteSpace(Typing))
@@ -171,7 +217,35 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     RepeatIndex--;
                 } else if (MInput.Keyboard.Pressed(Keys.Up) && RepeatIndex < Repeat.Count - 1) {
                     RepeatIndex++;
-
+                } else if (MInput.Keyboard.Check(Keys.Left) && _cursorCanMove && CursorIndex > 0) {
+                    if (_ControlHeld) {
+                        // skip over space right before the cursor, if there is one
+                        if (Typing[_CursorIndex - 1] == ' ')
+                            CursorIndex--;
+                        if (CursorIndex > 0) {
+                            int prevWord = Typing.LastIndexOf(" ", _CursorIndex - 1);
+                            CursorIndex = (prevWord < 0) ? 0 : prevWord + 1;
+                        }
+                    } else {
+                        CursorIndex--;
+                    }
+                    _TimeSinceCursorMove = 0;
+                    _CursorMoveFast = _directionHeldLast;
+                    _Time = 0;
+                } else if (MInput.Keyboard.Check(Keys.Right) && _cursorCanMove && CursorIndex < Typing.Length) {
+                    if (_ControlHeld) {
+                        int nextWord = Typing.IndexOf(" ", _CursorIndex);
+                        CursorIndex = (nextWord < 0) ? Typing.Length : nextWord + 1;
+                    } else {
+                        CursorIndex++;
+                    }
+                    _TimeSinceCursorMove = 0;
+                    _CursorMoveFast = _directionHeldLast;
+                    _Time = 0;
+                } else if (MInput.Keyboard.Pressed(Keys.Home)) {
+                    CursorIndex = 0;
+                } else if (MInput.Keyboard.Pressed(Keys.End)) {
+                    CursorIndex = Typing.Length;
                 } else if (Input.ESC.Pressed) {
                     Active = false;
                 }
@@ -198,19 +272,59 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 // Enter - send.
                 // Handled in Update.
 
-            } else if (c == (char) 8) {
+            } else if (c == (char) 8 && _CursorIndex > 0) {
                 // Backspace - trim.
-                if (Typing.Length > 0)
-                    Typing = Typing.Substring(0, Typing.Length - 1);
+                if (Typing.Length > 0) {
+                    int trim = 1;
+
+                    // extra CursorIndex check since at index=1 using trim=1 is fine
+                    if (_ControlHeld && _CursorIndex > 1) {
+                        // adjust Ctrl+Backspace for having a space right before cursor
+                        int _adjustedCursor = CursorIndex;
+                        if (Typing[_CursorIndex - 1] == ' ')
+                            _adjustedCursor--;
+                        int prevWord = Typing.LastIndexOf(" ", _adjustedCursor - 1);
+                        // if control is held and a space is found, trim from cursor back to space
+                        if (prevWord >= 0)
+                            trim = _adjustedCursor - prevWord;
+                        // otherwise trim whole input back from cursor as it is one word
+                        else
+                            trim = _adjustedCursor;
+                    }
+                    // remove <trim> amount of characters before cursor
+                    Typing = Typing.Remove(_CursorIndex - trim, trim);
+                    _CursorIndex -= trim;
+                }
                 _RepeatIndex = 0;
                 _Time = 0;
-
-            } else if (c == (char) 127) {
-                // Delete - currenly not handled.
-
+            } else if (c == (char) 127 && CursorIndex < Typing.Length) {
+                // Delete - remove character after cursor.
+                if (_ControlHeld && Typing[_CursorIndex] != ' ') {
+                    int nextWord = Typing.IndexOf(" ", _CursorIndex);
+                    // if control is held and a space is found, remove from cursor to space
+                    if (nextWord >= 0) {
+                        // include the found space in removal
+                        nextWord++;
+                        Typing = Typing.Remove(_CursorIndex, nextWord - _CursorIndex);
+                    } else {
+                        // otherwise remove everything after cursor
+                        Typing = Typing.Substring(0, _CursorIndex);
+                    }
+                } else {
+                    // just remove single char
+                    Typing = Typing.Remove(_CursorIndex, 1);
+                }
+                _RepeatIndex = 0;
+                _Time = 0;
             } else if (!char.IsControl(c)) {
-                // Any other character - append.
-                Typing += c;
+                if (CursorIndex == Typing.Length) {
+                    // Any other character - append.
+                    Typing += c;
+                } else {
+                    // insert into string if cursor is not at the end
+                    Typing = Typing.Insert(_CursorIndex, c.ToString());
+                }
+                _CursorIndex++;
                 _RepeatIndex = 0;
                 _Time = 0;
             }
@@ -242,14 +356,29 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 );
 
                 if (!Calc.BetweenInterval(_Time, 0.5f)) {
-                    offs += CelesteNetClientFont.Measure(text).X * scale;
-                    CelesteNetClientFont.Draw(
-                        "_",
-                        new(50f * scale + offs, UI_HEIGHT - 105f * scale),
-                        Vector2.Zero,
-                        fontScale,
-                        Color.White * 0.5f
-                    );
+
+                    if (CursorIndex == Typing.Length) {
+                        offs += CelesteNetClientFont.Measure(text).X * scale;
+                        CelesteNetClientFont.Draw(
+                            "_",
+                            new(50f * scale + offs, UI_HEIGHT - 105f * scale),
+                            Vector2.Zero,
+                            fontScale,
+                            Color.White * 0.5f
+                        );
+                    } else {
+                        // draw cursor at correct location, but move back half a "." width to not overlap following char
+                        offs += CelesteNetClientFont.Measure(Typing.Substring(0, CursorIndex)).X * scale;
+                        offs -= CelesteNetClientFont.Measure(".").X / 2f * scale;
+
+                        CelesteNetClientFont.Draw(
+                               "|",
+                               new(50f * scale + offs, UI_HEIGHT - 110f * scale),
+                               Vector2.Zero,
+                               fontScale * new Vector2(.5f, 1.2f),
+                               Color.White * 0.6f
+                           );
+                    }
                 }
             }
 

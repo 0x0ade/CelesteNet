@@ -57,9 +57,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Determine suitable number of UDP threads
                 // On Windows, having multiple threads isn't an advantage at all, so start only one
                 // On Linux/MacOS, spawn one thread for each logical core
-                if (Environment.OSVersion.Platform != PlatformID.Unix && Environment.OSVersion.Platform != PlatformID.MacOSX) 
-                    numUdpThreads = 1; 
-                else 
+                if (Environment.OSVersion.Platform != PlatformID.Unix && Environment.OSVersion.Platform != PlatformID.MacOSX)
+                    numUdpThreads = 1;
+                else
                     numUdpThreads = Environment.ProcessorCount;
             }
             Logger.Log(LogLevel.CRI, "tcpudp", $"Starting {numUdpThreads} UDP threads");
@@ -112,7 +112,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             TCPListener?.Stop();
             if (UDPs != null) 
-                foreach (UdpClient UDP in UDPs) UDP.Close();
+                foreach (UdpClient UDP in UDPs) 
+                    UDP.Close();
 
             Server.Data.UnregisterHandlersIn(this);
         }

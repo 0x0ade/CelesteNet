@@ -26,15 +26,6 @@ namespace Celeste.Mod.CelesteNet {
     */
     public class StringMap {
 
-        private struct CountingUpdate {
-            public string Key;
-            public int? Value;
-            public CountingUpdate(string key, int? value) {
-                Key = key;
-                Value = value;
-            }
-        }
-
         public const string ConnectionFeature = "stringmap";
 
         public readonly string Name;
@@ -45,7 +36,8 @@ namespace Celeste.Mod.CelesteNet {
         private readonly Dictionary<string, int> Counting = new();
         private readonly HashSet<string> Pending = new();
         private readonly HashSet<string> MappedRead = new();
-        private readonly List<CountingUpdate> CountingUpdates = new();
+        private readonly List<string> CountingUpdateKeys = new();
+        private readonly List<int> CountingUpdateValues = new();
 
         private int NextID;
 
@@ -89,21 +81,27 @@ namespace Celeste.Mod.CelesteNet {
                 foreach (KeyValuePair<string, int> entry in Counting) {
                     int score = entry.Value - DemotionScore;
                     if (score <= 0) {
-                        CountingUpdates.Add(new(entry.Key, null));
+                        CountingUpdateKeys.Add(entry.Key);
+                        CountingUpdateValues.Add(0);
                     } else if (score >= PromotionTreshold) {
-                        CountingUpdates.Add(new(entry.Key, null));
+                        CountingUpdateKeys.Add(entry.Key);
+                        CountingUpdateValues.Add(0);
                         Pending.Add(entry.Key);
                     } else {
-                        CountingUpdates.Add(new(entry.Key, score));
+                        CountingUpdateKeys.Add(entry.Key);
+                        CountingUpdateValues.Add(score);
                     }
                 }
-                foreach (CountingUpdate update in CountingUpdates) {
-                    if (update.Value == null)
-                        Counting.Remove(update.Key);
+                for (int i = 0; i < CountingUpdateKeys.Count; i++) {
+                    string key = CountingUpdateKeys[i];
+                    int value = CountingUpdateValues[i];
+                    if (value == 0)
+                        Counting.Remove(key);
                     else
-                        Counting[update.Key] = update.Value.Value;
+                        Counting[key] = value;
                 }
-                CountingUpdates.Clear();
+                CountingUpdateKeys.Clear();
+                CountingUpdateValues.Clear();
             }
         }
 

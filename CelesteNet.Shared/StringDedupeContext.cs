@@ -19,19 +19,20 @@ namespace Celeste.Mod.CelesteNet {
             public readonly List<string> Strings = new();
         }
 
-        private struct CountingUpdate {
-            public int Key;
-            public int? Value;
-            public CountingUpdate(int key, int? value) {
-                Key = key;
-                Value = value;
-            }
-        }
-
         public readonly Dictionary<int, DedupeInfo> Map = new();
 
         private readonly Dictionary<int, int> Counting = new();
-        private readonly List<CountingUpdate> CountingUpdates = new();
+        private readonly List<ulong> CountingUpdates = new();
+
+        private ulong ToCountingUpdate(int key, int value)
+            => 0 |
+            ((ulong) (uint) key     << 32) |
+            ((ulong) (uint) value   << 0);
+
+        private void FromCountingUpdate(ulong update, out int key, out int value) {
+            key =   (int) (uint) ((update >> 32)    & 0xffffffff);
+            value = (int) (uint) ((update >> 0)     & 0xffffffff);
+        }
 
         public int PromotionCount = 18;
         public int PromotionTreshold = 10;
@@ -101,19 +102,20 @@ namespace Celeste.Mod.CelesteNet {
             foreach (KeyValuePair<int, int> entry in Counting) {
                 int score = entry.Value - DemotionScore;
                 if (score <= 0) {
-                    CountingUpdates.Add(new(entry.Key, null));
+                    CountingUpdates.Add(ToCountingUpdate(entry.Key, 0));
                 } else if (score >= PromotionTreshold) {
-                    CountingUpdates.Add(new(entry.Key, null));
+                    CountingUpdates.Add(ToCountingUpdate(entry.Key, 0));
                     Map[entry.Key] = new();
                 } else {
-                    CountingUpdates.Add(new(entry.Key, score));
+                    CountingUpdates.Add(ToCountingUpdate(entry.Key, score));
                 }
             }
-            foreach (CountingUpdate update in CountingUpdates) {
-                if (update.Value == null)
-                    Counting.Remove(update.Key);
+            foreach (ulong update in CountingUpdates) {
+                FromCountingUpdate(update, out int key, out int value);
+                if (value == 0)
+                    Counting.Remove(key);
                 else
-                    Counting[update.Key] = update.Value.Value;
+                    Counting[key] = value;
             }
             CountingUpdates.Clear();
         }

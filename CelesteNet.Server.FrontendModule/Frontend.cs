@@ -10,13 +10,13 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using WebSocketSharp.Server;
 using Celeste.Mod.Helpers;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat;
+using System.Timers;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : CelesteNetServerModule<FrontendSettings> {
@@ -29,6 +29,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         private HttpServer? HTTPServer;
         private WebSocketServiceHost? WSHost;
+
+        private Timer netPlusStatsTimer;
 
 #if NETCORE
         private readonly FileExtensionContentTypeProvider ContentTypeProvider = new();
@@ -65,6 +67,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             ChatModule chat = Server.Get<ChatModule>();
             chat.OnReceive += OnChatReceive;
             chat.OnForceSend += OnForceSend;
+
+            netPlusStatsTimer = new Timer(Settings.NetPlusStatsUpdateRate);
+            netPlusStatsTimer.AutoReset = true;
+            netPlusStatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateNetPlusStats(wrapper.Server);
         }
 
         public override void Start() {
@@ -82,12 +88,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             HTTPServer.Start();
 
             HTTPServer.WebSocketServices.TryGetServiceHost("/ws", out WSHost);
+
+            netPlusStatsTimer.Enabled = true;
         }
 
         public override void Dispose() {
             base.Dispose();
 
             Logger.Log(LogLevel.INF, "frontend", "Shutdown");
+
+            netPlusStatsTimer.Enabled = false;
+            netPlusStatsTimer.Dispose();
 
             try {
                 HTTPServer?.Stop();

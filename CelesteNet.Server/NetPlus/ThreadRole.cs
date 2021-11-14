@@ -19,7 +19,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             private int heuristicSampleWindow;
             private RWLock activityLock;
-            private bool inActiveZone;
+            private bool inActiveZone = false;
             private long lastActivityUpdate = long.MinValue;
             private float lastActivityRate = 0f;
 
@@ -31,9 +31,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                 activityLock = new RWLock();
                 heuristicSampleWindow = thread.Pool.HeuristicSampleWindow;
                 runtimeWatch = new Stopwatch();
+
+                role.workers.Add(this);
             }
 
             public virtual void Dispose() {
+                Role.workers.Remove(this);
                 activityLock.Dispose();
             }
 
@@ -59,8 +62,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             private float CalcActivityRate(long curMs) {
                 long cutoffMs = curMs - heuristicSampleWindow;
-                float rate = (lastActivityRate < cutoffMs) ? 0 : lastActivityRate * (lastActivityRate - cutoffMs) / heuristicSampleWindow;
-                rate += MathF.Min(1, (float) (curMs - lastActivityRate) / heuristicSampleWindow);
+                float rate = (lastActivityRate < cutoffMs) ? 0 : (lastActivityRate * (lastActivityRate - cutoffMs) / heuristicSampleWindow);
+                if(inActiveZone) rate += MathF.Min(1, (float) (curMs - lastActivityRate) / heuristicSampleWindow);
                 return MathF.Min(1, MathF.Max(0, rate));
             }
 
@@ -106,16 +109,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                 yield return worker;
         }
 
-        public RoleWorker? FindThread(Func<RoleWorker, bool> filter){
+        public RoleWorker? FindWorker(Func<RoleWorker, bool> filter){
             foreach (RoleWorker worker in EnumerateWorkers()) {
                 if (filter(worker))
                     return worker;
             }
             return null;
         }
-
-        private void RegisterWorker(RoleWorker worker) {}
-        private void UnregisterWorker(RoleWorker worker) {}
 
         public abstract RoleWorker CreateWorker(NetPlusThread thread);
 

@@ -158,6 +158,40 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             });
         }
 
+        private static float netPlusPoolActvRate;
+        private static object[]? netPlusThreadStats;
+        private static object[]? netPlusRoleStats;
+        public static void UpdateNetPlusStats(CelesteNetServer server) {
+            using(server.ThreadPool.PoolLock.R())
+            using(server.ThreadPool.RoleLock.R())
+            using(server.ThreadPool.Scheduler.RoleLock.R()) {
+                netPlusPoolActvRate = server.ThreadPool.ActivityRate;
+                netPlusThreadStats = server.ThreadPool.EnumerateThreads().Select(t => new {
+                    ActivityRate = t.ActivityRate,
+                    Role = t.Role.ToString()
+                }).ToArray();
+                netPlusRoleStats = server.ThreadPool.Scheduler.EnumerateRoles().Select(r => new {
+                    Role = r.ToString(),
+                    ActivityRate = r.ActivityRate,
+                    NumThreads = server.ThreadPool.EnumerateThreads().Count(t => t.Role == r)
+                }).ToArray();
+            }
+        }
+
+        [RCEndpoint(false, "/netplus", null, null, "NetPlus Status", "Status information about NetPlus")]
+        public static void NetPlus(Frontend f, HttpRequestEventArgs c) {
+            f.RespondJSON(c, new {
+                PoolActivityRate = netPlusPoolActvRate,
+                PoolNumThreads = f.Server.ThreadPool.NumThreads,
+                PoolThreads = netPlusThreadStats,
+                PoolRoles = netPlusRoleStats,
+
+                SchedulerExecDuration = f.Server.ThreadPool.Scheduler.LastSchedulerExecDuration,
+                SchedulerNumThreadsReassigned = f.Server.ThreadPool.Scheduler.LastSchedulerExecNumThreadsReassigned,
+                SchedulerNumThreadsIdeled = f.Server.ThreadPool.Scheduler.LastSchedulerExecNumThreadsIdeling
+            });
+        }
+
         [RCEndpoint(true, "/userinfos", "?from={first}&count={count}", "?from=0&count=100", "User Infos", "Get some basic information about ALL users.")]
         public static void UserInfos(Frontend f, HttpRequestEventArgs c) {
             using UserDataBatchContext ctx = f.Server.UserData.OpenBatch();

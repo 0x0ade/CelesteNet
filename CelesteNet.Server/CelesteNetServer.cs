@@ -127,7 +127,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ModulesFSWatcher.EnableRaisingEvents = true;
 
-            ThreadPool = new(Settings.NetPlusHeuristicSampleWindow, Settings.NetPlusThreadPoolThreads);
+            ThreadPool = new(Settings.NetPlusThreadPoolThreads, Settings.NetPlusHeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {

@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 runtimeWatch = new Stopwatch();
             }
 
-            public void Dispose() {
+            public virtual void Dispose() {
                 activityLock.Dispose();
             }
 
@@ -88,7 +88,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Dispose() {
-            if(disposed) return;
+            if (disposed)
+                return;
             disposed = true;
 
             using (workerLock.W()) {
@@ -97,11 +98,12 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
+        public virtual void InvokeSchedular() {}
+
         public IEnumerable<RoleWorker> EnumerateWorkers() {
-            using (workerLock.R()) {
-                foreach(RoleWorker worker in workers)
-                    yield return worker;
-            }
+            using (workerLock.R())
+            foreach (RoleWorker worker in workers)
+                yield return worker;
         }
 
         public RoleWorker? FindThread(Func<RoleWorker, bool> filter){
@@ -120,6 +122,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public NetPlusThreadPool Pool { get; }
         public float ActivityRate => EnumerateWorkers().Aggregate(0f, (a, w) => a + w.ActivityRate) / workers.Count;
 
+        public abstract int MinThreads { get; }
+        public abstract int MaxThreads { get; }
+
     }
 
     public sealed class IdleThreadRole : NetPlusThreadRole {
@@ -133,6 +138,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public IdleThreadRole(NetPlusThreadPool pool) : base(pool) {}
 
         public override NetPlusThreadRole.RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
+
+        public override int MinThreads => 0;
+        public override int MaxThreads => int.MaxValue;
 
     }
 }

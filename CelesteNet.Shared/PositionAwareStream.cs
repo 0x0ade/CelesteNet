@@ -40,11 +40,18 @@ namespace Celeste.Mod.CelesteNet {
 
         public override long Position {
             get => _Position;
-            set => Inner.Position = value;
+            set => Inner.Position = _Position = value;
         }
 
         public override void Flush() {
             Inner.Flush();
+        }
+
+        public override int ReadByte() {
+            int read = Inner.ReadByte();
+            if (read >= 0)
+                _Position++;
+            return read;
         }
 
         public override int Read(byte[] buffer, int offset, int count) {
@@ -55,8 +62,14 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public override long Seek(long offset, SeekOrigin origin) {
-            if (origin == SeekOrigin.Current)
-                _Position += offset;
+            switch (origin) {
+                case SeekOrigin.Begin:
+                    _Position = offset;
+                    break;
+                case SeekOrigin.Current:
+                    _Position += offset;
+                    break;
+            }
             return Inner.Seek(offset, origin);
         }
 
@@ -66,6 +79,12 @@ namespace Celeste.Mod.CelesteNet {
 
         public override void Write(byte[] buffer, int offset, int count) {
             Inner.Write(buffer, offset, count);
+            _Position += count;
+        }
+
+        public override void WriteByte(byte value) {
+            Inner.WriteByte(value);
+            _Position++;
         }
 
         public override void Close() {

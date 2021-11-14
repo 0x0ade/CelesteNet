@@ -25,7 +25,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetServerSettings Settings;
 
         public readonly DataContext Data;
-        public readonly TCPUDPServer TCPUDP;
+        public readonly NetPlusThreadPool ThreadPool;
 
         public string[] ConnectionFeatures = CelesteNetUtils.ConnectionFeaturesBuiltIn;
 
@@ -127,7 +127,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ModulesFSWatcher.EnableRaisingEvents = true;
 
-            TCPUDP = new(this);
+            ThreadPool = new(Settings.NetPlusHeuristicSampleWindow, Settings.NetPlusThreadPoolThreads);
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
@@ -155,7 +155,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             Channels.Start();
-            TCPUDP.Start();
 
             Logger.Log(LogLevel.CRI, "main", "Ready");
         }
@@ -181,7 +180,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             Channels.Dispose();
-            TCPUDP.Dispose();
+            ThreadPool.Dispose();
             ConLock.Dispose();
 
             UserData.Dispose();

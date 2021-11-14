@@ -1,4 +1,5 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
+﻿/*
+using Celeste.Mod.CelesteNet.DataTypes;
 using Mono.Options;
 using System;
 using System.Collections.Concurrent;
@@ -301,3 +302,4 @@ namespace Celeste.Mod.CelesteNet.Server {
 
     }
 }
+*/

@@ -62,7 +62,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public Node Dequeue() {
-            if(nodes.Count <= 0) throw new InvalidOperationException("The queue is empty");
+            if (nodes.Count <= 0) throw new InvalidOperationException("The queue is empty");
             Node n = nodes[0];
             n.Remove();
             version++;
@@ -88,5 +88,6 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public int Count => nodes.Count;
+
     }
 }

@@ -131,6 +131,9 @@ namespace Celeste.Mod.CelesteNet {
 
         public abstract void SendRaw(CelesteNetSendQueue queue, DataType data);
 
+        public virtual void SendRawFlush() {
+        }
+
         protected virtual void Receive(DataType data) {
             if (data is DataLowLevelStringMapping mapping) {
                 DefaultSendQueue.Strings.RegisterWrite(mapping.Value, mapping.ID);
@@ -376,6 +379,8 @@ namespace Celeste.Mod.CelesteNet {
                             LastNonUpdate = now;
                         }
                     }
+
+                    Con.SendRawFlush();
 
                     lock (QueueLock)
                         if (Interlocked.CompareExchange(ref QueueCount, 0, 0) == 0)

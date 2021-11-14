@@ -20,7 +20,8 @@ namespace Celeste.Mod.CelesteNet {
     public class CelesteNetTCPUDPConnection : CelesteNetConnection {
 
         public TcpClient TCP;
-        public PositionAwareStream<NetworkStream> TCPStream;
+        public PositionAwareStream<BufferedStream> TCPReaderStream;
+        public PositionAwareStream<BufferedStream> TCPWriterStream;
         public CelesteNetBinaryReader TCPReader;
         public BinaryWriter TCPWriter;
 
@@ -64,6 +65,8 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
+        private bool TCPFlush;
+
 #pragma warning disable CS8618 // Every other ctor uses this ctor and initializes everything properly.
         private CelesteNetTCPUDPConnection(DataContext data)
 #pragma warning restore CS8618
@@ -106,9 +109,10 @@ namespace Celeste.Mod.CelesteNet {
 
         private void InitTCPUDP(TcpClient tcp, UdpClient? udp) {
             TCP = tcp;
-            TCPStream = new(tcp.GetStream());
-            TCPReader = new(Data, DefaultSendQueue.Strings, TCPStream, true);
-            TCPWriter = new(TCPStream, CelesteNetUtils.UTF8NoBOM, true);
+            TCPReaderStream = new(new BufferedStream(tcp.GetStream()));
+            TCPWriterStream = new(new BufferedStream(tcp.GetStream()));
+            TCPReader = new(Data, DefaultSendQueue.Strings, TCPReaderStream, true);
+            TCPWriter = new(TCPWriterStream, CelesteNetUtils.UTF8NoBOM, true);
 
             UDP = udp;
         }
@@ -206,6 +210,14 @@ namespace Celeste.Mod.CelesteNet {
             } else {
                 lock (TCPWriter) // This can be theoretically be reached from the UDP queue.
                     TCPWriter.Write(raw, 0, length);
+                TCPFlush = true;
+            }
+        }
+
+        public override void SendRawFlush() {
+            if (TCPFlush) {
+                lock (TCPWriter)
+                    TCPWriter.Flush();
             }
         }
 
@@ -233,7 +245,7 @@ namespace Celeste.Mod.CelesteNet {
         public void ReadTeapot(out string[] features, out uint token) {
             features = Dummy<string>.EmptyArray;
             token = 0;
-            using StreamReader reader = new(TCPStream, Encoding.UTF8, false, 1024, true);
+            using StreamReader reader = new(TCPReaderStream, Encoding.UTF8, false, 1024, true);
             for (string line; !string.IsNullOrWhiteSpace(line = reader?.ReadLine() ?? "");) {
                 if (line.StartsWith(CelesteNetUtils.HTTPTeapotConFeatures)) {
                     features = line.Substring(CelesteNetUtils.HTTPTeapotConFeatures.Length).Trim().Split(CelesteNetUtils.ConnectionFeatureSeparators);
@@ -246,9 +258,9 @@ namespace Celeste.Mod.CelesteNet {
 
         public void WriteTeapot(string[] features, uint token) {
             lock (TCPWriter) {
-                using (StreamWriter writer = new(TCPStream, CelesteNetUtils.UTF8NoBOM, 1024, true))
+                using (StreamWriter writer = new(TCPWriterStream, CelesteNetUtils.UTF8NoBOM, 1024, true))
                     writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, string.Join(CelesteNetUtils.ConnectionFeatureSeparator, features), token));
-                TCPStream.Flush();
+                TCPWriterStream.Flush();
             }
         }
 
@@ -333,9 +345,22 @@ namespace Celeste.Mod.CelesteNet {
                 TCP.Client.Disconnect(false);
             } catch (Exception) {
             }
-            TCPReader.Dispose();
-            TCPWriter.Dispose();
-            TCPStream.Dispose();
+            try {
+                TCPReader.Dispose();
+            } catch (Exception) {
+            }
+            try {
+                TCPWriter.Dispose();
+            } catch (Exception) {
+            }
+            try {
+                TCPReaderStream.Dispose();
+            } catch (Exception) {
+            }
+            try {
+                TCPWriterStream.Dispose();
+            } catch (Exception) {
+            }
             TCP.Close();
 
             // UDP is a mess and the UdpClient can be shared.

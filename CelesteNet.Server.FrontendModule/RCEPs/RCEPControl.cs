@@ -188,7 +188,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
                 SchedulerExecDuration = f.Server.ThreadPool.Scheduler.LastSchedulerExecDuration,
                 SchedulerNumThreadsReassigned = f.Server.ThreadPool.Scheduler.LastSchedulerExecNumThreadsReassigned,
-                SchedulerNumThreadsIdeled = f.Server.ThreadPool.Scheduler.LastSchedulerExecNumThreadsIdeling
+                SchedulerNumThreadsIdled = f.Server.ThreadPool.Scheduler.LastSchedulerExecNumThreadsIdeling
             });
         }
 

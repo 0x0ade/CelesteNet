@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -7,6 +8,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     public class NetPlusThreadPool : IDisposable {
         private bool disposed = false;
         private RWLock poolLock;
+        private Stopwatch runtimeWatch;
         
         private NetPlusThread[] threads;
         private int[] threadRestarts;
@@ -20,6 +22,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public NetPlusThreadPool(int numThreads, int maxThreadRestarts, int heuristicSampleWindow, float schedulerInterval, float underloadThreshold, float overloadThreshold, float stealThreshold) {
             MaxThreadsRestart = maxThreadRestarts;
             HeuristicSampleWindow = heuristicSampleWindow;
+
+            // Start the runtime watch
+            runtimeWatch = new Stopwatch();
+            runtimeWatch.Start();
 
             // Create locks
             using ((poolLock = new RWLock()).W())
@@ -53,9 +59,33 @@ namespace Celeste.Mod.CelesteNet.Server {
                 foreach (NetPlusThread thread in threads)
                     thread.Thread.Join();
                 
+                runtimeWatch.Stop();
                 roleLock.Dispose();
                 poolLock.Dispose();
             }
+        }
+
+        public float IterateSteadyHeuristic(ref float lastVal, ref long lastUpdate, float curVal, bool update=false) {
+            long curMs = runtimeWatch.ElapsedMilliseconds;
+            long cutoffMs = curMs - HeuristicSampleWindow;
+            float newVal = (lastUpdate < cutoffMs) ? curVal : ((lastVal * (lastUpdate - cutoffMs) + curVal * (curMs - lastUpdate)) / HeuristicSampleWindow);
+            if (update) {
+                lastVal = newVal;
+                lastUpdate = curMs;
+            }
+            return newVal;
+        }
+
+        public float IterateEventHeuristic(ref float lastVal, ref long lastUpdate, ref int numEvents, bool update=false) {
+            long curMs = runtimeWatch.ElapsedMilliseconds;
+            long cutoffMs = curMs - HeuristicSampleWindow;
+            float newVal = (lastUpdate < cutoffMs) ? ((float) numEvents / (curMs - lastUpdate) * HeuristicSampleWindow) : ((lastVal * (lastUpdate - cutoffMs) + numEvents) / HeuristicSampleWindow);
+            if (update) {
+                lastVal = newVal;
+                lastUpdate = curMs;
+                numEvents = 0;
+            }
+            return newVal;
         }
 
         public IEnumerable<NetPlusThread> EnumerateThreads() {
@@ -122,6 +152,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         private void ThreadLoop() {
+            CancellationToken? lastWorkerToken = null;
             try {
                 CancellationToken poolToken = Pool.Token;
                 poolToken.Register(() => roleWorkerTokenSrc?.Cancel());
@@ -131,18 +162,19 @@ namespace Celeste.Mod.CelesteNet.Server {
                     // Start the worker
                     using (roleWorker = role.CreateWorker(this))
                     using (roleWorkerTokenSrc = new CancellationTokenSource()) {
+                        lastWorkerToken = roleWorkerTokenSrc.Token;
                         roleSwitchSem.Release();
                         try {
-                            roleWorker.runtimeWatch.Start();
                             roleWorker.StartWorker(roleWorkerTokenSrc.Token);
                         } finally {
-                            roleWorker.runtimeWatch.Stop();
                             roleWorker = null;
                             roleWorkerTokenSrc = null;
                         }
                     }
                 }
             } catch (Exception e) {
+                if (e is OperationCanceledException ce && ce.CancellationToken == lastWorkerToken) return;
+                
                 // Report error to the pool
                 Pool.ReportThreadError(this, e);
             } finally {

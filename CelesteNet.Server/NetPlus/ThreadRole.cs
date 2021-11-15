@@ -15,9 +15,6 @@ namespace Celeste.Mod.CelesteNet.Server {
     public abstract class NetPlusThreadRole : IDisposable {
 
         public abstract class RoleWorker : IDisposable {
-            internal Stopwatch runtimeWatch;
-
-            private int heuristicSampleWindow;
             private RWLock activityLock;
             private bool inActiveZone = false;
             private long lastActivityUpdate = long.MinValue;
@@ -29,8 +26,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 // Init heuristic stuff
                 activityLock = new RWLock();
-                heuristicSampleWindow = thread.Pool.HeuristicSampleWindow;
-                runtimeWatch = new Stopwatch();
 
                 role.workers.Add(this);
             }
@@ -43,28 +38,13 @@ namespace Celeste.Mod.CelesteNet.Server {
             protected internal abstract void StartWorker(CancellationToken token);
 
             protected void EnterActiveZone() {
-                using (activityLock.W()) {
-                    long curMs = runtimeWatch.ElapsedMilliseconds;
-                    lastActivityRate = CalcActivityRate(curMs);
-                    inActiveZone = true;
-                    lastActivityUpdate = curMs;
-                }
+                using (activityLock.W())
+                    Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, 0f, true);
             }
 
             protected void ExitActiveZone() {
-                using (activityLock.W()) {
-                    long curMs = runtimeWatch.ElapsedMilliseconds;
-                    lastActivityRate = CalcActivityRate(curMs);
-                    inActiveZone = false;
-                    lastActivityUpdate = curMs;
-                }
-            }
-
-            private float CalcActivityRate(long curMs) {
-                long cutoffMs = curMs - heuristicSampleWindow;
-                float rate = (lastActivityRate < cutoffMs) ? 0 : (lastActivityRate * (lastActivityRate - cutoffMs) / heuristicSampleWindow);
-                if(inActiveZone) rate += MathF.Min(1, (float) (curMs - lastActivityRate) / heuristicSampleWindow);
-                return MathF.Min(1, MathF.Max(0, rate));
+                using (activityLock.W())
+                    Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, 1f, true);
             }
 
             public NetPlusThread Thread { get; }
@@ -73,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             public float ActivityRate {
                 get {
                     using (activityLock.R())
-                        return CalcActivityRate(runtimeWatch.ElapsedMilliseconds);
+                        return Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, inActiveZone ? 1f : 0f);
                 }
             }
         }
@@ -90,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 workers = new List<RoleWorker>();
         }
 
-        public void Dispose() {
+        public virtual void Dispose() {
             if (disposed)
                 return;
             disposed = true;

@@ -67,10 +67,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             ChatModule chat = Server.Get<ChatModule>();
             chat.OnReceive += OnChatReceive;
             chat.OnForceSend += OnForceSend;
-
-            netPlusStatsTimer = new Timer(Settings.NetPlusStatsUpdateRate);
-            netPlusStatsTimer.AutoReset = true;
-            netPlusStatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateNetPlusStats(wrapper.Server);
         }
 
         public override void Start() {
@@ -89,6 +85,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             HTTPServer.WebSocketServices.TryGetServiceHost("/ws", out WSHost);
 
+            netPlusStatsTimer = new Timer(Settings.NetPlusStatsUpdateRate);
+            netPlusStatsTimer.AutoReset = true;
+            netPlusStatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateNetPlusStats(Server);
             netPlusStatsTimer.Enabled = true;
         }
 
@@ -97,8 +96,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             Logger.Log(LogLevel.INF, "frontend", "Shutdown");
 
-            netPlusStatsTimer.Enabled = false;
-            netPlusStatsTimer.Dispose();
+            netPlusStatsTimer?.Dispose();
 
             try {
                 HTTPServer?.Stop();

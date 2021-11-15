@@ -9,6 +9,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         private RWLock poolLock;
         
         private NetPlusThread[] threads;
+        private int[] threadRestarts;
         private CancellationTokenSource tokenSrc;
         
         private RWLock roleLock;
@@ -16,7 +17,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private NetPlusRoleScheduler scheduler;
 
-        public NetPlusThreadPool(int numThreads, int heuristicSampleWindow, float schedulerInterval, float underloadThreshold, float overloadThreshold, float stealThreshold) {
+        public NetPlusThreadPool(int numThreads, int maxThreadRestarts, int heuristicSampleWindow, float schedulerInterval, float underloadThreshold, float overloadThreshold, float stealThreshold) {
+            MaxThreadsRestart = maxThreadRestarts;
             HeuristicSampleWindow = heuristicSampleWindow;
 
             // Create locks
@@ -28,6 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (numThreads < 0)
                     numThreads = Environment.ProcessorCount;
                 Logger.Log(LogLevel.INF, "netplus", $"Creating thread pool with {numThreads} threads");
+                threadRestarts = new int[numThreads];
                 threads = Enumerable.Range(0, numThreads).Select(idx => new NetPlusThread(this, idx, idleRole)).ToArray();
             }
 
@@ -75,10 +78,12 @@ namespace Celeste.Mod.CelesteNet.Server {
             
             // It's OK, we can start a new one... right?
             if (!disposed) {
-                using (poolLock.W()) {
-                    Logger.Log(LogLevel.DBG, "netplus", $"Restarting thread pool thread {thread.Index}");
-                    threads[thread.Index] = new NetPlusThread(this, thread.Index, thread.Role);
-                }
+                if (++threadRestarts[thread.Index] < MaxThreadsRestart) {
+                    using (poolLock.W()) {
+                        Logger.Log(LogLevel.DBG, "netplus", $"Restarting thread pool thread {thread.Index}");
+                        threads[thread.Index] = new NetPlusThread(this, thread.Index, thread.Role);
+                    }
+                } else throw new InvalidOperationException($"Too many restarts for thread pool thread {thread.Index}", ex);
             }
         }
 
@@ -86,6 +91,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public RWLock RoleLock => roleLock;
 
         public int NumThreads => threads.Length;
+        public int MaxThreadsRestart { get; }
         public IdleThreadRole IdleRole => idleRole;
         public NetPlusRoleScheduler Scheduler => scheduler;
         public CancellationToken Token => tokenSrc.Token;

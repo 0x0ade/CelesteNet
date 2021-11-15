@@ -22,7 +22,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                         newConn = socket.Accept();
                     } catch (SocketException) {
                         // There's no better way to do this, as far as I know...
-                        if (token.IsCancellationRequested) return;
+                        if (token.IsCancellationRequested) 
+                            return;
                         throw;
                     }
 
@@ -41,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             private void AcceptConnection(Socket sock) {
-                using(sock) {
+                using (sock) {
                     sock.Send(System.Text.Encoding.ASCII.GetBytes($"Hello World! Current thread index: {Thread.Index}\n"));
                 }
             }

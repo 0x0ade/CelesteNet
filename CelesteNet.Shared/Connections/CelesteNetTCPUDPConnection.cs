@@ -159,17 +159,6 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public override void SendRaw(CelesteNetSendQueue queue, DataType data) {
-            // Let's have some fun with dumb port sniffers.
-            if (data is DataTCPHTTPTeapot teapot) {
-                WriteTeapot(teapot.ConnectionFeatures, teapot.ConnectionToken);
-                return;
-            }
-
-            if (data is DataUDPConnectionToken token) {
-                WriteToken(token.Value);
-                return;
-            }
-
             BufferHelper buffer = queue.Buffer;
             int length;
 
@@ -239,38 +228,6 @@ namespace Celeste.Mod.CelesteNet {
             lock (TCPReceiveLock) {
                 Loopend = true;
                 end.Action();
-            }
-        }
-
-        public void ReadTeapot(out string[] features, out uint token) {
-            features = Dummy<string>.EmptyArray;
-            token = 0;
-            using StreamReader reader = new(TCPReaderStream, Encoding.UTF8, false, 1024, true);
-            for (string line; !string.IsNullOrWhiteSpace(line = reader?.ReadLine() ?? "");) {
-                if (line.StartsWith(CelesteNetUtils.HTTPTeapotConFeatures)) {
-                    features = line.Substring(CelesteNetUtils.HTTPTeapotConFeatures.Length).Trim().Split(CelesteNetUtils.ConnectionFeatureSeparators);
-                }
-                if (line.StartsWith(CelesteNetUtils.HTTPTeapotConToken)) {
-                    token = uint.Parse(line.Substring(CelesteNetUtils.HTTPTeapotConToken.Length).Trim());
-                }
-            }
-        }
-
-        public void WriteTeapot(string[] features, uint token) {
-            lock (TCPWriter) {
-                using (StreamWriter writer = new(TCPWriterStream, CelesteNetUtils.UTF8NoBOM, 1024, true))
-                    writer.Write(string.Format(CelesteNetUtils.HTTPTeapot, string.Join(CelesteNetUtils.ConnectionFeatureSeparator, features), token));
-                TCPWriterStream.Flush();
-            }
-        }
-
-        public void WriteToken(uint token) {
-            if (UDP == null)
-                return;
-            if (UDP.Client.Connected && ReadUDPThread != null) {
-                UDP.Send(BitConverter.GetBytes(token), 4);
-            } else if (UDPRemoteEndPoint != null) {
-                UDP.Send(BitConverter.GetBytes(token), 4, UDPRemoteEndPoint);
             }
         }
 

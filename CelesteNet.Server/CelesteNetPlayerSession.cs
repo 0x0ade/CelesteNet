@@ -89,139 +89,139 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
-            Logger.Log(LogLevel.INF, "playersession", $"Startup #{ID} {Con}");
-            using (Server.ConLock.W())
-                Server.Sessions.Add(this);
-            Server.PlayersByCon[Con] = this;
-            Server.PlayersByID[ID] = this;
+        // public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
+        //     Logger.Log(LogLevel.INF, "playersession", $"Startup #{ID} {Con}");
+        //     using (Server.ConLock.W())
+        //         Server.Sessions.Add(this);
+        //     Server.PlayersByCon[Con] = this;
+        //     Server.PlayersByID[ID] = this;
 
-            if (Server.UserData.TryLoad(UID, out BanInfo ban) && !ban.Reason.IsNullOrEmpty()) {
-                Con.Send(new DataDisconnectReason { Text = string.Format(Server.Settings.MessageIPBan, ban.Reason) });
-                Con.Send(new DataInternalDisconnect());
-                return;
-            }
+        //     if (Server.UserData.TryLoad(UID, out BanInfo ban) && !ban.Reason.IsNullOrEmpty()) {
+        //         Con.Send(new DataDisconnectReason { Text = string.Format(Server.Settings.MessageIPBan, ban.Reason) });
+        //         Con.Send(new DataInternalDisconnect());
+        //         return;
+        //     }
 
-            string name = handshake.Name;
-            if (name.StartsWith("#")) {
-                string uid = Server.UserData.GetUID(name.Substring(1));
-                if (uid.IsNullOrEmpty()) {
-                    Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageInvalidUserKey });
-                    Con.Send(new DataInternalDisconnect());
-                    return;
-                }
-                UID = uid;
+        //     string name = handshake.Name;
+        //     if (name.StartsWith("#")) {
+        //         string uid = Server.UserData.GetUID(name.Substring(1));
+        //         if (uid.IsNullOrEmpty()) {
+        //             Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageInvalidUserKey });
+        //             Con.Send(new DataInternalDisconnect());
+        //             return;
+        //         }
+        //         UID = uid;
 
-                if (!Server.UserData.TryLoad(uid, out BasicUserInfo userinfo)) {
-                    Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageUserInfoMissing });
-                    Con.Send(new DataInternalDisconnect());
-                    return;
-                }
+        //         if (!Server.UserData.TryLoad(uid, out BasicUserInfo userinfo)) {
+        //             Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageUserInfoMissing });
+        //             Con.Send(new DataInternalDisconnect());
+        //             return;
+        //         }
 
-                name = userinfo.Name.Sanitize(IllegalNameChars, true);
-                if (name.Length > Server.Settings.MaxNameLength)
-                    name = name.Substring(0, Server.Settings.MaxNameLength);
-                if (name.IsNullOrEmpty())
-                    name = "Ghost";
+        //         name = userinfo.Name.Sanitize(IllegalNameChars, true);
+        //         if (name.Length > Server.Settings.MaxNameLength)
+        //             name = name.Substring(0, Server.Settings.MaxNameLength);
+        //         if (name.IsNullOrEmpty())
+        //             name = "Ghost";
 
-                if (Server.UserData.TryLoad(UID, out ban) && !ban.Reason.IsNullOrEmpty()) {
-                    Con.Send(new DataDisconnectReason { Text = string.Format(Server.Settings.MessageBan, name, ban.Reason) });
-                    Con.Send(new DataInternalDisconnect());
-                    return;
-                }
+        //         if (Server.UserData.TryLoad(UID, out ban) && !ban.Reason.IsNullOrEmpty()) {
+        //             Con.Send(new DataDisconnectReason { Text = string.Format(Server.Settings.MessageBan, name, ban.Reason) });
+        //             Con.Send(new DataInternalDisconnect());
+        //             return;
+        //         }
 
-            } else {
-                if (Server.Settings.AuthOnly) {
-                    Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageAuthOnly });
-                    Con.Send(new DataInternalDisconnect());
-                    return;
-                }
+        //     } else {
+        //         if (Server.Settings.AuthOnly) {
+        //             Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageAuthOnly });
+        //             Con.Send(new DataInternalDisconnect());
+        //             return;
+        //         }
 
-                name = name.Sanitize(IllegalNameChars);
-                if (name.Length > Server.Settings.MaxGuestNameLength)
-                    name = name.Substring(0, Server.Settings.MaxGuestNameLength);
-                if (name.IsNullOrEmpty())
-                    name = "Guest";
-            }
+        //         name = name.Sanitize(IllegalNameChars);
+        //         if (name.Length > Server.Settings.MaxGuestNameLength)
+        //             name = name.Substring(0, Server.Settings.MaxGuestNameLength);
+        //         if (name.IsNullOrEmpty())
+        //             name = "Guest";
+        //     }
 
-            if (name.Length > Server.Settings.MaxNameLength)
-                name = name.Substring(0, Server.Settings.MaxNameLength);
+        //     if (name.Length > Server.Settings.MaxNameLength)
+        //         name = name.Substring(0, Server.Settings.MaxNameLength);
 
-            string nameSpace = name;
-            name = name.Replace(" ", "");
-            string fullNameSpace = nameSpace;
-            string fullName = name;
+        //     string nameSpace = name;
+        //     name = name.Replace(" ", "");
+        //     string fullNameSpace = nameSpace;
+        //     string fullName = name;
 
-            using (Server.ConLock.R()) {
-                int i = 1;
-                while (true) {
-                    bool conflict = false;
-                    foreach (CelesteNetPlayerSession other in Server.Sessions)
-                        if (conflict = other.PlayerInfo?.FullName == fullName)
-                            break;
-                    if (!conflict)
-                        break;
-                    i++;
-                    fullNameSpace = $"{nameSpace}#{i}";
-                    fullName = $"{name}#{i}";
-                }
-            }
+        //     using (Server.ConLock.R()) {
+        //         int i = 1;
+        //         while (true) {
+        //             bool conflict = false;
+        //             foreach (CelesteNetPlayerSession other in Server.Sessions)
+        //                 if (conflict = other.PlayerInfo?.FullName == fullName)
+        //                     break;
+        //             if (!conflict)
+        //                 break;
+        //             i++;
+        //             fullNameSpace = $"{nameSpace}#{i}";
+        //             fullName = $"{name}#{i}";
+        //         }
+        //     }
 
-            string displayName = fullNameSpace;
+        //     string displayName = fullNameSpace;
 
-            using (Stream? avatar = Server.UserData.ReadFile(UID, "avatar.png")) {
-                if (avatar != null) {
-                    AvatarEmoji = new() {
-                        ID = $"celestenet_avatar_{ID}_",
-                        Data = avatar.ToBytes()
-                    };
-                    displayName = $":{AvatarEmoji.ID}: {fullNameSpace}";
-                }
-            }
+        //     using (Stream? avatar = Server.UserData.ReadFile(UID, "avatar.png")) {
+        //         if (avatar != null) {
+        //             AvatarEmoji = new() {
+        //                 ID = $"celestenet_avatar_{ID}_",
+        //                 Data = avatar.ToBytes()
+        //             };
+        //             displayName = $":{AvatarEmoji.ID}: {fullNameSpace}";
+        //         }
+        //     }
 
-            DataPlayerInfo playerInfo = new() {
-                ID = ID,
-                Name = name,
-                FullName = fullName,
-                DisplayName = displayName
-            };
-            playerInfo.Meta = playerInfo.GenerateMeta(Server.Data);
-            Server.Data.SetRef(playerInfo);
+        //     DataPlayerInfo playerInfo = new() {
+        //         ID = ID,
+        //         Name = name,
+        //         FullName = fullName,
+        //         DisplayName = displayName
+        //     };
+        //     playerInfo.Meta = playerInfo.GenerateMeta(Server.Data);
+        //     Server.Data.SetRef(playerInfo);
 
-            Logger.Log(LogLevel.INF, "playersession", playerInfo.ToString());
+        //     Logger.Log(LogLevel.INF, "playersession", playerInfo.ToString());
 
-            Con.Send(new DataHandshakeServer {
-                PlayerInfo = playerInfo
-            });
-            Con.Send(AvatarEmoji);
+        //     Con.Send(new DataHandshakeServer {
+        //         PlayerInfo = playerInfo
+        //     });
+        //     Con.Send(AvatarEmoji);
 
-            DataInternalBlob? blobPlayerInfo = DataInternalBlob.For(Server.Data, playerInfo);
-            DataInternalBlob? blobAvatarEmoji = DataInternalBlob.For(Server.Data, AvatarEmoji);
+        //     DataInternalBlob? blobPlayerInfo = DataInternalBlob.For(Server.Data, playerInfo);
+        //     DataInternalBlob? blobAvatarEmoji = DataInternalBlob.For(Server.Data, AvatarEmoji);
 
-            using (Server.ConLock.R())
-                foreach (CelesteNetPlayerSession other in Server.Sessions) {
-                    if (other == this)
-                        continue;
+        //     using (Server.ConLock.R())
+        //         foreach (CelesteNetPlayerSession other in Server.Sessions) {
+        //             if (other == this)
+        //                 continue;
 
-                    DataPlayerInfo? otherInfo = other.PlayerInfo;
-                    if (otherInfo == null)
-                        continue;
+        //             DataPlayerInfo? otherInfo = other.PlayerInfo;
+        //             if (otherInfo == null)
+        //                 continue;
 
-                    other.Con.Send(blobPlayerInfo);
-                    other.Con.Send(blobAvatarEmoji);
+        //             other.Con.Send(blobPlayerInfo);
+        //             other.Con.Send(blobAvatarEmoji);
 
-                    Con.Send(otherInfo);
-                    Con.Send(other.AvatarEmoji);
+        //             Con.Send(otherInfo);
+        //             Con.Send(other.AvatarEmoji);
 
-                    foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || other.Channel.ID == 0)
-                            Con.Send(bound);
-                }
+        //             foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
+        //                 if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || other.Channel.ID == 0)
+        //                     Con.Send(bound);
+        //         }
 
-            ResendPlayerStates();
+        //     ResendPlayerStates();
 
-            Server.InvokeOnSessionStart(this);
-        }
+        //     Server.InvokeOnSessionStart(this);
+        // }
 
         public Action WaitFor<T>(DataFilter<T> cb) where T : DataType<T>
             => WaitFor(0, cb, null);

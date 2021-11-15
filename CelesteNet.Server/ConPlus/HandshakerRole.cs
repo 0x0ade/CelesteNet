@@ -5,11 +5,17 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server {
+    /*
+    This role creates a task scheduler, whose tasks are run on all threads
+    assigned to the role. The connection acceptor role creates new tasks for
+    that scheduler, which perform the handshake, before passing control of the
+    connection to the regular send/recv roles.
+    - Popax21
+    */
     public partial class HandshakerRole : NetPlusThreadRole {
 
         public const int HANDSHAKE_TIMEOUT = 5000;
@@ -75,9 +81,12 @@ namespace Celeste.Mod.CelesteNet.Server {
         public async Task DoHandshake(Socket sock) {
             EndPoint remoteEP = sock.RemoteEndPoint!;
             using (CancellationTokenSource tokenSrc = new CancellationTokenSource()) {
+                // .NET is completly stupid, you can't cancel async socket operations
+                // We literally have to kill the socket for the handshake to be able to timeout
                 tokenSrc.CancelAfter(HANDSHAKE_TIMEOUT);
                 tokenSrc.Token.Register(() => sock.Close());
                 try {
+
                     // Do the teapot handshake
                     if (!await TeapotHandshake(sock)) {
                         Logger.Log(LogLevel.VVV, "handshake", $"Connection from {remoteEP} failed teapot handshake");
@@ -85,6 +94,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         sock.Close();
                         return;
                     }
+
                 } catch (Exception) {
                     if (tokenSrc.IsCancellationRequested) {
                         Logger.Log(LogLevel.VVV, "handshake", $"Handshake for connection {remoteEP} timed out, maybe an old client?");
@@ -95,6 +105,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
+        // Let's mess with web crawlers even more ;)
+        // Also: Teapots
         private async Task<bool> TeapotHandshake(Socket sock) {
             using (NetworkStream netStream = new NetworkStream(sock, false))
             using (BufferedStream bufStream = new BufferedStream(netStream))

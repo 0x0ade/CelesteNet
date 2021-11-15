@@ -1,4 +1,4 @@
-using Celeste.Mod.CelesteNet.DataTypes;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Mono.Cecil;
 using Mono.Options;
 using MonoMod.RuntimeDetour;
@@ -128,6 +128,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             ModulesFSWatcher.EnableRaisingEvents = true;
 
             ThreadPool = new(Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.NetPlusHeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
+            ThreadPool.Scheduler.AddRole(new ConnectionAcceptorRole(ThreadPool, new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort)));
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {

@@ -38,13 +38,17 @@ namespace Celeste.Mod.CelesteNet.Server {
             protected internal abstract void StartWorker(CancellationToken token);
 
             protected void EnterActiveZone() {
-                using (activityLock.W())
+                using (activityLock.W()) {
+                    inActiveZone = true;
                     Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, 0f, true);
+                }
             }
 
             protected void ExitActiveZone() {
-                using (activityLock.W())
+                using (activityLock.W()) {
+                    inActiveZone = false;
                     Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, 1f, true);
+                }
             }
 
             public NetPlusThread Thread { get; }

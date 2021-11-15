@@ -279,7 +279,8 @@ let CelesteNet = {
                     title: "$ Role thread count",
                     units: "threads",
                     family: "activity",
-                    dimensions: roleDims
+                    dimensions: roleDims,
+                    type: netdata.chartTypes.stacked
                 }
             }
 

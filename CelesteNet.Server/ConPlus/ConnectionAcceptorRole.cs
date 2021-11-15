@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Server {
-    public class ConnectionAcceptorRole : MultipleSocketBinderRole {
+    public partial class ConnectionAcceptorRole : MultipleSocketBinderRole {
 
         public const int MAX_WORKER_BACKLOG = 32;
 
@@ -13,11 +13,15 @@ namespace Celeste.Mod.CelesteNet.Server {
             public Worker(ConnectionAcceptorRole role, NetPlusThread thread) : base(role, thread) {}
 
             protected override void StartWorker(Socket socket, CancellationToken token) {
+                EnterActiveZone();
+
                 // Accept new connections as long as the token isn't canceled
                 socket.Listen(MAX_WORKER_BACKLOG);
                 token.Register(() => socket.Close());
-                while (true) {
+                while (!token.IsCancellationRequested) {
                     Socket newConn;
+
+                    ExitActiveZone();
                     try {
                         newConn = socket.Accept();
                     } catch (SocketException) {
@@ -26,34 +30,32 @@ namespace Celeste.Mod.CelesteNet.Server {
                             return;
                         throw;
                     }
-
-                    // Log the connection
-                    Logger.Log(LogLevel.VVV, "conaccpt", $"Incoming connection from {newConn.RemoteEndPoint} <-> {Role.EndPoint}");
-
                     EnterActiveZone();
-                    try {
-                        AcceptConnection(newConn);
-                    } catch (Exception e) {
-                        Logger.Log(LogLevel.CRI, "conaccpt", $"Error while accepting connection from {newConn.RemoteEndPoint}: {e}");
-                    } finally {
-                        ExitActiveZone();
-                    }
+
+                    // Start the connection handshake
+                    EndPoint remoteEP = newConn.RemoteEndPoint!;
+                    Logger.Log(LogLevel.VVV, "conaccpt", $"Incoming connection from {remoteEP} <-> {Role.EndPoint}");
+                    Role.Handshaker.Factory.StartNew(() => {
+                        Role.Handshaker.DoHandshake(newConn).ContinueWith(t => {
+                            if (t.IsFaulted)
+                                Logger.Log(LogLevel.WRN, "conaccpt", $"Handshake failed for connection {remoteEP}: {t.Exception}");
+                        });
+                    });
                 }
+                ExitActiveZone();
             }
 
-            private void AcceptConnection(Socket sock) {
-                using (sock) {
-                    sock.Send(System.Text.Encoding.ASCII.GetBytes($"Hello World! Current thread index: {Thread.Index}\n"));
-                }
-            }
-        
             public new ConnectionAcceptorRole Role => (ConnectionAcceptorRole) base.Role;
 
         }
 
-        public ConnectionAcceptorRole(NetPlusThreadPool pool, EndPoint endPoint) : base(pool, ProtocolType.Tcp, endPoint) {}
+        public ConnectionAcceptorRole(NetPlusThreadPool pool, EndPoint endPoint, HandshakerRole handshaker) : base(pool, ProtocolType.Tcp, endPoint) {
+            Handshaker = handshaker;
+        }
 
         public override NetPlusThreadRole.RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
+
+        public HandshakerRole Handshaker { get; }
 
     }
 }

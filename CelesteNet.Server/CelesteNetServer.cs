@@ -128,7 +128,11 @@ namespace Celeste.Mod.CelesteNet.Server {
             ModulesFSWatcher.EnableRaisingEvents = true;
 
             ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? Math.Max(Environment.ProcessorCount, 6) : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.NetPlusHeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
-            ThreadPool.Scheduler.AddRole(new ConnectionAcceptorRole(ThreadPool, new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort)));
+            
+            HandshakerRole handshakerRole = new HandshakerRole(ThreadPool);
+            ConnectionAcceptorRole connectionAcceptorRole = new ConnectionAcceptorRole(ThreadPool, new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort), handshakerRole);
+            ThreadPool.Scheduler.AddRole(handshakerRole);
+            ThreadPool.Scheduler.AddRole(connectionAcceptorRole);
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {

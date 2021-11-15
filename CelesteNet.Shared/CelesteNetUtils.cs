@@ -24,13 +24,6 @@ namespace Celeste.Mod.CelesteNet {
 
         public static readonly Encoding UTF8NoBOM = new UTF8Encoding(false);
 
-        public static readonly string HTTPTeapotConFeatures = "CelesteNet-ConnectionFeatures: ";
-        public static readonly string HTTPTeapotConToken = "CelesteNet-ConnectionToken: ";
-        public static readonly string HTTPTeapot = $"HTTP/1.1 418 I'm a teapot\r\nContent-Length: 0\r\n{HTTPTeapotConFeatures}{{0}}\r\n{HTTPTeapotConToken}{{1}}\r\nConnection: close\r\n\r\n";
-
-        public static readonly char[] ConnectionFeatureSeparators = { ';' };
-        public static readonly string ConnectionFeatureSeparator = ";";
-
         public static readonly string[] ConnectionFeaturesBuiltIn = {
             StringMap.ConnectionFeature
         };

@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public abstract class RoleWorker : IDisposable {
             private RWLock activityLock;
-            private bool inActiveZone = false;
+            internal int activeZoneCounter = 0;
             private long lastActivityUpdate = long.MinValue;
             private float lastActivityRate = 0f;
 
@@ -38,17 +38,13 @@ namespace Celeste.Mod.CelesteNet.Server {
             protected internal abstract void StartWorker(CancellationToken token);
 
             protected void EnterActiveZone() {
-                using (activityLock.W()) {
-                    inActiveZone = true;
-                    Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, 0f, true);
-                }
+                using (activityLock.W())
+                    Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, (activeZoneCounter++ > 0) ? 1f : 0f, true);
             }
 
             protected void ExitActiveZone() {
-                using (activityLock.W()) {
-                    inActiveZone = false;
-                    Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, 1f, true);
-                }
+                using (activityLock.W())
+                    Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, (--activeZoneCounter > 0) ? 1f : 0f, true);
             }
 
             public NetPlusThread Thread { get; }
@@ -57,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             public float ActivityRate {
                 get {
                     using (activityLock.R())
-                        return Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, inActiveZone ? 1f : 0f);
+                        return Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, (activeZoneCounter > 0) ? 1f : 0f);
                 }
             }
         }

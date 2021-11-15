@@ -165,6 +165,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         try {
                             roleWorker.StartWorker(roleWorkerTokenSrc.Token);
                         } finally {
+                            roleWorker.activeZoneCounter = 0;
                             roleWorker = null;
                             roleWorkerTokenSrc = null;
                         }

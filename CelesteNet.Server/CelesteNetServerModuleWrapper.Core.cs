@@ -37,6 +37,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                 foreach (CelesteNetServerModuleWrapper wrapper in Server.ModuleWrappers)
                     if (wrapper.ID == name.Name)
                         return wrapper.Assembly;
+                AssemblyLoadContext? parent = AssemblyLoadContext.GetLoadContext(typeof(CelesteNetServerModuleWrapper).Assembly);
+                if (parent != null)
+                    foreach (Assembly asm in parent.Assemblies)
+                        if (asm.GetName().Name == name.Name)
+                            return asm;
                 return null;
             };
 

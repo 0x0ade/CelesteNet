@@ -24,24 +24,30 @@ namespace Celeste.Mod.CelesteNet.Server {
             w.WriteLine();
         }
 
+        private static ResolveEventHandler GetAssemblyResolverForDirectory(string dir) => (asmSender, asmArgs) => {
+            if (asmArgs.Name == null)
+                return null;
+            string name = new AssemblyName(asmArgs.Name).Name ?? asmArgs.Name;
+            string path = Path.Combine(dir, name + ".dll");
+            if (!File.Exists(path))
+                path = Path.Combine(dir, name + ".exe");
+            return File.Exists(path) ? Assembly.LoadFrom(path) : null;
+        };
+
         public static void Main(string[] args) {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
             CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
-#if INMODDIR
+            string? serverPath = typeof(CelesteNetServer).Assembly.Location;
+            if (!serverPath.IsNullOrEmpty() && !(serverPath = Path.GetDirectoryName(Path.GetFullPath(serverPath))).IsNullOrEmpty())
+                AppDomain.CurrentDomain.AssemblyResolve += GetAssemblyResolverForDirectory(serverPath);
+
+#if INMODDIR && NETFRAMEWORK
             string? celestePath = Path.GetFullPath(Path.Combine("..", "..", "..", "..", "..", ".."));
             if (!File.Exists(Path.Combine(celestePath, "Celeste.exe"))) {
                 celestePath = null;
             } else {
-                AppDomain.CurrentDomain.AssemblyResolve += (asmSender, asmArgs) => {
-                    if (asmArgs.Name == null)
-                        return null;
-                    string name = new AssemblyName(asmArgs.Name).Name ?? asmArgs.Name;
-                    string path = Path.Combine(celestePath, name + ".dll");
-                    if (!File.Exists(path))
-                        path = Path.Combine(celestePath, name + ".exe");
-                    return File.Exists(path) ? Assembly.LoadFrom(path) : null;
-                };
+                AppDomain.CurrentDomain.AssemblyResolve += GetAssemblyResolverForDirectory(celestePath);
             }
 #endif
 

@@ -17,12 +17,16 @@
   <Choose>
     <When Condition="$(TargetFramework.Contains('.'))">
       <PropertyGroup>
+        <IsNetCore>true</IsNetCore>
+        <IsNetFramework>false</IsNetFramework>
         <DefineConstants>NETCORE;$(DefineConstants)</DefineConstants>
       </PropertyGroup>
     </When>
 
     <Otherwise>
       <PropertyGroup>
+        <IsNetCore>false</IsNetCore>
+        <IsNetFramework>true</IsNetFramework>
         <DefineConstants>NETFRAMEWORK;$(DefineConstants)</DefineConstants>
       </PropertyGroup>
       <ItemGroup>
@@ -68,16 +72,16 @@
 
   <ItemGroup>
     <PackageReference Include="MonoMod.RuntimeDetour" Version="21.07.22.03">
-      <PrivateAssets Condition="$(InCelesteModDir)">all</PrivateAssets>
-      <ExcludeAssets Condition="$(InCelesteModDir)">runtime</ExcludeAssets>
+      <PrivateAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">all</PrivateAssets>
+      <ExcludeAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">runtime</ExcludeAssets>
     </PackageReference>
     <PackageReference Include="MonoMod.Utils" Version="21.07.22.03">
-      <PrivateAssets Condition="$(InCelesteModDir)">all</PrivateAssets>
-      <ExcludeAssets Condition="$(InCelesteModDir)">runtime</ExcludeAssets>
+      <PrivateAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">all</PrivateAssets>
+      <ExcludeAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">runtime</ExcludeAssets>
     </PackageReference>
     <PackageReference Include="YamlDotNet" Version="8.1.2">
-      <PrivateAssets Condition="$(InCelesteModDir)">all</PrivateAssets>
-      <ExcludeAssets Condition="$(InCelesteModDir)">runtime</ExcludeAssets>
+      <PrivateAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">all</PrivateAssets>
+      <ExcludeAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">runtime</ExcludeAssets>
     </PackageReference>
     <!-- .NET Framework 4.0+ reference assemblies aren't always available system-wide. -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.*">
@@ -93,7 +97,7 @@
   </ItemGroup>
 
   <Choose>
-    <When Condition="!Exists('$(CelesteDir)\BuildIsXNA.txt') And $(TargetFramework.Contains('.'))">
+    <When Condition="!Exists('$(CelesteDir)\BuildIsXNA.txt') And $(IsNetCore)">
       <ItemGroup>
         <Reference Include="FNA" HintPath="..\lib\net6.0\FNA.dll" Private="!$(IsModule)" />
       </ItemGroup>

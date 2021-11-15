@@ -33,8 +33,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Create threads
                 idleRole = new IdleThreadRole(this);
                 tokenSrc = new CancellationTokenSource();
-                if (numThreads < 0)
-                    numThreads = Environment.ProcessorCount;
                 Logger.Log(LogLevel.INF, "netplus", $"Creating thread pool with {numThreads} threads");
                 threadRestarts = new int[numThreads];
                 threads = Enumerable.Range(0, numThreads).Select(idx => new NetPlusThread(this, idx, idleRole)).ToArray();

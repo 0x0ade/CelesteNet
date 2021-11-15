@@ -106,7 +106,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         // Let's mess with web crawlers even more ;)
-        // Also: Teapots
+        // Also: I'm a Teapot
         private async Task<bool> TeapotHandshake(Socket sock) {
             using (NetworkStream netStream = new NetworkStream(sock, false))
             using (BufferedStream bufStream = new BufferedStream(netStream))
@@ -148,7 +148,7 @@ The server encountered an internal error while handling the request
                 if (teapotVer != TEAPOT_VERSION) {
                     Logger.Log(LogLevel.VVV, "handshake", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {TEAPOT_VERSION} [server]");
                     await writer.WriteAsync($@"
-HTTP/1.1 409 Version Conflict
+HTTP/1.1 409 Version Mismatch
 Connection: close
 
 Teapot version mismatch: {teapotVer} [client] != {TEAPOT_VERSION} [server]

@@ -53,7 +53,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             TCPListenerThread.Start();
 
             int numUdpThreads = Server.Settings.NumUDPThreads;
-            if (numUdpThreads < 0) {
+            bool udpSend = Server.Settings.UDPSend;
+            if (numUdpThreads <= 0) {
                 // Determine suitable number of UDP threads
                 // On Windows, having multiple threads isn't an advantage at all, so start only one
                 // On Linux/MacOS, spawn one thread for each logical core
@@ -99,7 +100,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 // This is neccessary, as otherwise i could increment before the thread function is called
                 int idx = i;
-                UDPReadThreads[i] = new(() => UDPReadLoop(idx)) {
+                UDPReadThreads[i] = new(() => UDPReadLoop(idx, udpSend)) {
                     Name = $"TCPUDPServer UDPRead {i} ({GetHashCode()})",
                     IsBackground = true
                 };
@@ -164,7 +165,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        protected virtual void UDPReadLoop(int idx) {
+        protected virtual void UDPReadLoop(int idx, bool send) {
             try {
                 using MemoryStream stream = new();
                 using CelesteNetBinaryReader reader = new(Server.Data, null, stream);
@@ -190,11 +191,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 Logger.Log(LogLevel.CRI, "tcpudp", $"New UDP connection on thread {idx}: {remote}");
                                 con.OnDisconnect -= RemoveUDPPending;
 
-                                con.UDP = UDPs[idx];
-                                con.UDPLocalEndPoint = (IPEndPoint?) UDPs[idx].Client.LocalEndPoint;
-                                con.UDPRemoteEndPoint = remote;
+                                if (send) {
+                                    con.UDP = UDPs[idx];
+                                    con.UDPLocalEndPoint = (IPEndPoint?) UDPs[idx].Client.LocalEndPoint;
+                                    con.UDPRemoteEndPoint = remote;
+                                    UDPMap[con.UDPRemoteEndPoint] = con;
+                                }
 
-                                UDPMap[con.UDPRemoteEndPoint] = con;
                                 con.OnDisconnect += RemoveUDPMap;
                                 continue;
                             }

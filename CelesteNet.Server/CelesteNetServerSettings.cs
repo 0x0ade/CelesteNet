@@ -31,6 +31,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public int MainPort { get; set; } = 3802;
         public int NumUDPThreads { get; set; } = -1;
+        public bool UDPSend { get; set; } = true;
 
         public LogLevel LogLevel {
             get => Logger.Level;

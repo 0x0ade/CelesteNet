@@ -181,6 +181,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void AddRole(NetPlusThreadRole role) {
             using (roleLock.W())
                 roles.Add(role);
+            InvokeScheduler();
         }
 
         public IEnumerable<NetPlusThreadRole> EnumerateRoles(){

@@ -130,7 +130,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     public sealed class IdleThreadRole : NetPlusThreadRole {
 
         private sealed class Worker : RoleWorker {
-            public Worker(NetPlusThreadRole role, NetPlusThread thread) : base(role, thread) {}
+            public Worker(IdleThreadRole role, NetPlusThread thread) : base(role, thread) {}
 
             protected internal override void StartWorker(CancellationToken token) => token.WaitHandle.WaitOne();
         }

@@ -30,7 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private HttpServer? HTTPServer;
         private WebSocketServiceHost? WSHost;
 
-        private Timer netPlusStatsTimer;
+        private Timer? netPlusStatsTimer;
 
 #if NETCORE
         private readonly FileExtensionContentTypeProvider ContentTypeProvider = new();

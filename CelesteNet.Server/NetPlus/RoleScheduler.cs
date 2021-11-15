@@ -107,7 +107,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     // Iterate over all overloaded roles or roles with too little threads, and assign them to underloaded threads
                     lastSchedulerExecNumThreadsReassigned = 0;
                     for (int i = roles.Count - 1; i >= 0; i--) {
-                        bool needsThread = (roles[i].metadata.actvRate >= OverloadThreshold || roles[i].metadata.numThreads <= roles[i].role.MinThreads);
+                        bool needsThread = (roles[i].metadata.actvRate >= OverloadThreshold || roles[i].metadata.numThreads < roles[i].role.MinThreads);
                         if (!needsThread || roles[i].role.MaxThreads <= roles[i].metadata.numThreads)
                             continue;
 

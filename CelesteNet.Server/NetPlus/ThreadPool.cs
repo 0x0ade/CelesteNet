@@ -160,7 +160,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (role == value)
                     return;
                 roleSwitchSem.Wait();
-                lock (Pool.RoleLock.R()) {
+                using (Pool.RoleLock.R()) {
                     role = value;
                     roleWorkerTokenSrc?.Cancel();
                 }

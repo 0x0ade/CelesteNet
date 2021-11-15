@@ -32,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int NetPlusThreadPoolThreads { get; set; } = -1;
         public int NetPlusMaxThreadRestarts { get; set; } = 5;
         public int NetPlusHeuristicSampleWindow { get; set; } = 800;
-        public float NetPlusSchedulerInterval { get; set; } = 15000;
+        public float NetPlusSchedulerInterval { get; set; } = 10000;
         public float NetPlusSchedulerUnderloadThreshold { get; set; } = 0.1f;
         public float NetPlusSchedulerOverloadThreshold { get; set; } = 0.9f;
         public float NetPlusSchedulerStealThreshold { get; set; } = 0.7f;

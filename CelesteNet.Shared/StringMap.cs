@@ -26,8 +26,6 @@ namespace Celeste.Mod.CelesteNet {
     */
     public class StringMap {
 
-        public const string ConnectionFeature = "stringmap";
-
         public readonly string Name;
 
         public readonly ConcurrentDictionary<int, string> MapRead = new();

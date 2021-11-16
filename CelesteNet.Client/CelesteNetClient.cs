@@ -21,9 +21,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetConnection Con;
 
-        public string[] ConnectionFeatures = CelesteNetUtils.ConnectionFeaturesBuiltIn;
-        public string[] ServerConnectionFeatures = Dummy<string>.EmptyArray;
-
         private bool _IsAlive;
         public bool IsAlive {
             get => _IsAlive;
@@ -116,20 +113,6 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
 
-        public event Action<CelesteNetTCPUDPConnection, string> OnInitTCPUDPConnectionFeature;
-
-        public void InitTCPUDPConnectionFeature(CelesteNetTCPUDPConnection con, string feature) {
-            switch (feature) {
-                case StringMap.ConnectionFeature:
-                    con.SendStringMap = true;
-                    break;
-            }
-
-            OnInitTCPUDPConnectionFeature?.Invoke(con, feature);
-        }
-
-
-
         public void SendFilterList() {
             Logger.Log(LogLevel.INF, "main", "Sending filter list");
             Con?.Send(new DataNetFilterList {
@@ -160,41 +143,41 @@ namespace Celeste.Mod.CelesteNet.Client {
             return data;
         }
 
-        private void OnUDPError(CelesteNetTCPUDPConnection con, Exception e, bool read) {
-            if (!read)
-                return;
+        // private void OnUDPError(CelesteNetTCPUDPConnection con, Exception e, bool read) {
+        //     if (!read)
+        //         return;
 
-            con.SendUDP = false;
+        //     con.SendUDP = false;
 
-            UDPDeathScore++;
-            if (UDPDeathScore < UDPDeathScoreMax) {
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Retrying.\nUDP score: {UDPDeathScore} / {UDPAliveScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+        //     UDPDeathScore++;
+        //     if (UDPDeathScore < UDPDeathScoreMax) {
+        //         Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Retrying.\nUDP score: {UDPDeathScore} / {UDPAliveScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
 
-            } else {
-                UDPDeathScore = UDPDeathScoreMax;
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died too often. Switching to TCP only.\nUDP score: {UDPDeathScore} / {UDPAliveScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
-                con.UDP?.Close();
-                con.UDP = null;
-            }
+        //     } else {
+        //         UDPDeathScore = UDPDeathScoreMax;
+        //         Logger.Log(LogLevel.CRI, "main", $"UDP connection died too often. Switching to TCP only.\nUDP score: {UDPDeathScore} / {UDPAliveScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
+        //         con.UDP?.Close();
+        //         con.UDP = null;
+        //     }
 
-            con.Send(new DataTCPOnlyDowngrade());
-        }
+        //     con.Send(new DataTCPOnlyDowngrade());
+        // }
 
 
         #region Handlers
 
         public bool Filter(CelesteNetConnection con, DataType data) {
-            if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
-                if (con is CelesteNetTCPUDPConnection tcpudp) {
-                    UDPAliveScore++;
-                    if (UDPAliveScore >= UDPAliveScoreMax) {
-                        UDPAliveScore = 0;
-                        UDPDeathScore--;
-                        if (UDPDeathScore < UDPDeathScoreMin)
-                            UDPDeathScore = UDPDeathScoreMin;
-                    }
-                }
-            }
+            // if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
+            //     if (con is CelesteNetTCPUDPConnection tcpudp) {
+            //         UDPAliveScore++;
+            //         if (UDPAliveScore >= UDPAliveScoreMax) {
+            //             UDPAliveScore = 0;
+            //             UDPDeathScore--;
+            //             if (UDPDeathScore < UDPDeathScoreMin)
+            //                 UDPDeathScore = UDPDeathScoreMin;
+            //         }
+            //     }
+            // }
 
             return true;
         }

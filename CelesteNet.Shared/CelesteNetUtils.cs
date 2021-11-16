@@ -24,10 +24,6 @@ namespace Celeste.Mod.CelesteNet {
 
         public static readonly Encoding UTF8NoBOM = new UTF8Encoding(false);
 
-        public static readonly string[] ConnectionFeaturesBuiltIn = {
-            StringMap.ConnectionFeature
-        };
-
         // See https://github.com/dotnet/runtime/blob/144e5145453ac3885ac20bc1f1f2641523c6fcea/src/libraries/System.Private.CoreLib/src/System/String.cs#L488
         public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
             => string.IsNullOrEmpty(value);

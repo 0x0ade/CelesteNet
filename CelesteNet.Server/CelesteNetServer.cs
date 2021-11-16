@@ -127,7 +127,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? Math.Max(Environment.ProcessorCount, 6) : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.NetPlusHeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
             
-            HandshakerRole handshakerRole = new HandshakerRole(ThreadPool);
+            HandshakerRole handshakerRole = new HandshakerRole(ThreadPool, this);
             ConnectionAcceptorRole connectionAcceptorRole = new ConnectionAcceptorRole(ThreadPool, new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort), handshakerRole);
             ThreadPool.Scheduler.AddRole(handshakerRole);
             ThreadPool.Scheduler.AddRole(connectionAcceptorRole);

@@ -45,7 +45,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public int MaxNameLength { get; set; } = 30;
-        public int MaxGuestNameLength { get; set; } = 16;
         public int MaxEmoteValueLength { get; set; } = 2048;
         public int MaxChannelNameLength { get; set; } = 16;
 
@@ -54,11 +53,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public bool AuthOnly { get; set; } = false;
 
-        public string MessageIPBan { get; set; } = "IP banned: {0}";
-        public string MessageBan { get; set; } = "{0} banned: {1}";
-        public string MessageInvalidUserKey { get; set; } = "Invalid user key";
-        public string MessageUserInfoMissing { get; set; } = "User info missing";
-        public string MessageAuthOnly { get; set; } = "Server doesn't allow anonymous guests";
+        public string MessageTeapotVersionMismatch { get; set; } = "Teapot version mismatch";
+        public string MessageNoUID { get; set; } = "Couldn't obtain UID";
+        public string MessageBan { get; set; } = "Banned: {1}";
 
     }
 }

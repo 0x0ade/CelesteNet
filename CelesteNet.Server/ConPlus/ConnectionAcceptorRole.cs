@@ -36,7 +36,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     EndPoint remoteEP = newConn.RemoteEndPoint!;
                     Logger.Log(LogLevel.VVV, "conaccpt", $"Incoming connection from {remoteEP} <-> {Role.EndPoint}");
                     Role.Handshaker.Factory.StartNew(() => {
-                        Role.Handshaker.DoHandshake(newConn).ContinueWith(t => {
+                        Role.Handshaker.DoSocketHandshake(newConn).ContinueWith(t => {
                             if (t.IsFaulted)
                                 Logger.Log(LogLevel.WRN, "conaccpt", $"Handshake failed for connection {remoteEP}: {t.Exception}");
                         });

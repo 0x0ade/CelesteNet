@@ -66,7 +66,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private Scheduler scheduler;
 
-        public HandshakerRole(NetPlusThreadPool pool) : base(pool) {
+        public HandshakerRole(NetPlusThreadPool pool, CelesteNetServer server) : base(pool) {
+            Server = server;
             scheduler = new Scheduler();
             Factory = new TaskFactory(scheduler);
         }
@@ -78,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
         
-        public async Task DoHandshake(Socket sock) {
+        public async Task DoSocketHandshake(Socket sock) {
             EndPoint remoteEP = sock.RemoteEndPoint!;
             using (CancellationTokenSource tokenSrc = new CancellationTokenSource()) {
                 // .NET is completly stupid, you can't cancel async socket operations
@@ -88,12 +89,14 @@ namespace Celeste.Mod.CelesteNet.Server {
                 try {
 
                     // Do the teapot handshake
-                    if (!await TeapotHandshake(sock)) {
+                    (bool teapotSuccess, string name, string uid) = await TeapotHandshake(sock);
+                    if (!teapotSuccess) {
                         Logger.Log(LogLevel.VVV, "handshake", $"Connection from {remoteEP} failed teapot handshake");
                         sock.Shutdown(SocketShutdown.Both);
                         sock.Close();
                         return;
                     }
+                    Logger.Log(LogLevel.VVV, "handshake", $"Connection {remoteEP} UID {uid} name {name}");
 
                 } catch (Exception) {
                     if (tokenSrc.IsCancellationRequested) {
@@ -107,19 +110,19 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         // Let's mess with web crawlers even more ;)
         // Also: I'm a Teapot
-        private async Task<bool> TeapotHandshake(Socket sock) {
+        private async Task<(bool success, string name, string uid)> TeapotHandshake(Socket sock) {
             using (NetworkStream netStream = new NetworkStream(sock, false))
             using (BufferedStream bufStream = new BufferedStream(netStream))
             using (StreamReader reader = new StreamReader(bufStream))
             using (StreamWriter writer = new StreamWriter(bufStream)) {
-                async Task<bool> Send500() {
+                async Task<(bool, string, string)> Send500() {
                     await writer.WriteAsync(@"
 HTTP/1.1 500 Internal Server Error
 Connection: close
 
 The server encountered an internal error while handling the request
                     ".Trim().Replace("\n", "\r\n"));
-                    return false;
+                    return (false, null!, null!);
                 }
 
                 // Parse the "HTTP" request line
@@ -146,23 +149,74 @@ The server encountered an internal error while handling the request
                     return await Send500();
 
                 if (teapotVer != TEAPOT_VERSION) {
-                    Logger.Log(LogLevel.VVV, "handshake", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {TEAPOT_VERSION} [server]");
+                    Logger.Log(LogLevel.VVV, "teapot", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {TEAPOT_VERSION} [server]");
                     await writer.WriteAsync($@"
 HTTP/1.1 409 Version Mismatch
 Connection: close
 
-Teapot version mismatch: {teapotVer} [client] != {TEAPOT_VERSION} [server]
+{string.Format(Server.Settings.MessageTeapotVersionMismatch, teapotVer, TEAPOT_VERSION)}
                     ".Trim().Replace("\n", "\r\n"));
-                    return false;
+                    return (false, null!, null!);
                 }
 
-                return true;
+                // Get the player name and token
+                if (!headers.TryGetValue("CelesteNet-PlayerName", out string? playerName))
+                    return await Send500();
+                headers.TryGetValue("CelesteNet-PlayerToken", out string? playerToken);
+
+                // Get the UID from the player name/token
+                string? uid = null;
+                if (playerToken != null && (uid = Server.UserData.GetUID(playerToken)) != null) {}
+                else if (!Server.Settings.AuthOnly && sock.RemoteEndPoint is IPEndPoint ipEP)
+                    uid = $"anon-{BitConverter.ToString(ipEP.Address.MapToIPv6().GetAddressBytes())}";
+
+                if (uid == null) {
+                    Logger.Log(LogLevel.VVV, "teapot", $"Couldn't get a valid UID for connection {sock.RemoteEndPoint}");
+                    await writer.WriteAsync($@"
+HTTP/1.1 403 Access Denied
+Connection: close
+
+{Server.Settings.MessageNoUID}
+                    ".Trim().Replace("\n", "\r\n"));
+                    return (false, null!, null!);
+                }
+
+                // Check if the player's banned
+                if (Server.UserData.TryLoad<BanInfo>(uid!, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To)) {
+                    Logger.Log(LogLevel.VVV, "teapot", $"Rejected connection from banned player {sock.RemoteEndPoint}");
+                    await writer.WriteAsync($@"
+HTTP/1.1 403 Access Denied
+Connection: close
+
+{string.Format(Server.Settings.MessageBan, banInfo.Reason)}
+                    ".Trim().Replace("\n", "\r\n"));
+                    return (false, null!, null!);
+                }
+
+                // Sanitize the players name
+                playerName = playerName.Sanitize(CelesteNetPlayerSession.IllegalNameChars);
+                if (playerName.Length > Server.Settings.MaxNameLength)
+                    playerName = playerName.Substring(0, Server.Settings.MaxNameLength);
+                if (playerName.IsNullOrEmpty())
+                    playerName = "Guest";
+
+                // Answer with the almighty teapot
+                await writer.WriteAsync($@"
+HTTP/1.1 418 I'm a teapot
+Connection: close
+CelesteNet-TeapotVersion: {TEAPOT_VERSION}
+
+Who wants some tea?
+                ".Trim().Replace("\n", "\r\n"));
+
+                return (true, playerName!, uid!);
             }
         }
 
         public override int MinThreads => 1;
         public override int MaxThreads => int.MaxValue;
 
+        public CelesteNetServer Server { get; }
         public TaskFactory Factory { get; }
         
     }

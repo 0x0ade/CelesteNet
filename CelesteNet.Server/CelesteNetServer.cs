@@ -27,8 +27,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly DataContext Data;
         public readonly NetPlusThreadPool ThreadPool;
 
-        public string[] ConnectionFeatures = CelesteNetUtils.ConnectionFeaturesBuiltIn;
-
         public UserData UserData;
 
         public readonly Channels Channels;

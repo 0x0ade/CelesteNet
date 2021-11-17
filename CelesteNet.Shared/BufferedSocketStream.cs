@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet {
                 return;
 
             while (count > 0) {
-                int n = Math.Min(buffer.Length - bufferOff, count);
+                int n = Math.Min(this.buffer.Length - bufferOff, count);
                 Buffer.BlockCopy(buffer, offset, this.buffer, this.bufferOff, n);
                 this.bufferOff += n;
                 count -= n;

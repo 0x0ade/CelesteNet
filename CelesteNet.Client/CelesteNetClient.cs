@@ -37,15 +37,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         public DataPlayerInfo PlayerInfo;
 
         private readonly ManualResetEvent HandshakeEvent = new(false);
-        private DataType HandshakeClient;
 
         private readonly object StartStopLock = new();
 
         private const int UDPDeathScoreMin = -1;
         private const int UDPDeathScoreMax = 5;
-        private int UDPDeathScore;
         private const int UDPAliveScoreMax = 100;
-        private int UDPAliveScore;
 
         public CelesteNetClient()
             : this(new()) {

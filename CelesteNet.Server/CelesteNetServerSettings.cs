@@ -54,8 +54,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public bool AuthOnly { get; set; } = false;
 
         public string MessageTeapotVersionMismatch { get; set; } = "Teapot version mismatch";
-        public string MessageNoUID { get; set; } = "Couldn't obtain UID";
-        public string MessageBan { get; set; } = "Banned: {1}";
+        public string MessageAuthOnly { get; set; } = "Server supports only authenticated clients";
+        public string MessageInvalidKey { get; set; } = "Invalid key";
+        public string MessageBan { get; set; } = "Banned: {4}";
 
     }
 }

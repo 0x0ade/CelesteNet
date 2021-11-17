@@ -82,7 +82,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (feature == null)
                     throw new Exception($"Cannot create instance of connection feature {type.FullName}");
                 Logger.Log(LogLevel.VVV, "handshake", $"Found connection feature: {type.FullName}");
-                conFeatures.Add((type.FullName, feature!));
+                conFeatures.Add((type.FullName!, feature!));
             }
         }
 
@@ -118,7 +118,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                             sock.Dispose();
                             return;
                         }
-                        
                         throw;
                     }
                 }
@@ -201,62 +200,34 @@ Connection: close
                 // Get the list of supported connection features
                 HashSet<string> conFeatures;
                 if (headers.TryGetValue("CelesteNet-ConnectionFeatures", out string? conFeaturesRaw))
-                    conFeatures = (conFeaturesRaw!).Split(",").Select(f => f.Trim()).ToHashSet();
+                    conFeatures = (conFeaturesRaw!).Split(",").Select(f => f.Trim().ToLower()).ToHashSet();
                 else
                     conFeatures = new HashSet<string>();
 
                 // Match connection features
                 List<(string name, IConnectionFeature feature)> matchedFeats = new List<(string, IConnectionFeature)>();
                 foreach ((string name, IConnectionFeature feat) in this.conFeatures) {
-                    if (conFeaturesRaw.Contains(name))
+                    if (conFeatures.Contains(name.ToLower()))
                         matchedFeats.Add((name, feat));
                 }
 
-                // Get the player name and token
-                headers.TryGetValue("CelesteNet-PlayerName", out string? playerName);
-                headers.TryGetValue("CelesteNet-PlayerToken", out string? playerToken);
+                // Get the player name-key
+                if (!headers.TryGetValue("CelesteNet-PlayerNameKey", out string? playerNameKey))
+                    return await Send500();
 
-                // Get the player UID from the player name/token
-                string? playerUID = null;
-                if (playerToken != null && (playerUID = Server.UserData.GetUID(playerToken)) != null)
-                    playerName ??= Server.UserData.Load<BasicUserInfo>(playerUID!).Name;
-                else if (playerName != null && !Server.Settings.AuthOnly && sock.RemoteEndPoint is IPEndPoint ipEP)
-                    playerUID = conUID;
+                // Authenticate name-key
+                ((string uid, string name)? playerData, string? errorReason) = AuthenticatePlayerNameKey(conUID, playerNameKey!);
 
-                if (playerUID == null) {
-                    Logger.Log(LogLevel.VVV, "teapot", $"Couldn't get a valid player UID for connection {sock.RemoteEndPoint}");
+                if (errorReason != null) {
+                    Logger.Log(LogLevel.VVV, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
                     await writer.WriteAsync($@"
 HTTP/1.1 403 Access Denied
 Connection: close
 
-{Server.Settings.MessageNoUID}
+{errorReason}
                     ".Trim().Replace("\n", "\r\n"));
                     return null;
                 }
-
-                // Check if the player's banned
-                BanInfo? ban = null;
-                if (Server.UserData.TryLoad<BanInfo>(conUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To) )
-                    ban = conBanInfo;
-                if (Server.UserData.TryLoad<BanInfo>(playerUID!, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To) )
-                    ban = banInfo;
-                if (ban != null) {
-                    Logger.Log(LogLevel.VVV, "teapot", $"Rejected connection from banned player {sock.RemoteEndPoint}");
-                    await writer.WriteAsync($@"
-HTTP/1.1 403 Access Denied
-Connection: close
-
-{string.Format(Server.Settings.MessageBan, ban.Reason)}
-                    ".Trim().Replace("\n", "\r\n"));
-                    return null;
-                }
-
-                // Sanitize the players name
-                playerName = playerName.Sanitize(CelesteNetPlayerSession.IllegalNameChars);
-                if (playerName.Length > Server.Settings.MaxNameLength)
-                    playerName = playerName.Substring(0, Server.Settings.MaxNameLength);
-                if (playerName.IsNullOrEmpty())
-                    playerName = "Guest";
 
                 // Answer with the almighty teapot
                 await writer.WriteAsync($@"
@@ -268,7 +239,7 @@ CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) =>
 Who wants some tea?
                 ".Trim().Replace("\n", "\r\n"));
 
-                return (conUID, matchedFeats.Select(f => f.feature).ToArray(), playerUID!, playerName!);
+                return (conUID, matchedFeats.Select(f => f.feature).ToArray(), (playerData!).Value.uid, (playerData!).Value.name);
             }
         }
 
@@ -277,6 +248,40 @@ Who wants some tea?
                 feature.Register(con);
             foreach (IConnectionFeature feature in features)
                 await feature.DoHandShake(con);
+        }
+
+        public ((string playerUID, string playerName)?, string? errorReason) AuthenticatePlayerNameKey(string conUID, string nameKey) {
+            // Get the player UID and name from the player name-key
+            string playerUID = null!, playerName = null!;
+            if ((nameKey!).StartsWith('#')) {
+                playerUID = Server.UserData.GetUID((nameKey!).Substring(1));
+                if (playerUID != null && Server.UserData.TryLoad<BasicUserInfo>(playerUID, out BasicUserInfo info))
+                    playerName = info.Name!;
+                else
+                    return (null, string.Format(Server.Settings.MessageInvalidKey, conUID, nameKey));
+            } else if (!Server.Settings.AuthOnly) {
+                playerName = nameKey!;
+                playerUID = conUID;
+            } else
+                return (null, string.Format(Server.Settings.MessageAuthOnly, conUID, nameKey));
+
+            // Check if the player's banned
+            BanInfo? ban = null;
+            if (Server.UserData.TryLoad<BanInfo>(playerUID!, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To))
+                ban = banInfo;
+            if (Server.UserData.TryLoad<BanInfo>(conUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To))
+                ban = conBanInfo;
+            if (ban != null)
+                return (null, string.Format(Server.Settings.MessageBan, conUID, playerUID, playerName, ban.Reason));
+
+            // Sanitize the player's name
+            playerName = playerName.Sanitize(CelesteNetPlayerSession.IllegalNameChars);
+            if (playerName.Length > Server.Settings.MaxNameLength)
+                playerName = playerName.Substring(0, Server.Settings.MaxNameLength);
+            if (playerName.IsNullOrEmpty())
+                playerName = "Guest";
+        
+            return ((playerUID, playerName), null);
         }
 
         public override int MinThreads => 1;

@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     */
     public partial class HandshakerRole : NetPlusThreadRole {
 
-        public const int HANDSHAKE_TIMEOUT = 5000;
+        public const int TEAPOT_TIMEOUT = 5000;
         public const int TEAPOT_VERSION = 1;
 
         private class Scheduler : TaskScheduler, IDisposable {
@@ -65,11 +65,25 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         private Scheduler scheduler;
+        private List<(string name, IConnectionFeature feature)> conFeatures;
 
         public HandshakerRole(NetPlusThreadPool pool, CelesteNetServer server) : base(pool) {
             Server = server;
             scheduler = new Scheduler();
             Factory = new TaskFactory(scheduler);
+
+            // Find connection features
+            conFeatures = new List<(string, IConnectionFeature)>();
+            foreach (Type type in CelesteNetUtils.GetTypes()) {
+                if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
+                    continue;
+
+                IConnectionFeature? feature = (IConnectionFeature?) Activator.CreateInstance(type);
+                if (feature == null)
+                    throw new Exception($"Cannot create instance of connection feature {type.FullName}");
+                Logger.Log(LogLevel.VVV, "handshake", $"Found connection feature: {type.FullName}");
+                conFeatures.Add((type.FullName, feature!));
+            }
         }
 
         public override void Dispose() {
@@ -79,50 +93,75 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
         
-        public async Task DoSocketHandshake(Socket sock) {
+        public async Task DoTCPUDPHandshake(Socket sock) {
             EndPoint remoteEP = sock.RemoteEndPoint!;
-            using (CancellationTokenSource tokenSrc = new CancellationTokenSource()) {
-                // .NET is completly stupid, you can't cancel async socket operations
-                // We literally have to kill the socket for the handshake to be able to timeout
-                tokenSrc.CancelAfter(HANDSHAKE_TIMEOUT);
-                tokenSrc.Token.Register(() => sock.Close());
-                try {
-
-                    // Do the teapot handshake
-                    (bool teapotSuccess, string name, string uid) = await TeapotHandshake(sock);
-                    if (!teapotSuccess) {
-                        Logger.Log(LogLevel.VVV, "handshake", $"Connection from {remoteEP} failed teapot handshake");
-                        sock.Shutdown(SocketShutdown.Both);
-                        sock.Close();
-                        return;
+            CelesteNetTCPUDPConnection? con = null;
+            try {
+                // Do the teapot handshake
+                bool teapotSuccess;
+                string conUID = null!;
+                IConnectionFeature[] conFeatures = null!;
+                string playerUID = null!, playerName = null!;
+                using (CancellationTokenSource tokenSrc = new CancellationTokenSource()) {
+                    // .NET is completly stupid, you can't cancel async socket operations
+                    // We literally have to kill the socket for the handshake to be able to timeout
+                    tokenSrc.CancelAfter(TEAPOT_TIMEOUT);
+                    tokenSrc.Token.Register(() => sock.Close());
+                    try {
+                        var teapotRes = await TeapotHandshake(sock);
+                        teapotSuccess = teapotRes != null;
+                        if (teapotRes != null)
+                            (conUID, conFeatures, playerUID, playerName) = teapotRes.Value;
+                    } catch (Exception) {
+                        if (tokenSrc.IsCancellationRequested) {
+                            Logger.Log(LogLevel.VVV, "tcpudphs", $"Handshake for connection {remoteEP} timed out, maybe an old client?");
+                            sock.Dispose();
+                            return;
+                        }
+                        
+                        throw;
                     }
-                    Logger.Log(LogLevel.VVV, "handshake", $"Connection {remoteEP} UID {uid} name {name}");
-
-                } catch (Exception) {
-                    if (tokenSrc.IsCancellationRequested) {
-                        Logger.Log(LogLevel.VVV, "handshake", $"Handshake for connection {remoteEP} timed out, maybe an old client?");
-                        return;
-                    }
-                    throw;
                 }
+
+                if (!teapotSuccess) {
+                    Logger.Log(LogLevel.VVV, "tcpudphs", $"Connection from {remoteEP} failed teapot handshake");
+                    sock.Shutdown(SocketShutdown.Both);
+                    sock.Close();
+                    return;
+                }
+                Logger.Log(LogLevel.VVV, "tcpudphs", $"Connection {remoteEP} teapot handshake success: connection UID {conUID} connection features '{conFeatures.Aggregate((string) null!, (a, f) => ((a == null) ? $"{f}" : $"{a}, {f}"))}' player UID {playerUID} player name {playerName}");
+
+                // Create the connection, do the generic connection handshake and create a session
+                Server.HandleConnect(con = new CelesteNetTCPUDPConnection(Server.Data, sock, conUID));
+                await DoConnectionHandshake(con, conFeatures);
+                Server.CreateSession(con, playerUID, playerName);
+            } catch(Exception) {
+                con?.Dispose();
+                sock.Dispose();
+                throw;
             }
         }
 
         // Let's mess with web crawlers even more ;)
         // Also: I'm a Teapot
-        private async Task<(bool success, string name, string uid)> TeapotHandshake(Socket sock) {
+        private async Task<(string conUID, IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake(Socket sock) {
             using (NetworkStream netStream = new NetworkStream(sock, false))
             using (BufferedStream bufStream = new BufferedStream(netStream))
             using (StreamReader reader = new StreamReader(bufStream))
             using (StreamWriter writer = new StreamWriter(bufStream)) {
-                async Task<(bool, string, string)> Send500() {
+                string conUID = sock.RemoteEndPoint switch {
+                    IPEndPoint ipEP => $"con-ip-{BitConverter.ToString(ipEP.Address.MapToIPv6().GetAddressBytes())}",
+                    _ => $"con-unknown"
+                };
+                    
+                async Task<(string, IConnectionFeature[], string, string)?> Send500() {
                     await writer.WriteAsync(@"
 HTTP/1.1 500 Internal Server Error
 Connection: close
 
 The server encountered an internal error while handling the request
                     ".Trim().Replace("\n", "\r\n"));
-                    return (false, null!, null!);
+                    return null;
                 }
 
                 // Parse the "HTTP" request line
@@ -156,41 +195,60 @@ Connection: close
 
 {string.Format(Server.Settings.MessageTeapotVersionMismatch, teapotVer, TEAPOT_VERSION)}
                     ".Trim().Replace("\n", "\r\n"));
-                    return (false, null!, null!);
+                    return null;
+                }
+
+                // Get the list of supported connection features
+                HashSet<string> conFeatures;
+                if (headers.TryGetValue("CelesteNet-ConnectionFeatures", out string? conFeaturesRaw))
+                    conFeatures = (conFeaturesRaw!).Split(",").Select(f => f.Trim()).ToHashSet();
+                else
+                    conFeatures = new HashSet<string>();
+
+                // Match connection features
+                List<(string name, IConnectionFeature feature)> matchedFeats = new List<(string, IConnectionFeature)>();
+                foreach ((string name, IConnectionFeature feat) in this.conFeatures) {
+                    if (conFeaturesRaw.Contains(name))
+                        matchedFeats.Add((name, feat));
                 }
 
                 // Get the player name and token
                 headers.TryGetValue("CelesteNet-PlayerName", out string? playerName);
                 headers.TryGetValue("CelesteNet-PlayerToken", out string? playerToken);
 
-                // Get the UID from the player name/token
-                string? uid = null;
-                if (playerToken != null && (uid = Server.UserData.GetUID(playerToken)) != null)
-                    playerName ??= Server.UserData.Load<BasicUserInfo>(uid!).Name;
+                // Get the player UID from the player name/token
+                string? playerUID = null;
+                if (playerToken != null && (playerUID = Server.UserData.GetUID(playerToken)) != null)
+                    playerName ??= Server.UserData.Load<BasicUserInfo>(playerUID!).Name;
                 else if (playerName != null && !Server.Settings.AuthOnly && sock.RemoteEndPoint is IPEndPoint ipEP)
-                    uid = $"anon-{BitConverter.ToString(ipEP.Address.MapToIPv6().GetAddressBytes())}";
+                    playerUID = conUID;
 
-                if (uid == null) {
-                    Logger.Log(LogLevel.VVV, "teapot", $"Couldn't get a valid UID for connection {sock.RemoteEndPoint}");
+                if (playerUID == null) {
+                    Logger.Log(LogLevel.VVV, "teapot", $"Couldn't get a valid player UID for connection {sock.RemoteEndPoint}");
                     await writer.WriteAsync($@"
 HTTP/1.1 403 Access Denied
 Connection: close
 
 {Server.Settings.MessageNoUID}
                     ".Trim().Replace("\n", "\r\n"));
-                    return (false, null!, null!);
+                    return null;
                 }
 
                 // Check if the player's banned
-                if (Server.UserData.TryLoad<BanInfo>(uid!, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To)) {
+                BanInfo? ban = null;
+                if (Server.UserData.TryLoad<BanInfo>(conUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To) )
+                    ban = conBanInfo;
+                if (Server.UserData.TryLoad<BanInfo>(playerUID!, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To) )
+                    ban = banInfo;
+                if (ban != null) {
                     Logger.Log(LogLevel.VVV, "teapot", $"Rejected connection from banned player {sock.RemoteEndPoint}");
                     await writer.WriteAsync($@"
 HTTP/1.1 403 Access Denied
 Connection: close
 
-{string.Format(Server.Settings.MessageBan, banInfo.Reason)}
+{string.Format(Server.Settings.MessageBan, ban.Reason)}
                     ".Trim().Replace("\n", "\r\n"));
-                    return (false, null!, null!);
+                    return null;
                 }
 
                 // Sanitize the players name
@@ -205,12 +263,20 @@ Connection: close
 HTTP/1.1 418 I'm a teapot
 Connection: close
 CelesteNet-TeapotVersion: {TEAPOT_VERSION}
+CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
 
 Who wants some tea?
                 ".Trim().Replace("\n", "\r\n"));
 
-                return (true, playerName!, uid!);
+                return (conUID, matchedFeats.Select(f => f.feature).ToArray(), playerUID!, playerName!);
             }
+        }
+
+        public async Task DoConnectionHandshake(CelesteNetConnection con, IConnectionFeature[] features) {
+            foreach (IConnectionFeature feature in features)
+                feature.Register(con);
+            foreach (IConnectionFeature feature in features)
+                await feature.DoHandShake(con);
         }
 
         public override int MinThreads => 1;

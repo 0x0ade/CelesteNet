@@ -269,14 +269,16 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private int nextSesId = 0;
         public CelesteNetPlayerSession CreateSession(CelesteNetConnection con, string playerUID, string playerName) {
+            CelesteNetPlayerSession ses;
             using (ConLock.W()) {
-                CelesteNetPlayerSession ses = new CelesteNetPlayerSession(this, con, unchecked ((uint) Interlocked.Increment(ref nextSesId)), playerUID, playerName);
+                ses = new CelesteNetPlayerSession(this, con, unchecked ((uint) Interlocked.Increment(ref nextSesId)), playerUID, playerName);
                 Sessions.Add(ses);
                 PlayersByCon[con] = ses;
                 PlayersByID[ses.SessionID] = ses;
-                OnSessionStart?.Invoke(ses);
-                return ses;
             }
+            ses.Start();
+            OnSessionStart?.Invoke(ses);
+            return ses;
         }
 
         public void Broadcast(DataType data) {

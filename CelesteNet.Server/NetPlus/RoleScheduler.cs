@@ -184,7 +184,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void AddRole(NetPlusThreadRole role) {
             using (roleLock.W()) {
-                if (roles.Aggregate(0, (a, r) => a + r.MinThreads) + role.MaxThreads > Pool.NumThreads)
+                if (roles.Aggregate(0, (a, r) => a + r.MinThreads) + role.MinThreads > Pool.NumThreads)
                     throw new InvalidOperationException("Maximum thread roles reached");
                 roles.Add(role);
             }

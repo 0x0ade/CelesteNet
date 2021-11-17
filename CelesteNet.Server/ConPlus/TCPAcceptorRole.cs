@@ -18,6 +18,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Accept new connections as long as the token isn't canceled
                 socket.Listen(MAX_WORKER_BACKLOG);
                 token.Register(() => socket.Close());
+
+                Logger.Log(LogLevel.INF, "tcpaccept", $"Thread pool thread {Thread.Index} now listenting for connections on {Role.EndPoint}");
                 while (!token.IsCancellationRequested) {
                     Socket newConn;
 
@@ -34,11 +36,11 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Start the connection handshake
                     EndPoint remoteEP = newConn.RemoteEndPoint!;
-                    Logger.Log(LogLevel.VVV, "tcpaccpt", $"Incoming connection from {remoteEP} <-> {Role.EndPoint}");
+                    Logger.Log(LogLevel.VVV, "tcpaccept", $"Incoming connection from {remoteEP} <-> {Role.EndPoint}");
                     Role.Handshaker.Factory.StartNew(() => {
                         Role.Handshaker.DoTCPUDPHandshake(newConn).ContinueWith(t => {
                             if (t.IsFaulted)
-                                Logger.Log(LogLevel.WRN, "tcpaccpt", $"Handshake failed for connection {remoteEP}: {t.Exception}");
+                                Logger.Log(LogLevel.WRN, "tcpaccept", $"Handshake failed for connection {remoteEP}: {t.Exception}");
                         });
                     });
                 }

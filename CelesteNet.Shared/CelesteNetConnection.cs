@@ -74,8 +74,6 @@ namespace Celeste.Mod.CelesteNet {
 
         protected List<CelesteNetSendQueue> SendQueues = new();
 
-        public readonly CelesteNetSendQueue DefaultSendQueue;
-
         public CelesteNetConnection(DataContext data) {
             Data = data;
 
@@ -89,12 +87,6 @@ namespace Celeste.Mod.CelesteNet {
                 Creator = (type == null ? "" : type + "::") + method.Name;
                 break;
             }
-
-            // SendQueues.Add(DefaultSendQueue = new(this, "") {
-            //     SendKeepAliveUpdate = true,
-            //     SendKeepAliveNonUpdate = true,
-            //     SendStringMapUpdate = false
-            // });
         }
 
         public virtual void Send(DataType? data) {
@@ -120,14 +112,7 @@ namespace Celeste.Mod.CelesteNet {
             GetQueue(data)?.Enqueue(data);
         }
 
-        public virtual CelesteNetSendQueue GetQueue(DataType data) {
-            return DefaultSendQueue;
-        }
-
-        public abstract void SendRaw(CelesteNetSendQueue queue, DataType data);
-
-        public virtual void SendRawFlush() {
-        }
+        protected abstract CelesteNetSendQueue? GetQueue(DataType data);
 
         protected virtual void Receive(DataType data) {
             lock (ReceiveFilterLock)
@@ -162,6 +147,8 @@ namespace Celeste.Mod.CelesteNet {
                 Dispose(true);
             }
         }
+
+        public override string ToString() => $"{GetType()}({ID})";
 
     }
 

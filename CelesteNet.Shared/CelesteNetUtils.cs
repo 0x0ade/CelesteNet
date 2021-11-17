@@ -201,12 +201,5 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public static void CloseSafely(this Socket socket) {
-            socket.Shutdown(SocketShutdown.Send);
-
-            byte[] buf = new byte[1]; 
-            while(socket.Receive(buf, 0, 1, SocketFlags.None) > 0) continue;
-        }
-
     }
 }

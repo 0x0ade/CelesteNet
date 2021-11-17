@@ -130,12 +130,6 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         protected virtual void Receive(DataType data) {
-            if (data is DataLowLevelStringMapping mapping) {
-                // TODO fix this
-                // DefaultSendQueue.Strings.RegisterWrite(mapping.Value, mapping.ID);
-                return;
-            }
-
             lock (ReceiveFilterLock)
                 if (!(_OnReceiveFilter?.InvokeWhileTrue(this, data) ?? true))
                     return;

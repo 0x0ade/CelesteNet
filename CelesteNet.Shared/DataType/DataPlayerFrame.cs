@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         // Too many too quickly to make tasking worth it.
-        public override DataFlags DataFlags => DataFlags.Update | DataFlags.OnlyLatest | DataFlags.SkipDuplicate;
+        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.OnlyLatest | DataFlags.SkipDuplicate;
 
         public uint UpdateID;
 

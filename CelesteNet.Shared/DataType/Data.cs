@@ -223,7 +223,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public enum DataFlags : ushort {
         None =
             0b0000000000000000,
-        Update =
+        Unreliable =
             0b0000000000000001,
         ForceForward =
             0b0000000000000010,

@@ -252,15 +252,32 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Logger.Log(LogLevel.VVV, "main", $"Loopend run {con}");
 
                 PlayersByCon.TryGetValue(con, out CelesteNetPlayerSession? session);
-                session?.Dispose();
-
+                if (session != null) {
+                    using (ConLock.W()) {
+                        Sessions.Remove(session);
+                        PlayersByCon.TryRemove(con, out _);
+                        PlayersByID.TryRemove(session.SessionID, out _);
+                        session?.Dispose();
+                    }
+                }
+                
                 OnDisconnect?.Invoke(this, con, session);
             }));
         }
 
         public event Action<CelesteNetPlayerSession>? OnSessionStart;
-        internal void InvokeOnSessionStart(CelesteNetPlayerSession session)
-            => OnSessionStart?.Invoke(session);
+
+        private int nextSesId = 0;
+        public CelesteNetPlayerSession CreateSession(CelesteNetConnection con, string playerUID, string playerName) {
+            using (ConLock.W()) {
+                CelesteNetPlayerSession ses = new CelesteNetPlayerSession(this, con, unchecked ((uint) Interlocked.Increment(ref nextSesId)), playerUID, playerName);
+                Sessions.Add(ses);
+                PlayersByCon[con] = ses;
+                PlayersByID[ses.SessionID] = ses;
+                OnSessionStart?.Invoke(ses);
+                return ses;
+            }
+        }
 
         public void Broadcast(DataType data) {
             DataInternalBlob blob = new(Data, data);

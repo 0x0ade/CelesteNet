@@ -234,13 +234,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void Players(Frontend f, HttpRequestEventArgs c) {
             bool auth = f.IsAuthorized(c);
             f.RespondJSON(c, f.Server.PlayersByID.Values.Select(p => new {
-                p.ID,
+                p.SessionID,
                 UID = auth ? p.UID : null,
                 p.PlayerInfo?.Name,
                 p.PlayerInfo?.FullName,
                 p.PlayerInfo?.DisplayName,
                 Connection = auth ? p.Con.ID : null,
-                ConnectionUID = auth ? p.ConUID : null,
+                ConnectionUID = auth ? p.Con.UID : null,
             }).ToArray());
         }
 
@@ -251,7 +251,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 channels = channels.Where(c => !c.IsPrivate);
             f.RespondJSON(c, channels.Select(c => new {
                 c.ID, c.Name, c.IsPrivate,
-                Players = c.Players.Select(p => p.ID).ToArray()
+                Players = c.Players.Select(p => p.SessionID).ToArray()
             }).ToArray());
         }
 

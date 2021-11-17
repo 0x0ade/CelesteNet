@@ -19,14 +19,14 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
-        public readonly uint ID;
-        public readonly string ConUID;
-        public string UID;
+        public readonly uint SessionID;
+
+        public readonly string UID, Name;
 
         private readonly RWLock StateLock = new();
         private readonly Dictionary<object, Dictionary<Type, object>> StateContexts = new();
 
-        public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo? value) ? value : null;
+        public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(SessionID, out DataPlayerInfo? value) ? value : null;
 
         public Channel Channel;
 
@@ -35,12 +35,13 @@ namespace Celeste.Mod.CelesteNet.Server {
         private readonly object RequestNextIDLock = new();
         private uint RequestNextID = 0;
 
-        public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
+        internal CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint sesId, string uid, string name) {
             Server = server;
             Con = con;
-            ID = id;
+            SessionID = sesId;
 
-            ConUID = UID = $"con-{con.UID}";
+            UID = uid;
+            Name = name;
 
             Channel = server.Channels.Default;
 
@@ -93,9 +94,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         //     Logger.Log(LogLevel.INF, "playersession", $"Startup #{ID} {Con}");
         //     using (Server.ConLock.W())
         //         Server.Sessions.Add(this);
-        //     Server.PlayersByCon[Con] = this;
-        //     Server.PlayersByID[ID] = this;
-
         //     if (Server.UserData.TryLoad(UID, out BanInfo ban) && !ban.Reason.IsNullOrEmpty()) {
         //         Con.Send(new DataDisconnectReason { Text = string.Format(Server.Settings.MessageIPBan, ban.Reason) });
         //         Con.Send(new DataInternalDisconnect());
@@ -318,29 +316,24 @@ namespace Celeste.Mod.CelesteNet.Server {
         public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;
 
         public void Dispose() {
-            Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{ID} {Con}");
+            Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{SessionID} {Con}");
 
             DataPlayerInfo? playerInfoLast = PlayerInfo;
 
-            using (Server.ConLock.W())
-                Server.Sessions.Remove(this);
-            Server.PlayersByCon.TryRemove(Con, out _);
-            Server.PlayersByID.TryRemove(ID, out _);
-
             if (playerInfoLast != null)
                 Server.BroadcastAsync(new DataPlayerInfo {
-                    ID = ID
+                    ID = SessionID
                 });
 
             Con.OnSendFilter -= ConSendFilter;
             Server.Data.UnregisterHandlersIn(this);
 
-            Logger.Log(LogLevel.VVV, "playersession", $"Loopend send #{ID} {Con}");
+            Logger.Log(LogLevel.VVV, "playersession", $"Loopend send #{SessionID} {Con}");
             Con.Send(new DataInternalLoopend(() => {
-                Logger.Log(LogLevel.VVV, "playersession", $"Loopend run #{ID} {Con}");
+                Logger.Log(LogLevel.VVV, "playersession", $"Loopend run #{SessionID} {Con}");
 
-                Server.Data.FreeRef<DataPlayerInfo>(ID);
-                Server.Data.FreeOrder<DataPlayerFrame>(ID);
+                Server.Data.FreeRef<DataPlayerInfo>(SessionID);
+                Server.Data.FreeOrder<DataPlayerFrame>(SessionID);
 
                 OnEnd?.Invoke(this, playerInfoLast);
             }));

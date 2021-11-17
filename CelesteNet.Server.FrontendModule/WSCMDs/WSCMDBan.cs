@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             foreach (string uid in uids) {
                 foreach (CelesteNetPlayerSession player in players) {
-                    if (player.UID != uid && player.ConUID != uid)
+                    if (player.UID != uid && player.Con.UID != uid)
                         continue;
 
                     if (ban.Name.IsNullOrEmpty())

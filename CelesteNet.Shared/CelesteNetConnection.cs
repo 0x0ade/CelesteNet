@@ -72,8 +72,6 @@ namespace Celeste.Mod.CelesteNet {
         public abstract string ID { get; }
         public abstract string UID { get; }
 
-        public bool SendKeepAlive = false;
-
         protected List<CelesteNetSendQueue> SendQueues = new();
 
         public readonly CelesteNetSendQueue DefaultSendQueue;

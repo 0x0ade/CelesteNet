@@ -4,13 +4,13 @@ using System.Net.Sockets;
 using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Server {
-    public partial class ConnectionAcceptorRole : MultipleSocketBinderRole {
+    public partial class TCPAcceptorRole : MultipleSocketBinderRole {
 
         public const int MAX_WORKER_BACKLOG = 32;
 
         private class Worker : RoleWorker {
 
-            public Worker(ConnectionAcceptorRole role, NetPlusThread thread) : base(role, thread) {}
+            public Worker(TCPAcceptorRole role, NetPlusThread thread) : base(role, thread) {}
 
             protected override void StartWorker(Socket socket, CancellationToken token) {
                 EnterActiveZone();
@@ -34,22 +34,22 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Start the connection handshake
                     EndPoint remoteEP = newConn.RemoteEndPoint!;
-                    Logger.Log(LogLevel.VVV, "conaccpt", $"Incoming connection from {remoteEP} <-> {Role.EndPoint}");
+                    Logger.Log(LogLevel.VVV, "tcpaccpt", $"Incoming connection from {remoteEP} <-> {Role.EndPoint}");
                     Role.Handshaker.Factory.StartNew(() => {
-                        Role.Handshaker.DoSocketHandshake(newConn).ContinueWith(t => {
+                        Role.Handshaker.DoTCPUDPHandshake(newConn).ContinueWith(t => {
                             if (t.IsFaulted)
-                                Logger.Log(LogLevel.WRN, "conaccpt", $"Handshake failed for connection {remoteEP}: {t.Exception}");
+                                Logger.Log(LogLevel.WRN, "tcpaccpt", $"Handshake failed for connection {remoteEP}: {t.Exception}");
                         });
                     });
                 }
                 ExitActiveZone();
             }
 
-            public new ConnectionAcceptorRole Role => (ConnectionAcceptorRole) base.Role;
+            public new TCPAcceptorRole Role => (TCPAcceptorRole) base.Role;
 
         }
 
-        public ConnectionAcceptorRole(NetPlusThreadPool pool, EndPoint endPoint, HandshakerRole handshaker) : base(pool, ProtocolType.Tcp, endPoint) {
+        public TCPAcceptorRole(NetPlusThreadPool pool, EndPoint endPoint, HandshakerRole handshaker) : base(pool, ProtocolType.Tcp, endPoint) {
             Handshaker = handshaker;
         }
 

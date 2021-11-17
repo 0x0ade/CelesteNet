@@ -128,9 +128,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? Math.Max(Environment.ProcessorCount, 6) : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.NetPlusHeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
             
             HandshakerRole handshakerRole = new HandshakerRole(ThreadPool, this);
-            ConnectionAcceptorRole connectionAcceptorRole = new ConnectionAcceptorRole(ThreadPool, new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort), handshakerRole);
+            TCPAcceptorRole acceptorRole = new TCPAcceptorRole(ThreadPool, new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort), handshakerRole);
             ThreadPool.Scheduler.AddRole(handshakerRole);
-            ThreadPool.Scheduler.AddRole(connectionAcceptorRole);
+            ThreadPool.Scheduler.AddRole(acceptorRole);
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
@@ -233,7 +233,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void HandleConnect(CelesteNetConnection con) {
             Logger.Log(LogLevel.INF, "main", $"New connection: {con}");
-            con.SendKeepAlive = true;
             using (ConLock.W())
                 Connections.Add(con);
             OnConnect?.Invoke(this, con);

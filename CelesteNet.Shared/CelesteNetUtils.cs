@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -198,6 +199,13 @@ namespace Celeste.Mod.CelesteNet {
                     buffer = ms.ToArray();
                 return buffer;
             }
+        }
+
+        public static void CloseSafely(this Socket socket) {
+            socket.Shutdown(SocketShutdown.Send);
+
+            byte[] buf = new byte[1]; 
+            while(socket.Receive(buf, 0, 1, SocketFlags.None) > 0) continue;
         }
 
     }

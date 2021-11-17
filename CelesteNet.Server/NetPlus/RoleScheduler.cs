@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Timers;
 
 namespace Celeste.Mod.CelesteNet.Server {
@@ -50,7 +51,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Create scheduler timer
                 schedulerTimer = new Timer(timerInterval);
                 schedulerTimer.Elapsed += (_, _) => InvokeScheduler();
-                schedulerTimer.AutoReset = true;
                 schedulerTimer.Enabled = true;
             }
         }
@@ -65,6 +65,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             // Dispose roles
+            foreach (NetPlusThreadRole role in roles)
+                role.Dispose();
             roles.Clear();
             roleLock.Dispose();
         }
@@ -174,13 +176,15 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     Logger.Log(LogLevel.DBG, "netplus", $"Thread pool scheduler done in {watch.ElapsedMilliseconds}ms");
                     lastSchedulerExecDuration = watch.ElapsedMilliseconds;
+
+                    schedulerTimer?.Start();
                 }
             }
         }
 
         public void AddRole(NetPlusThreadRole role) {
             using (roleLock.W()) {
-                if (roles.Count >= Pool.NumThreads)
+                if (roles.Aggregate(0, (a, r) => a + r.MinThreads) + role.MaxThreads > Pool.NumThreads)
                     throw new InvalidOperationException("Maximum thread roles reached");
                 roles.Add(role);
             }

@@ -29,6 +29,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public string ModuleConfigRoot { get; set; } = "ModuleConfigs";
         public string UserDataRoot { get; set; } = "UserData";
 
+        public int MainPort { get; set; } = 3802;
+
         public int NetPlusThreadPoolThreads { get; set; } = -1;
         public int NetPlusMaxThreadRestarts { get; set; } = 5;
         public int NetPlusHeuristicSampleWindow { get; set; } = 800;
@@ -37,7 +39,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float NetPlusSchedulerOverloadThreshold { get; set; } = 0.9f;
         public float NetPlusSchedulerStealThreshold { get; set; } = 0.7f;
 
-        public int MainPort { get; set; } = 3802;
+        public int MaxPacketSize { get; set; } = 1024;
+        public float MergeWindow { get; set; } = 40;
+        
+        public int TCPBufferSize { get; set; } = 16384;
 
         public LogLevel LogLevel {
             get => Logger.Level;

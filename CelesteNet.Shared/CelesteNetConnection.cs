@@ -72,8 +72,6 @@ namespace Celeste.Mod.CelesteNet {
         public abstract string ID { get; }
         public abstract string UID { get; }
 
-        protected List<CelesteNetSendQueue> SendQueues = new();
-
         public CelesteNetConnection(DataContext data) {
             Data = data;
 
@@ -135,8 +133,6 @@ namespace Celeste.Mod.CelesteNet {
 
         protected virtual void Dispose(bool disposing) {
             IsAlive = false;
-            foreach (CelesteNetSendQueue queue in SendQueues)
-                queue.Dispose();
             _OnDisconnect?.Invoke(this);
         }
 
@@ -157,16 +153,53 @@ namespace Celeste.Mod.CelesteNet {
         public readonly CelesteNetConnection Con;
         public readonly string Name;
 
-        public CelesteNetSendQueue(CelesteNetConnection con, string name) {
+        private ConcurrentQueue<DataType> frontQueue, backQueue;
+        private Action<CelesteNetSendQueue> queueFlushCB;
+        private int inMergeWindow;
+        private System.Timers.Timer timer;
+
+        public CelesteNetSendQueue(CelesteNetConnection con, string name, float mergeWindow, Action<CelesteNetSendQueue> queueFlusher) {
             Con = con;
             Name = name;
+
+            frontQueue = new ConcurrentQueue<DataType>();
+            backQueue = new ConcurrentQueue<DataType>();
+            queueFlushCB = queueFlusher;
+            inMergeWindow = 0;
+            timer = new(mergeWindow);
+            timer.AutoReset = false;
+            timer.Elapsed += MergeWindowElapsed;
         }
 
-        public void Dispose() {}
+        public void Dispose() {
+            timer.Dispose();
+        }
 
         public void Enqueue(DataType data) {
-            // Press F to pay respect
+            frontQueue.Enqueue(data);
+            if (Interlocked.CompareExchange(ref inMergeWindow, 1, 0) == 0)
+                timer.Start();
         }
+
+        private void MergeWindowElapsed(object? s, EventArgs a) {
+            backQueue = Interlocked.Exchange(ref frontQueue, backQueue);
+            try {
+                queueFlushCB(this);
+            } catch (Exception e) {
+                Logger.Log(LogLevel.WRN, "sendqueue", $"Error flushing connection {Con}'s send queue '{Name}': {e}");
+                Con.Dispose();
+            }
+        }
+
+        public void SignalQueueFlushed() {
+            backQueue.Clear();
+            inMergeWindow = 0;
+            Interlocked.MemoryBarrier();
+            if (frontQueue.Count > 0 && Interlocked.CompareExchange(ref inMergeWindow, 1, 0) == 0)
+                timer.Start();
+        }
+
+        public IReadOnlyCollection<DataType> BackQueue => backQueue;
 
     }
 

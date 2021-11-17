@@ -38,7 +38,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     EndPoint remoteEP = newConn.RemoteEndPoint!;
                     Logger.Log(LogLevel.VVV, "tcpaccept", $"Incoming connection from {remoteEP} <-> {Role.EndPoint}");
                     Role.Handshaker.Factory.StartNew(() => {
-                        Role.Handshaker.DoTCPUDPHandshake(newConn).ContinueWith(t => {
+                        Role.Handshaker.DoTCPUDPHandshake(newConn, Role.TCPSender.TriggerQueueClear).ContinueWith(t => {
                             if (t.IsFaulted)
                                 Logger.Log(LogLevel.WRN, "tcpaccept", $"Handshake failed for connection {remoteEP}: {t.Exception}");
                         });
@@ -51,13 +51,15 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        public TCPAcceptorRole(NetPlusThreadPool pool, EndPoint endPoint, HandshakerRole handshaker) : base(pool, ProtocolType.Tcp, endPoint) {
+        public TCPAcceptorRole(NetPlusThreadPool pool, EndPoint endPoint, HandshakerRole handshaker, TCPSenderRole tcpSender) : base(pool, ProtocolType.Tcp, endPoint) {
             Handshaker = handshaker;
+            TCPSender = tcpSender;
         }
 
         public override NetPlusThreadRole.RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
 
         public HandshakerRole Handshaker { get; }
+        public TCPSenderRole TCPSender { get; }
 
     }
 }

@@ -44,6 +44,17 @@ namespace Celeste.Mod.CelesteNet.Server {
                         sockStream.Socket = con.TCPSocket;
                         packetWriter.Strings = con.TCPStrings;
 
+                        // Sync the string map
+                        foreach ((string str, int id) in con.TCPStrings.PromoteRead()) {
+                            packetStream.Position = 0;
+                            Role.Server.Data.Write(packetWriter, new DataLowLevelStringMap() {
+                                String = str,
+                                ID = id
+                            });
+                            sockWriter.Write((UInt16) packetStream.Position);
+                            sockStream.Write(packetStream.GetBuffer(), 0, (int) packetStream.Position);
+                        }
+
                         // Write all packets
                         foreach (DataType packet in queue.BackQueue) {
                             // Write the packet onto the temporary packet stream

@@ -13,8 +13,6 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataTCPOnlyDowngrade : DataType<DataTCPOnlyDowngrade> {
 
-        public override DataFlags DataFlags => DataFlags.Small;
-
         public override void Read(CelesteNetBinaryReader reader) {
         }
 

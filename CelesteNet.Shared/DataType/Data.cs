@@ -225,27 +225,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             0b0000000000000000,
         Unreliable =
             0b0000000000000001,
-        ForceForward =
-            0b0000000000000010,
-        OnlyLatest =
-            0b0000000000000100,
-        SkipDuplicate =
-            0b0000000000001000,
-
-        Reserved3 =
-            0b0000010000000000,
-        Reserved2 =
-            0b0000100000000000,
-
         Taskable =
             0b0001000000000000,
-
         Small =
-            0b0010000000000000,
-        Big =
-            0b0100000000000000,
-
-        Reserved1 =
-            0b1000000000000000
+            0b0010000000000000
     }
 }

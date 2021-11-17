@@ -238,8 +238,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "sessionReq";
         }
 
-        public override DataFlags DataFlags => DataFlags.Small;
-
         public uint ID = uint.MaxValue;
 
         public override MetaType[] GenerateMeta(DataContext ctx)

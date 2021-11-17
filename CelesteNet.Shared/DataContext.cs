@@ -271,12 +271,11 @@ namespace Celeste.Mod.CelesteNet {
             string id = reader.ReadNetMappedString();
             DataFlags flags = (DataFlags) reader.ReadUInt16();
             bool small = (flags & DataFlags.Small) == DataFlags.Small;
-            bool big = (flags & DataFlags.Big) == DataFlags.Big;
 
             string source = reader.ReadNetMappedString();
             MetaTypeWrap[] metas = ReadMeta(reader);
 
-            uint length = small ? reader.ReadByte() : big ? reader.ReadUInt32() : reader.ReadUInt16();
+            uint length = small ? reader.ReadByte() : reader.ReadUInt16();
             long start = pas?.Position ?? 0;
 
             if (!IDToDataType.TryGetValue(id, out Type? type))
@@ -328,7 +327,6 @@ namespace Celeste.Mod.CelesteNet {
 
             start = writer.BaseStream.Position;
             bool small = (flags & DataFlags.Small) == DataFlags.Small;
-            bool big = (flags & DataFlags.Big) == DataFlags.Big;
 
             writer.WriteNetMappedString(type);
             writer.Write((ushort) flags);
@@ -336,7 +334,7 @@ namespace Celeste.Mod.CelesteNet {
             writer.WriteNetMappedString(data.GetSource(this));
             WriteMeta(writer, data.WrapMeta(this));
 
-            writer.WriteSizeDummy(small ? (byte) 1 : big ? (byte) 4 : (byte) 2);
+            writer.WriteSizeDummy(small ? (byte) 1 : (byte) 2);
 
             data.Write(writer);
 

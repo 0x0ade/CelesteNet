@@ -202,44 +202,4 @@ namespace Celeste.Mod.CelesteNet {
         public IReadOnlyCollection<DataType> BackQueue => backQueue;
 
     }
-
-    public class DataDedupe {
-
-        public readonly string Type;
-        public readonly uint ID;
-        public DataType Data;
-        public ulong Timestamp;
-        public int Iterations;
-
-        public DataDedupe(string type, uint id, DataType data, ulong timestamp) {
-            Type = type;
-            ID = id;
-            Data = data;
-            Timestamp = timestamp;
-        }
-
-        public bool Update(ulong timestamp) {
-            if (Timestamp + 100 < timestamp)
-                Iterations++;
-            return Iterations < 3;
-        }
-
-    }
-
-    public class BufferHelper : IDisposable {
-
-        public MemoryStream Stream;
-        public CelesteNetBinaryWriter Writer;
-
-        public BufferHelper(DataContext ctx, StringMap strings) {
-            Stream = new();
-            Writer = new(ctx, strings, Stream);
-        }
-
-        public void Dispose() {
-            Writer?.Dispose();
-            Stream?.Dispose();
-        }
-
-    }
 }

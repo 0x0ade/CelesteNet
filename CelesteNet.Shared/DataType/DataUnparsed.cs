@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataUnparsed : DataType<DataUnparsed> {
 
-        public override DataFlags DataFlags => (InnerFlags & ~DataFlags.Small & ~DataFlags.OnlyLatest & ~DataFlags.SkipDuplicate) | DataFlags.Big;
+        public override DataFlags DataFlags => InnerFlags & ~DataFlags.Small;
 
         public string InnerID = "";
         public string InnerSource = "";

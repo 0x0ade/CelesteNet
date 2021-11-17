@@ -160,14 +160,14 @@ Connection: close
                 }
 
                 // Get the player name and token
-                if (!headers.TryGetValue("CelesteNet-PlayerName", out string? playerName))
-                    return await Send500();
+                headers.TryGetValue("CelesteNet-PlayerName", out string? playerName);
                 headers.TryGetValue("CelesteNet-PlayerToken", out string? playerToken);
 
                 // Get the UID from the player name/token
                 string? uid = null;
-                if (playerToken != null && (uid = Server.UserData.GetUID(playerToken)) != null) {}
-                else if (!Server.Settings.AuthOnly && sock.RemoteEndPoint is IPEndPoint ipEP)
+                if (playerToken != null && (uid = Server.UserData.GetUID(playerToken)) != null)
+                    playerName ??= Server.UserData.Load<BasicUserInfo>(uid!).Name;
+                else if (playerName != null && !Server.Settings.AuthOnly && sock.RemoteEndPoint is IPEndPoint ipEP)
                     uid = $"anon-{BitConverter.ToString(ipEP.Address.MapToIPv6().GetAddressBytes())}";
 
                 if (uid == null) {

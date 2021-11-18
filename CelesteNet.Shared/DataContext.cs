@@ -324,6 +324,8 @@ namespace Celeste.Mod.CelesteNet {
             string type = data.GetTypeID(this);
 
             DataFlags flags = data.DataFlags;
+            if ((flags & DataFlags.RESERVED) != 0)
+                Logger.Log(LogLevel.WRN, "datactx", $"DataType {data} has reserved flags set");
 
             start = writer.BaseStream.Position;
             bool small = (flags & DataFlags.Small) == DataFlags.Small;

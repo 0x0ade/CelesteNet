@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         // Too many too quickly to make tasking worth it.
-        public override DataFlags DataFlags => DataFlags.Unreliable;
+        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.SlimHeader;
 
         public uint UpdateID;
 

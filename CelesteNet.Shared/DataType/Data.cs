@@ -229,6 +229,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             0b0001000000000000,
         Small =
             0b0010000000000000,
+        SlimHeader =
+            0b0000000000010000,
 
         RESERVED =
             0b1100110000001110

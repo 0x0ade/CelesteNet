@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "dashTrail";
         }
 
-        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.Taskable;
+        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.SlimHeader | DataFlags.Taskable;
 
         public bool Server;
         public DataPlayerInfo? Player;

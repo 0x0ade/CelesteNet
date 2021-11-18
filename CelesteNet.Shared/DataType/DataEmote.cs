@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "emote";
         }
 
-        public override DataFlags DataFlags => DataFlags.Unreliable;
+        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.SlimHeader;
 
         public DataPlayerInfo? Player;
 

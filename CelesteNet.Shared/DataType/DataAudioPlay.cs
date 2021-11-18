@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "audioPlay";
         }
 
-        public override DataFlags DataFlags => DataFlags.Unreliable;
+        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.SlimHeader;
 
         public bool Server;
         public DataPlayerInfo? Player;

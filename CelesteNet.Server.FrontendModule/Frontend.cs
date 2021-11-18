@@ -87,7 +87,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             netPlusStatsTimer = new Timer(Settings.NetPlusStatsUpdateRate);
             netPlusStatsTimer.AutoReset = true;
-            netPlusStatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateNetPlusStats(Server);
+            netPlusStatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateStats(Server);
             netPlusStatsTimer.Enabled = true;
         }
 

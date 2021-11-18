@@ -52,7 +52,7 @@ namespace Celeste.Mod.CelesteNet {
         public Socket? Socket { 
             get => socket;
             set {
-                Flush();
+                bufferOff = 0;
                 socket = value;
             }
         }

@@ -46,6 +46,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new();
         public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new();
 
+        // TODO Dynamic update rate adjustment
+        public int CurrentUpdateRate => Settings.MaxUpdateRate;
+
         private readonly ManualResetEvent ShutdownEvent = new(false);
 
         private bool _IsAlive;
@@ -125,7 +128,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ModulesFSWatcher.EnableRaisingEvents = true;
 
-            ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? (int) Math.Ceiling(1.5f * Environment.ProcessorCount) : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.NetPlusHeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
+            ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? (int) Math.Ceiling(1.5f * Environment.ProcessorCount) : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.HeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {

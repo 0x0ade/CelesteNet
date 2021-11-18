@@ -29,21 +29,32 @@ namespace Celeste.Mod.CelesteNet.Server {
         public string ModuleConfigRoot { get; set; } = "ModuleConfigs";
         public string UserDataRoot { get; set; } = "UserData";
 
-        public int MainPort { get; set; } = 3802;
+        public int HeuristicSampleWindow { get; set; } = 800;
 
         public int NetPlusThreadPoolThreads { get; set; } = -1;
         public int NetPlusMaxThreadRestarts { get; set; } = 5;
-        public int NetPlusHeuristicSampleWindow { get; set; } = 800;
         public float NetPlusSchedulerInterval { get; set; } = 10000;
         public float NetPlusSchedulerUnderloadThreshold { get; set; } = 0.1f;
         public float NetPlusSchedulerOverloadThreshold { get; set; } = 0.9f;
         public float NetPlusSchedulerStealThreshold { get; set; } = 0.7f;
 
-        public int MaxPacketSize { get; set; } = 1024;
-        public float MergeWindow { get; set; } = 40;
+        public int MainPort { get; set; } = 3802;
         
+        public int MaxPacketSize { get; set; } = 1024;
+        public int MaxUpdateRate { get; set; } = 60;
+        public float MergeWindow { get; set; } = 40;
+
         public int TCPBufferSize { get; set; } = 16384;
         public int UDPMaxDatagramSize { get; set; } = 4096;
+
+        public float PlayerTCPDownlinkBpUCap { get; set; } = 256;
+        public float PlayerTCPDownlinkPpUCap { get; set; } = 8;
+        public float PlayerTCPUplinkBpUCap { get; set; } = 4096;
+        public float PlayerTCPUplinkPpUCap { get; set; } = 64;
+        public float PlayerUDPDownlinkBpUCap { get; set; } = 512;
+        public float PlayerUDPDownlinkPpUCap { get; set; } = 16;
+        public float PlayerUDPUplinkBpUCap { get; set; } = 8192;
+        public float PlayerUDPUplinkPpUCap { get; set; } = 128;
 
         public LogLevel LogLevel {
             get => Logger.Level;

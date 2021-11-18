@@ -69,7 +69,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             protected internal override void StartWorker(CancellationToken token) {
                 // Handle queues from the queue
                 foreach ((QueueType queueType, CelesteNetSendQueue queue) in Role.queueQueue.GetConsumingEnumerable(token)) {
-                    CelesteNetTCPUDPConnection con = (CelesteNetTCPUDPConnection) queue.Con;
+                    ConPlusTCPUDPConnection con = (ConPlusTCPUDPConnection) queue.Con;
                     EnterActiveZone();
                     try {
                         switch (queueType) {
@@ -91,19 +91,28 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            private void FlushTCPQueue(CelesteNetTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
+            private void FlushTCPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
+                // Check if the connection's capped
+                if (con.TCPSendCapped) {
+                    Logger.Log(LogLevel.WRN, "tcpsend", $"Connection {con} hit TCP uplink cap: {con.TCPByteRate} BpS {con.TCPPacketRate} PpS {con.Server.CurrentUpdateRate * con.Server.Settings.PlayerTCPUplinkBpUCap} cap BpS {con.Server.CurrentUpdateRate * con.Server.Settings.PlayerTCPUplinkBpUCap} cap PpS");
+                    
+                    // Requeue the queue to be flushed later
+                    queue.DelayFlush(con.TCPSendCapDelay);
+                    return;
+                }
+
                 sockStream.Socket = con.TCPSocket;
                 packetWriter.Strings = con.Strings;
 
                 // Write all packets
                 int byteCounter = 0, packetCounter = 0;
-                foreach (DataType packet in queue.BackQueue) {
+                while (queue.BackQueue.TryDequeue(out DataType? packet)) {
                     // Write the packet onto the temporary packet stream
                     packetStream.Position = 0;
                     if (packet is DataInternalBlob blob)
                         blob.Dump(packetWriter);
                     else
-                        Role.Server.Data.Write(packetWriter, packet);
+                        Role.Server.Data.Write(packetWriter, packet!);
                     int packLen = (int) packetStream.Position;
 
                     // Write size and raw packet data into the actual stream
@@ -111,18 +120,37 @@ namespace Celeste.Mod.CelesteNet.Server {
                     sockStream.Write(packetStream.GetBuffer(), 0, packLen);
                     byteCounter += 2 + packLen;
                     packetCounter++;
+
+                    // Update connection metrics and check if we hit the connection cap
+                    if (con.UpdateTCPSendMetrics(2 + packLen, 1))
+                        break;
                 }
+                sockStream.Flush();
+
+                // Signal the queue that it's flushed if we didn't hit a cap
+                // Else requeue it to be flushed again later
+                if (queue.BackQueue.Count <= 0)
+                    queue.SignalFlushed();
+                else
+                    queue.DelayFlush(con.TCPSendCapDelay);
 
                 // Iterate metrics
                 using (tcpMetricsLock.W()) {
                     Role.Pool.IterateEventHeuristic(ref tcpByteRate, ref lastTcpByteRateUpdate, byteCounter, true);
                     Role.Pool.IterateEventHeuristic(ref tcpPacketRate, ref lastTcpPacketRateUpdate, packetCounter, true);
                 }
-
-                sockStream.Flush();
             }
 
-            private void FlushUDPQueue(CelesteNetTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
+            private void FlushUDPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
+                // Check if the connection's capped
+                if (con.UDPSendCapped) {
+                    Logger.Log(LogLevel.WRN, "udpsend", $"Connection {con} hit UDP uplink cap: {con.UDPByteRate} BpS {con.UDPPacketRate} PpS {con.Server.CurrentUpdateRate * con.Server.Settings.PlayerUDPUplinkBpUCap} cap BpS {con.Server.CurrentUpdateRate * con.Server.Settings.PlayerUDPUplinkBpUCap} cap PpS");
+                    
+                    // UDP's unreliable, just drop the excess packets
+                    queue.SignalFlushed();
+                    return;
+                }
+
                 packetWriter.Strings = con.Strings;
 
                 // Write all packets
@@ -141,19 +169,33 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Copy packet data to the container buffer
                     if (bufOff + packLen > udpBuffer.Length) {
-                        // Send container and prepare new one
+                        // Send container
                         udpSocket.SendTo(udpBuffer, bufOff, SocketFlags.None, con.UDPEndpoint!);
-                        udpBuffer[0] = con.NextUDPContainerID();
                         bufOff = 1;
+                        
+                        // Update connection metrics and check if we hit the connection cap
+                        if (con.UpdateUDPSendMetrics(bufOff, 1)) 
+                            break;
+
+                        // Start a new container
+                        udpBuffer[0] = con.NextUDPContainerID();
                     }
+
                     Buffer.BlockCopy(packetStream.GetBuffer(), 0, udpBuffer, bufOff, packLen);
                     bufOff += packLen;
 
                     byteCounter += packLen;
                     packetCounter++;
                 }
-                if (bufOff > 1)
+
+                // Send the last container
+                if (bufOff > 1) {
                     udpSocket.SendTo(udpBuffer, bufOff, SocketFlags.None, con.UDPEndpoint!);
+                    con.UpdateUDPSendMetrics(bufOff, 1);
+                }
+
+                // Signal the queue that it's flushed
+                queue.SignalFlushed();
 
                 // Iterate metrics
                 using (udpMetricsLock.W()) {

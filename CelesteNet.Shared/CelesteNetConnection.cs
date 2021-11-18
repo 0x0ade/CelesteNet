@@ -152,8 +152,12 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly CelesteNetConnection Con;
         public readonly string Name;
+        public readonly float MergeWindow;
 
         private ConcurrentQueue<DataType> frontQueue, backQueue;
+        public ConcurrentQueue<DataType> FrontQueue => frontQueue;
+        public ConcurrentQueue<DataType> BackQueue => backQueue;
+
         private Action<CelesteNetSendQueue> queueFlushCB;
         private int inMergeWindow;
         private System.Timers.Timer timer;
@@ -161,6 +165,7 @@ namespace Celeste.Mod.CelesteNet {
         public CelesteNetSendQueue(CelesteNetConnection con, string name, float mergeWindow, Action<CelesteNetSendQueue> queueFlusher) {
             Con = con;
             Name = name;
+            MergeWindow = mergeWindow;
 
             frontQueue = new ConcurrentQueue<DataType>();
             backQueue = new ConcurrentQueue<DataType>();
@@ -168,7 +173,7 @@ namespace Celeste.Mod.CelesteNet {
             inMergeWindow = 0;
             timer = new(mergeWindow);
             timer.AutoReset = false;
-            timer.Elapsed += MergeWindowElapsed;
+            timer.Elapsed += TimerElapsed;
         }
 
         public void Dispose() {
@@ -177,11 +182,38 @@ namespace Celeste.Mod.CelesteNet {
 
         public void Enqueue(DataType data) {
             frontQueue.Enqueue(data);
+            Flush();
+        }
+
+        public void Flush() {
             if (Interlocked.CompareExchange(ref inMergeWindow, 1, 0) == 0)
                 timer.Start();
         }
 
-        private void MergeWindowElapsed(object? s, EventArgs a) {
+        public void DelayFlush(float delay) {
+            if (inMergeWindow != 1)
+                throw new InvalidOperationException("Not currently flushing the queue");
+
+            timer.Interval = delay;
+            timer.Start();
+        }
+
+        public void SignalFlushed() {
+            if (inMergeWindow != 1)
+                throw new InvalidOperationException("Not currently flushing the queue");
+
+            backQueue.Clear();
+            inMergeWindow = 0;
+            Interlocked.MemoryBarrier();
+            if (frontQueue.Count > 0 && Interlocked.CompareExchange(ref inMergeWindow, 1, 0) == 0)
+                timer.Start();
+        }
+
+        private void TimerElapsed(object? s, EventArgs a) {
+            if (inMergeWindow != 1)
+                throw new InvalidOperationException("Not currently flushing the queue");
+                
+            timer.Interval = MergeWindow;
             backQueue = Interlocked.Exchange(ref frontQueue, backQueue);
             try {
                 queueFlushCB(this);
@@ -190,16 +222,6 @@ namespace Celeste.Mod.CelesteNet {
                 Con.Dispose();
             }
         }
-
-        public void SignalQueueFlushed() {
-            backQueue.Clear();
-            inMergeWindow = 0;
-            Interlocked.MemoryBarrier();
-            if (frontQueue.Count > 0 && Interlocked.CompareExchange(ref inMergeWindow, 1, 0) == 0)
-                timer.Start();
-        }
-
-        public IReadOnlyCollection<DataType> BackQueue => backQueue;
 
     }
 }

@@ -36,7 +36,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     EndPoint remoteEP = newConn.RemoteEndPoint!;
                     Logger.Log(LogLevel.VVV, "tcpaccept", $"Incoming connection from {remoteEP} <-> {Role.EndPoint}");
                     Role.Handshaker.Factory.StartNew(() => {
-                        Role.Handshaker.DoTCPUDPHandshake(newConn, Role.Sender.TriggerTCPQueueFlush, Role.Sender.TriggerUDPQueueFlush).ContinueWith(t => {
+                        Role.Handshaker.DoTCPUDPHandshake(newConn, Role.Sender).ContinueWith(t => {
                             if (t.IsFaulted)
                                 Logger.Log(LogLevel.WRN, "tcpaccept", $"Handshake failed for connection {remoteEP}: {t.Exception}");
                         });

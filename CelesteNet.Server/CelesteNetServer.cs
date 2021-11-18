@@ -126,9 +126,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             ModulesFSWatcher.EnableRaisingEvents = true;
 
             ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? (int) Math.Ceiling(1.5f * Environment.ProcessorCount) : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.NetPlusHeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
-            ThreadPool.Scheduler.AddRole(new HandshakerRole(ThreadPool, this));
-            ThreadPool.Scheduler.AddRole(new TCPSenderRole(ThreadPool, this));
-            ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort), ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPSenderRole>()!));
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
@@ -156,6 +153,12 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             Channels.Start();
+
+            EndPoint serverEP = new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort);
+            Logger.Log(LogLevel.INF, "server", $"Starting server on {serverEP}");            
+            ThreadPool.Scheduler.AddRole(new HandshakerRole(ThreadPool, this));
+            ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, serverEP));
+            ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!));
 
             Logger.Log(LogLevel.CRI, "main", "Ready");
         }

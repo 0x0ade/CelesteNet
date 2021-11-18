@@ -27,11 +27,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Init heuristic stuff
                 activityLock = new RWLock();
 
-                role.workers.Add(this);
+                using (Role.workerLock.W()) 
+                    role.workers.Add(this);
             }
 
             public virtual void Dispose() {
-                Role.workers.Remove(this);
+                using (Role.workerLock.W()) 
+                    Role.workers.Remove(this);
                 activityLock.Dispose();
             }
 

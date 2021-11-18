@@ -43,6 +43,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float MergeWindow { get; set; } = 40;
         
         public int TCPBufferSize { get; set; } = 16384;
+        public int UDPMaxDatagramSize { get; set; } = 4096;
 
         public LogLevel LogLevel {
             get => Logger.Level;

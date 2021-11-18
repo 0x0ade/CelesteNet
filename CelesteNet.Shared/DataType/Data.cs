@@ -228,6 +228,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         Taskable =
             0b0001000000000000,
         Small =
-            0b0010000000000000
+            0b0010000000000000,
+
+        RESERVED =
+            0b1100110000001110
     }
 }

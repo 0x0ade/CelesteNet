@@ -12,7 +12,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         private long lastUdpByteRateUpdate, lastUdpPacketRateUpdate;
         private float udpByteRate, udpPacketRate;
 
-        public ConPlusTCPUDPConnection(CelesteNetServer server, Socket tcpSock, string uid, TCPUDPSenderRole sender) : base(server.Data, tcpSock, uid, server.Settings.MergeWindow, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
+        public ConPlusTCPUDPConnection(CelesteNetServer server, Socket tcpSock, string uid, TCPUDPSenderRole sender) : base(server.Data, tcpSock, uid, server.Settings.MaxQueueSize, server.Settings.MergeWindow, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
             Server = server;
             Sender = sender;
             tcpMetricsLock = new RWLock();

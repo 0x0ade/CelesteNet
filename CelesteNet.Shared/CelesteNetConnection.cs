@@ -152,6 +152,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly CelesteNetConnection Con;
         public readonly string Name;
+        public readonly int MaxSize;
         public readonly float MergeWindow;
 
         private ConcurrentQueue<DataType> frontQueue, backQueue;
@@ -162,9 +163,10 @@ namespace Celeste.Mod.CelesteNet {
         private int inMergeWindow;
         private System.Timers.Timer timer;
 
-        public CelesteNetSendQueue(CelesteNetConnection con, string name, float mergeWindow, Action<CelesteNetSendQueue> queueFlusher) {
+        public CelesteNetSendQueue(CelesteNetConnection con, string name, int maxSize, float mergeWindow, Action<CelesteNetSendQueue> queueFlusher) {
             Con = con;
             Name = name;
+            MaxSize = maxSize;
             MergeWindow = mergeWindow;
 
             frontQueue = new ConcurrentQueue<DataType>();
@@ -181,6 +183,8 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void Enqueue(DataType data) {
+            if (frontQueue.Count >= MaxSize)
+                throw new InvalidOperationException("Queue is at maximum size");
             frontQueue.Enqueue(data);
             Flush();
         }

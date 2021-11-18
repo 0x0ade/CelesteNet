@@ -18,15 +18,15 @@ namespace Celeste.Mod.CelesteNet {
         public EndPoint? UDPEndpoint => udpEP;
         public readonly StringMap Strings = new StringMap("StringMap");
 
-        public CelesteNetTCPUDPConnection(DataContext data, Socket tcpSock, string uid, float mergeWindow, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
+        public CelesteNetTCPUDPConnection(DataContext data, Socket tcpSock, string uid, int maxQueueSize, float mergeWindow, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
             ID = $"TCP/UDP uid '{uid}' EP {tcpSock.RemoteEndPoint}";
             UID = uid;
 
             // Initialize networking stuff
             this.tcpSock = tcpSock;
             this.tcpSock.ReceiveTimeout = this.tcpSock.SendTimeout = CONNECTION_TIMEOUT;
-            tcpQueue = new CelesteNetSendQueue(this, "TCP Queue", mergeWindow, tcpQueueFlusher);
-            udpQueue = new CelesteNetSendQueue(this, "UDP Queue", mergeWindow, udpQueueFlusher);
+            tcpQueue = new CelesteNetSendQueue(this, "TCP Queue", maxQueueSize, mergeWindow, tcpQueueFlusher);
+            udpQueue = new CelesteNetSendQueue(this, "UDP Queue", maxQueueSize, mergeWindow, udpQueueFlusher);
         }
 
         protected override void Dispose(bool disposing) {

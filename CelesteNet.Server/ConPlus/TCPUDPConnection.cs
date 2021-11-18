@@ -29,7 +29,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             using (tcpMetricsLock.W()) {
                 Sender.Pool.IterateEventHeuristic(ref tcpByteRate, ref lastTcpByteRateUpdate, byteCount, true);
                 Sender.Pool.IterateEventHeuristic(ref tcpPacketRate, ref lastTcpPacketRateUpdate, 1, true);
-                return tcpByteRate > Server.CurrentUpdateRate * Server.Settings.PlayerTCPUplinkBpUCap || tcpPacketRate > Server.CurrentUpdateRate * Server.Settings.PlayerTCPUplinkPpUCap;
+                return tcpByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkBpTCap || tcpPacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkPpTCap;
             }
         }
 
@@ -37,7 +37,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             using (udpMetricsLock.W()) {
                 Sender.Pool.IterateEventHeuristic(ref udpByteRate, ref lastUdpByteRateUpdate, byteCount, true);
                 Sender.Pool.IterateEventHeuristic(ref udpPacketRate, ref lastUdpPacketRateUpdate, packetCount, true);
-                return udpByteRate > Server.CurrentUpdateRate * Server.Settings.PlayerUDPUplinkBpUCap || udpPacketRate > Server.CurrentUpdateRate * Server.Settings.PlayerUDPUplinkPpUCap;
+                return udpByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPUplinkBpTCap || udpPacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPUplinkPpTCap;
             }
         }
 
@@ -58,8 +58,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        public bool TCPSendCapped => TCPByteRate > Server.CurrentUpdateRate * Server.Settings.PlayerTCPUplinkBpUCap || TCPPacketRate > Server.CurrentUpdateRate * Server.Settings.PlayerTCPUplinkPpUCap;
-        public float TCPSendCapDelay => Server.Settings.HeuristicSampleWindow * Math.Max(1 - Server.Settings.PlayerTCPUplinkBpUCap / TCPByteRate, 1 - Server.Settings.PlayerTCPUplinkPpUCap / TCPPacketRate);
+        public bool TCPSendCapped => TCPByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkBpTCap || TCPPacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkPpTCap;
+        public float TCPSendCapDelay => Server.Settings.HeuristicSampleWindow * Math.Max(1 - Server.Settings.PlayerTCPUplinkBpTCap / TCPByteRate, 1 - Server.Settings.PlayerTCPUplinkPpTCap / TCPPacketRate);
 
         public float UDPByteRate {
             get {
@@ -75,7 +75,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        public bool UDPSendCapped => UDPByteRate > Server.CurrentUpdateRate * Server.Settings.PlayerUDPUplinkBpUCap || UDPPacketRate > Server.CurrentUpdateRate * Server.Settings.PlayerUDPUplinkPpUCap;
+        public bool UDPSendCapped => UDPByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPUplinkBpTCap || UDPPacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPUplinkPpTCap;
 
     }
 }

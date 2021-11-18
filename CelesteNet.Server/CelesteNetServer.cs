@@ -46,8 +46,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new();
         public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new();
 
-        // TODO Dynamic update rate adjustment
-        public int CurrentUpdateRate => Settings.MaxUpdateRate;
+        // TODO Dynamic tick rate adjustment
+        public int CurrentTickRate => Settings.MaxTickRate;
 
         private readonly ManualResetEvent ShutdownEvent = new(false);
 

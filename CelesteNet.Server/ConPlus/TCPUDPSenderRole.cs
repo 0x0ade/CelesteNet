@@ -94,7 +94,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             private void FlushTCPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
                 // Check if the connection's capped
                 if (con.TCPSendCapped) {
-                    Logger.Log(LogLevel.WRN, "tcpsend", $"Connection {con} hit TCP uplink cap: {con.TCPByteRate} BpS {con.TCPPacketRate} PpS {con.Server.CurrentUpdateRate * con.Server.Settings.PlayerTCPUplinkBpUCap} cap BpS {con.Server.CurrentUpdateRate * con.Server.Settings.PlayerTCPUplinkBpUCap} cap PpS");
+                    Logger.Log(LogLevel.WRN, "tcpsend", $"Connection {con} hit TCP uplink cap: {con.TCPByteRate} BpS {con.TCPPacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkBpTCap} cap PpS");
                     
                     // Requeue the queue to be flushed later
                     queue.DelayFlush(con.TCPSendCapDelay);
@@ -144,7 +144,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             private void FlushUDPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
                 // Check if the connection's capped
                 if (con.UDPSendCapped) {
-                    Logger.Log(LogLevel.WRN, "udpsend", $"Connection {con} hit UDP uplink cap: {con.UDPByteRate} BpS {con.UDPPacketRate} PpS {con.Server.CurrentUpdateRate * con.Server.Settings.PlayerUDPUplinkBpUCap} cap BpS {con.Server.CurrentUpdateRate * con.Server.Settings.PlayerUDPUplinkBpUCap} cap PpS");
+                    Logger.Log(LogLevel.WRN, "udpsend", $"Connection {con} hit UDP uplink cap: {con.UDPByteRate} BpS {con.UDPPacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkBpTCap} cap PpS");
                     
                     // UDP's unreliable, just drop the excess packets
                     queue.SignalFlushed();

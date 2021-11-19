@@ -8,7 +8,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     /*
     This poller is slower, but it works on all platforms. Using the EPoll poller
     on Linux is recommended for optimal performance.
-    - Popax21
+    -Popax21
     */
     public class TCPFallbackPoller : TCPReceiverRole.IPoller {
 

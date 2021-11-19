@@ -12,6 +12,9 @@ using YamlDotNet.Serialization.ObjectFactories;
 
 namespace Celeste.Mod.CelesteNet {
     /*
+    Generalized StringMaps into OptMaps
+    -Popax21
+
     Coming up with this setup from scratch took me a few attempts and way too much time in general.
     StringMaps are used per subconnection (for TCPUDP, that's one for TCP and one for UDP).
     When A CountReads string S often enough, A asks B to map it to I.
@@ -24,17 +27,17 @@ namespace Celeste.Mod.CelesteNet {
     Cleaning up the Counting dictionary could be improved too, as it currently halts.
     -jade
     */
-    public class StringMap {
+    public class OptMap<T> {
 
         public readonly string Name;
 
-        public readonly ConcurrentDictionary<int, string> MapRead = new();
-        public readonly ConcurrentDictionary<string, int> MapWrite = new();
+        public readonly ConcurrentDictionary<int, T> MapRead = new();
+        public readonly ConcurrentDictionary<T, int> MapWrite = new();
 
-        private readonly Dictionary<string, int> Counting = new();
-        private readonly HashSet<string> Pending = new();
-        private readonly HashSet<string> MappedRead = new();
-        private readonly List<string> CountingUpdateKeys = new();
+        private readonly Dictionary<T, int> Counting = new();
+        private readonly HashSet<T> Pending = new();
+        private readonly HashSet<T> MappedRead = new();
+        private readonly List<T> CountingUpdateKeys = new();
         private readonly List<int> CountingUpdateValues = new();
 
         private int NextID;
@@ -43,19 +46,15 @@ namespace Celeste.Mod.CelesteNet {
         public int PromotionTreshold = 10;
         public int MaxCounting = 32;
         public int DemotionScore = 3;
-        public int MinLength = 4;
 
-        public StringMap(string name) {
+        public OptMap(string name) {
             Name = name;
         }
 
-        public string Get(int id)
+        public T Get(int id)
             => MapRead[id];
 
-        public void CountRead(string value) {
-            if (value.Length <= MinLength)
-                return;
-
+        public void CountRead(T value) {
             lock (Pending) {
                 if (MappedRead.Contains(value) || Pending.Contains(value))
                     return;
@@ -76,7 +75,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public void Cleanup() {
             lock (Pending) {
-                foreach (KeyValuePair<string, int> entry in Counting) {
+                foreach (KeyValuePair<T, int> entry in Counting) {
                     int score = entry.Value - DemotionScore;
                     if (score <= 0) {
                         CountingUpdateKeys.Add(entry.Key);
@@ -91,7 +90,7 @@ namespace Celeste.Mod.CelesteNet {
                     }
                 }
                 for (int i = 0; i < CountingUpdateKeys.Count; i++) {
-                    string key = CountingUpdateKeys[i];
+                    T key = CountingUpdateKeys[i];
                     int value = CountingUpdateValues[i];
                     if (value == 0)
                         Counting.Remove(key);
@@ -103,13 +102,13 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public List<Tuple<string, int>> PromoteRead() {
+        public List<Tuple<T, int>> PromoteRead() {
             lock (Pending) {
                 if (Pending.Count == 0)
-                    return Dummy<Tuple<string, int>>.EmptyList;
+                    return Dummy<Tuple<T, int>>.EmptyList;
 
-                List<Tuple<string, int>> added = new();
-                foreach (string value in Pending) {
+                List<Tuple<T, int>> added = new();
+                foreach (T value in Pending) {
                     int id = NextID++;
                     MapRead[id] = value;
                     MappedRead.Add(value);
@@ -120,12 +119,12 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public void RegisterWrite(string value, int id) {
+        public void RegisterWrite(T value, int id) {
             MapWrite[value] = id;
         }
 
-        public bool TryMap(string? value, out int id) {
-            if (value == null || value.Length <= MinLength) {
+        public bool TryMap(T? value, out int id) {
+            if (value == null) {
                 id = 0;
                 return false;
             }

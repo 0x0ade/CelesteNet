@@ -14,7 +14,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     Used sources:
         epoll: https://linux.die.net/man/7/epoll
         eventfd: https://linux.die.net/man/2/eventfd
-    - Popax21
+    -Popax21
     */
     public class TCPEPollPoller : TCPReceiverRole.IPoller {
 

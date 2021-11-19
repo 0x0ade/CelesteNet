@@ -15,18 +15,21 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly DataContext Data;
 
-        public StringMap? Strings;
+        public OptMap<string>? Strings;
+        public OptMap<Type>? SlimMap;
 
-        public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input)
+        public CelesteNetBinaryReader(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream input)
             : base(input, CelesteNetUtils.UTF8NoBOM) {
             Data = ctx;
             Strings = strings;
+            SlimMap = slimMap;
         }
 
-        public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input, bool leaveOpen)
+        public CelesteNetBinaryReader(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream input, bool leaveOpen)
             : base(input, CelesteNetUtils.UTF8NoBOM, leaveOpen) {
             Data = ctx;
             Strings = strings;
+            SlimMap = slimMap;
         }
 
         public new int Read7BitEncodedInt()

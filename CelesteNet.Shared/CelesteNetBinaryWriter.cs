@@ -15,21 +15,24 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly DataContext Data;
 
-        public StringMap? Strings;
+        public OptMap<string>? Strings;
+        public OptMap<Type>? SlimMap;
 
         protected long SizeDummyIndex;
         protected byte SizeDummySize;
 
-        public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output)
+        public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output)
             : base(output, CelesteNetUtils.UTF8NoBOM) {
             Data = ctx;
             Strings = strings;
+            SlimMap = slimMap;
         }
 
-        public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output, bool leaveOpen)
+        public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output, bool leaveOpen)
             : base(output, CelesteNetUtils.UTF8NoBOM, leaveOpen) {
             Data = ctx;
             Strings = strings;
+            SlimMap = slimMap;
         }
 
         public virtual void WriteSizeDummy(byte size) {

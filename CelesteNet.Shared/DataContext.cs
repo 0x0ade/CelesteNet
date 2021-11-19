@@ -268,6 +268,22 @@ namespace Celeste.Mod.CelesteNet {
             PositionAwareStream? pas = reader.BaseStream as PositionAwareStream;
             pas?.ResetPosition();
 
+            int slimID = reader.Read7BitEncodedInt();
+            if (slimID != 0) {
+                if (reader.SlimMap == null)
+                    throw new Exception("Trying to read a slim packet header without a slim map!");
+
+                Type slimType = reader.SlimMap.Get(slimID-1);
+                DataType? slimData = (DataType?) Activator.CreateInstance(slimType);
+                if (slimData == null)
+                    throw new Exception($"Cannot create instance of data type {slimType.FullName}");
+                
+                // TODO Metatypes
+                slimData.Read(reader);
+
+                return slimData;
+            }
+
             string id = reader.ReadNetMappedString();
             DataFlags flags = (DataFlags) reader.ReadUInt16();
             bool small = (flags & DataFlags.Small) == DataFlags.Small;
@@ -291,18 +307,17 @@ namespace Celeste.Mod.CelesteNet {
             if (data == null)
                 throw new Exception($"Cannot create instance of data type {type.FullName}");
 
-            try {
-                data.UnwrapMeta(this, metas);
-                data.Read(reader);
-            } catch (Exception e) {
-                throw new Exception($"Exception while reading {id} {flags} {source} {length}", e);
-            }
+            data.UnwrapMeta(this, metas);
+            data.Read(reader);
 
             if (pas != null) {
                 long lengthReal = pas.Position - start;
                 if (lengthReal != length)
                     throw new Exception($"Length mismatch for {id} {flags} {source} {length} - got {lengthReal}");
             }
+
+            if ((flags & DataFlags.SlimHeader) != 0)
+                reader.SlimMap?.CountRead(type);
 
             return data;
         }
@@ -315,6 +330,14 @@ namespace Celeste.Mod.CelesteNet {
 
         public int Write(CelesteNetBinaryWriter writer, DataType data) {
             long start = writer.BaseStream.Position;
+
+            if (writer.SlimMap != null && writer.SlimMap.TryMap(data.GetType(), out int slimId)) {
+                writer.Write7BitEncodedInt(slimId+1);
+                // TODO Metatypes
+                data.Write(writer);
+                return (int) (writer.BaseStream.Position - start);
+            }
+            writer.Write7BitEncodedInt(0);
 
             if (data is DataInternalBlob blob) {
                 blob.Dump(writer);

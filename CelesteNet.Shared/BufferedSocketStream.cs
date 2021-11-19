@@ -9,7 +9,7 @@ namespace Celeste.Mod.CelesteNet {
     to the underlying socket when the buffer's full. However, the reason there's
     a custom class for this is that this allows for the socket to change, making
     it possible to only use one stream per ConPlus worker
-    - Popax21
+    -Popax21
     */
     public class BufferedSocketStream : Stream {
 

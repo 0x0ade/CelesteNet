@@ -13,7 +13,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     send queues. When a queue needs to be flushed, it get's added to a queue of
     all waiting queues (queueception), which workers pull from to actually send
     packets. It also does some fancy buffering.
-    - Popax21
+    -Popax21
     */
     public class TCPUDPSenderRole : NetPlusThreadRole {
 
@@ -43,7 +43,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 sockStream = new BufferedSocketStream(role.Server.Settings.TCPBufferSize);
                 sockWriter = new BinaryWriter(sockStream);
                 packetStream = new MemoryStream(role.Server.Settings.MaxPacketSize);
-                packetWriter = new CelesteNetBinaryWriter(role.Server.Data, null, packetStream);
+                packetWriter = new CelesteNetBinaryWriter(role.Server.Data, null, null, packetStream);
                 
                 udpSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
                 udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
@@ -102,6 +102,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 sockStream.Socket = con.TCPSocket;
                 packetWriter.Strings = con.Strings;
+                packetWriter.SlimMap = con.SlimMap;
 
                 // Write all packets
                 int byteCounter = 0, packetCounter = 0;
@@ -153,6 +154,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
 
                 packetWriter.Strings = con.Strings;
+                packetWriter.SlimMap = con.SlimMap;
 
                 // Write all packets
                 udpBuffer[0] = con.NextUDPContainerID();

@@ -67,6 +67,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             tcpBuffer = new byte[Math.Max(server.Settings.TCPBufferSize, 2+server.Settings.MaxPacketSize)];
             tcpBufferOff = 0;
             tcpReceiver.Poller.AddConnection(this);
+
+            tcpSock.ReceiveTimeout = 1000;
         }
     
         protected override void Dispose(bool disposing) {
@@ -115,13 +117,17 @@ namespace Celeste.Mod.CelesteNet.Server {
                         // Read the packet
                         DataType packet;
                         using (MemoryStream mStream = new MemoryStream(tcpBuffer, 2, packetLen))
-                        using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, mStream))
+                        using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream))
                             packet = Server.Data.Read(reader);
 
                         // Handle the packet
                         switch (packet) {
                             case DataLowLevelStringMap strMap: {
                                 Strings.RegisterWrite(strMap.String, strMap.ID);
+                            } break;
+                            case DataLowLevelSlimMap slimMap: {
+                                if (slimMap.PacketType != null)
+                                    SlimMap.RegisterWrite(slimMap.PacketType, slimMap.ID);
                             } break;
                             default: {
                                 Receive(packet);
@@ -134,10 +140,16 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            // Promote strings
+            // Promote strings and slim packets
             foreach ((string str, int id) in Strings.PromoteRead())
                 Send(new DataLowLevelStringMap() {
                     String = str,
+                    ID = id
+                });
+
+            foreach ((Type packetType, int id) in SlimMap.PromoteRead())
+                Send(new DataLowLevelSlimMap() {
+                    PacketType = packetType,
                     ID = id
                 });
         }

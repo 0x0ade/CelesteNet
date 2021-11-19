@@ -14,7 +14,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     assigned to the role. The connection acceptor role creates new tasks for
     that scheduler, which perform the handshake, before passing control of the
     connection to the regular send/recv roles.
-    - Popax21
+    -Popax21
     */
     public partial class HandshakerRole : NetPlusThreadRole {
 

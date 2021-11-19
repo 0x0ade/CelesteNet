@@ -15,7 +15,8 @@ namespace Celeste.Mod.CelesteNet {
 
         public Socket TCPSocket => tcpSock;
         public EndPoint? UDPEndpoint => udpEP;
-        public readonly StringMap Strings = new StringMap("StringMap");
+        public readonly OptMap<string> Strings = new OptMap<string>("StringMap");
+        public readonly OptMap<Type> SlimMap = new OptMap<Type>("SlimMap");
 
         public CelesteNetTCPUDPConnection(DataContext data, Socket tcpSock, string uid, int maxQueueSize, float mergeWindow, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
             ID = $"TCP/UDP uid '{uid}' EP {tcpSock.RemoteEndPoint}";

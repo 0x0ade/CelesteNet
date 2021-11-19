@@ -77,8 +77,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                             case QueueType.UDP: FlushUDPQueue(con, queue, token); break;
                         }
                     } catch (Exception e) {
-                        // If the client closed the connection, just close the connection too
-                        if (e is SocketException se && (se.SocketErrorCode == SocketError.NotConnected || se.NativeErrorCode == 32 /* Broken Pipe */)) {
+                        if (e is SocketException se && se.IsDisconnect()) {
                             con.Dispose();
                             continue;
                         }
@@ -94,7 +93,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             private void FlushTCPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
                 // Check if the connection's capped
                 if (con.TCPSendCapped) {
-                    Logger.Log(LogLevel.WRN, "tcpsend", $"Connection {con} hit TCP uplink cap: {con.TCPSendByteRate} BpS {con.TCPSendPacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkBpTCap} cap PpS");
+                    Logger.Log(LogLevel.WRN, "tcpsend", $"Connection {con} hit TCP uplink cap: {con.TCPSendRate.ByteRate} BpS {con.TCPSendRate.PacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkPpTCap} cap PpS");
                     
                     // Requeue the queue to be flushed later
                     queue.DelayFlush(con.TCPSendCapDelay);
@@ -122,7 +121,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     packetCounter++;
 
                     // Update connection metrics and check if we hit the connection cap
-                    if (con.UpdateTCPSendMetrics(2 + packLen, 1))
+                    con.TCPSendRate.UpdateRate(2 + packLen, 1);
+                    if (con.TCPSendCapped)
                         break;
                 }
                 sockStream.Flush();
@@ -145,7 +145,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             private void FlushUDPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
                 // Check if the connection's capped
                 if (con.UDPSendCapped) {
-                    Logger.Log(LogLevel.WRN, "udpsend", $"Connection {con} hit UDP uplink cap: {con.UDPSendByteRate} BpS {con.UDPSendPacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkBpTCap} cap PpS");
+                    Logger.Log(LogLevel.WRN, "udpsend", $"Connection {con} hit UDP uplink cap: {con.UDPSendRate.ByteRate} BpS {con.UDPSendRate.PacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkPpTCap} cap PpS");
                     
                     // UDP's unreliable, just drop the excess packets
                     queue.SignalFlushed();
@@ -175,7 +175,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                         bufOff = 1;
                         
                         // Update connection metrics and check if we hit the connection cap
-                        if (con.UpdateUDPSendMetrics(bufOff, 1)) 
+                        con.UDPSendRate.UpdateRate(bufOff, 1);
+                        if (con.UDPSendCapped)
                             break;
 
                         // Start a new container
@@ -192,7 +193,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Send the last container
                 if (bufOff > 1) {
                     udpSocket.SendTo(udpBuffer, bufOff, SocketFlags.None, con.UDPEndpoint!);
-                    con.UpdateUDPSendMetrics(bufOff, 1);
+                    con.UDPSendRate.UpdateRate(bufOff, 1);
                 }
 
                 // Signal the queue that it's flushed

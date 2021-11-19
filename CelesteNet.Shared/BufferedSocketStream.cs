@@ -44,8 +44,19 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public override void Flush() {
-            if (bufferOff != 0)
-                socket?.Send(buffer, bufferOff, SocketFlags.None);
+            if (bufferOff != 0 && socket != null) {
+                // Special logic for non-blocking sockets
+                while (true) {
+                    try {
+                        socket.Send(buffer, bufferOff, SocketFlags.None);
+                        break;
+                    } catch (SocketException se) {
+                        if (se.SocketErrorCode == SocketError.TryAgain && socket.Poll(-1, SelectMode.SelectWrite))
+                            continue;
+                        throw;
+                    }
+                }
+            }
             bufferOff = 0;
         }
 

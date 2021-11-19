@@ -160,8 +160,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             EndPoint serverEP = new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort);
             Logger.Log(LogLevel.INF, "server", $"Starting server on {serverEP}");            
             ThreadPool.Scheduler.AddRole(new HandshakerRole(ThreadPool, this));
+            ThreadPool.Scheduler.AddRole(new TCPReceiverRole(ThreadPool, this, (Environment.OSVersion.Platform == PlatformID.Unix && Settings.TCPRecvUseEPoll) ? new TCPEPollPoller() : new TCPFallbackPoller()));
             ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, serverEP));
-            ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!));
+            ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!));
 
             Logger.Log(LogLevel.CRI, "main", "Ready");
         }

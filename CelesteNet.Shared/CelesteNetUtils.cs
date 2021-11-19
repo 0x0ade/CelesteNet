@@ -217,5 +217,9 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
+        public static bool IsDisconnect(this SocketException se) {
+            return se.SocketErrorCode == SocketError.NotConnected || se.NativeErrorCode == 32 /* Broken Pipe */;
+        }
+
     }
 }

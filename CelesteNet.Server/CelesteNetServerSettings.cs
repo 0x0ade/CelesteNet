@@ -45,7 +45,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int MaxTickRate { get; set; } = 60;
         public float MergeWindow { get; set; } = 40;
 
+        public bool TCPRecvUseEPoll { get; set; } = true;
+        public int TCPPollMaxEvents { get; set; } = 16;
         public int TCPBufferSize { get; set; } = 16384;
+        public int TCPSockSendBufferSize { get; set; } = 65536;
         public int UDPMaxDatagramSize { get; set; } = 4096;
 
         public float PlayerTCPDownlinkBpTCap { get; set; } = 256;

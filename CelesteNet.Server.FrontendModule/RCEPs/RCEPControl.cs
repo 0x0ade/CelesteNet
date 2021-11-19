@@ -196,12 +196,15 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 }
 
                 // Update bandwith stats
-                // TODO Downlink rates
                 using (server.ConLock.R()) {
-                    tcpSendBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPSendByteRate : null);
-                    tcpSendPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPSendPacketRate : null);
-                    udpSendBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPSendByteRate : null);
-                    udpSendPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPSendPacketRate : null);
+                    tcpRecvBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPRecvRate.ByteRate : null);
+                    tcpRecvPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPRecvRate.PacketRate : null);
+                    tcpSendBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPSendRate.ByteRate : null);
+                    tcpSendPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPSendRate.PacketRate : null);
+                    udpRecvBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPRecvRate.ByteRate : null);
+                    udpRecvPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPRecvRate.PacketRate : null);
+                    udpSendBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPSendRate.ByteRate : null);
+                    udpSendPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPSendRate.PacketRate : null);
                 }
             }
         }
@@ -299,11 +302,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 Connection = auth ? p.Con.ID : null,
                 ConnectionUID = auth ? p.Con.UID : null,
 
-                // TODO Downlink rates
-                TCPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendByteRate : null,
-                TCPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendPacketRate : null,
-                UDPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendByteRate : null,
-                UDPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendPacketRate : null,
+                TCPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.ByteRate : null,
+                TCPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.PacketRate : null,
+                TCPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.ByteRate : null,
+                TCPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.PacketRate : null,
+                UDPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPRecvRate.ByteRate : null,
+                UDPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPRecvRate.PacketRate : null,
+                UDPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendRate.ByteRate : null,
+                UDPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendRate.PacketRate : null,
             }).ToArray());
         }
 

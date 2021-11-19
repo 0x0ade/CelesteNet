@@ -1,7 +1,7 @@
 using System;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataLowLevelKeepAlive : DataType<DataLowLevelStringMap> {
+    public class DataLowLevelKeepAlive : DataType<DataLowLevelKeepAlive> {
 
         static DataLowLevelKeepAlive() {
             DataID = "keepAlive";

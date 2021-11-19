@@ -1,7 +1,7 @@
 using System;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataLowLevelSlimMap : DataType<DataLowLevelStringMap> {
+    public class DataLowLevelSlimMap : DataType<DataLowLevelSlimMap> {
 
         static DataLowLevelSlimMap() {
             DataID = "slimMap";

@@ -138,7 +138,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            // Promote strings and slim packets
+            // Promote optimizations
+            PromoteOptimizations();
+        }
+
+        public void PromoteOptimizations() {
             foreach ((string str, int id) in Strings.PromoteRead())
                 Send(new DataLowLevelStringMap() {
                     String = str,

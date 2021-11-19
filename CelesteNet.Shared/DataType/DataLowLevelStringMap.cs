@@ -5,6 +5,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "stringMap";
         }
 
+        public override DataFlags DataFlags => DataFlags.SlimHeader;
+
         public string String = string.Empty;
         public int ID;
 
@@ -13,7 +15,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ID = reader.ReadInt32();
         }
 
-        override public void Write(CelesteNetBinaryWriter writer) {
+        public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(String);
             writer.Write(ID);
         }

@@ -164,8 +164,11 @@ The server encountered an internal error while handling the request
                 }
 
                 // Parse the "HTTP" request line
-                string reqLine = (await reader.ReadLineAsync())!;
-                string[] reqLineSegs = reqLine.Split(" ").Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                string? reqLine = (await reader.ReadLineAsync());
+                if (reqLine == null)
+                    return await Send500();
+
+                string[] reqLineSegs = (reqLine!).Split(" ").Where(s => !string.IsNullOrEmpty(s)).ToArray();
                 if (
                     reqLineSegs.Length != 3 ||
                     reqLineSegs[0] != "CONNECT" ||
@@ -175,8 +178,8 @@ The server encountered an internal error while handling the request
 
                 // Parse the headers
                 Dictionary<string, string> headers = new Dictionary<string, string>();
-                for (string line = (await reader.ReadLineAsync())!; !string.IsNullOrEmpty(line); line = (await reader.ReadLineAsync())!) {
-                    string[] lineSegs = line.Split(":").Select(s => s.Trim()).ToArray()!;
+                for (string? line = (await reader.ReadLineAsync()); !string.IsNullOrEmpty(line); line = await reader.ReadLineAsync()) {
+                    string[] lineSegs = (line!).Split(":").Select(s => s.Trim()).ToArray()!;
                     if (lineSegs.Length < 2)
                         return await Send500();
                     headers[lineSegs[0]] = lineSegs[1];
@@ -235,6 +238,7 @@ HTTP/1.1 418 I'm a teapot
 Connection: close
 CelesteNet-TeapotVersion: {TEAPOT_VERSION}
 CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
+CelesteNet-HeartbeatInterval: {Server.Settings.HeartbeatInterval}
 
 Who wants some tea?
                 ".Trim().Replace("\n", "\r\n"));

@@ -7,7 +7,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "slimMap";
         }
 
-        public Type PacketType = null!;
+        public override DataFlags DataFlags => DataFlags.SlimHeader;
+
+        public Type? PacketType = null;
         public int ID;
 
         public override void Read(CelesteNetBinaryReader reader) {
@@ -15,8 +17,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ID = reader.ReadInt32();
         }
 
-        override public void Write(CelesteNetBinaryWriter writer) {
-            writer.WriteNetString(PacketType.FullName);
+        public override void Write(CelesteNetBinaryWriter writer) {
+            writer.WriteNetString(PacketType?.FullName);
             writer.Write(ID);
         }
 

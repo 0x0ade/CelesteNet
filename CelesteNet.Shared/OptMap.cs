@@ -27,7 +27,7 @@ namespace Celeste.Mod.CelesteNet {
     Cleaning up the Counting dictionary could be improved too, as it currently halts.
     -jade
     */
-    public class OptMap<T> {
+    public class OptMap<T> where T : class {
 
         public readonly string Name;
 

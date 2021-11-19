@@ -44,6 +44,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int MaxQueueSize { get; set; } = 256;
         public int MaxTickRate { get; set; } = 60;
         public float MergeWindow { get; set; } = 40;
+        public float HeartbeatInterval { get; set; } = 1000f;
 
         public bool TCPRecvUseEPoll { get; set; } = true;
         public int TCPPollMaxEvents { get; set; } = 16;

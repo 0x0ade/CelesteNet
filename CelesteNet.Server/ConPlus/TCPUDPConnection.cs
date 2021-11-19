@@ -67,8 +67,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             tcpBuffer = new byte[Math.Max(server.Settings.TCPBufferSize, 2+server.Settings.MaxPacketSize)];
             tcpBufferOff = 0;
             tcpReceiver.Poller.AddConnection(this);
-
-            tcpSock.ReceiveTimeout = 1000;
         }
     
         protected override void Dispose(bool disposing) {
@@ -85,7 +83,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Receive data into the buffer
                 int numRead = TCPSocket.Receive(tcpBuffer, tcpBuffer.Length - tcpBufferOff, SocketFlags.None);
                 tcpBufferOff += numRead;
-                
+
                 // Update metrics and check if we hit the cap
                 TCPRecvRate.UpdateRate(numRead, 0);
                 if (TCPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap) {

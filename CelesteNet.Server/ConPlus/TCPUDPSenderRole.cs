@@ -125,6 +125,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                     con.TCPSendRate.UpdateRate(2 + packLen, 1);
                     if (con.TCPSendCapped)
                         break;
+
+                    // Surpress keep alives
+                    con.SurpressTCPKeepAlives();
                 }
                 sockStream.Flush();
                 sockStream.Socket = null;
@@ -190,6 +193,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     byteCounter += packLen;
                     packetCounter++;
+
+                    // Surpress keep alives
+                    con.SurpressUDPKeepAlives();
                 }
 
                 // Send the last container

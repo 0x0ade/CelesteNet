@@ -48,6 +48,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         // TODO Dynamic tick rate adjustment
         public int CurrentTickRate => Settings.MaxTickRate;
+        private System.Timers.Timer heartbeatTimer;
 
         private readonly ManualResetEvent ShutdownEvent = new(false);
 
@@ -129,6 +130,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             ModulesFSWatcher.EnableRaisingEvents = true;
 
             ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? (int) Math.Ceiling(1.5f * Environment.ProcessorCount) : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.HeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
+        
+            heartbeatTimer = new(Settings.HeartbeatInterval);
+            heartbeatTimer.Elapsed += (_,_) => DoHeartbeatTick();
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
@@ -164,6 +168,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, serverEP));
             ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!));
 
+            heartbeatTimer.Start();
+
             Logger.Log(LogLevel.CRI, "main", "Ready");
         }
 
@@ -178,6 +184,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Logger.Log(LogLevel.CRI, "main", "Shutdown");
             IsAlive = false;
+
+            heartbeatTimer.Dispose();
 
             ModulesFSWatcher.Dispose();
 
@@ -312,6 +320,21 @@ namespace Celeste.Mod.CelesteNet.Server {
                         }
                     });
                 }
+        }
+
+        private void DoHeartbeatTick() {
+            HashSet<CelesteNetConnection> timedOutCons = new HashSet<CelesteNetConnection>();
+            using (ConLock.R())
+                foreach (CelesteNetConnection con in new HashSet<CelesteNetConnection>(Connections)) {
+                    switch (con) {
+                        case CelesteNetTCPUDPConnection tcpUdpCon: {
+                            if (tcpUdpCon.DoHeartbeatTick())
+                                timedOutCons.Add(tcpUdpCon);
+                        } break;
+                    }
+                }
+            foreach (CelesteNetConnection con in timedOutCons)
+                con.Dispose();
         }
 
         #region Handlers

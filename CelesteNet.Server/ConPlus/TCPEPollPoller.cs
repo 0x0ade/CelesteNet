@@ -27,8 +27,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        [DllImport("libc", SetLastError = true)]
-        private static extern int epoll_create(int size);
+        private const int EBADF = 9;
+
+        private const int EFD_SEMAPHORE = 1;
         [DllImport("libc", SetLastError = true)]
         private static extern int eventfd(uint initval, int flags);
         [DllImport("libc", SetLastError = true)]
@@ -38,9 +39,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         [DllImport("libc", SetLastError = true)]
         private static extern void close(int fd);
 
-        private const int EBADF = 9;
         private const int EPOLL_CTL_ADD = 1, EPOLL_CTL_DEL = 2, EPOLL_CTL_MOD = 3;
         private const uint EPOLLIN = 0x00000001u, EPOLLRDHUP = 0x00002000u, EPOLLERR = 0x00000008u, EPOLLET = 0x80000000u, EPOLLONESHOT = 0x40000000u;
+        [DllImport("libc", SetLastError = true)]
+        private static extern int epoll_create(int size);
         [DllImport("libc", SetLastError = true)]
         private static extern int epoll_ctl(int epfd, uint op, int fd, [In] in epoll_event evt);
         
@@ -64,12 +66,18 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (epollFD < 0)
                 throw new SystemException($"Could not create the EPoll FD: {Marshal.GetLastWin32Error()}");
                 
-            // Create the cancel eventfd
-            cancelFD = eventfd(0, 0);
+            // Create the cancel eventfd, and initialize it to be not triggered
+            // (counter at zero) and behave like a semaphore (so reading it
+            // causes to counter to get decremented, not reset to zero)
+            cancelFD = eventfd(0, EFD_SEMAPHORE);
             if (cancelFD < 0)
                 throw new SystemException($"Could not create the cancel eventfd: {Marshal.GetLastWin32Error()}");
 
             // Make the EPoll FD also listen for the cancel eventfd
+            // A eventfd is read-ready when it's counter is above zero
+            // We don't specifiy EPOLLET (edge triggered) and EPOLLONESHOT
+            // (don't poll the FD after it's triggered once until renabled), as
+            // we want to wake up all threads
             epoll_event evt = new epoll_event() {
                 events = EPOLLIN,
                 user = int.MaxValue
@@ -81,7 +89,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void Dispose() {
             lock (pollerLock.W()) {
-                // Close the EPoll and cancel pipe FDs
+                // Close the EPoll and cancel eventfd
                 close(epollFD);
                 close(cancelFD);
 
@@ -94,6 +102,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void AddConnection(ConPlusTCPUDPConnection con) {
             using (pollerLock.W()) {
                 // Assign the connection an ID
+                // Don't assing int.MaxValue, as it is used by the cancel eventfd
                 int id = int.MaxValue;
                 while (id == int.MaxValue)
                     id = Interlocked.Increment(ref nextConId);
@@ -103,17 +112,21 @@ namespace Celeste.Mod.CelesteNet.Server {
                 
                 // Add the socket's FD to the EPoll FD
                 // Flag breakdown:
-                //  - EPOLLIN: listen for "read available"
+                //  - EPOLLIN: listen for "read-ready"
                 //  - EPOLLRDHUP: listen for "remote closed the connection"
                 //  - EPOLLERR: listen for "an error occured"
                 //  - EPOLLET: enable "edge triggering", which causes two thing:
                 //    - the poll call only returns a socket when it's state
-                //      changed, not when we forgot to read all bytes
+                //      changed, not when we forgot to clear the trigger
+                //      condition (like not reading all bytes available)
                 //    - the Linux kernel will only wake up one thread polling on
-                //      the EPoll FD for a certain event (the behaviour we want)
+                //      the EPoll FD for a certain event (the load-balancing
+                //      behaviour we want)
                 //  - EPOLLONESHOT: disable the socket for further polling until
                 //      we enable it again. This ensures that the same
                 //      connection isn't handled by two threads at the same time
+                //      when the connection receives additional data when a
+                //      thread's already handling it
                 epoll_event evt = new epoll_event() {
                     events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET | EPOLLONESHOT,
                     user = id
@@ -131,9 +144,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 conIds.TryRemove(id, out _);
 
                 // Remove the socket from the EPoll FD
-                // Because of a bug in old Linux versions we still have to pass something as evt
+                // Because of a bug in old Linux versions we still have to pass
+                // something as evt, even though it isn't used
                 // Maybe the socket was already closed, in which case it already
-                // got removed from the EPoll FD and it will return EBADF
+                // got removed from the EPoll FD and epoll_ctl will return EBADF
                 epoll_event evt = default;
                 int ret = epoll_ctl(epollFD, EPOLL_CTL_DEL, (int) con.TCPSocket.Handle, in evt);
                 if (ret < 0 && Marshal.GetLastWin32Error() != EBADF)
@@ -145,11 +159,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             // We somehow have to be able to cancel the epoll_wait call. The
             // cleanest way I found to do this is to create an eventfd
             // (basically a low level ManualResetEvent), and increment it
-            // whenever a token is triggered, and reset it when threads return
-            // from polling. This causes all threads to cycle out of their poll
+            // whenever a token is triggered, and decrement it when a thread exits
+            // Triggering it causes all threads to cycle out of their poll
             // loops and check their tokens to determine if they should exit.
             epoll_event[] evts = new epoll_event[role.Server.Settings.TCPPollMaxEvents];
-            byte[] clearBuf = new byte[8];
             using (token.Register(() => write(cancelFD, BitConverter.GetBytes((UInt64) 1), 8)))
             while (!token.IsCancellationRequested) {
                 // Poll the EPoll FD
@@ -160,15 +173,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Yield the connections from the event
                 for (int i = 0; i < ret; i++) {
                     int id = (int) evts[i].user;
-                    if (id == int.MaxValue) {
-                        // Someone incremented the cancel eventfd
-                        // Just clear it
-                        read(cancelFD, clearBuf, 8);
-                        continue;
-                    }
-                    yield return conIds[id];
+                    if (id != int.MaxValue)
+                        yield return conIds[id];
                 }
             }
+            // The eventfd got incremented for us to exit, so decrement it
+            read(cancelFD, new byte[8], 8);
         }
 
         public void ArmConnectionPoll(ConPlusTCPUDPConnection con) {
@@ -176,9 +186,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (!connections.TryGetValue(con, out int id))
                     throw new ArgumentException("Connection not part of poller");
 
-                // Modify all flags to how they were originally
+                // Modify all flags to how they were originally. This causes the
+                // EPoll FD to monitor the socket again
                 // Maybe the socket was already closed, in which case it already
-                // got removed from the EPoll FD and it will return EBADF
+                // got removed from the EPoll FD and epoll_ctl will return EBADF
                 epoll_event evt = new epoll_event() {
                     events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET | EPOLLONESHOT,
                     user = id

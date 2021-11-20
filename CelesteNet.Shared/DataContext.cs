@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet {
         protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>> References = new();
         protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>> Bound = new();
 
-        protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>> LastOrderedUpdate = new();
+        protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, byte>> LastOrderedUpdate = new();
         private bool IsDisposed;
 
         public DataContext() {
@@ -401,19 +401,19 @@ namespace Celeste.Mod.CelesteNet {
             if (!data.FilterHandle(this))
                 return;
 
-            if (data.TryGet(this, out MetaOrderedUpdate? update)) {
-                if (!LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, uint>? updateIDs)) {
+            if (data.TryGet(this, out MetaOrderedUpdate? update) && update.UpdateID != null) {
+                if (!LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, byte>? updateIDs)) {
                     updateIDs = new();
                     LastOrderedUpdate[type] = updateIDs;
                 }
 
                 uint id = update.ID;
-                uint updateID = update.UpdateID;
-                if (!updateIDs.TryGetValue(id, out uint updateIDLast)) {
+                byte updateID = update.UpdateID.Value;
+                if (!updateIDs.TryGetValue(id, out byte updateIDLast)) {
                     updateIDLast = 0;
                 }
 
-                if (updateID < updateIDLast)
+                if ((updateID - updateIDLast + 256) % 256 < 128)
                     return;
 
                 updateIDs[id] = updateID;
@@ -625,7 +625,7 @@ namespace Celeste.Mod.CelesteNet {
             => FreeOrder(typeof(T), id);
 
         public void FreeOrder(Type type, uint id) {
-            if (LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, uint>? updateIDs)) {
+            if (LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, byte>? updateIDs)) {
                 updateIDs.TryRemove(id, out _);
             }
         }

@@ -181,8 +181,12 @@ namespace Celeste.Mod.CelesteNet.Server {
             // Read packets until we run out data
             using (MemoryStream mStream = new MemoryStream(buffer, 1, dgSize-1))
             using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream))
-            while (mStream.Position < dgSize-1)
-                Receive(Server.Data.Read(reader));
+            while (mStream.Position < dgSize-1) {
+                DataType packet = Server.Data.Read(reader);
+                if (packet.TryGet<MetaOrderedUpdate>(Server.Data, out MetaOrderedUpdate? orderedUpdate))
+                    orderedUpdate.UpdateID = containerID;
+                Receive(packet);
+            }
 
             // Promote optimizations
             PromoteOptimizations();

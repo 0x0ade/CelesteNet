@@ -20,8 +20,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         // Too many too quickly to make tasking worth it.
         public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.SlimHeader;
 
-        public uint UpdateID;
-
         public DataPlayerInfo? Player;
 
         public Vector2 Position;
@@ -61,7 +59,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override MetaType[] GenerateMeta(DataContext ctx)
             => new MetaType[] {
                 new MetaPlayerUpdate(Player),
-                new MetaOrderedUpdate(Player?.ID ?? uint.MaxValue, UpdateID)
+                new MetaOrderedUpdate(Player?.ID ?? uint.MaxValue)
             };
 
         public override void FixupMeta(DataContext ctx) {
@@ -69,7 +67,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             MetaOrderedUpdate order = Get<MetaOrderedUpdate>(ctx);
 
             order.ID = playerUpd;
-            UpdateID = order.UpdateID;
             Player = playerUpd;
         }
 

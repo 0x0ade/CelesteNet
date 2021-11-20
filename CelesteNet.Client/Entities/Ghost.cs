@@ -144,8 +144,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             try {
                 client.Send(new DataPlayerGrabPlayer {
-                    UpdateID = Context.Main.FrameNextID++,
-
                     Player = client.PlayerInfo,
 
                     Grabbing = PlayerInfo,
@@ -170,8 +168,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             try {
                 client.Send(new DataPlayerGrabPlayer {
-                    UpdateID = Context.Main.FrameNextID++,
-
                     Player = client.PlayerInfo,
 
                     Grabbing = PlayerInfo,

@@ -38,8 +38,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private bool WasIdle;
         private bool WasInteractive;
 
-        public uint FrameNextID;
-
         public HashSet<string> ForceIdle = new();
         public bool StateUpdated;
 
@@ -871,8 +869,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             try {
                 Client?.Send(new DataPlayerFrame {
-                    UpdateID = FrameNextID++,
-
                     Player = Client.PlayerInfo,
 
                     Position = player.Position,
@@ -949,8 +945,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void SendReleaseMe() {
             try {
                 Client?.Send(new DataPlayerGrabPlayer {
-                    UpdateID = FrameNextID++,
-
                     Player = Client.PlayerInfo,
                     Grabbing = Client.PlayerInfo,
 

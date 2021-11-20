@@ -92,7 +92,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                             } break;
                             case QueueType.UDP: {
                                 try {
-                                    FlushUDPQueue(con, queue, token);
+                                    lock (con.UDPLock) {
+                                        // If there's no established UDP connection, just drop all packets
+                                        if (con.UDPEndpoint == null)
+                                            queue.SignalFlushed();
+                                        else
+                                            FlushUDPQueue(con, queue, token);
+                                    }
                                 } catch (Exception e) {
                                     Logger.Log(LogLevel.DBG, "udpsend", $"Error flushing connection {con} UDP queue '{queue.Name}': {e}");
                                     con.DecreaseUDPScore();

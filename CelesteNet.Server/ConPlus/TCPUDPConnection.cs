@@ -2,6 +2,7 @@ using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.IO;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class ConPlusTCPUDPConnection : CelesteNetTCPUDPConnection {
@@ -47,13 +48,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        public RateMetric TCPRecvRate, TCPSendRate;
-        public RateMetric UDPRecvRate, UDPSendRate;
+        public readonly RateMetric TCPRecvRate, TCPSendRate;
+        public readonly RateMetric UDPRecvRate, UDPSendRate;
 
         private byte[] tcpBuffer;
         private int tcpBufferOff;
 
-        public ConPlusTCPUDPConnection(CelesteNetServer server, Socket tcpSock, string uid, TCPReceiverRole tcpReceiver, TCPUDPSenderRole sender) : base(server.Data, tcpSock, uid, server.Settings.MaxPacketSize, server.Settings.MaxQueueSize, server.Settings.MergeWindow, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
+        public ConPlusTCPUDPConnection(CelesteNetServer server, int token, string uid, Socket tcpSock, TCPReceiverRole tcpReceiver, TCPUDPSenderRole sender) : base(server.Data, token, uid, server.Settings.MaxPacketSize, server.Settings.MaxQueueSize, server.Settings.MergeWindow, tcpSock, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
             Server = server;
             TCPReceiver = tcpReceiver;
             Sender = sender;
@@ -79,6 +80,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         internal void ReceiveTCPData() {
+            if (!IsConnected)
+                return;
             do {
                 // Receive data into the buffer
                 int numRead = TCPSocket.Receive(tcpBuffer, tcpBuffer.Length - tcpBufferOff, SocketFlags.None);

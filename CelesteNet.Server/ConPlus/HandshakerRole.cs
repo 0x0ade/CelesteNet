@@ -97,6 +97,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             EndPoint remoteEP = sock.RemoteEndPoint!;
             ConPlusTCPUDPConnection? con = null;
             try {
+                // Obtain a connection token
+                int conToken = Interlocked.Increment(ref Server.NextConnectionToken);
+                
                 // Do the teapot handshake
                 bool teapotSuccess;
                 string conUID = null!;
@@ -108,7 +111,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     tokenSrc.CancelAfter(TeapotTimeout);
                     tokenSrc.Token.Register(() => sock.Close());
                     try {
-                        var teapotRes = await TeapotHandshake(sock);
+                        var teapotRes = await TeapotHandshake(sock, conToken);
                         teapotSuccess = teapotRes != null;
                         if (teapotRes != null)
                             (conUID, conFeatures, playerUID, playerName) = teapotRes.Value;
@@ -131,7 +134,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Logger.Log(LogLevel.VVV, "tcpudphs", $"Connection {remoteEP} teapot handshake success: connection UID {conUID} connection features '{conFeatures.Aggregate((string) null!, (a, f) => ((a == null) ? $"{f}" : $"{a}, {f}"))}' player UID {playerUID} player name {playerName}");
 
                 // Create the connection, do the generic connection handshake and create a session
-                Server.HandleConnect(con = new ConPlusTCPUDPConnection(Server, sock, conUID, tcpReceiver, sender));
+                Server.HandleConnect(con = new ConPlusTCPUDPConnection(Server, conToken, conUID, sock, tcpReceiver, sender));
                 await DoConnectionHandshake(con, conFeatures);
                 Server.CreateSession(con, playerUID, playerName);
             } catch(Exception) {
@@ -143,7 +146,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         // Let's mess with web crawlers even more ;)
         // Also: I'm a Teapot
-        private async Task<(string conUID, IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake(Socket sock) {
+        private async Task<(string conUID, IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake(Socket sock, int conToken) {
             using (NetworkStream netStream = new NetworkStream(sock, false))
             using (BufferedStream bufStream = new BufferedStream(netStream))
             using (StreamReader reader = new StreamReader(bufStream))
@@ -237,12 +240,13 @@ Connection: close
 HTTP/1.1 418 I'm a teapot
 Connection: close
 CelesteNet-TeapotVersion: {TeapotVersion}
+CelesteNet-ConnectionToken: {conToken}
 CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
 CelesteNet-MaxPacketSize: {Server.Settings.MaxPacketSize}
 CelesteNet-HeartbeatInterval: {Server.Settings.HeartbeatInterval}
 
 Who wants some tea?
-                ".Trim().Replace("\n", "\r\n"));
+                ".Trim().Replace("\n", "\r\n") + "\r\n" + "\r\n");
 
                 return (conUID, matchedFeats.Select(f => f.feature).ToArray(), (playerData!).Value.uid, (playerData!).Value.name);
             }

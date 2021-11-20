@@ -6,7 +6,7 @@ using System.Threading;
 namespace Celeste.Mod.CelesteNet.Server {
     public partial class TCPAcceptorRole : MultipleSocketBinderRole {
 
-        public const int MAX_WORKER_BACKLOG = 32;
+        public const int MaxWorkerBacklog = 32;
 
         private class Worker : RoleWorker {
 
@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 EnterActiveZone();
 
                 // Accept new connections as long as the token isn't canceled
-                socket.Listen(MAX_WORKER_BACKLOG);
+                socket.Listen(MaxWorkerBacklog);
                 token.Register(() => socket.Close());
                 while (!token.IsCancellationRequested) {
                     Socket newConn;

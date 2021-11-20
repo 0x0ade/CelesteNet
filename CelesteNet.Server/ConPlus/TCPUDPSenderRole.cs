@@ -77,17 +77,28 @@ namespace Celeste.Mod.CelesteNet.Server {
                             continue;
 
                         switch (queueType) {
-                            case QueueType.TCP: FlushTCPQueue(con, queue, token); break;
-                            case QueueType.UDP: FlushUDPQueue(con, queue, token); break;
-                        }
-                    } catch (Exception e) {
-                        if (e is SocketException se && se.IsDisconnect()) {
-                            con.Dispose();
-                            continue;
-                        }
+                            case QueueType.TCP: {
+                                try {
+                                    FlushTCPQueue(con, queue, token);
+                                } catch (Exception e) {
+                                    if (e is SocketException se && se.IsDisconnect()) {
+                                        con.Dispose();
+                                        continue;
+                                    }
 
-                        Logger.Log(LogLevel.WRN, "tcpudpsend", $"Error flushing connection {con} queue '{queue.Name}': {e}");
-                        con.Dispose();
+                                    Logger.Log(LogLevel.WRN, "tcpsend", $"Error flushing connection {con} TCP queue '{queue.Name}': {e}");
+                                    con.Dispose();
+                                }
+                            } break;
+                            case QueueType.UDP: {
+                                try {
+                                    FlushUDPQueue(con, queue, token);
+                                } catch (Exception e) {
+                                    Logger.Log(LogLevel.DBG, "udpsend", $"Error flushing connection {con} UDP queue '{queue.Name}': {e}");
+                                    con.DecreaseUDPScore();
+                                }
+                            } break;
+                        }
                     } finally {
                         ExitActiveZone();
                     }

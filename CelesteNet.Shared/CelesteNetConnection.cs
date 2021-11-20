@@ -189,6 +189,10 @@ namespace Celeste.Mod.CelesteNet {
             Flush();
         }
 
+        public void Clear() {
+            frontQueue.Clear();
+        }
+
         public void Flush() {
             if (Interlocked.CompareExchange(ref inMergeWindow, 1, 0) == 0)
                 timer.Start();

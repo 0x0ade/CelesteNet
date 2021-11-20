@@ -18,8 +18,8 @@ namespace Celeste.Mod.CelesteNet.Server {
     */
     public partial class HandshakerRole : NetPlusThreadRole {
 
-        public const int TEAPOT_TIMEOUT = 5000;
-        public const int TEAPOT_VERSION = 1;
+        public const int TeapotTimeout = 5000;
+        public const int TeapotVersion = 1;
 
         private class Scheduler : TaskScheduler, IDisposable {
 
@@ -105,7 +105,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 using (CancellationTokenSource tokenSrc = new CancellationTokenSource()) {
                     // .NET is completly stupid, you can't cancel async socket operations
                     // We literally have to kill the socket for the handshake to be able to timeout
-                    tokenSrc.CancelAfter(TEAPOT_TIMEOUT);
+                    tokenSrc.CancelAfter(TeapotTimeout);
                     tokenSrc.Token.Register(() => sock.Close());
                     try {
                         var teapotRes = await TeapotHandshake(sock);
@@ -189,13 +189,13 @@ The server encountered an internal error while handling the request
                 if (!headers.TryGetValue("CelesteNet-TeapotVersion", out string? teapotVerHeader) || !int.TryParse(teapotVerHeader!, out int teapotVer))
                     return await Send500();
 
-                if (teapotVer != TEAPOT_VERSION) {
-                    Logger.Log(LogLevel.VVV, "teapot", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {TEAPOT_VERSION} [server]");
+                if (teapotVer != TeapotVersion) {
+                    Logger.Log(LogLevel.VVV, "teapot", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {TeapotVersion} [server]");
                     await writer.WriteAsync($@"
 HTTP/1.1 409 Version Mismatch
 Connection: close
 
-{string.Format(Server.Settings.MessageTeapotVersionMismatch, teapotVer, TEAPOT_VERSION)}
+{string.Format(Server.Settings.MessageTeapotVersionMismatch, teapotVer, TeapotVersion)}
                     ".Trim().Replace("\n", "\r\n"));
                     return null;
                 }
@@ -236,8 +236,9 @@ Connection: close
                 await writer.WriteAsync($@"
 HTTP/1.1 418 I'm a teapot
 Connection: close
-CelesteNet-TeapotVersion: {TEAPOT_VERSION}
+CelesteNet-TeapotVersion: {TeapotVersion}
 CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
+CelesteNet-MaxPacketSize: {Server.Settings.MaxPacketSize}
 CelesteNet-HeartbeatInterval: {Server.Settings.HeartbeatInterval}
 
 Who wants some tea?

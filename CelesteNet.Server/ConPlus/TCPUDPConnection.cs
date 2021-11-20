@@ -53,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         private byte[] tcpBuffer;
         private int tcpBufferOff;
 
-        public ConPlusTCPUDPConnection(CelesteNetServer server, Socket tcpSock, string uid, TCPReceiverRole tcpReceiver, TCPUDPSenderRole sender) : base(server.Data, tcpSock, uid, server.Settings.MaxQueueSize, server.Settings.MergeWindow, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
+        public ConPlusTCPUDPConnection(CelesteNetServer server, Socket tcpSock, string uid, TCPReceiverRole tcpReceiver, TCPUDPSenderRole sender) : base(server.Data, tcpSock, uid, server.Settings.MaxPacketSize, server.Settings.MaxQueueSize, server.Settings.MergeWindow, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
             Server = server;
             TCPReceiver = tcpReceiver;
             Sender = sender;

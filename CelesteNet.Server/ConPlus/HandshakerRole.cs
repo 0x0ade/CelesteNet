@@ -93,12 +93,12 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
         
-        public async Task DoTCPUDPHandshake(Socket sock, TCPReceiverRole tcpReceiver, TCPUDPSenderRole sender) {
+        public async Task DoTCPUDPHandshake(Socket sock, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) {
             EndPoint remoteEP = sock.RemoteEndPoint!;
             ConPlusTCPUDPConnection? con = null;
             try {
                 // Obtain a connection token
-                int conToken = Interlocked.Increment(ref Server.NextConnectionToken);
+                int conToken = Server.ConTokenGenerator.GenerateToken();
                 
                 // Do the teapot handshake
                 bool teapotSuccess;
@@ -134,7 +134,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Logger.Log(LogLevel.VVV, "tcpudphs", $"Connection {remoteEP} teapot handshake success: connection UID {conUID} connection features '{conFeatures.Aggregate((string) null!, (a, f) => ((a == null) ? $"{f}" : $"{a}, {f}"))}' player UID {playerUID} player name {playerName}");
 
                 // Create the connection, do the generic connection handshake and create a session
-                Server.HandleConnect(con = new ConPlusTCPUDPConnection(Server, conToken, conUID, sock, tcpReceiver, sender));
+                Server.HandleConnect(con = new ConPlusTCPUDPConnection(Server, conToken, conUID, sock, tcpReceiver, udpReceiver, sender));
                 await DoConnectionHandshake(con, conFeatures);
                 Server.CreateSession(con, playerUID, playerName);
             } catch(Exception) {

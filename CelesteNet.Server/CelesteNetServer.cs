@@ -40,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly DetourModManager DetourModManager;
 
         public uint PlayerCounter = 0;
-        public int NextConnectionToken = 0;
+        public readonly TokenGenerator ConTokenGenerator = new TokenGenerator();
         public readonly RWLock ConLock = new();
         public readonly HashSet<CelesteNetConnection> Connections = new();
         public readonly HashSet<CelesteNetPlayerSession> Sessions = new();
@@ -166,8 +166,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "server", $"Starting server on {serverEP}");            
             ThreadPool.Scheduler.AddRole(new HandshakerRole(ThreadPool, this));
             ThreadPool.Scheduler.AddRole(new TCPReceiverRole(ThreadPool, this, (Environment.OSVersion.Platform == PlatformID.Unix && Settings.TCPRecvUseEPoll) ? new TCPEPollPoller() : new TCPFallbackPoller()));
+            ThreadPool.Scheduler.AddRole(new UDPReceiverRole(ThreadPool, this, serverEP));
             ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, serverEP));
-            ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!));
+            ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!));
 
             heartbeatTimer.Start();
 

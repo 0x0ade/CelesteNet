@@ -48,15 +48,21 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
+        public readonly CelesteNetServer Server;
+        public readonly TCPReceiverRole TCPReceiver;
+        public readonly UDPReceiverRole UDPReceiver;
+        public readonly TCPUDPSenderRole Sender;
+
         public readonly RateMetric TCPRecvRate, TCPSendRate;
         public readonly RateMetric UDPRecvRate, UDPSendRate;
 
         private byte[] tcpBuffer;
         private int tcpBufferOff;
 
-        public ConPlusTCPUDPConnection(CelesteNetServer server, int token, string uid, Socket tcpSock, TCPReceiverRole tcpReceiver, TCPUDPSenderRole sender) : base(server.Data, token, uid, server.Settings.MaxPacketSize, server.Settings.MaxQueueSize, server.Settings.MergeWindow, tcpSock, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
+        public ConPlusTCPUDPConnection(CelesteNetServer server, int token, string uid, Socket tcpSock, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) : base(server.Data, token, uid, server.Settings.MaxPacketSize, server.Settings.MaxQueueSize, server.Settings.MergeWindow, tcpSock, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
             Server = server;
             TCPReceiver = tcpReceiver;
+            UDPReceiver = udpReceiver;
             Sender = sender;
             TCPRecvRate = new RateMetric(this);
             TCPSendRate = new RateMetric(this);
@@ -68,18 +74,22 @@ namespace Celeste.Mod.CelesteNet.Server {
             tcpBuffer = new byte[Math.Max(server.Settings.TCPBufferSize, 2+server.Settings.MaxPacketSize)];
             tcpBufferOff = 0;
             tcpReceiver.Poller.AddConnection(this);
+
+            // Initialize UDP receiving
+            udpReceiver.AddConnection(this);
         }
     
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
             TCPReceiver.Poller.RemoveConnection(this);
+            UDPReceiver.RemoveConnection(this);
             TCPRecvRate.Dispose();
             TCPSendRate.Dispose();
             UDPRecvRate.Dispose();
             UDPSendRate.Dispose();
         }
 
-        internal void ReceiveTCPData() {
+        public void ReceiveTCPData() {
             if (!IsConnected)
                 return;
             do {
@@ -153,6 +163,31 @@ namespace Celeste.Mod.CelesteNet.Server {
             PromoteOptimizations();
         }
 
+        public void HandleUDPDatagram(byte[] buffer, int dgSize) {
+            if (!IsConnected || dgSize <= 0)
+                return;
+
+            // Update metrics
+            UDPRecvRate.UpdateRate(dgSize, 1);
+            if (UDPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap || UDPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap) {
+                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink cap: {UDPRecvRate.ByteRate} BpS {UDPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap} cap BpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap} cap PpS");
+                Dispose();
+                return;
+            }
+                        
+            // Get the container ID
+            byte containerID = buffer[0];
+
+            // Read packets until we run out data
+            using (MemoryStream mStream = new MemoryStream(buffer, 1, dgSize-1))
+            using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream))
+            while (mStream.Position < dgSize-1)
+                Receive(Server.Data.Read(reader));
+
+            // Promote optimizations
+            PromoteOptimizations();
+        }
+
         public void PromoteOptimizations() {
             foreach ((string str, int id) in Strings.PromoteRead())
                 Send(new DataLowLevelStringMap() {
@@ -166,10 +201,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                     ID = id
                 });
         }
-
-        public CelesteNetServer Server { get; }
-        public TCPReceiverRole TCPReceiver { get; }
-        public TCPUDPSenderRole Sender { get; }
 
         public bool TCPSendCapped => TCPSendRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkBpTCap || TCPSendRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkPpTCap;
         public float TCPSendCapDelay => Server.Settings.HeuristicSampleWindow * Math.Max(1 - Server.Settings.PlayerTCPUplinkBpTCap / TCPSendRate.ByteRate, 1 - Server.Settings.PlayerTCPUplinkPpTCap / TCPSendRate.PacketRate);

@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly object UDPLock = new object();
         private int udpMaxDatagramSize;
-        private byte udpRecvContainerCounter = 0, udpSendContainerCounter = 0;
+        private byte udpSendContainerCounter = 0;
         private int udpAliveScore = 0, udpDowngradeScore = 0, udpDeathScore = 0;
 
         public int UDPMaxDatagramSize {
@@ -58,7 +58,7 @@ namespace Celeste.Mod.CelesteNet {
         private int tcpLastHeartbeatDelay = 0, udpLastHeartbeatDelay = 0;
         private bool tcpSendKeepAlive, udpSendKeepAlive;
 
-        public event Action<CelesteNetTCPUDPConnection>? OnUDPDeath;
+        public event Action<CelesteNetTCPUDPConnection, EndPoint>? OnUDPDeath;
 
         public CelesteNetTCPUDPConnection(DataContext data, int token,  string uid, int maxPacketSize, int maxQueueSize, float mergeWindow, Socket tcpSock, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
             ConnectionToken = token;
@@ -79,9 +79,10 @@ namespace Celeste.Mod.CelesteNet {
 
             lock (UDPLock) {
                 if (udpEP != null) {
+                    EndPoint ep = udpEP!;
                     udpEP = null;
                     udpDeathScore = UDPDeathScoreMax;
-                    OnUDPDeath?.Invoke(this);
+                    OnUDPDeath?.Invoke(this, ep);
                 }
             }
             
@@ -157,13 +158,14 @@ namespace Celeste.Mod.CelesteNet {
                 udpDowngradeScore = 0;
                 udpMaxDatagramSize /= 2;
                 if (udpMaxDatagramSize < 1+maxPacketSize) {
+                    EndPoint ep = udpEP!;
                     udpEP = null;
                     udpMaxDatagramSize = 0;
                     if (udpDeathScore < UDPDeathScoreMax)
                         udpDeathScore++;
                     udpQueue.Clear();
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"UDP connection of {this} died [{udpMaxDatagramSize}, {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
-                    OnUDPDeath?.Invoke(this);
+                    OnUDPDeath?.Invoke(this, ep);
                 }
                 Send(new DataLowLevelUDPInfo() {
                     MaxDatagramSize = udpMaxDatagramSize,

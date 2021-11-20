@@ -168,6 +168,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             private void FlushUDPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
+                // TODO This could be optimized with sendmmsg
+                
                 // Check if the connection's capped
                 if (con.UDPSendCapped) {
                     Logger.Log(LogLevel.WRN, "udpsend", $"Connection {con} hit UDP uplink cap: {con.UDPSendRate.ByteRate} BpS {con.UDPSendRate.PacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkPpTCap} cap PpS");

@@ -333,8 +333,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                         } break;
                     }
                 }
-            foreach (CelesteNetConnection con in timedOutCons)
+            foreach (CelesteNetConnection con in timedOutCons) {
+                Logger.Log(LogLevel.WRN, "main", $"Connection {con} timed out");
                 con.Dispose();
+            }
         }
 
         #region Handlers

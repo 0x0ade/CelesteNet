@@ -8,6 +8,11 @@ namespace Celeste.Mod.CelesteNet {
 
         public const int MAX_HEARTBEAT_DELAY = 8;
         
+        private bool alive = true;
+        public override bool IsConnected => alive && tcpSock.Connected;
+        public override string ID { get; }
+        public override string UID { get; }
+
         private Socket tcpSock;
         private EndPoint? udpEP;
         private CelesteNetSendQueue tcpQueue, udpQueue;
@@ -33,6 +38,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         protected override void Dispose(bool disposing) {
+            alive = false;
             udpEP = null;
             tcpQueue.Dispose();
             udpQueue.Dispose();
@@ -94,11 +100,6 @@ namespace Celeste.Mod.CelesteNet {
             udpSendContainerCounter = unchecked(udpSendContainerCounter++);
             return id;
         }
-
-        public override bool IsConnected => tcpSock.Connected;
-
-        public override string ID { get; }
-        public override string UID { get; }
 
     }
 }

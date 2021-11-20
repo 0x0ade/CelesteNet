@@ -40,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         private static extern void close(int fd);
 
         private const int EPOLL_CTL_ADD = 1, EPOLL_CTL_DEL = 2, EPOLL_CTL_MOD = 3;
-        private const uint EPOLLIN = 0x00000001u, EPOLLRDHUP = 0x00002000u, EPOLLERR = 0x00000008u, EPOLLET = 0x80000000u, EPOLLONESHOT = 0x40000000u;
+        private const uint EPOLLIN = 0x00000001u, EPOLLERR = 0x00000008u, EPOLLHUP = 0x00000010, EPOLLRDHUP = 0x00002000u, EPOLLET = 0x80000000u, EPOLLONESHOT = 0x40000000u;
         [DllImport("libc", SetLastError = true)]
         private static extern int epoll_create(int size);
         [DllImport("libc", SetLastError = true)]
@@ -113,8 +113,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Add the socket's FD to the EPoll FD
                 // Flag breakdown:
                 //  - EPOLLIN: listen for "read-ready"
-                //  - EPOLLRDHUP: listen for "remote closed the connection"
                 //  - EPOLLERR: listen for "an error occured"
+                //  - EPOLLHUP: listen for "the connection was closed"
+                //  - EPOLLRDHUP: listen for "remote closed the connection"
+                //      (I don't know why there are two similar events for this)
                 //  - EPOLLET: enable "edge triggering", which causes two thing:
                 //    - the poll call only returns a socket when it's state
                 //      changed, not when we forgot to clear the trigger
@@ -128,7 +130,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 //      when the connection receives additional data when a
                 //      thread's already handling it
                 epoll_event evt = new epoll_event() {
-                    events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET | EPOLLONESHOT,
+                    events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET | EPOLLONESHOT,
                     user = id
                 };
                 if (epoll_ctl(epollFD, EPOLL_CTL_ADD, (int) con.TCPSocket.Handle, in evt) < 0)
@@ -191,7 +193,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Maybe the socket was already closed, in which case it already
                 // got removed from the EPoll FD and epoll_ctl will return EBADF
                 epoll_event evt = new epoll_event() {
-                    events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET | EPOLLONESHOT,
+                    events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET | EPOLLONESHOT,
                     user = id
                 };
                 int ret = epoll_ctl(epollFD, EPOLL_CTL_MOD, (int) con.TCPSocket.Handle, in evt);

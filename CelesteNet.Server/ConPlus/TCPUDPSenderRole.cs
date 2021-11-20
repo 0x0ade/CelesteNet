@@ -72,6 +72,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                     ConPlusTCPUDPConnection con = (ConPlusTCPUDPConnection) queue.Con;
                     EnterActiveZone();
                     try {
+                        // Maybe the connection got closed while it was in the queue
+                        if (!con.IsConnected)
+                            continue;
+
                         switch (queueType) {
                             case QueueType.TCP: FlushTCPQueue(con, queue, token); break;
                             case QueueType.UDP: FlushUDPQueue(con, queue, token); break;

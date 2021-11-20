@@ -70,8 +70,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
     
         protected override void Dispose(bool disposing) {
-            TCPReceiver.Poller.RemoveConnection(this);
             base.Dispose(disposing);
+            TCPReceiver.Poller.RemoveConnection(this);
             TCPRecvRate.Dispose();
             TCPSendRate.Dispose();
             UDPRecvRate.Dispose();
@@ -79,10 +79,18 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         internal void ReceiveTCPData() {
-            while (TCPSocket.Available > 0) {
+            do {
                 // Receive data into the buffer
                 int numRead = TCPSocket.Receive(tcpBuffer, tcpBuffer.Length - tcpBufferOff, SocketFlags.None);
+                if (numRead == 0) {
+                    // The remote closed the connection
+                    Dispose();
+                    return;
+                }
                 tcpBufferOff += numRead;
+
+                // Make the connection know we got a heartbeat
+                TCPHeartbeat();
 
                 // Update metrics and check if we hit the cap
                 TCPRecvRate.UpdateRate(numRead, 0);
@@ -136,7 +144,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         Buffer.BlockCopy(tcpBuffer, 2+packetLen, tcpBuffer, 0, tcpBufferOff - (2+packetLen));
                     }
                 }
-            }
+            } while (TCPSocket.Available > 0);
 
             // Promote optimizations
             PromoteOptimizations();

@@ -278,7 +278,7 @@ namespace Celeste.Mod.CelesteNet {
 
             string id = reader.ReadNetMappedString();
             string source = reader.ReadNetMappedString();
-            uint length = ((flags & DataFlags.Small) == DataFlags.Small) ? reader.ReadByte() : reader.ReadUInt16();
+            uint length = ((flags & DataFlags.Small) != 0) ? reader.ReadByte() : reader.ReadUInt16();
             long start = pas?.Position ?? 0;
 
             if (!IDToDataType.TryGetValue(id, out Type? type))
@@ -357,7 +357,7 @@ namespace Celeste.Mod.CelesteNet {
             writer.WriteNetMappedString(data.GetSource(this));
 
             writer.Flush();
-            long sizePos = writer.BaseStream.Position;
+            long lenPos = writer.BaseStream.Position;
             if (small)
                 writer.Write((byte) 0);
             else
@@ -367,12 +367,12 @@ namespace Celeste.Mod.CelesteNet {
 
             writer.Flush();
             long end = writer.BaseStream.Position;
-            long size = end - (sizePos + (small ? 1 : 2));
-            writer.BaseStream.Position = sizePos;
+            long len = end - (lenPos + (small ? 1 : 2));
+            writer.BaseStream.Position = lenPos;
             if (small)
-                writer.Write((byte) size);
+                writer.Write((byte) len);
             else
-                writer.Write((ushort) size);
+                writer.Write((ushort) len);
             writer.Flush();
             writer.BaseStream.Position = end;
 
@@ -385,16 +385,16 @@ namespace Celeste.Mod.CelesteNet {
             writer.WriteNetMappedString(meta.GetTypeID(this));
 
             writer.Flush();
-            long sizePos = writer.BaseStream.Position;
+            long lenPos = writer.BaseStream.Position;
             writer.Write((byte) 0);
 
             meta.Write(writer);
 
             writer.Flush();
             long end = writer.BaseStream.Position;
-            long size = end - (sizePos + 1);
-            writer.BaseStream.Position = sizePos;
-            writer.Write((byte) sizePos);
+            long len = end - (lenPos + 1);
+            writer.BaseStream.Position = lenPos;
+            writer.Write((byte) len);
             writer.Flush();
             writer.BaseStream.Position = end;
 

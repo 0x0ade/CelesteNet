@@ -9,8 +9,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClient : IDisposable {
@@ -39,9 +39,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private readonly object StartStopLock = new();
 
-        private const int UDPDeathScoreMin = -1;
-        private const int UDPDeathScoreMax = 5;
-        private const int UDPAliveScoreMax = 100;
+        private Timer heartbeatTimer;
 
         public CelesteNetClient()
             : this(new()) {
@@ -93,11 +91,27 @@ namespace Celeste.Mod.CelesteNet.Client {
                             (int conToken, IConnectionFeature[] features, int maxPacketSize, float mergeWindow, float heartbeatInterval) = Handshake.DoTeapotHandshake(sock, ConFeatures, Settings.Name);
                             Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {conToken} conFeatures '{features.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}' maxPacketSize {maxPacketSize} mergeWindow {mergeWindow} heartbeatInterval {heartbeatInterval}");
 
-                            // Create a connection and do the regular handshake
-                            Con = new CelesteNetClientTCPUDPConnection(Data, conToken, maxPacketSize, mergeWindow, sock);
-                            Con.OnDisconnect += _ => Dispose();
+                            // Create a connection and start the heartbeat timer
+                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, conToken, maxPacketSize, mergeWindow, sock);
+                            con.OnDisconnect += _ => Dispose();
+                            heartbeatTimer = new Timer(heartbeatInterval);
+                            heartbeatTimer.AutoReset = true;
+                            heartbeatTimer.Elapsed += (_,_) => {
+                                if (con.DoHeartbeatTick()) {
+                                    Logger.Log(LogLevel.CRI, "main", $"Connection timed out");
+                                    CelesteNetClientContext ctx = CelesteNetClientModule.Instance.Context;
+                                    Dispose();
+                                    if (ctx?.Status != null)
+                                        ctx.Status.Set("Timeout", 3f, false);
+                                }
+                            };
+                            heartbeatTimer.Start();
+                            Con = con;
+
+                            // Do the regular connection handshake
                             Handshake.DoConnectionHandshake(Con, features);
                             Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
+                            
                         } catch (Exception) {
                             Con?.Dispose();
                             try {
@@ -133,6 +147,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Logger.Log(LogLevel.CRI, "main", "Shutdown");
                 IsReady = false;
 
+                heartbeatTimer?.Dispose();
                 Con?.Dispose();
                 Con = null;
 
@@ -171,14 +186,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             return data;
         }
 
-        #region Handlers
-
-        public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
-            if (PlayerInfo != null && PlayerInfo.ID == info.ID)
+        public void Handle(CelesteNetConnection con, DataPlayerInfo info) { 
+            // The first DataPlayerInfo sent from the server is our own
+            Logger.Log(LogLevel.WRN, "con", $"Received PlayerInfo: {info} {info.ID}");
+            if (PlayerInfo == null || PlayerInfo.ID == info.ID)
                 PlayerInfo = info;
         }
-
-        #endregion
 
     }
 }

@@ -9,7 +9,9 @@ using System.Threading;
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientTCPUDPConnection : CelesteNetTCPUDPConnection {
 
-        private NetworkStream tcpStream;
+        public const int TcpBufferSize = 16384;
+
+        private BufferedSocketStream tcpStream;
         private ManualResetEventSlim udpReadyEvent;
         private BlockingCollection<DataType> tcpSendQueue, udpSendQueue;
 
@@ -18,7 +20,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetClientTCPUDPConnection(DataContext data, int token, int maxPacketSize, float mergeWindow, Socket tcpSock) : base(data, token, $"tcpudp-srv-{BitConverter.ToString(((IPEndPoint) tcpSock.RemoteEndPoint).Address.GetAddressBytes())}-prt-{((IPEndPoint) tcpSock.RemoteEndPoint).Port}", maxPacketSize, int.MaxValue, mergeWindow, tcpSock, FlushTCPQueue, FlushUDPQueue) {
             // Initialize networking
-            tcpStream = new NetworkStream(tcpSock);
+            tcpSock.Blocking = false;
+            tcpStream = new BufferedSocketStream(TcpBufferSize) { Socket = tcpSock };
             udpReadyEvent = new ManualResetEventSlim(false);
             OnUDPDeath += (_, _) => {
                 udpReadyEvent.Reset();
@@ -67,14 +70,17 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void TCPRecvThreadFunc() {
             try {
-                using (BufferedStream bufStream = new BufferedStream(tcpStream))
-                using (CelesteNetBinaryReader tcpReader = new CelesteNetBinaryReader(Data, Strings, SlimMap, bufStream)) {
+                // TODO MonoKickstart is extremly stupid, using a BufferedStream here just hangs...
+                using (CelesteNetBinaryReader tcpReader = new CelesteNetBinaryReader(Data, Strings, SlimMap, tcpStream)) {
                     while (!tokenSrc.IsCancellationRequested) {
                         // Read the packet size
                         UInt16 packetSize = tcpReader.ReadUInt16();
                         if (packetSize > MaxPacketSize)
                             throw new InvalidDataException("Peer sent packet over maximum size");
                         
+                        // Let the connection now we got a TCP heartbeat
+                        TCPHeartbeat();
+
                         // Read the packet
                         DataType packet = Data.Read(tcpReader);
 
@@ -109,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 
                 if ((e is IOException || e is SocketException) && tokenSrc.IsCancellationRequested)
                     return;
-                
+
                 Logger.Log(LogLevel.WRN, "tcprecv", $"Error in TCP receiving thread: {e}");
                 if (!tokenSrc.IsCancellationRequested)
                     Dispose();
@@ -154,6 +160,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                     if (dgSize == 0)
                         continue;
 
+                    // Let the connection now we got a UDP heartbeat
+                    UDPHeartbeat();
+
                     // Get the container ID
                     byte containerID = buffer[0];
 
@@ -173,7 +182,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
                     return;
-                
+
                 Logger.Log(LogLevel.WRN, "udprecv", $"Error in UDP receiving thread: {e}");
                 if (!tokenSrc.IsCancellationRequested)
                     Dispose();
@@ -184,8 +193,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void TCPSendThreadFunc() {
             try {
-                using (BufferedStream bufStream = new BufferedStream(tcpStream))
-                using (BinaryWriter tcpWriter = new BinaryWriter(bufStream))
+                using (BinaryWriter tcpWriter = new BinaryWriter(tcpStream))
                 using (MemoryStream mStream = new MemoryStream(MaxPacketSize))
                 using (CelesteNetBinaryWriter bufWriter = new CelesteNetBinaryWriter(Data, Strings, SlimMap, mStream))
                 foreach (DataType p in tcpSendQueue.GetConsumingEnumerable(tokenSrc.Token)) {
@@ -193,16 +201,16 @@ namespace Celeste.Mod.CelesteNet.Client {
                     for (DataType packet = p; packet != null; tcpSendQueue.TryTake(out packet)) {
                         mStream.Position = 0;
                         int packLen = Data.Write(bufWriter, packet);
-                        bufWriter.Write((UInt16) packLen);
-                        bufWriter.Write(mStream.GetBuffer(), 0, packLen);
+                        tcpWriter.Write((UInt16) packLen);
+                        tcpWriter.Write(mStream.GetBuffer(), 0, packLen);
                         SurpressTCPKeepAlives();
                     }
-                    bufStream.Flush();
+                    tcpWriter.Flush();
                 }
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
                     return;
-                
+
                 Logger.Log(LogLevel.WRN, "tcpsend", $"Error in TCP sending thread: {e}");
                 if (!tokenSrc.IsCancellationRequested)
                     Dispose();
@@ -236,15 +244,16 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // Try to send as many packets as possible
                         dgramBuffer[0] = NextUDPContainerID();
                         int bufOff = 1;
-                        for (DataType packet = p; packet != null; tcpSendQueue.TryTake(out packet)) {
+                        for (DataType packet = p; packet != null; packet = udpSendQueue.TryTake(out packet, 0) ? packet : null) {
                             mStream.Position = 0;
                             int packLen = Data.Write(bufWriter, packet);
+                            if (!(packet is DataLowLevelKeepAlive))
+                                SurpressUDPKeepAlives();
 
                             // Copy packet data to the container buffer
                             if (bufOff + packLen > dgramBuffer.Length) {
                                 // Send container
                                 sock.SendTo(dgramBuffer, bufOff, SocketFlags.None, ep);
-                                SurpressUDPKeepAlives();
                                 bufOff = 1;
 
                                 // Start a new container
@@ -256,16 +265,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                         }
 
                         // Send the last container
-                        if (bufOff > 1) {
+                        if (bufOff > 1)
                             sock.SendTo(dgramBuffer, bufOff, SocketFlags.None, ep);
-                            SurpressUDPKeepAlives();
-                        }
                     }
                 }
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
                     return;
-                
+
                 Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");
                 if (!tokenSrc.IsCancellationRequested)
                     Dispose();

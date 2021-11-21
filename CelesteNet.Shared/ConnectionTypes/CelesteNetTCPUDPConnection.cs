@@ -96,7 +96,7 @@ namespace Celeste.Mod.CelesteNet {
 
         }
 
-        protected override CelesteNetSendQueue? GetQueue(DataType data) => (udpEP != null && (data.DataFlags & DataFlags.Unreliable) != 0) ? udpQueue : tcpQueue;
+        protected override CelesteNetSendQueue? GetQueue(DataType data) => (UDPEndpoint != null && (data.DataFlags & DataFlags.Unreliable) != 0) ? udpQueue : tcpQueue;
 
         public void PromoteOptimizations() {
             foreach ((string str, int id) in Strings.PromoteRead())

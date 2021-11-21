@@ -8,71 +8,107 @@ namespace Celeste.Mod.CelesteNet {
     doesn't do much, it just buffers some data in a buffer and sends that data
     to the underlying socket when the buffer's full. However, the reason there's
     a custom class for this is that this allows for the socket to change, making
-    it possible to only use one stream per ConPlus worker
+    it possible to only use one stream per ConPlus worker. Also MonoKickstart is
+    extremly broken, and BufferedStream just kinda doesn't work...
     -Popax21
     */
     public class BufferedSocketStream : Stream {
 
         private Socket? socket = null;
-        private byte[] buffer;
-        private int bufferOff = 0;
+        private byte[] recvBuffer, sendBuffer;
+        private int recvAvail = 0, recvBufferOff = 0, sendBufferOff = 0;
 
         public BufferedSocketStream(int bufferSize) {
-            buffer = new byte[bufferSize];
+            recvBuffer = new byte[bufferSize];
+            sendBuffer = new byte[bufferSize];
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            lock (recvBuffer) {
+                if (socket == null)
+                    return 0;
+
+                int numRead = 0;
+                while (numRead < count) {
+                    if (recvAvail <= 0 || recvBufferOff >= recvBuffer.Length) {
+                        socket.Poll(-1, SelectMode.SelectRead);
+                        recvAvail = socket.Receive(recvBuffer, recvBuffer.Length, SocketFlags.None);
+                        recvBufferOff = 0;
+                        if (recvAvail <= 0)
+                            break;
+                    }
+
+                    int n = Math.Min(recvAvail, count-numRead);
+                    Buffer.BlockCopy(recvBuffer, recvBufferOff, buffer, offset, n);
+                    recvBufferOff += n;
+                    recvAvail -= n;
+                    offset += n;
+                    numRead += n;
+                }
+                return numRead;
+            }
         }
 
         public override void Write(byte[] buffer, int offset, int count) {
-            if (socket == null)
-                return;
+            lock (sendBuffer) {
+                if (socket == null)
+                    return;
 
-            while (count > 0) {
-                int n = Math.Min(this.buffer.Length - bufferOff, count);
-                Buffer.BlockCopy(buffer, offset, this.buffer, this.bufferOff, n);
-                this.bufferOff += n;
-                count -= n;
-                if (this.bufferOff >= this.buffer.Length)
-                    Flush();
+                while (count > 0) {
+                    int n = Math.Min(sendBuffer.Length - sendBufferOff, count);
+                    Buffer.BlockCopy(buffer, offset, sendBuffer, sendBufferOff, n);
+                    sendBufferOff += n;
+                    count -= n;
+                    if (sendBufferOff >= sendBuffer.Length)
+                        Flush();
+                }
             }
         }
 
         public override void WriteByte(byte val) {
-            if (socket == null)
-                return;
-            buffer[bufferOff++] = val;
-            if (bufferOff >= buffer.Length)
-                Flush();
+            lock (sendBuffer) {
+                if (socket == null)
+                    return;
+                sendBuffer[sendBufferOff++] = val;
+                if (sendBufferOff >= sendBuffer.Length)
+                    Flush();
+            }
         }
 
         public override void Flush() {
-            if (bufferOff != 0 && socket != null) {
-                // Special logic for non-blocking sockets
-                while (true) {
-                    try {
-                        socket.Send(buffer, bufferOff, SocketFlags.None);
-                        break;
-                    } catch (SocketException se) {
-                        if (se.SocketErrorCode == SocketError.TryAgain && socket.Poll(-1, SelectMode.SelectWrite))
-                            continue;
-                        throw;
+            lock (sendBuffer) {
+                if (sendBufferOff != 0 && socket != null) {
+                    while (true) {
+                        try {
+                            socket.Send(sendBuffer, sendBufferOff, SocketFlags.None);
+                            break;
+                        } catch (SocketException se) {
+                            if (se.SocketErrorCode == SocketError.TryAgain && socket.Poll(-1, SelectMode.SelectWrite))
+                                continue;
+                            throw;
+                        }
                     }
                 }
+                sendBufferOff = 0;
             }
-            bufferOff = 0;
         }
 
         public Socket? Socket { 
             get => socket;
             set {
-                bufferOff = 0;
+                if (value?.Blocking ?? false)
+                    throw new ArgumentException("Only non-blocking sockets are supported");
+                lock (recvBuffer)
+                lock (sendBuffer)
+                    recvBufferOff = recvAvail = sendBufferOff = 0;
                 socket = value;
             }
         }
 
-        public override int Read(byte[] buffer, int offset, int count) => throw new System.NotImplementedException();
         public override long Seek(long offset, SeekOrigin origin) => throw new System.NotImplementedException();
         public override void SetLength(long value) => throw new System.NotImplementedException();
         
-        public override bool CanRead => false;
+        public override bool CanRead => true;
         public override bool CanWrite => true;
         public override bool CanSeek => false;
         public override long Length => throw new System.NotImplementedException();

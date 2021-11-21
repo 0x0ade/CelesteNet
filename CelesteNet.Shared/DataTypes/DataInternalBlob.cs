@@ -24,10 +24,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Data = data;
             Data.Meta = Data.GenerateMeta(ctx);
 
-            using MemoryStream stream = new();
-            using CelesteNetBinaryBlobPartWriter writer = new(ctx, this, stream);
-            data.WriteAll(writer);
-            writer.Flush();
+            using (MemoryStream stream = new())
+            using (CelesteNetBinaryBlobPartWriter writer = new(ctx, this, stream)) {
+                data.WriteAll(writer);
+                writer.SplitBytes();
+            }
         }
 
         [return: NotNullIfNotNull("data")]

@@ -26,7 +26,7 @@ CelesteNet-TeapotVersion: {TeapotVersion}
 CelesteNet-ConnectionFeatures: {features.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}
 CelesteNet-PlayerNameKey: {nameKey}
 
-I want some tea!
+Can I have some tea?
 ".Trim().Replace("\n", "\r\n") + "\r\n");
                 writer.Flush();
 

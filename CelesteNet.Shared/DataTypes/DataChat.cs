@@ -52,7 +52,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         protected override void Read(CelesteNetBinaryReader reader) {
             CreatedByServer = false;
-            Player = reader.ReadRef<DataPlayerInfo>();
+            Player = reader.ReadOptRef<DataPlayerInfo>();
             ID = reader.ReadUInt32();
             Tag = reader.ReadNetString();
             Text = reader.ReadNetString();

@@ -72,6 +72,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void InvokeScheduler() {
+            OnPreScheduling?.Invoke();
             lock (schedulerLock) {
                 using (Pool.PoolLock.R())
                 using (Pool.RoleLock.W())
@@ -180,6 +181,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     schedulerTimer?.Start();
                 }
             }
+            OnPostScheduling?.Invoke();
         }
 
         public void AddRole(NetPlusThreadRole role) {
@@ -216,5 +218,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public long LastSchedulerExecDuration { get { lock(schedulerLock) return lastSchedulerExecDuration; } }
         public int LastSchedulerExecNumThreadsReassigned { get { lock(schedulerLock) return lastSchedulerExecNumThreadsReassigned; } }
         public int LastSchedulerExecNumThreadsIdeling { get { lock(schedulerLock) return lastSchedulerExecNumThreadsIdeling; } }
+        
+        public event Action? OnPreScheduling, OnPostScheduling;
+
     }
 }

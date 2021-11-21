@@ -1,3 +1,4 @@
+using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -253,10 +254,16 @@ Who wants some tea?
         }
 
         public async Task DoConnectionHandshake(CelesteNetConnection con, IConnectionFeature[] features) {
+            // Handshake connection features
             foreach (IConnectionFeature feature in features)
                 feature.Register(con);
             foreach (IConnectionFeature feature in features)
                 await feature.DoHandShake(con);
+
+            // Send the current tick rate
+            con.Send(new DataTickRate() {
+                TickRate = Server.CurrentTickRate
+            });
         }
 
         public ((string playerUID, string playerName)?, string? errorReason) AuthenticatePlayerNameKey(string conUID, string nameKey) {

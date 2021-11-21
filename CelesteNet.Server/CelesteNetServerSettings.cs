@@ -40,9 +40,16 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public int MainPort { get; set; } = 3802;
         
+        public float TickRateLowActivityThreshold { get; set; } = 0.3f;
+        public float TickRateLowTCPUplinkBpSThreshold { get; set; } = 4194304; // 4 MBpS
+        public float TickRateLowUDPUplinkBpSThreshold { get; set; } = 8388608; // 8 MBpS
+        public float TickRateHighActivityThreshold { get; set; } = 0.95f;
+        public float TickRateHighTCPUplinkBpSThreshold { get; set; } = 16777216; // 16 MBpS
+        public float TickRateHighUDPUplinkBpSThreshold { get; set; } = 33554432; // 32 MBpS
+        public int MaxTickRate { get; set; } = 60;
+        
         public int MaxPacketSize { get; set; } = 1024;
         public int MaxQueueSize { get; set; } = 256;
-        public int MaxTickRate { get; set; } = 60;
         public float MergeWindow { get; set; } = 15;
         public float HeartbeatInterval { get; set; } = 1000f;
 

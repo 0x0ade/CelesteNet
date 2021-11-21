@@ -46,10 +46,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly HashSet<CelesteNetPlayerSession> Sessions = new();
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new();
         public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new();
-
-        // TODO Dynamic tick rate adjustment
-        public int CurrentTickRate => Settings.MaxTickRate;
         private System.Timers.Timer heartbeatTimer;
+
+        public float CurrentTickRate { get; private set; }
+        private float nextTickRate;
 
         private readonly ManualResetEvent ShutdownEvent = new(false);
 
@@ -171,6 +171,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!));
 
             heartbeatTimer.Start();
+            CurrentTickRate = Settings.MaxTickRate;
+            ThreadPool.Scheduler.OnPreScheduling += AdjustTickRate;
 
             Logger.Log(LogLevel.CRI, "main", "Ready");
         }
@@ -339,6 +341,31 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Logger.Log(LogLevel.WRN, "main", $"Connection {con} timed out");
                 con.Dispose();
             }
+        }
+
+        private void AdjustTickRate() {
+            CurrentTickRate = nextTickRate;
+
+            TCPUDPSenderRole sender = ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!;
+            float actvRate = ThreadPool.ActivityRate, tcpByteRate = sender.TCPByteRate, udpByteRate = sender.UDPByteRate;
+            if (actvRate < Settings.TickRateLowActivityThreshold && tcpByteRate < Settings.TickRateLowTCPUplinkBpSThreshold && udpByteRate < Settings.TickRateLowUDPUplinkBpSThreshold) {
+                if (CurrentTickRate < Settings.MaxTickRate) {
+                    // Increase the tick rate
+                    nextTickRate = Math.Min(Settings.MaxTickRate, CurrentTickRate * 2);
+                    Logger.Log(LogLevel.INF, "main", $"Increased the tick rate {CurrentTickRate} TpS -> {nextTickRate} TpS");
+                    CurrentTickRate = nextTickRate;
+                }
+            } else if (actvRate > Settings.TickRateHighActivityThreshold && tcpByteRate > Settings.TickRateHighTCPUplinkBpSThreshold && udpByteRate > Settings.TickRateHighUDPUplinkBpSThreshold) {
+                // Decrease the tick rate
+                Logger.Log(LogLevel.INF, "main", $"Decreased the tick rate {CurrentTickRate} TpS -> {nextTickRate} TpS");
+                nextTickRate = CurrentTickRate / 2;
+            } else
+                return;
+            
+            // Broadcast the new tick rate
+            BroadcastAsync(new DataTickRate() {
+                TickRate = nextTickRate
+            });
         }
 
         #region Handlers

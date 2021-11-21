@@ -132,7 +132,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return nvc;
             url = url.Substring(indexOfSplit + 1);
 
-            string[] args = url.Split('&');
+            // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
+            string[] args = url.Split(new[]{'&'});
             foreach (string arg in args) {
                 indexOfSplit = arg.IndexOf('=');
                 if (indexOfSplit == -1)

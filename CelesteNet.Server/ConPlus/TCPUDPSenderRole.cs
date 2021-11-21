@@ -82,6 +82,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                     FlushTCPQueue(con, queue, token);
                                 } catch (Exception e) {
                                     if (e is SocketException se && se.IsDisconnect()) {
+                                        Logger.Log(LogLevel.INF, "tcpsend", $"Remote of connection {con} closed the connection");
                                         con.Dispose();
                                         continue;
                                     }

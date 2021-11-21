@@ -91,7 +91,9 @@ namespace Celeste.Mod.CelesteNet {
             try {
                 tcpSock.Shutdown(SocketShutdown.Both);
                 tcpSock.Close();
-            } catch (SocketException) {}
+            } catch (Exception e) {
+                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Error while closing TCP socket: {e}");
+            }
             tcpSock.Dispose();
 
         }
@@ -117,7 +119,7 @@ namespace Celeste.Mod.CelesteNet {
                 udpEP = endpoint;
                 udpMaxDatagramSize = maxDatagramSize;
                 udpAliveScore = udpDowngradeScore = udpDeathScore = 0;
-                Logger.Log(LogLevel.INF, "tcpudpcon", $"Initialized UDP connection of {this} [{udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+                Logger.Log(LogLevel.INF, "tcpudpcon", $"Initialized UDP connection of {this} [{udpMaxDatagramSize}, {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
             }
         }
 

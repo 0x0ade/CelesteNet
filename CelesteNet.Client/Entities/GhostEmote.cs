@@ -207,7 +207,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if ((atlas = GetIconAtlas(ref emote)) == null)
                 return null;
 
-            List<string> iconPaths = new(emote.Split(' '));
+            // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
+            List<string> iconPaths = new(emote.Split(new[]{' '}));
             if (iconPaths.Count > 1 && int.TryParse(iconPaths[0], out int fps)) {
                 iconPaths.RemoveAt(0);
             } else {

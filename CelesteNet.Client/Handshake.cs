@@ -59,6 +59,7 @@ Can I have some tea?
                 float mergeWindow = float.Parse(headers["CelesteNet-MergeWindow"]);
                 float heartbeatInterval = float.Parse(headers["CelesteNet-HeartbeatInterval"]);
 
+                netStream.ReadTimeout = netStream.WriteTimeout = -1;
                 return (conToken, conFeatures, maxPacketSize, mergeWindow, heartbeatInterval);
             }
         }

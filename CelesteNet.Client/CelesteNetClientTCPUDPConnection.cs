@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -11,6 +12,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public const int TcpBufferSize = 16384;
 
+        // TODO MonoKickstart is extremly stupid, using a BufferedStream here just hangs...
         private BufferedSocketStream tcpStream;
         private ManualResetEventSlim udpReadyEvent;
         private BlockingCollection<DataType> tcpSendQueue, udpSendQueue;
@@ -70,14 +72,13 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void TCPRecvThreadFunc() {
             try {
-                // TODO MonoKickstart is extremly stupid, using a BufferedStream here just hangs...
-                using (CelesteNetBinaryReader tcpReader = new CelesteNetBinaryReader(Data, Strings, SlimMap, tcpStream)) {
+                using (CelesteNetBinaryReader tcpReader = new CelesteNetBinaryReader(Data, Strings, SlimMap, tcpStream, true)) {
                     while (!tokenSrc.IsCancellationRequested) {
                         // Read the packet size
                         UInt16 packetSize = tcpReader.ReadUInt16();
                         if (packetSize > MaxPacketSize)
                             throw new InvalidDataException("Peer sent packet over maximum size");
-                        
+
                         // Let the connection now we got a TCP heartbeat
                         TCPHeartbeat();
 
@@ -193,7 +194,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void TCPSendThreadFunc() {
             try {
-                using (BinaryWriter tcpWriter = new BinaryWriter(tcpStream))
+                using (BinaryWriter tcpWriter = new BinaryWriter(tcpStream, Encoding.UTF8, true))
                 using (MemoryStream mStream = new MemoryStream(MaxPacketSize))
                 using (CelesteNetBinaryWriter bufWriter = new CelesteNetBinaryWriter(Data, Strings, SlimMap, mStream))
                 foreach (DataType p in tcpSendQueue.GetConsumingEnumerable(tokenSrc.Token)) {

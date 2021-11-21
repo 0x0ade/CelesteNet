@@ -340,7 +340,7 @@ namespace Celeste.Mod.CelesteNet {
             long start = writer.BaseStream.Position;
 
             if (writer.SlimMap != null && writer.TryGetSlimID(data.GetType(), out int slimID)) {
-                writer.Write7BitEncodedInt((ushort) slimID | (ushort) DataFlags.InteralSlimIndicator);
+                writer.Write((ushort) (slimID | (ushort) DataFlags.InteralSlimIndicator));
                 data.WriteAll(writer);
                 return (int) (writer.BaseStream.Position - start);
             }

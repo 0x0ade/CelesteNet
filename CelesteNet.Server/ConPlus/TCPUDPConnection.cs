@@ -97,6 +97,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 int numRead = TCPSocket.Receive(tcpBuffer, tcpBuffer.Length - tcpBufferOff, SocketFlags.None);
                 if (numRead == 0) {
                     // The remote closed the connection
+                    Logger.Log(LogLevel.INF, "tcpudpcon", $"Remote of connection {this} closed the connection");
                     Dispose();
                     return;
                 }
@@ -171,9 +172,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return;
 
             // Update metrics
-            UDPRecvRate.UpdateRate(dgSize, 1);
-            if (UDPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap || UDPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap) {
-                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink cap: {UDPRecvRate.ByteRate} BpS {UDPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap} cap BpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap} cap PpS");
+            UDPRecvRate.UpdateRate(dgSize, 0);
+            if (UDPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap) {
+                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink byte cap: {UDPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap} cap BpS");
                 Dispose();
                 return;
             }
@@ -186,6 +187,15 @@ namespace Celeste.Mod.CelesteNet.Server {
             using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream))
             while (mStream.Position < dgSize-1) {
                 DataType packet = Server.Data.Read(reader);
+                
+                // Update metrics
+                UDPRecvRate.UpdateRate(0, 1);
+                if (UDPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap) {
+                    Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink packet cap: {UDPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap} cap PpS");
+                    Dispose();
+                    return;
+                }
+
                 if (packet.TryGet<MetaOrderedUpdate>(Server.Data, out MetaOrderedUpdate? orderedUpdate))
                     orderedUpdate.UpdateID = containerID;
                 Receive(packet);

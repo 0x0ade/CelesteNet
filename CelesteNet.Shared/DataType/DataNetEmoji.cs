@@ -18,15 +18,18 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public string ID = "";
+        public bool MoreFragments;
         public byte[] Data = Dummy<byte>.EmptyArray;
 
         public override void Read(CelesteNetBinaryReader reader) {
             ID = reader.ReadNetString();
+            MoreFragments = reader.ReadBoolean();
             Data = reader.ReadBytes(reader.ReadInt32());
         }
 
         public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetString(ID);
+            writer.Write(MoreFragments);
             writer.Write(Data.Length);
             writer.Write(Data);
         }

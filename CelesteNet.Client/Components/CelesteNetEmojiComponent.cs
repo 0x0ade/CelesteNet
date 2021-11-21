@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,6 +16,7 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetEmojiComponent : CelesteNetGameComponent {
 
+        public ConcurrentDictionary<string, FileStream> Pending = new();
         public HashSet<string> Registered = new();
         public HashSet<string> RegisteredFiles = new();
 
@@ -26,44 +28,57 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataNetEmoji netemoji) {
-            Logger.Log(LogLevel.VVV, "netemoji", $"Received {netemoji.ID}");
+            if (!Pending.TryGetValue(netemoji.ID, out FileStream cacheStream)) {
+                // Create a new cache stream for the emoji
+                string dir = Path.Combine(Path.GetTempPath(), "CelesteNetClientEmojiCache");
+                if (!Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
 
-            string dir = Path.Combine(Path.GetTempPath(), "CelesteNetClientEmojiCache");
-            if (!Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
+                string path = Path.Combine(dir, $"{netemoji.ID}-{netemoji.GetHashCode():X8}.png");
+                Pending.TryAdd(netemoji.ID, cacheStream = File.OpenWrite(path));
+            }
 
-            string path = Path.Combine(dir, $"{netemoji.ID}-{netemoji.GetHashCode():X8}.png");
-            using (FileStream fs = File.OpenWrite(path))
-            using (MemoryStream ms = new(netemoji.Data))
-                ms.CopyTo(fs);
+            // Add fragment data to the emoji
+            cacheStream.Write(netemoji.Data);
 
-            RunOnMainThread(() => {
-                Logger.Log(LogLevel.VVV, "netemoji", $"Registering {netemoji.ID}");
+            if (!netemoji.MoreFragments) {
+                Pending.TryRemove(netemoji.ID, out _);
+                string path = cacheStream.Name;
+                cacheStream.Close();
 
-                bool registered = false;
+                // Register the emoji
+                RunOnMainThread(() => {
+                    Logger.Log(LogLevel.VVV, "netemoji", $"Registering {netemoji.ID}");
 
-                try {
-                    VirtualTexture vt = VirtualContent.CreateTexture(path);
-                    MTexture mt = new(vt);
-                    if (vt.Texture_Safe == null) // Needed to trigger lazy loading.
-                        throw new Exception($"Couldn't load emoji {netemoji.ID}");
+                    bool registered = false;
 
-                    Registered.Add(netemoji.ID);
-                    RegisteredFiles.Add(path);
-                    Emoji.Register(netemoji.ID, mt);
-                    Emoji.Fill(CelesteNetClientFont.Font);
-                    registered = true;
+                    try {
+                        VirtualTexture vt = VirtualContent.CreateTexture(path);
+                        MTexture mt = new(vt);
+                        if (vt.Texture_Safe == null) // Needed to trigger lazy loading.
+                            throw new Exception($"Couldn't load emoji {netemoji.ID}");
 
-                } finally {
-                    if (!registered)
-                        File.Delete(path);
-                }
-            });
+                        Registered.Add(netemoji.ID);
+                        RegisteredFiles.Add(path);
+                        Emoji.Register(netemoji.ID, mt);
+                        Emoji.Fill(CelesteNetClientFont.Font);
+                        registered = true;
+
+                    } finally {
+                        if (!registered)
+                            File.Delete(path);
+                    }
+                });
+            }
         }
 
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
+            foreach (Stream s in Pending.Values)
+                s.Dispose();
+            Pending.Clear();
+            
             foreach (string id in Registered)
                 Emoji.Register(id, GFX.Misc["whiteCube"]);
 

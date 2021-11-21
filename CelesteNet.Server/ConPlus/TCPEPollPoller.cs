@@ -27,7 +27,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        private const int EBADF = 9;
+        private const int ENOENT = 2, EBADF = 9;
 
         private const int EFD_SEMAPHORE = 1;
         [DllImport("libc", SetLastError = true)]
@@ -152,9 +152,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // something as evt, even though it isn't used
                 // Maybe the socket was already closed, in which case it already
                 // got removed from the EPoll FD and epoll_ctl will return EBADF
+                // or ENOENT
                 epoll_event evt = default;
                 int ret = epoll_ctl(epollFD, EPOLL_CTL_DEL, conData.fd, in evt);
-                if (ret < 0 && Marshal.GetLastWin32Error() != EBADF)
+                if (ret < 0 && Marshal.GetLastWin32Error() != EBADF && Marshal.GetLastWin32Error() != ENOENT)
                     throw new SystemException($"Couldn't remove connection socket from EPoll FD: {Marshal.GetLastWin32Error()}");
             }
         }
@@ -177,8 +178,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Yield the connections from the event
                 for (int i = 0; i < ret; i++) {
                     int id = (int) evts[i].user;
-                    if (id != int.MaxValue)
-                        yield return conIds[id];
+                    if (conIds.TryGetValue(i, out ConPlusTCPUDPConnection? con))
+                        yield return con!;
                 }
             }
             // The eventfd got incremented for us to exit, so decrement it
@@ -194,12 +195,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // EPoll FD to monitor the socket again
                 // Maybe the socket was already closed, in which case it already
                 // got removed from the EPoll FD and epoll_ctl will return EBADF
+                // or ENOENT
                 epoll_event evt = new epoll_event() {
                     events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET | EPOLLONESHOT,
                     user = conData.id
                 };
                 int ret = epoll_ctl(epollFD, EPOLL_CTL_MOD, conData.fd, in evt);
-                if (ret < 0 && Marshal.GetLastWin32Error() != EBADF)
+                if (ret < 0 && Marshal.GetLastWin32Error() != EBADF && Marshal.GetLastWin32Error() != ENOENT)
                     throw new SystemException($"Couldn't arm connection socket for EPoll FD: {Marshal.GetLastWin32Error()}");
             }
         }

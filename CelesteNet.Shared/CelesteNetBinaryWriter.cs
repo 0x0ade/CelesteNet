@@ -87,10 +87,10 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void WriteRef<T>(T? data) where T : DataType<T>
-            => Write((data ?? throw new Exception($"Expected {Data.DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(Data) ?? uint.MaxValue);
+            => Write7BitEncodedInt(unchecked((int) ((data ?? throw new Exception($"Expected {Data.DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(Data) ?? uint.MaxValue)));
 
         public void WriteOptRef<T>(T? data) where T : DataType<T>
-            => Write(data?.GetOpt<MetaRef>(Data) ?? uint.MaxValue);
+            => Write7BitEncodedInt(unchecked((int) (data?.GetOpt<MetaRef>(Data) ?? uint.MaxValue)));
 
     }
 }

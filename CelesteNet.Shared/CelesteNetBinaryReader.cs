@@ -113,11 +113,15 @@ namespace Celeste.Mod.CelesteNet {
             return value;
         }
 
-        public T? ReadRef<T>() where T : DataType<T>
-            => Data.GetRef<T>(ReadUInt32());
+        public T? ReadRef<T>() where T : DataType<T> {
+            uint id = unchecked((uint) Read7BitEncodedInt());
+            if (id == uint.MaxValue)
+                throw new InvalidDataException($"Expected reference to '{Data.DataTypeToID[typeof(T)]}', but didn't get one");
+            return Data.GetRef<T>(id);
+        }
 
         public T? ReadOptRef<T>() where T : DataType<T>
-            => Data.TryGetRef(ReadUInt32(), out T? value) ? value : null;
+            => Data.TryGetRef(unchecked((uint) Read7BitEncodedInt()), out T? value) ? value : null;
 
     }
 }

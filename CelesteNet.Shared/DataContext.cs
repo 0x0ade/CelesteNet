@@ -264,12 +264,12 @@ namespace Celeste.Mod.CelesteNet {
             DataFlags flags = (DataFlags) reader.ReadUInt16();
             if ((flags & DataFlags.InteralSlimIndicator) != 0) {
                 if (reader.SlimMap == null)
-                    throw new Exception("Trying to read a slim packet header without a slim map!");
+                    throw new InvalidDataException("Trying to read a slim packet header without a slim map!");
 
-                Type slimType = reader.SlimMap.Get(reader.Read7BitEncodedInt());
+                Type slimType = reader.SlimMap.Get((int) (flags & ~DataFlags.InteralSlimIndicator));
                 DataType? slimData = Activator.CreateInstance(slimType) as DataType;
                 if (slimData == null)
-                    throw new Exception($"Cannot create instance of data type {slimType.FullName}");
+                    throw new InvalidDataException($"Cannot create instance of data type {slimType.FullName}");
                 
                 slimData.ReadAll(reader);
 
@@ -339,14 +339,8 @@ namespace Celeste.Mod.CelesteNet {
         public int Write(CelesteNetBinaryWriter writer, DataType data) {
             long start = writer.BaseStream.Position;
 
-            if (data is DataInternalBlob blob) {
-                blob.Dump(writer);
-                return (int) (writer.BaseStream.Position - start);
-            }
-
             if (writer.SlimMap != null && writer.TryGetSlimID(data.GetType(), out int slimID)) {
-                writer.Write((ushort) DataFlags.InteralSlimIndicator);
-                writer.Write7BitEncodedInt(slimID);
+                writer.Write7BitEncodedInt((ushort) slimID | (ushort) DataFlags.InteralSlimIndicator);
                 data.WriteAll(writer);
                 return (int) (writer.BaseStream.Position - start);
             }
@@ -356,7 +350,7 @@ namespace Celeste.Mod.CelesteNet {
                 Logger.Log(LogLevel.WRN, "datactx", $"DataType {data} has reserved flags set");
             flags &= ~(DataFlags.RESERVED | DataFlags.InteralSlimIndicator);
 
-            bool small = (flags & DataFlags.Small) == DataFlags.Small;
+            bool small = (flags & DataFlags.Small) != 0;
 
             writer.Write((ushort) flags);
             writer.WriteNetMappedString(data.GetTypeID(this));
@@ -374,13 +368,13 @@ namespace Celeste.Mod.CelesteNet {
             writer.Flush();
             long end = writer.BaseStream.Position;
             long size = end - (sizePos + (small ? 1 : 2));
-            writer.BaseStream.Seek(sizePos, SeekOrigin.Begin);
+            writer.BaseStream.Position = sizePos;
             if (small)
                 writer.Write((byte) size);
             else
                 writer.Write((ushort) size);
             writer.Flush();
-            writer.BaseStream.Seek(end, SeekOrigin.Begin);
+            writer.BaseStream.Position = end;
 
             return (int) (end - start);
         }
@@ -399,10 +393,10 @@ namespace Celeste.Mod.CelesteNet {
             writer.Flush();
             long end = writer.BaseStream.Position;
             long size = end - (sizePos + 1);
-            writer.BaseStream.Seek(sizePos, SeekOrigin.Begin);
+            writer.BaseStream.Position = sizePos;
             writer.Write((byte) sizePos);
             writer.Flush();
-            writer.BaseStream.Seek(end, SeekOrigin.Begin);
+            writer.BaseStream.Position = end;
 
             return (int) (end - start);
         }

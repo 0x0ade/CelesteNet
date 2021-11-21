@@ -24,7 +24,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         public Dictionary<Type, CelesteNetGameComponent> Components = new();
         public List<CelesteNetGameComponent> DrawableComponents;
 
-        protected Queue<Action> MainThreadQueue = new();
+        // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
+        protected List<Action> MainThreadQueue = new();
 
         private bool Started = false;
 
@@ -93,8 +94,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             base.Update(gameTime);
 
             lock (MainThreadQueue)
-                while (MainThreadQueue.Count > 0)
-                    MainThreadQueue.Dequeue()();
+                while (MainThreadQueue.Count > 0) {
+                    Action act = MainThreadQueue[0];
+                    MainThreadQueue.RemoveAt(0);
+                    act();
+                }
 
             if (Started && !(Client?.IsAlive ?? true))
                 Dispose();
@@ -121,7 +125,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
 
             lock (MainThreadQueue)
-                MainThreadQueue.Enqueue(action);
+                MainThreadQueue.Add(action);
 
             if (wait)
                 WaitHandle.WaitAny(new WaitHandle[] { waiter });

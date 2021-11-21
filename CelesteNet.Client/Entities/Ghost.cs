@@ -52,7 +52,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected int LastDepth;
         protected int DepthOffset;
 
-        protected Queue<Action<Ghost>> UpdateQueue = new();
+        // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
+        protected List<Action<Ghost>> UpdateQueue = new();
         protected bool IsUpdating;
 
         public Ghost(CelesteNetClientContext context, DataPlayerInfo playerInfo, PlayerSpriteMode spriteMode)
@@ -183,8 +184,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Update() {
             lock (UpdateQueue) {
                 IsUpdating = true;
-                while (UpdateQueue.Count > 0)
-                    UpdateQueue.Dequeue()(this);
+                while (UpdateQueue.Count > 0) {
+                    Action<Ghost> act = UpdateQueue[0];
+                    UpdateQueue.RemoveAt(0);
+                    act(this);
+                }
                 IsUpdating = false;
             }
 

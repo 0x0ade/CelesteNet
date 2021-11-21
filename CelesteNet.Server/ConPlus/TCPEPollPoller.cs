@@ -51,14 +51,14 @@ namespace Celeste.Mod.CelesteNet.Server {
         
         private RWLock pollerLock;
         private int epollFD, cancelFD;
-        private ConcurrentDictionary<ConPlusTCPUDPConnection, int> connections;
+        private ConcurrentDictionary<ConPlusTCPUDPConnection, (int fd, int id)> connections;
 
         private int nextConId;
         private ConcurrentDictionary<int, ConPlusTCPUDPConnection> conIds;
 
         public TCPEPollPoller() {
             pollerLock = new RWLock();
-            connections = new ConcurrentDictionary<ConPlusTCPUDPConnection, int>();
+            connections = new ConcurrentDictionary<ConPlusTCPUDPConnection, (int, int)>();
             conIds = new ConcurrentDictionary<int, ConPlusTCPUDPConnection>();
 
             // Create the EPoll FD
@@ -101,12 +101,14 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void AddConnection(ConPlusTCPUDPConnection con) {
             using (pollerLock.W()) {
+                int fd = (int) con.TCPSocket.Handle;
+
                 // Assign the connection an ID
                 // Don't assing int.MaxValue, as it is used by the cancel eventfd
                 int id = int.MaxValue;
                 while (id == int.MaxValue)
                     id = Interlocked.Increment(ref nextConId);
-                if (!connections.TryAdd(con, id))
+                if (!connections.TryAdd(con, (id, fd)))
                     throw new ArgumentException("Connection already part of poller");
                 conIds[id] = con;
                 
@@ -133,7 +135,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET | EPOLLONESHOT,
                     user = id
                 };
-                if (epoll_ctl(epollFD, EPOLL_CTL_ADD, (int) con.TCPSocket.Handle, in evt) < 0)
+                if (epoll_ctl(epollFD, EPOLL_CTL_ADD, fd, in evt) < 0)
                     throw new SystemException($"Couldn't add connection socket to EPoll FD: {Marshal.GetLastWin32Error()}");
             }
         }
@@ -141,9 +143,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void RemoveConnection(ConPlusTCPUDPConnection con) {
             using (pollerLock.W()) {
                 // Remove the connection from the ID table
-                if (!connections.TryRemove(con, out int id))
+                if (!connections.TryRemove(con, out var conData))
                     throw new ArgumentException("Connection not part of poller");
-                conIds.TryRemove(id, out _);
+                conIds.TryRemove(conData.id, out _);
 
                 // Remove the socket from the EPoll FD
                 // Because of a bug in old Linux versions we still have to pass
@@ -151,7 +153,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Maybe the socket was already closed, in which case it already
                 // got removed from the EPoll FD and epoll_ctl will return EBADF
                 epoll_event evt = default;
-                int ret = epoll_ctl(epollFD, EPOLL_CTL_DEL, (int) con.TCPSocket.Handle, in evt);
+                int ret = epoll_ctl(epollFD, EPOLL_CTL_DEL, conData.fd, in evt);
                 if (ret < 0 && Marshal.GetLastWin32Error() != EBADF)
                     throw new SystemException($"Couldn't remove connection socket from EPoll FD: {Marshal.GetLastWin32Error()}");
             }
@@ -185,7 +187,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void ArmConnectionPoll(ConPlusTCPUDPConnection con) {
             using (pollerLock.R()) {
-                if (!connections.TryGetValue(con, out int id))
+                if (!connections.TryGetValue(con, out var conData))
                     throw new ArgumentException("Connection not part of poller");
 
                 // Modify all flags to how they were originally. This causes the
@@ -194,9 +196,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // got removed from the EPoll FD and epoll_ctl will return EBADF
                 epoll_event evt = new epoll_event() {
                     events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET | EPOLLONESHOT,
-                    user = id
+                    user = conData.id
                 };
-                int ret = epoll_ctl(epollFD, EPOLL_CTL_MOD, (int) con.TCPSocket.Handle, in evt);
+                int ret = epoll_ctl(epollFD, EPOLL_CTL_MOD, conData.fd, in evt);
                 if (ret < 0 && Marshal.GetLastWin32Error() != EBADF)
                     throw new SystemException($"Couldn't arm connection socket for EPoll FD: {Marshal.GetLastWin32Error()}");
             }

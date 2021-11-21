@@ -171,7 +171,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!));
 
             heartbeatTimer.Start();
-            CurrentTickRate = Settings.MaxTickRate;
+            CurrentTickRate = nextTickRate = Settings.MaxTickRate;
             ThreadPool.Scheduler.OnPreScheduling += AdjustTickRate;
 
             Logger.Log(LogLevel.CRI, "main", "Ready");

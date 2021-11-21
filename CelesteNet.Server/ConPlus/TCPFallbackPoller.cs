@@ -12,6 +12,8 @@ namespace Celeste.Mod.CelesteNet.Server {
     */
     public class TCPFallbackPoller : TCPReceiverRole.IPoller {
 
+        private readonly byte[] PollBuffer = new byte[0];
+
         private RWLock pollerLock;
         private HashSet<ConPlusTCPUDPConnection> cons;
         private BlockingCollection<ConPlusTCPUDPConnection> conQueue;
@@ -47,7 +49,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void ArmConnectionPoll(ConPlusTCPUDPConnection con) {
             using (pollerLock.R()) {
-                con.TCPSocket.BeginReceive(null!, 0, 0, SocketFlags.None, _ => {
+                con.TCPSocket.BeginReceive(PollBuffer, 0, 0, SocketFlags.None, _ => {
                     using (pollerLock.R())
                         if (cons.Contains(con))
                             conQueue.Add(con);

@@ -43,6 +43,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                         if (!Role.conTokenMap.TryGetValue(conToken, out con))
                             continue;
 
+                        // Initialize the connection
+                        lock (con.UDPLock) {
+                            if (!con.UseUDP || con.UDPEndpoint != null)
+                                continue;
+                            con.InitUDP(dgramSender, Role.Server.Settings.UDPMaxDatagramSize);
+                        }
+
                         // Add the connection to the map
                         Role.endPointMap.TryAdd(dgramSender, con!);
                         continue;
@@ -52,7 +59,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         // Handle the UDP datagram
                         con.HandleUDPDatagram(dgBuffer, dgSize);
                     } catch (Exception e) {
-                        Logger.Log(LogLevel.WRN, "tcprecv", $"Error while reading from connection {con}: {e}");
+                        Logger.Log(LogLevel.WRN, "udprecv", $"Error while reading from connection {con}: {e}");
                         con.DecreaseUDPScore();
                     }
                 }

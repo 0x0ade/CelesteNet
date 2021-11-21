@@ -20,6 +20,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public readonly DataContext Data;
 
         public CelesteNetConnection Con;
+        public readonly IConnectionFeature[] ConFeatures;
 
         private bool _IsAlive;
         public bool IsAlive {
@@ -36,8 +37,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public DataPlayerInfo PlayerInfo;
 
-        private readonly ManualResetEvent HandshakeEvent = new(false);
-
         private readonly object StartStopLock = new();
 
         private const int UDPDeathScoreMin = -1;
@@ -53,6 +52,20 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Data = new();
             Data.RegisterHandlersIn(this);
+
+            // Find connection features
+            List<IConnectionFeature> conFeatures = new List<IConnectionFeature>();
+            foreach (Type type in CelesteNetUtils.GetTypes()) {
+                if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
+                    continue;
+
+                IConnectionFeature feature = (IConnectionFeature) Activator.CreateInstance(type);
+                if (feature == null)
+                    throw new Exception($"Cannot create instance of connection feature {type.FullName}");
+                Logger.Log(LogLevel.VVV, "main", $"Found connection feature: {type.FullName}");
+                conFeatures.Add(feature);
+            }
+            ConFeatures = conFeatures.ToArray();
         }
 
         public void Start() {
@@ -71,7 +84,30 @@ namespace Celeste.Mod.CelesteNet.Client {
                     case ConnectionType.TCP:
                         Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {Settings.Host}:{Settings.Port}");
 
-                        // Client just got nuked :(
+                        // Create a TCP connection
+                        Socket sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                        try {
+                            sock.Connect(Settings.Host, Settings.Port);
+
+                            // Do the teapot handshake
+                            (int conToken, IConnectionFeature[] features, int maxPacketSize, float mergeWindow, float heartbeatInterval) = Handshake.DoTeapotHandshake(sock, ConFeatures, Settings.Name);
+                            Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {conToken} conFeatures '{features.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}' maxPacketSize {maxPacketSize} mergeWindow {mergeWindow} heartbeatInterval {heartbeatInterval}");
+
+                            // Create a connection and do the regular handshake
+                            Con = new CelesteNetClientTCPUDPConnection(Data, conToken, maxPacketSize, mergeWindow, sock);
+                            Con.OnDisconnect += _ => Dispose();
+                            Handshake.DoConnectionHandshake(Con, features);
+                            Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
+                        } catch (Exception) {
+                            Con?.Dispose();
+                            try {
+                                sock.Shutdown(SocketShutdown.Both);
+                                sock.Close();
+                            } catch (Exception) {}
+                            sock.Dispose();
+                            Con = null;
+                            throw;
+                        }
 
                         break;
 
@@ -79,9 +115,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                         throw new NotSupportedException($"Unsupported connection type {Settings.ConnectionType}");
                 }
             }
-
-            Logger.Log(LogLevel.INF, "main", "Waiting for server handshake.");
-            WaitHandle.WaitAny(new WaitHandle[] { HandshakeEvent });
 
             SendFilterList();
 
@@ -100,8 +133,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Logger.Log(LogLevel.CRI, "main", "Shutdown");
                 IsReady = false;
 
-                HandshakeEvent.Set();
-                HandshakeEvent.Dispose();
                 Con?.Dispose();
                 Con = null;
 
@@ -140,73 +171,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             return data;
         }
 
-        // private void OnUDPError(CelesteNetTCPUDPConnection con, Exception e, bool read) {
-        //     if (!read)
-        //         return;
-
-        //     con.SendUDP = false;
-
-        //     UDPDeathScore++;
-        //     if (UDPDeathScore < UDPDeathScoreMax) {
-        //         Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Retrying.\nUDP score: {UDPDeathScore} / {UDPAliveScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
-
-        //     } else {
-        //         UDPDeathScore = UDPDeathScoreMax;
-        //         Logger.Log(LogLevel.CRI, "main", $"UDP connection died too often. Switching to TCP only.\nUDP score: {UDPDeathScore} / {UDPAliveScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
-        //         con.UDP?.Close();
-        //         con.UDP = null;
-        //     }
-
-        //     con.Send(new DataTCPOnlyDowngrade());
-        // }
-
-
         #region Handlers
-
-        public bool Filter(CelesteNetConnection con, DataType data) {
-            // if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
-            //     if (con is CelesteNetTCPUDPConnection tcpudp) {
-            //         UDPAliveScore++;
-            //         if (UDPAliveScore >= UDPAliveScoreMax) {
-            //             UDPAliveScore = 0;
-            //             UDPDeathScore--;
-            //             if (UDPDeathScore < UDPDeathScoreMin)
-            //                 UDPDeathScore = UDPDeathScoreMin;
-            //         }
-            //     }
-            // }
-
-            return true;
-        }
-
-        // public void Handle(CelesteNetConnection con, DataHandshakeServer handshake) {
-        //     Logger.Log(LogLevel.INF, "main", $"Received handshake: {handshake}");
-        //     if (handshake.Version != CelesteNetUtils.Version) {
-        //         Dispose();
-        //         throw new Exception($"Version mismatch - client {CelesteNetUtils.Version} vs server {handshake.Version}");
-        //     }
-
-        //     // Needed because while the server knows the client's TCP endpoint, the UDP endpoint is ambiguous.
-        //     if (con is CelesteNetTCPUDPConnection && HandshakeClient is DataHandshakeTCPUDPClient hsClient) {
-        //         con.Send(new DataUDPConnectionToken {
-        //             Value = hsClient.ConnectionToken
-        //         });
-        //     }
-
-        //     PlayerInfo = handshake.PlayerInfo;
-        //     Data.Handle(con, handshake.PlayerInfo);
-
-        //     HandshakeEvent.Set();
-        // }
-
-        // public void Handle(CelesteNetTCPUDPConnection con, DataTCPOnlyDowngrade downgrade) {
-        //     if (HandshakeClient is DataHandshakeTCPUDPClient hsClient && UDPDeathScore < UDPDeathScoreMax) {
-        //         con.StartReadUDP();
-        //         con.Send(new DataUDPConnectionToken {
-        //             Value = hsClient.ConnectionToken
-        //         });
-        //     }
-        // }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
             if (PlayerInfo != null && PlayerInfo.ID == info.ID)

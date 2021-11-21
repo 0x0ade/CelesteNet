@@ -168,4 +168,15 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
     }
+
+    public class ConnectionErrorException : Exception {
+
+        public readonly string Status;
+
+        public ConnectionErrorException(string msg, string status) : base($"{msg}: {status}") {
+            Status = status;
+        }
+
+
+    }
 }

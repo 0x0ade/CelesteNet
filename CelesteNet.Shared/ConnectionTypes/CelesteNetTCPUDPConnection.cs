@@ -13,11 +13,11 @@ namespace Celeste.Mod.CelesteNet {
         private const int UDPDeathScoreMin = -1;
         private const int UDPDeathScoreMax = 3;
         
-        private bool alive = true;
         public readonly int ConnectionToken;
-        public override bool IsConnected => alive && tcpSock.Connected;
+        public override bool IsConnected => IsAlive && tcpSock.Connected;
         public override string ID { get; }
         public override string UID { get; }
+        public readonly int MaxPacketSize;
         public readonly OptMap<string> Strings = new OptMap<string>("StringMap");
         public readonly OptMap<Type> SlimMap = new OptMap<Type>("SlimMap");
 
@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet {
         public bool UseUDP {
             get {
                 lock (UDPLock)
-                    return alive && udpDeathScore < UDPDeathScoreMax;
+                    return IsAlive && udpDeathScore < UDPDeathScoreMax;
             }
         }
 
@@ -40,7 +40,6 @@ namespace Celeste.Mod.CelesteNet {
         private Socket tcpSock;
         private EndPoint? udpEP;
         private CelesteNetSendQueue tcpQueue, udpQueue;
-        private int maxPacketSize;
 
         public readonly object UDPLock = new object();
         private int udpMaxDatagramSize;
@@ -66,7 +65,7 @@ namespace Celeste.Mod.CelesteNet {
             UID = uid;
 
             // Initialize networking stuff
-            this.maxPacketSize = maxPacketSize;
+            MaxPacketSize = maxPacketSize;
             this.tcpSock = tcpSock;
             udpEP = null;
             udpMaxDatagramSize = 0;
@@ -86,7 +85,6 @@ namespace Celeste.Mod.CelesteNet {
                 }
             }
             
-            alive = false;
             udpEP = null;
             tcpQueue.Dispose();
             udpQueue.Dispose();
@@ -100,7 +98,20 @@ namespace Celeste.Mod.CelesteNet {
 
         protected override CelesteNetSendQueue? GetQueue(DataType data) => (udpEP != null && (data.DataFlags & DataFlags.Unreliable) != 0) ? udpQueue : tcpQueue;
 
+        public void PromoteOptimizations() {
+            foreach ((string str, int id) in Strings.PromoteRead())
+                Send(new DataLowLevelStringMap() {
+                    String = str,
+                    ID = id
+                });
 
+            foreach ((Type packetType, int id) in SlimMap.PromoteRead())
+                Send(new DataLowLevelSlimMap() {
+                    PacketType = packetType,
+                    ID = id
+                });
+        }
+        
         public void InitUDP(EndPoint endpoint, int maxDatagramSize) {
             lock (UDPLock) {
                 udpEP = endpoint;
@@ -157,7 +168,7 @@ namespace Celeste.Mod.CelesteNet {
                 udpAliveScore = 0;
                 udpDowngradeScore = 0;
                 udpMaxDatagramSize /= 2;
-                if (udpMaxDatagramSize < 1+maxPacketSize) {
+                if (udpMaxDatagramSize < 1+MaxPacketSize) {
                     EndPoint ep = udpEP!;
                     udpEP = null;
                     udpMaxDatagramSize = 0;

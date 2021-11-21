@@ -141,6 +141,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                         // Handle the packet
                         switch (packet) {
+                            case DataLowLevelUDPInfo udpInfo: {
+                                HandleUDPInfo(udpInfo);
+                            } break;
                             case DataLowLevelStringMap strMap: {
                                 Strings.RegisterWrite(strMap.String, strMap.ID);
                             } break;
@@ -174,7 +177,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Dispose();
                 return;
             }
-                        
+            
             // Get the container ID
             byte containerID = buffer[0];
 
@@ -190,20 +193,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             // Promote optimizations
             PromoteOptimizations();
-        }
-
-        public void PromoteOptimizations() {
-            foreach ((string str, int id) in Strings.PromoteRead())
-                Send(new DataLowLevelStringMap() {
-                    String = str,
-                    ID = id
-                });
-
-            foreach ((Type packetType, int id) in SlimMap.PromoteRead())
-                Send(new DataLowLevelSlimMap() {
-                    PacketType = packetType,
-                    ID = id
-                });
         }
 
         public bool TCPSendCapped => TCPSendRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkBpTCap || TCPSendRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkPpTCap;

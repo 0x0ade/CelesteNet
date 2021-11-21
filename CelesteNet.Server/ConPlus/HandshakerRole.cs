@@ -172,7 +172,7 @@ The server encountered an internal error while handling the request
                 if (reqLine == null)
                     return await Send500();
 
-                string[] reqLineSegs = (reqLine!).Split(" ").Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                string[] reqLineSegs = (reqLine!).Split(' ').Where(s => !string.IsNullOrEmpty(s)).ToArray();
                 if (
                     reqLineSegs.Length != 3 ||
                     reqLineSegs[0] != "CONNECT" ||
@@ -183,11 +183,12 @@ The server encountered an internal error while handling the request
                 // Parse the headers
                 Dictionary<string, string> headers = new Dictionary<string, string>();
                 for (string? line = (await reader.ReadLineAsync()); !string.IsNullOrEmpty(line); line = await reader.ReadLineAsync()) {
-                    string[] lineSegs = (line!).Split(":").Select(s => s.Trim()).ToArray()!;
+                    string[] lineSegs = (line!).Split(':', 2).Select(s => s.Trim()).ToArray()!;
                     if (lineSegs.Length < 2)
                         return await Send500();
                     headers[lineSegs[0]] = lineSegs[1];
                 }
+                bufStream.Flush();
 
                 // Check teapot version
                 if (!headers.TryGetValue("CelesteNet-TeapotVersion", out string? teapotVerHeader) || !int.TryParse(teapotVerHeader!, out int teapotVer))
@@ -207,7 +208,7 @@ Connection: close
                 // Get the list of supported connection features
                 HashSet<string> conFeatures;
                 if (headers.TryGetValue("CelesteNet-ConnectionFeatures", out string? conFeaturesRaw))
-                    conFeatures = (conFeaturesRaw!).Split(",").Select(f => f.Trim().ToLower()).ToHashSet();
+                    conFeatures = (conFeaturesRaw!).Split(',').Select(f => f.Trim().ToLower()).ToHashSet();
                 else
                     conFeatures = new HashSet<string>();
 
@@ -244,6 +245,7 @@ CelesteNet-TeapotVersion: {TeapotVersion}
 CelesteNet-ConnectionToken: {conToken}
 CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
 CelesteNet-MaxPacketSize: {Server.Settings.MaxPacketSize}
+CelesteNet-MergeWindow: {Server.Settings.MergeWindow}
 CelesteNet-HeartbeatInterval: {Server.Settings.HeartbeatInterval}
 
 Who wants some tea?
@@ -256,9 +258,9 @@ Who wants some tea?
         public async Task DoConnectionHandshake(CelesteNetConnection con, IConnectionFeature[] features) {
             // Handshake connection features
             foreach (IConnectionFeature feature in features)
-                feature.Register(con);
+                feature.Register(con, false);
             foreach (IConnectionFeature feature in features)
-                await feature.DoHandShake(con);
+                await feature.DoHandShake(con, false);
 
             // Send the current tick rate
             con.Send(new DataTickRate() {

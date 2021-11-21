@@ -130,11 +130,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 while (queue.BackQueue.TryDequeue(out DataType? packet)) {
                     // Write the packet onto the temporary packet stream
                     packetStream.Position = 0;
-                    if (packet is DataInternalBlob blob)
-                        blob.Dump(packetWriter);
-                    else
-                        Role.Server.Data.Write(packetWriter, packet!);
-                    int packLen = (int) packetStream.Position;
+                    int packLen = con.Data.Write(packetWriter, packet!);
 
                     // Write size and raw packet data into the actual stream
                     sockWriter.Write((UInt16) packLen);
@@ -188,11 +184,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 foreach (DataType packet in queue.BackQueue) {
                     // Write the packet onto the temporary packet stream
                     packetStream.Position = 0;
-                    if (packet is DataInternalBlob blob)
-                        blob.Dump(packetWriter);
-                    else
-                        Role.Server.Data.Write(packetWriter, packet);
-                    int packLen = (int) packetStream.Position;
+                    int packLen = con.Data.Write(packetWriter, packet);
 
                     // Copy packet data to the container buffer
                     if (bufOff + packLen > udpBuffer.Length) {

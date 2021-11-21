@@ -63,12 +63,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             set => Player = value ?? throw new Exception($"{GetType().Name} with actual player expected.");
         }
 
-        public override void Read(DataContext ctx, MetaTypeWrap data) {
-            ctx.TryGetRef(uint.Parse(data["ID"]), out Player);
+        public override void Read(CelesteNetBinaryReader reader) {
+            reader.Data.TryGetRef(unchecked((uint) reader.Read7BitEncodedInt()), out Player);
         }
 
-        public override void Write(DataContext ctx, MetaTypeWrap data) {
-            data["ID"] = (Player?.ID ?? uint.MaxValue).ToString();
+        public override void Write(CelesteNetBinaryWriter writer) {
+            writer.Write7BitEncodedInt(unchecked((int) (Player?.ID ?? uint.MaxValue)));
         }
 
         public static implicit operator DataPlayerInfo?(MetaPlayerBaseType<T> meta)

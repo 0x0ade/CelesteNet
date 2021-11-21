@@ -257,41 +257,28 @@ namespace Celeste.Mod.CelesteNet {
             return () => UnregisterHandler(typeof(T), wrap);
         }
 
-        public MetaTypeWrap[] ReadMeta(CelesteNetBinaryReader reader) {
-            MetaTypeWrap[] metas = new MetaTypeWrap[reader.ReadByte()];
-            for (int i = 0; i < metas.Length; i++)
-                metas[i] = new MetaTypeWrap().Read(reader);
-            return metas;
-        }
-
         public DataType Read(CelesteNetBinaryReader reader) {
             PositionAwareStream? pas = reader.BaseStream as PositionAwareStream;
             pas?.ResetPosition();
 
-            int slimID = reader.Read7BitEncodedInt();
-            if (slimID != 0) {
+            DataFlags flags = (DataFlags) reader.ReadUInt16();
+            if ((flags & DataFlags.InteralSlimIndicator) != 0) {
                 if (reader.SlimMap == null)
                     throw new Exception("Trying to read a slim packet header without a slim map!");
 
-                Type slimType = reader.SlimMap.Get(slimID-1);
-                DataType? slimData = (DataType?) Activator.CreateInstance(slimType);
+                Type slimType = reader.SlimMap.Get(reader.Read7BitEncodedInt());
+                DataType? slimData = Activator.CreateInstance(slimType) as DataType;
                 if (slimData == null)
                     throw new Exception($"Cannot create instance of data type {slimType.FullName}");
                 
-                // TODO Metatypes
-                slimData.Read(reader);
+                slimData.ReadAll(reader);
 
                 return slimData;
             }
 
             string id = reader.ReadNetMappedString();
-            DataFlags flags = (DataFlags) reader.ReadUInt16();
-            bool small = (flags & DataFlags.Small) == DataFlags.Small;
-
             string source = reader.ReadNetMappedString();
-            MetaTypeWrap[] metas = ReadMeta(reader);
-
-            uint length = small ? reader.ReadByte() : reader.ReadUInt16();
+            uint length = ((flags & DataFlags.Small) == DataFlags.Small) ? reader.ReadByte() : reader.ReadUInt16();
             long start = pas?.Position ?? 0;
 
             if (!IDToDataType.TryGetValue(id, out Type? type))
@@ -299,21 +286,19 @@ namespace Celeste.Mod.CelesteNet {
                     InnerID = id,
                     InnerSource = source,
                     InnerFlags = flags,
-                    InnerMeta = new(metas),
                     InnerData = reader.ReadBytes((int) length)
                 };
 
-            DataType? data = (DataType?) Activator.CreateInstance(type);
+            DataType? data = Activator.CreateInstance(type) as DataType;
             if (data == null)
-                throw new Exception($"Cannot create instance of data type {type.FullName}");
+                throw new InvalidOperationException($"Cannot create instance of DataType '{type.FullName}'");
 
-            data.UnwrapMeta(this, metas);
-            data.Read(reader);
+            data.ReadAll(reader);
 
             if (pas != null) {
                 long lengthReal = pas.Position - start;
                 if (lengthReal != length)
-                    throw new Exception($"Length mismatch for {id} {flags} {source} {length} - got {lengthReal}");
+                    throw new InvalidDataException($"Length mismatch for DataType '{id}' {flags} {source} {length} - got {lengthReal}");
             }
 
             if ((flags & DataFlags.SlimHeader) != 0)
@@ -322,50 +307,104 @@ namespace Celeste.Mod.CelesteNet {
             return data;
         }
 
-        public void WriteMeta(CelesteNetBinaryWriter writer, MetaTypeWrap[] metas) {
-            writer.Write((byte) metas.Length);
-            foreach (MetaTypeWrap meta in metas)
-                meta.Write(writer);
+        public MetaType ReadMeta(CelesteNetBinaryReader reader) {
+            PositionAwareStream? pas = reader.BaseStream as PositionAwareStream;
+            pas?.ResetPosition();
+
+            string id = reader.ReadNetMappedString();
+            uint length = reader.ReadByte();
+            long start = pas?.Position ?? 0;
+
+            if (!IDToMetaType.TryGetValue(id, out Type? type))
+                return new MetaUnparsed() {
+                    InnerID = id,
+                    InnerData = reader.ReadBytes((int) length)
+                };
+
+            MetaType? meta = Activator.CreateInstance(type) as MetaType;
+            if (meta == null)
+                throw new InvalidOperationException($"Cannot create instance of MetaType '{type.FullName}'");
+
+            meta.Read(reader);
+
+            if (pas != null) {
+                long lengthReal = pas.Position - start;
+                if (lengthReal != length)
+                    throw new InvalidDataException($"Length mismatch for MetaType '{id}' {length} - got {lengthReal}");
+            }
+
+            return meta;
         }
 
         public int Write(CelesteNetBinaryWriter writer, DataType data) {
             long start = writer.BaseStream.Position;
-
-            if (writer.SlimMap != null && writer.SlimMap.TryMap(data.GetType(), out int slimId)) {
-                writer.Write7BitEncodedInt(slimId+1);
-                // TODO Metatypes
-                data.Write(writer);
-                return (int) (writer.BaseStream.Position - start);
-            }
-            writer.Write7BitEncodedInt(0);
 
             if (data is DataInternalBlob blob) {
                 blob.Dump(writer);
                 return (int) (writer.BaseStream.Position - start);
             }
 
-            string type = data.GetTypeID(this);
+            if (writer.SlimMap != null && writer.TryGetSlimID(data.GetType(), out int slimID)) {
+                writer.Write((ushort) DataFlags.InteralSlimIndicator);
+                writer.Write7BitEncodedInt(slimID);
+                data.WriteAll(writer);
+                return (int) (writer.BaseStream.Position - start);
+            }
 
             DataFlags flags = data.DataFlags;
-            if ((flags & DataFlags.RESERVED) != 0)
+            if ((flags & (DataFlags.RESERVED | DataFlags.InteralSlimIndicator)) != 0)
                 Logger.Log(LogLevel.WRN, "datactx", $"DataType {data} has reserved flags set");
+            flags &= ~(DataFlags.RESERVED | DataFlags.InteralSlimIndicator);
 
-            start = writer.BaseStream.Position;
             bool small = (flags & DataFlags.Small) == DataFlags.Small;
 
-            writer.WriteNetMappedString(type);
             writer.Write((ushort) flags);
-
+            writer.WriteNetMappedString(data.GetTypeID(this));
             writer.WriteNetMappedString(data.GetSource(this));
-            WriteMeta(writer, data.WrapMeta(this));
 
-            writer.WriteSizeDummy(small ? (byte) 1 : (byte) 2);
+            writer.Flush();
+            long sizePos = writer.BaseStream.Position;
+            if (small)
+                writer.Write((byte) 0);
+            else
+                writer.Write((ushort) 0);
 
-            data.Write(writer);
+            data.WriteAll(writer);
 
-            writer.UpdateSizeDummy();
+            writer.Flush();
+            long end = writer.BaseStream.Position;
+            long size = end - (sizePos + (small ? 1 : 2));
+            writer.BaseStream.Seek(sizePos, SeekOrigin.Begin);
+            if (small)
+                writer.Write((byte) size);
+            else
+                writer.Write((ushort) size);
+            writer.Flush();
+            writer.BaseStream.Seek(end, SeekOrigin.Begin);
 
-            return (int) (writer.BaseStream.Position - start);
+            return (int) (end - start);
+        }
+
+        public int WriteMeta(CelesteNetBinaryWriter writer, MetaType meta) {
+            long start = writer.BaseStream.Position;
+
+            writer.WriteNetMappedString(meta.GetTypeID(this));
+
+            writer.Flush();
+            long sizePos = writer.BaseStream.Position;
+            writer.Write((byte) 0);
+
+            meta.Write(writer);
+
+            writer.Flush();
+            long end = writer.BaseStream.Position;
+            long size = end - (sizePos + 1);
+            writer.BaseStream.Seek(sizePos, SeekOrigin.Begin);
+            writer.Write((byte) sizePos);
+            writer.Flush();
+            writer.BaseStream.Seek(end, SeekOrigin.Begin);
+
+            return (int) (end - start);
         }
 
         public void Handle(CelesteNetConnection con, DataType? data)

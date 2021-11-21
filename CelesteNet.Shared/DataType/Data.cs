@@ -30,42 +30,28 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public virtual MetaUpdateContext UpdateMeta(DataContext ctx)
             => new(ctx, this);
 
-        [Obsolete("Use CelesteNetBinaryReader instead.")]
-        public virtual void ReadAll(DataContext ctx, BinaryReader reader) {
-            if (reader is not CelesteNetBinaryReader cnreader)
-                throw new Exception("Reader must be a CelesteNetBinaryReader.");
-            UnwrapMeta(ctx, ctx.ReadMeta(cnreader));
-            Read(cnreader);
+        public virtual void ReadAll(CelesteNetBinaryReader reader) {
+            // Read metatypes
+            Meta = new MetaType[reader.ReadByte()];
+            for (int i = 0; i < Meta.Length; i++)
+                Meta[i] = reader.Data.ReadMeta(reader);
+            FixupMeta(reader.Data);
+
+            Read(reader);
         }
 
-        [Obsolete("Use CelesteNetBinaryWriter instead.")]
-        public virtual void WriteAll(DataContext ctx, BinaryWriter writer) {
-            if (writer is not CelesteNetBinaryWriter cnwriter)
-                throw new Exception("Reader must be a CelesteNetBinaryWriter.");
-            ctx.WriteMeta(cnwriter, WrapMeta(ctx));
-            Write(cnwriter);
+        public virtual void WriteAll(CelesteNetBinaryWriter writer) {
+            // Write meta
+            Meta = GenerateMeta(writer.Data);
+            writer.Write((byte) Meta.Length);
+            foreach (MetaType meta in Meta)
+                writer.Data.WriteMeta(writer, meta);
+
+            Write(writer);
         }
 
-#pragma warning disable CS0618
-        public virtual void ReadAll(CelesteNetBinaryReader reader)
-            => ReadAll(reader.Data, reader);
-        public virtual void WriteAll(CelesteNetBinaryWriter writer)
-            => WriteAll(writer.Data, writer);
-#pragma warning restore CS0618
-
-        [Obsolete("Use CelesteNetBinaryReader instead.")]
-        public virtual void Read(DataContext ctx, BinaryReader reader)
-            => throw new NotSupportedException($"Obsolete, {GetType()} doesn't implement this anymore. Use Read(CelesteNetBinaryReader) instead.");
-        [Obsolete("Use CelesteNetBinaryWriter instead.")]
-        public virtual void Write(DataContext ctx, BinaryWriter writer)
-            => throw new NotSupportedException($"Obsolete, {GetType()} doesn't implement this anymore. Use Write(CelesteNetBinaryWriter) instead.");
-
-#pragma warning disable CS0618
-        public virtual void Read(CelesteNetBinaryReader reader)
-            => Read(reader.Data, reader);
-        public virtual void Write(CelesteNetBinaryWriter writer)
-            => Write(writer.Data, writer);
-#pragma warning restore CS0618
+        public virtual void Read(CelesteNetBinaryReader reader) {}
+        public virtual void Write(CelesteNetBinaryWriter writer) {}
 
         public virtual bool Is<T>(DataContext ctx) where T : MetaType<T> {
             foreach (MetaType meta in Meta)
@@ -119,22 +105,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Array.Resize(ref metas, metas.Length + 1);
             metas[metas.Length - 1] = value;
             Meta = metas;
-        }
-
-        public virtual MetaTypeWrap[] WrapMeta(DataContext ctx) {
-            MetaType[] metas = Meta;
-            MetaTypeWrap[] wraps = new MetaTypeWrap[metas.Length];
-            for (int i = 0; i < metas.Length; i++)
-                wraps[i] = new MetaTypeWrap().Wrap(ctx, metas[i]);
-            return wraps;
-        }
-
-        public virtual void UnwrapMeta(DataContext ctx, MetaTypeWrap[] wraps) {
-            MetaType[] metas = new MetaType[wraps.Length];
-            for (int i = 0; i < wraps.Length; i++)
-                metas[i] = wraps[i].Unwrap(ctx);
-            Meta = metas;
-            FixupMeta(ctx);
         }
 
         public virtual string GetTypeID(DataContext ctx)
@@ -231,6 +201,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             0b0010000000000000,
         SlimHeader =
             0b0000000000010000,
+        InteralSlimIndicator = 
+            0b0000000000100000,
 
         RESERVED =
             0b1100110000001110

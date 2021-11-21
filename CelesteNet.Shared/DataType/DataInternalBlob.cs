@@ -79,10 +79,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override void WriteAll(CelesteNetBinaryWriter writer) => Data.WriteAll(writer);
 
-        public override void Read(CelesteNetBinaryReader reader) => Data.Read(reader);
-
-        public override void Write(CelesteNetBinaryWriter writer) => Data.Write(writer);
-
         public override bool Is<T>(DataContext ctx) => Data.Is<T>(ctx);
 
         public override T Get<T>(DataContext ctx) => Data.Get<T>(ctx);
@@ -92,10 +88,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         // Stupid Roslyn "bug": ? can't be used as it requires when T :, but this is override.
         public override void Set<T>(DataContext ctx, [AllowNull] T value) => Data.Set(ctx, value);
-
-        public override MetaTypeWrap[] WrapMeta(DataContext ctx) => Data.WrapMeta(ctx);
-
-        public override void UnwrapMeta(DataContext ctx, MetaTypeWrap[] wraps) => Data.UnwrapMeta(ctx, wraps);
 
         public override string GetTypeID(DataContext ctx) => Data.GetTypeID(ctx);
 
@@ -109,8 +101,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             public string? String;
 
-            public byte SizeDummy;
-
             public Part? Next;
 
             public void Dump(CelesteNetBinaryWriter writer) {
@@ -119,11 +109,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
                 if (String != null)
                     writer.WriteNetMappedString(String);
-
-                if (SizeDummy == 0xFF)
-                    writer.UpdateSizeDummy();
-                else if (SizeDummy != 0)
-                    writer.WriteSizeDummy(SizeDummy);
             }
 
         }

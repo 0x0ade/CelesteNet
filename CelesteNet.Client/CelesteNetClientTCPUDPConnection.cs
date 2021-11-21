@@ -192,11 +192,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     // Try to send as many packets as possible
                     for (DataType packet = p; packet != null; tcpSendQueue.TryTake(out packet)) {
                         mStream.Position = 0;
-                        if (packet is DataInternalBlob blob)
-                            blob.Dump(bufWriter);
-                        else
-                            Data.Write(bufWriter, packet);
-                        int packLen = (int) mStream.Position;
+                        int packLen = Data.Write(bufWriter, packet);
                         bufWriter.Write((UInt16) packLen);
                         bufWriter.Write(mStream.GetBuffer(), 0, packLen);
                         SurpressTCPKeepAlives();
@@ -242,12 +238,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         int bufOff = 1;
                         for (DataType packet = p; packet != null; tcpSendQueue.TryTake(out packet)) {
                             mStream.Position = 0;
-                            if (packet is DataInternalBlob blob)
-                                blob.Dump(bufWriter);
-                            else
-                                Data.Write(bufWriter, packet);
-                            int packLen = (int) mStream.Position;
-
+                            int packLen = Data.Write(bufWriter, packet);
 
                             // Copy packet data to the container buffer
                             if (bufOff + packLen > dgramBuffer.Length) {

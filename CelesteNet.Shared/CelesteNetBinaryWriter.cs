@@ -18,9 +18,6 @@ namespace Celeste.Mod.CelesteNet {
         public OptMap<string>? Strings;
         public OptMap<Type>? SlimMap;
 
-        protected long SizeDummyIndex;
-        protected byte SizeDummySize;
-
         public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output)
             : base(output, CelesteNetUtils.UTF8NoBOM) {
             Data = ctx;
@@ -33,54 +30,6 @@ namespace Celeste.Mod.CelesteNet {
             Data = ctx;
             Strings = strings;
             SlimMap = slimMap;
-        }
-
-        public virtual void WriteSizeDummy(byte size) {
-            Flush();
-            SizeDummyIndex = BaseStream.Position;
-
-            if (size == 1) {
-                SizeDummySize = 1;
-                Write((byte) 0);
-
-            } else if (size == 4) {
-                SizeDummySize = 4;
-                Write((uint) 0);
-
-            } else {
-                SizeDummySize = 2;
-                Write((ushort) 0);
-            }
-        }
-
-        public virtual void UpdateSizeDummy() {
-            if (SizeDummySize == 0)
-                return;
-
-            Flush();
-            long end = BaseStream.Position;
-            long length = end - (SizeDummyIndex + SizeDummySize);
-
-            BaseStream.Seek(SizeDummyIndex, SeekOrigin.Begin);
-
-            if (SizeDummySize == 1) {
-                if (length > byte.MaxValue)
-                    length = byte.MaxValue;
-                Write((byte) length);
-
-            } else if (SizeDummySize == 4) {
-                if (length > uint.MaxValue)
-                    length = uint.MaxValue;
-                Write((uint) length);
-
-            } else {
-                if (length > ushort.MaxValue)
-                    length = ushort.MaxValue;
-                Write((ushort) length);
-            }
-
-            Flush();
-            BaseStream.Seek(end, SeekOrigin.Begin);
         }
 
         public new void Write7BitEncodedInt(int value)
@@ -130,6 +79,11 @@ namespace Celeste.Mod.CelesteNet {
 
             Write((byte) 0xFF);
             Write7BitEncodedInt(id);
+        }
+
+        public virtual bool TryGetSlimID(Type type, out int slimID) {
+            slimID = -1;
+            return SlimMap != null && SlimMap.TryMap(type, out slimID);
         }
 
         public void WriteRef<T>(T? data) where T : DataType<T>

@@ -284,7 +284,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             }
 
             lock (UpdateQueue)
-                UpdateQueue.Enqueue(action);
+                UpdateQueue.Add(action);
 
             if (wait)
                 WaitHandle.WaitAny(new WaitHandle[] { waiter });

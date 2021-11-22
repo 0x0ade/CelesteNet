@@ -46,15 +46,11 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         protected override void Dispose(bool disposing) {
+            // Wait for threads
             tokenSrc.Cancel();
-            base.Dispose(disposing);
-
-            // Dispose stuff
             tcpSendQueue.CompleteAdding();
             udpSendQueue.CompleteAdding();
-            tcpStream.Dispose();
-
-            // Wait for threads
+            TCPSocket.Shutdown(SocketShutdown.Receive);
             if (Thread.CurrentThread != tcpRecvThread)
                 tcpRecvThread.Join();
             if (Thread.CurrentThread != udpRecvThread)
@@ -64,7 +60,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (Thread.CurrentThread != udpSendThread)
                 udpSendThread.Join();
 
+            base.Dispose(disposing);
+
+            // Dispose stuff
             tokenSrc.Dispose();
+            tcpStream.Dispose();
             tcpSendQueue.Dispose();
             udpSendQueue.Dispose();
         }
@@ -78,9 +78,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                         try {
                             packetSize = tcpReader.ReadUInt16();
                         } catch (EndOfStreamException) {
-                            Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
-                            if (!tokenSrc.IsCancellationRequested)
+                            if (!tokenSrc.IsCancellationRequested) {
+                                Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
                                 Dispose();
+                            }
                             return;
                         }
                         if (packetSize > MaxPacketSize)

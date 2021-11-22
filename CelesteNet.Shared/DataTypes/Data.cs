@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         protected virtual MetaType[] ReadMeta(CelesteNetBinaryReader reader) {
             MetaType[] meta = new MetaType[reader.ReadByte()];
-            for (int i = 0; i < Meta.Length; i++)
+            for (int i = 0; i < meta.Length; i++)
                 meta[i] = reader.Data.ReadMeta(reader);
             return meta;
         }

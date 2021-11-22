@@ -7,18 +7,18 @@ namespace Celeste.Mod.CelesteNet.Client {
     public static class Handshake {
 
         public const int TeapotVersion = 1;
+        public const int TeapotBufferSize = 16384;
         public const int TeapotTimeout = 5000;
 
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
         public static (int conToken, IConnectionFeature[] conFeatures, int maxPacketSize, float mergeWindow, float heartbeatInterval) DoTeapotHandshake(Socket sock, IConnectionFeature[] features, string nameKey) {
-            // Find connection features
-            // We don't buffer, as this causes some weirdness 
-            // (either because we read packet data, or MonoKickstart decides to hang)
-            using (NetworkStream netStream = new NetworkStream(sock, false))
-            using (StreamReader reader = new StreamReader(netStream))
-            using (StreamWriter writer = new StreamWriter(netStream)) {
-                netStream.ReadTimeout = netStream.WriteTimeout = TeapotTimeout;
-
+            using (BufferedSocketStream sockStream = new BufferedSocketStream(TeapotBufferSize) {
+                Socket = sock,
+                ReadTimeout = TeapotTimeout,
+                WriteTimeout = TeapotTimeout
+            })
+            using (StreamReader reader = new StreamReader(sockStream))
+            using (StreamWriter writer = new StreamWriter(sockStream)) {
                 // Send the "HTTP" request
                 writer.Write($@"
 CONNECT /teapot HTTP/1.1
@@ -58,8 +58,7 @@ Can I have some tea?
                 int maxPacketSize = int.Parse(headers["CelesteNet-MaxPacketSize"]);
                 float mergeWindow = float.Parse(headers["CelesteNet-MergeWindow"]);
                 float heartbeatInterval = float.Parse(headers["CelesteNet-HeartbeatInterval"]);
-
-                netStream.ReadTimeout = netStream.WriteTimeout = -1;
+                
                 return (conToken, conFeatures, maxPacketSize, mergeWindow, heartbeatInterval);
             }
         }

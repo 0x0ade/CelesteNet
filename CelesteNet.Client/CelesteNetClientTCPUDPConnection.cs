@@ -12,7 +12,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public const int TcpBufferSize = 16384;
 
-        // TODO MonoKickstart is extremly stupid, using a BufferedStream here just hangs...
         private BufferedSocketStream tcpStream;
         private ManualResetEventSlim udpReadyEvent;
         private BlockingCollection<DataType> tcpSendQueue, udpSendQueue;

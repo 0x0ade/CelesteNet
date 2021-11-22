@@ -17,6 +17,7 @@ namespace Celeste.Mod.CelesteNet {
         private Socket? socket = null;
         private byte[] recvBuffer, sendBuffer;
         private int recvAvail = 0, recvBufferOff = 0, sendBufferOff = 0;
+        private int recvTimeout = -1, sendTimeout = -1;
 
         public BufferedSocketStream(int bufferSize) {
             recvBuffer = new byte[bufferSize];
@@ -31,7 +32,7 @@ namespace Celeste.Mod.CelesteNet {
                 int numRead = 0;
                 while (numRead < count) {
                     if (recvAvail <= 0 || recvBufferOff >= recvBuffer.Length) {
-                        socket.Poll(-1, SelectMode.SelectRead);
+                        socket.Poll(recvTimeout, SelectMode.SelectRead);
                         recvAvail = socket.Receive(recvBuffer, recvBuffer.Length, SocketFlags.None);
                         recvBufferOff = 0;
                         if (recvAvail <= 0)
@@ -83,7 +84,7 @@ namespace Celeste.Mod.CelesteNet {
                             socket.Send(sendBuffer, sendBufferOff, SocketFlags.None);
                             break;
                         } catch (SocketException se) {
-                            if (se.SocketErrorCode == SocketError.TryAgain && socket.Poll(-1, SelectMode.SelectWrite))
+                            if (se.SocketErrorCode == SocketError.TryAgain && socket.Poll(sendTimeout, SelectMode.SelectWrite))
                                 continue;
                             throw;
                         }
@@ -104,6 +105,10 @@ namespace Celeste.Mod.CelesteNet {
                 socket = value;
             }
         }
+
+        public override bool CanTimeout => true;
+        public override int ReadTimeout { get => recvTimeout; set => recvTimeout = value; }
+        public override int WriteTimeout { get => sendTimeout; set => sendTimeout = value; }
 
         public override long Seek(long offset, SeekOrigin origin) => throw new System.NotImplementedException();
         public override void SetLength(long value) => throw new System.NotImplementedException();

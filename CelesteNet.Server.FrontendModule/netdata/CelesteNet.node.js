@@ -377,7 +377,7 @@ let CelesteNet = {
                 for (var i = 0; i < data.PoolRoles.length; i++) {
                     nCharts["role" + i + "Activity"] = {
                         title: "$ Role '" + data.PoolRoles[i].Role + "' activity rate",
-                        units: "threads",
+                        units: "percent",
                         family: "activity",
                         dimensions: {
                             time: {

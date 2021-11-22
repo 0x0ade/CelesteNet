@@ -37,10 +37,16 @@ namespace Celeste.Mod.CelesteNet.Server {
                 taskQueue.Dispose();
             }
 
-            public void ExecuteTasks(CancellationToken token) {
+            public void ExecuteTasks(Worker worker, CancellationToken token) {
                 executingTasks.Value = true;
-                foreach (Task t in taskQueue.GetConsumingEnumerable(token))
-                    TryExecuteTask(t);
+                foreach (Task t in taskQueue.GetConsumingEnumerable(token)) {
+                    worker.EnterActiveZone();
+                    try {
+                        TryExecuteTask(t);
+                    } finally {
+                        worker.ExitActiveZone();
+                    }
+                }
                 executingTasks.Value = false;
             }
 
@@ -59,7 +65,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             public Worker(HandshakerRole role, NetPlusThread thread) : base(role, thread) {}
 
-            protected internal override void StartWorker(CancellationToken token) => Role.scheduler.ExecuteTasks(token);
+            protected internal override void StartWorker(CancellationToken token) => Role.scheduler.ExecuteTasks(this, token);
+
+            public new void EnterActiveZone() => base.EnterActiveZone();
+            public new void ExitActiveZone() => base.ExitActiveZone();
 
             public new HandshakerRole Role => (HandshakerRole) base.Role;
 

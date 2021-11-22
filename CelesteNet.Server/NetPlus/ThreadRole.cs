@@ -48,7 +48,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 using (activityLock.W()) {
                     if (activeZoneCounter <= 0)
                         throw new InvalidOperationException("Not in an active zone");
-                    Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, (--activeZoneCounter > 0) ? 1f : 0f, true);
+                    Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, (activeZoneCounter-- > 0) ? 1f : 0f, true);
                 }
             }
 

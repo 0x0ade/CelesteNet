@@ -31,23 +31,28 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             => new(ctx, this);
 
         public virtual void ReadAll(CelesteNetBinaryReader reader) {
-            // Read metatypes
-            Meta = new MetaType[reader.ReadByte()];
-            for (int i = 0; i < Meta.Length; i++)
-                Meta[i] = reader.Data.ReadMeta(reader);
+            Meta = ReadMeta(reader);
             FixupMeta(reader.Data);
-
             Read(reader);
         }
 
         public virtual void WriteAll(CelesteNetBinaryWriter writer) {
-            // Write meta
             Meta = GenerateMeta(writer.Data);
-            writer.Write((byte) Meta.Length);
-            foreach (MetaType meta in Meta)
-                writer.Data.WriteMeta(writer, meta);
-
+            WriteMeta(writer, Meta);
             Write(writer);
+        }
+
+        protected virtual MetaType[] ReadMeta(CelesteNetBinaryReader reader) {
+            MetaType[] meta = new MetaType[reader.ReadByte()];
+            for (int i = 0; i < Meta.Length; i++)
+                meta[i] = reader.Data.ReadMeta(reader);
+            return meta;
+        }
+
+        protected virtual void WriteMeta(CelesteNetBinaryWriter writer, MetaType[] meta) {
+            writer.Write((byte) meta.Length);
+            foreach (MetaType m in meta)
+                writer.Data.WriteMeta(writer, m);
         }
 
         protected virtual void Read(CelesteNetBinaryReader reader) {}
@@ -201,6 +206,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             0b0010000000000000,
         SlimHeader =
             0b0000000000010000,
+        NoStandardMeta =
+            0b0000000000100000,
         InteralSlimIndicator = 
             0b1000000000000000,
 

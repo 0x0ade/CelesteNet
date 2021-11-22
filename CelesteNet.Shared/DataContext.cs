@@ -258,7 +258,8 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public DataType Read(CelesteNetBinaryReader reader) {
-            Stream? pas = (reader.BaseStream is PositionAwareStream || reader.BaseStream.CanSeek) ? reader.BaseStream : null;
+            if (!(reader.BaseStream is PositionAwareStream || reader.BaseStream.CanSeek))
+                throw new ArgumentException("Base stream isn't position aware");
             if (reader.BaseStream is PositionAwareStream s)
                 s.ResetPosition();
 
@@ -279,28 +280,28 @@ namespace Celeste.Mod.CelesteNet {
 
             string id = reader.ReadNetMappedString();
             string source = reader.ReadNetMappedString();
-            uint length = ((flags & DataFlags.Small) != 0) ? reader.ReadByte() : reader.ReadUInt16();
-            long start = pas?.Position ?? 0;
+            int length = ((flags & DataFlags.Small) != 0) ? reader.ReadByte() : reader.ReadUInt16();
+            long start = reader.BaseStream.Position;
 
+            DataType? data;
             if (!IDToDataType.TryGetValue(id, out Type? type))
-                return new DataUnparsed() {
+                data = new DataUnparsed() {
                     InnerID = id,
                     InnerSource = source,
                     InnerFlags = flags,
-                    InnerData = reader.ReadBytes((int) length)
+                    InnerLength = length
                 };
-
-            DataType? data = Activator.CreateInstance(type) as DataType;
-            if (data == null)
-                throw new InvalidOperationException($"Cannot create instance of DataType '{type.FullName}'");
+            else {
+                data = Activator.CreateInstance(type) as DataType;
+                if (data == null)
+                    throw new InvalidOperationException($"Cannot create instance of DataType '{type.FullName}'");
+            }
 
             data.ReadAll(reader);
 
-            if (pas != null) {
-                long lengthReal = pas.Position - start;
-                if (lengthReal != length)
-                    throw new InvalidDataException($"Length mismatch for DataType '{id}' {flags} {source} {length} - got {lengthReal}");
-            }
+            long lengthReal = reader.BaseStream.Position - start;
+            if (lengthReal != length)
+                throw new InvalidDataException($"Length mismatch for DataType '{id}' {flags} {source} {length} - got {lengthReal}");
 
             if ((flags & DataFlags.SlimHeader) != 0)
                 reader.SlimMap?.CountRead(type);
@@ -309,13 +310,14 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public MetaType ReadMeta(CelesteNetBinaryReader reader) {
-            Stream? pas = (reader.BaseStream is PositionAwareStream || reader.BaseStream.CanSeek) ? reader.BaseStream : null;
+            if (!(reader.BaseStream is PositionAwareStream || reader.BaseStream.CanSeek))
+                throw new ArgumentException("Base stream isn't position aware");
             if (reader.BaseStream is PositionAwareStream s)
                 s.ResetPosition();
 
             string id = reader.ReadNetMappedString();
-            uint length = reader.ReadByte();
-            long start = pas?.Position ?? 0;
+            int length = reader.ReadByte();
+            long start = reader.BaseStream.Position;
 
             if (!IDToMetaType.TryGetValue(id, out Type? type))
                 return new MetaUnparsed() {
@@ -329,16 +331,16 @@ namespace Celeste.Mod.CelesteNet {
 
             meta.Read(reader);
 
-            if (pas != null) {
-                long lengthReal = pas.Position - start;
-                if (lengthReal != length)
-                    throw new InvalidDataException($"Length mismatch for MetaType '{id}' {length} - got {lengthReal}");
-            }
+            long lengthReal = reader.BaseStream.Position - start;
+            if (lengthReal != length)
+                throw new InvalidDataException($"Length mismatch for MetaType '{id}' {length} - got {lengthReal}");
 
             return meta;
         }
 
         public int Write(CelesteNetBinaryWriter writer, DataType data) {
+            if (!writer.BaseStream.CanSeek)
+                throw new ArgumentException("Base stream isn't seekable");
             long start = writer.BaseStream.Position;
 
             if (writer.SlimMap != null && writer.TryGetSlimID(data.GetType(), out int slimID)) {
@@ -382,6 +384,8 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public int WriteMeta(CelesteNetBinaryWriter writer, MetaType meta) {
+            if (!writer.BaseStream.CanSeek)
+                throw new ArgumentException("Base stream isn't seekable");
             long start = writer.BaseStream.Position;
 
             writer.WriteNetMappedString(meta.GetTypeID(this));

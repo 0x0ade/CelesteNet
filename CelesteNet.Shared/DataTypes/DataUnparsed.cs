@@ -19,7 +19,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public string InnerID = "";
         public string InnerSource = "";
         public DataFlags InnerFlags;
-        public byte[] InnerData = Dummy<byte>.EmptyArray;
+        public int InnerLength;
+        private byte[] InnerData = Dummy<byte>.EmptyArray;
 
         public override string GetTypeID(DataContext ctx)
             => InnerID;
@@ -27,11 +28,18 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override string GetSource(DataContext ctx)
             => InnerSource;
 
-        protected override void Read(CelesteNetBinaryReader reader) {
-            throw new InvalidOperationException("Can't read unparsed DataTypes");
+
+        public override void ReadAll(CelesteNetBinaryReader reader) {
+            long metaStart = reader.BaseStream.Position;
+            if ((InnerFlags & DataFlags.NoStandardMeta) == 0)
+                Meta = ReadMeta(reader);
+            int metaLength = (int) (reader.BaseStream.Position - metaStart);
+            InnerData = reader.ReadBytes(InnerLength - metaLength);
         }
 
-        protected override void Write(CelesteNetBinaryWriter writer) {
+        public override void WriteAll(CelesteNetBinaryWriter writer) {
+            if ((InnerFlags & DataFlags.NoStandardMeta) == 0)
+                WriteMeta(writer, Meta);
             writer.Write(InnerData);
         }
 

@@ -9,12 +9,17 @@ namespace Celeste.Mod.CelesteNet {
     incrementing counter is that those tokens would be predictable, and a
     malicious client could use those predicted token to hijack new UDP
     connections by spamming token datagrams. The tokens by this generator are
-    generated via a Galois LFSR with a random polynomial, whoose output bits are
-    randomly shuffled, and then XORed with a random value.
+    generated via a Galois LFSR with a random polynomial, which is stepped a
+    random number of times to prevent correlation attacks, wose output bits
+    are randomly shuffled, and then XORed with a random value.
     -Popax21
     */
     public class TokenGenerator {
+
+        public const int MaxLFSRSteps = 4;
+
         private object lfsrLock = new object();
+        private Random lfsrStepRNG;
         private uint lfsrState, lfsrMask;
 
         private uint[] shuffleMasks;
@@ -25,6 +30,8 @@ namespace Celeste.Mod.CelesteNet {
             uint RandomUInt() {
                 return ((uint) rng.Next(1 << 30)) << 2 | ((uint) rng.Next(1 << 2));
             }
+
+            lfsrStepRNG = rng;
 
             // Initialize the LFSR to a random non-zero state
             while (lfsrState == 0)
@@ -58,8 +65,9 @@ namespace Celeste.Mod.CelesteNet {
         public int GenerateToken() {
             uint val;
 
-            // Advance the (Galois) LFSR
-            lock (lfsrLock) {
+            // Step the (Galois) LFSR a random number of times
+            lock (lfsrLock)
+            for (int i = lfsrStepRNG.Next(MaxLFSRSteps); i >= 0; i--) {
                 val = lfsrState;
                 lfsrState <<= 1;
                 if ((val & (1u << 31)) != 0) lfsrState ^= lfsrMask;
@@ -77,5 +85,6 @@ namespace Celeste.Mod.CelesteNet {
 
             return unchecked((int) val);
         }
+
     }
 }

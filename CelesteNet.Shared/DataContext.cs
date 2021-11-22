@@ -258,8 +258,9 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public DataType Read(CelesteNetBinaryReader reader) {
-            PositionAwareStream? pas = reader.BaseStream as PositionAwareStream;
-            pas?.ResetPosition();
+            Stream? pas = (reader.BaseStream is PositionAwareStream || reader.BaseStream.CanSeek) ? reader.BaseStream : null;
+            if (reader.BaseStream is PositionAwareStream s)
+                s.ResetPosition();
 
             DataFlags flags = (DataFlags) reader.ReadUInt16();
             if ((flags & DataFlags.InteralSlimIndicator) != 0) {
@@ -308,8 +309,9 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public MetaType ReadMeta(CelesteNetBinaryReader reader) {
-            PositionAwareStream? pas = reader.BaseStream as PositionAwareStream;
-            pas?.ResetPosition();
+            Stream? pas = (reader.BaseStream is PositionAwareStream || reader.BaseStream.CanSeek) ? reader.BaseStream : null;
+            if (reader.BaseStream is PositionAwareStream s)
+                s.ResetPosition();
 
             string id = reader.ReadNetMappedString();
             uint length = reader.ReadByte();
@@ -347,7 +349,7 @@ namespace Celeste.Mod.CelesteNet {
 
             DataFlags flags = data.DataFlags;
             if ((flags & (DataFlags.RESERVED | DataFlags.InteralSlimIndicator)) != 0)
-                Logger.Log(LogLevel.WRN, "datactx", $"DataType {data} has reserved flags set");
+                Logger.Log(LogLevel.WRN, "datactx", $"DataType {data} has reserved flags set [flags {(ushort) flags}]");
             flags &= ~(DataFlags.RESERVED | DataFlags.InteralSlimIndicator);
 
             bool small = (flags & DataFlags.Small) != 0;

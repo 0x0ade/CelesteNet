@@ -10,8 +10,8 @@ namespace Celeste.Mod.CelesteNet {
     malicious client could use those predicted token to hijack new UDP
     connections by spamming token datagrams. The tokens by this generator are
     generated via a Galois LFSR with a random polynomial, which is stepped a
-    random number of times to prevent correlation attacks, wose output bits
-    are randomly shuffled, and then XORed with a random value.
+    random number of times to prevent correlation attacks, whose output bits
+    are randomly shuffled, and then XORed with a random key.
     -Popax21
     */
     public class TokenGenerator {

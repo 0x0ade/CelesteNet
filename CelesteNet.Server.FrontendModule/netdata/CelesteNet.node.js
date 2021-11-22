@@ -359,41 +359,38 @@ let CelesteNet = {
                 },
             }
 
-            if (data.PoolThreads != null) for (var i = 0; i < data.PoolThreads.length; i++) {
-                nCharts["thread" + i + "Activity"] = {
-                    title: "$ Thread " + i + " activity rate",
+            if (data.PoolThreads != null) {
+                var threadActvDims = {}
+                for (var i = 0; i < data.PoolThreads.length; i++) {
+                    threadActvDims["Thread" + i] = { value: data.PoolThreads[i].ActivityRate * 10000, divisor: 100 };
+                }
+                nCharts["threadActivity"] = {
+                    title: "$ Thread activity rates",
                     units: "percent",
                     family: "activity",
-                    dimensions: {
-                        time: {
-                            value: data.PoolThreads[i].ActivityRate * 10000, divisor: 100
-                        },
-                    },
+                    dimensions: threadActvDims
                 };
             }
 
             if (data.PoolRoles != null) {
-                var roleDims = {}
+                var roleActvDims = {}, roleThreadsDims = {}
                 for (var i = 0; i < data.PoolRoles.length; i++) {
-                    nCharts["role" + i + "Activity"] = {
-                        title: "$ Role '" + data.PoolRoles[i].Role + "' activity rate",
-                        units: "percent",
-                        family: "activity",
-                        dimensions: {
-                            time: {
-                                value: data.PoolRoles[i].ActivityRate * 10000, divisor: 100
-                            },
-                        },
-                    };
-                    roleDims[data.PoolRoles[i].Role] = { value: data.PoolRoles[i].NumThreads }
+                    roleActvDims[data.PoolRoles[i].Role] = { value: data.PoolRoles[i].ActivityRate * 10000, divisor: 100 };
+                    roleThreadsDims[data.PoolRoles[i].Role] = { value: data.PoolRoles[i].NumThreads };
                 }
+                nCharts["roleActivity"] = {
+                    title: "$ Role activity rates",
+                    units: "percent",
+                    family: "activity",
+                    dimensions: roleActvDims
+                };
                 nCharts["roleThreadCount"] = {
-                    title: "$ Role thread count",
+                    title: "$ Role thread counts",
                     units: "threads",
                     family: "activity",
-                    dimensions: roleDims,
+                    dimensions: roleThreadsDims,
                     type: netdata.chartTypes.stacked
-                }
+                };
             }
 
             CelesteNet.updateCharts(service, nCharts);

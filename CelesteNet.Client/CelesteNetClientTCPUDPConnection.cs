@@ -71,27 +71,24 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void TCPRecvThreadFunc() {
             try {
-                using (CelesteNetBinaryReader tcpReader = new CelesteNetBinaryReader(Data, Strings, SlimMap, tcpStream, true)) {
+                byte[] packetBuffer = new byte[MaxPacketSize];
+                using (BinaryReader tcpReader = new BinaryReader(tcpStream, Encoding.UTF8, true)) {
                     while (!tokenSrc.IsCancellationRequested) {
-                        // Read the packet size
-                        UInt16 packetSize;
-                        try {
-                            packetSize = tcpReader.ReadUInt16();
-                        } catch (EndOfStreamException) {
-                            if (!tokenSrc.IsCancellationRequested) {
-                                Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
-                                Dispose();
-                            }
-                            return;
-                        }
+                        // Read the packet
+                        UInt16 packetSize = tcpReader.ReadUInt16();
                         if (packetSize > MaxPacketSize)
                             throw new InvalidDataException("Peer sent packet over maximum size");
+                        if (tcpReader.Read(packetBuffer, 0, packetSize) < packetSize)
+                            throw new EndOfStreamException();
 
                         // Let the connection now we got a TCP heartbeat
                         TCPHeartbeat();
 
                         // Read the packet
-                        DataType packet = Data.Read(tcpReader);
+                        DataType packet;
+                        using (MemoryStream packetStream = new MemoryStream(packetBuffer, 0, packetSize))
+                        using (CelesteNetBinaryReader packetReader = new CelesteNetBinaryReader(Data, Strings, SlimMap, packetStream))
+                            packet = Data.Read(packetReader);
 
                         // Handle the packet
                         switch (packet) {
@@ -118,6 +115,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                         PromoteOptimizations();
                     }
                 }
+            } catch (EndOfStreamException) {
+                if (!tokenSrc.IsCancellationRequested) {
+                    Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
+                    Dispose();
+                }
+                return;
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
                     return;

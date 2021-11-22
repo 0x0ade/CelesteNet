@@ -258,10 +258,8 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public DataType Read(CelesteNetBinaryReader reader) {
-            if (!(reader.BaseStream is PositionAwareStream || reader.BaseStream.CanSeek))
-                throw new ArgumentException("Base stream isn't position aware");
-            if (reader.BaseStream is PositionAwareStream s)
-                s.ResetPosition();
+            if (!reader.BaseStream.CanSeek)
+                throw new ArgumentException("Base stream isn't seekable");
 
             DataFlags flags = (DataFlags) reader.ReadUInt16();
             if ((flags & DataFlags.InteralSlimIndicator) != 0) {
@@ -303,17 +301,15 @@ namespace Celeste.Mod.CelesteNet {
             if (lengthReal != length)
                 throw new InvalidDataException($"Length mismatch for DataType '{id}' {flags} {source} {length} - got {lengthReal}");
 
-            if ((flags & DataFlags.SlimHeader) != 0)
+            if (type != null && (flags & DataFlags.SlimHeader) != 0)
                 reader.SlimMap?.CountRead(type);
 
             return data;
         }
 
         public MetaType ReadMeta(CelesteNetBinaryReader reader) {
-            if (!(reader.BaseStream is PositionAwareStream || reader.BaseStream.CanSeek))
-                throw new ArgumentException("Base stream isn't position aware");
-            if (reader.BaseStream is PositionAwareStream s)
-                s.ResetPosition();
+            if (!reader.BaseStream.CanSeek)
+                throw new ArgumentException("Base stream isn't seekable");
 
             string id = reader.ReadNetMappedString();
             int length = reader.ReadByte();

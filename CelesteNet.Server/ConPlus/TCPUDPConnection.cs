@@ -114,52 +114,57 @@ namespace Celeste.Mod.CelesteNet.Server {
                     return;
                 }
 
-                // Check if we have read the first two length bytes
-                if (tcpBufferOff >= 2) {
-                    // Get the packet length
-                    int packetLen = BitConverter.ToUInt16(tcpBuffer, 0);
-                    if (packetLen > Server.Settings.MaxPacketSize) {
-                        Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} sent packet over the size limit: {packetLen} > {Server.Settings.MaxPacketSize}");
-                        Dispose();
-                        return;
-                    }
-
-                    // Did we receive the entire packet already?
-                    if (2+packetLen <= tcpBufferOff) {
-                        // Update metrics and check if we hit the cap
-                        TCPRecvRate.UpdateRate(0, 1);
-                        if (TCPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap) {
-                            Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink packet cap: {TCPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap} cap PpS");
+                while (true) {
+                    // Check if we have read the first two length bytes
+                    if (tcpBufferOff >= 2) {
+                        // Get the packet length
+                        int packetLen = BitConverter.ToUInt16(tcpBuffer, 0);
+                        if (packetLen > Server.Settings.MaxPacketSize) {
+                            Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} sent packet over the size limit: {packetLen} > {Server.Settings.MaxPacketSize}");
                             Dispose();
                             return;
                         }
 
-                        // Read the packet
-                        DataType packet;
-                        using (MemoryStream mStream = new MemoryStream(tcpBuffer, 2, packetLen))
-                        using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream))
-                            packet = Server.Data.Read(reader);
+                        // Did we receive the entire packet already?
+                        if (2+packetLen <= tcpBufferOff) {
+                            // Update metrics and check if we hit the cap
+                            TCPRecvRate.UpdateRate(0, 1);
+                            if (TCPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap) {
+                                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink packet cap: {TCPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap} cap PpS");
+                                Dispose();
+                                return;
+                            }
 
-                        // Handle the packet
-                        switch (packet) {
-                            case DataLowLevelUDPInfo udpInfo: {
-                                HandleUDPInfo(udpInfo);
-                            } break;
-                            case DataLowLevelStringMap strMap: {
-                                Strings.RegisterWrite(strMap.String, strMap.ID);
-                            } break;
-                            case DataLowLevelSlimMap slimMap: {
-                                if (slimMap.PacketType != null)
-                                    SlimMap.RegisterWrite(slimMap.PacketType, slimMap.ID);
-                            } break;
-                            default: {
-                                Receive(packet);
-                            } break;
-                        }
+                            // Read the packet
+                            DataType packet;
+                            using (MemoryStream mStream = new MemoryStream(tcpBuffer, 2, packetLen))
+                            using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream))
+                                packet = Server.Data.Read(reader);
 
-                        // Remove the packet data from the buffer
-                        Buffer.BlockCopy(tcpBuffer, 2+packetLen, tcpBuffer, 0, tcpBufferOff - (2+packetLen));
-                    }
+                            // Handle the packet
+                            switch (packet) {
+                                case DataLowLevelUDPInfo udpInfo: {
+                                    HandleUDPInfo(udpInfo);
+                                } break;
+                                case DataLowLevelStringMap strMap: {
+                                    Strings.RegisterWrite(strMap.String, strMap.ID);
+                                } break;
+                                case DataLowLevelSlimMap slimMap: {
+                                    if (slimMap.PacketType != null)
+                                        SlimMap.RegisterWrite(slimMap.PacketType, slimMap.ID);
+                                } break;
+                                default: {
+                                    Receive(packet);
+                                } break;
+                            }
+
+                            // Remove the packet data from the buffer
+                            Buffer.BlockCopy(tcpBuffer, 2+packetLen, tcpBuffer, 0, tcpBufferOff - (2+packetLen));
+                            tcpBufferOff -= 2+packetLen;
+                        } else
+                            break;
+                    } else
+                        break;
                 }
             } while (TCPSocket.Available > 0);
 

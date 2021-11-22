@@ -63,7 +63,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public int GenerateToken() {
-            uint val;
+            uint val = 0;
 
             // Step the (Galois) LFSR a random number of times
             lock (lfsrLock)

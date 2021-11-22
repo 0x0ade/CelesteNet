@@ -35,14 +35,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             public float ByteRate {
                 get {
                     using (rateLock.R())
-                        return Con.Server.ThreadPool.IterateEventHeuristic(ref byteRate, ref lastByteRateUpdate, 0);
+                        return Con.Server.ThreadPool.IterateEventHeuristic(ref byteRate, ref lastByteRateUpdate);
                 }
             }
 
             public float PacketRate {
                 get {
                     using (rateLock.R())
-                        return Con.Server.ThreadPool.IterateEventHeuristic(ref packetRate, ref lastPacketRateUpdate, 0);
+                        return Con.Server.ThreadPool.IterateEventHeuristic(ref packetRate, ref lastPacketRateUpdate);
                 }
             }
 

@@ -233,28 +233,28 @@ namespace Celeste.Mod.CelesteNet.Server {
             public float TCPByteRate {
                 get {
                     using (tcpMetricsLock.R())
-                        return Role.Pool.IterateEventHeuristic(ref tcpByteRate, ref lastTcpByteRateUpdate, 0);
+                        return Role.Pool.IterateEventHeuristic(ref tcpByteRate, ref lastTcpByteRateUpdate);
                 }
             }
 
             public float TCPPacketRate {
                 get {
                     using (tcpMetricsLock.R())
-                        return Role.Pool.IterateEventHeuristic(ref tcpPacketRate, ref lastTcpPacketRateUpdate, 0);
+                        return Role.Pool.IterateEventHeuristic(ref tcpPacketRate, ref lastTcpPacketRateUpdate);
                 }
             }
 
             public float UDPByteRate {
                 get {
                     using (udpMetricsLock.R())
-                        return Role.Pool.IterateEventHeuristic(ref udpByteRate, ref lastUdpByteRateUpdate, 0);
+                        return Role.Pool.IterateEventHeuristic(ref udpByteRate, ref lastUdpByteRateUpdate);
                 }
             }
 
             public float UDPPacketRate {
                 get {
                     using (udpMetricsLock.R())
-                        return Role.Pool.IterateEventHeuristic(ref udpPacketRate, ref lastUdpPacketRateUpdate, 0);
+                        return Role.Pool.IterateEventHeuristic(ref udpPacketRate, ref lastUdpPacketRateUpdate);
                 }
             }
 

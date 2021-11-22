@@ -75,7 +75,15 @@ namespace Celeste.Mod.CelesteNet.Client {
                 using (CelesteNetBinaryReader tcpReader = new CelesteNetBinaryReader(Data, Strings, SlimMap, tcpStream, true)) {
                     while (!tokenSrc.IsCancellationRequested) {
                         // Read the packet size
-                        UInt16 packetSize = tcpReader.ReadUInt16();
+                        UInt16 packetSize;
+                        try {
+                            packetSize = tcpReader.ReadUInt16();
+                        } catch (EndOfStreamException) {
+                            Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
+                            if (!tokenSrc.IsCancellationRequested)
+                                Dispose();
+                            return;
+                        }
                         if (packetSize > MaxPacketSize)
                             throw new InvalidDataException("Peer sent packet over maximum size");
 

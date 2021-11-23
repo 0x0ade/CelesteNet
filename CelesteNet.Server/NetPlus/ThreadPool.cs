@@ -77,7 +77,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float IterateEventHeuristic(ref float lastVal, ref long lastUpdate, int numEvents=0, bool update=false) {
             long curMs = runtimeWatch.ElapsedMilliseconds;
             long cutoffMs = curMs - HeuristicSampleWindow;
-            float newVal = ((lastUpdate < cutoffMs) ? 0 : (lastVal * (lastUpdate - cutoffMs) / HeuristicSampleWindow)) + numEvents;
+            float newVal = (((lastUpdate < cutoffMs) ? 0 : (lastVal * (lastUpdate - cutoffMs) / 1000f)) + numEvents) / HeuristicSampleWindow * 1000f;
             if (update) {
                 lastVal = newVal;
                 lastUpdate = curMs;

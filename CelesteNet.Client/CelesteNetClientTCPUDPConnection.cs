@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             udpRecvThread = new Thread(UDPRecvThreadFunc) { Name = "UDP Send Thread" };
             tcpSendThread = new Thread(TCPSendThreadFunc) { Name = "TCP Recv Thread" };
             udpSendThread = new Thread(UDPSendThreadFunc) { Name = "UDP Send Thread" };
-            
+
             tcpRecvThread.Start();
             udpRecvThread.Start();
             tcpSendThread.Start();
@@ -155,7 +155,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
                     return;
-                
+
                 if ((e is IOException || e is SocketException) && tokenSrc.IsCancellationRequested)
                     return;
 
@@ -180,11 +180,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                     lock (UDPLock) {
                         if (UDPEndpoint == null || UDPConnectionID < 0)
                             continue;
-                        
+
                         // Adjust the datagram buffer size
                         if (buffer == null || buffer.Length != UDPMaxDatagramSize)
                             Array.Resize(ref buffer, UDPMaxDatagramSize);
-                        
+
                         // Create the receiving socket
                         if (sock == null) {
                             sock = new Socket(SocketType.Dgram, ProtocolType.Udp);
@@ -214,7 +214,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Data, Strings, SlimMap, mStream)) {
                             // Get the container ID
                             byte containerID = reader.ReadByte();
-                            
+
                             // Read packets until we run out data
                             while (mStream.Position < dgSize-1) {
                                 DataType packet = Data.Read(reader);
@@ -282,12 +282,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                             if (ep == null || UDPMaxDatagramSize <= 0) {
                                 if (!UseUDP)
                                     return;
-                            
+
                                 // Try to establish the UDP connection
                                 // If it succeeeds, we'll receive a udpInfo packet with our connection parameters
                                 if (p == null)
                                     sock.SendTo(BitConverter.GetBytes(ConnectionToken), 4, SocketFlags.None, TCPSocket.RemoteEndPoint);
-                                
+
                                 continue;
                             } else if (p == null)
                                 continue;
@@ -295,7 +295,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             // Adjust the datagram buffer size
                             if (dgBuffer == null || dgBuffer.Length != UDPMaxDatagramSize)
                                 Array.Resize(ref dgBuffer, UDPMaxDatagramSize);
-                                
+
                             // Try to send as many packets as possible
                             dgBuffer[0] = NextUDPContainerID();
                             int bufOff = 1;
@@ -342,7 +342,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 con.tcpSendQueue.Add(packet);
             queue.SignalFlushed();
         }
-        
+
         private static void FlushUDPQueue(CelesteNetSendQueue queue) {
             CelesteNetClientTCPUDPConnection con = (CelesteNetClientTCPUDPConnection) queue.Con;
             foreach (DataType packet in queue.BackQueue)

@@ -102,14 +102,14 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
-        
+
         public async Task DoTCPUDPHandshake(Socket sock, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) {
             EndPoint remoteEP = sock.RemoteEndPoint!;
             ConPlusTCPUDPConnection? con = null;
             try {
                 // Obtain a connection token
                 int conToken = Server.ConTokenGenerator.GenerateToken();
-                
+
                 // Do the teapot handshake
                 bool teapotSuccess;
                 string conUID = null!;
@@ -165,7 +165,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     IPEndPoint ipEP => $"con-ip-{BitConverter.ToString(ipEP.Address.MapToIPv6().GetAddressBytes())}",
                     _ => $"con-unknown"
                 };
-                    
+
                 async Task<(string, IConnectionFeature[], string, string)?> Send500() {
                     await writer.WriteAsync(@"
 HTTP/1.1 500 Internal Server Error
@@ -307,7 +307,7 @@ Who wants some tea?
                 playerName = playerName.Substring(0, Server.Settings.MaxNameLength);
             if (playerName.IsNullOrEmpty())
                 playerName = "Guest";
-        
+
             return ((playerUID, playerName), null);
         }
 
@@ -316,6 +316,6 @@ Who wants some tea?
 
         public CelesteNetServer Server { get; }
         public TaskFactory Factory { get; }
-        
+
     }
 }

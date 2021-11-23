@@ -39,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float NetPlusSchedulerStealThreshold { get; set; } = 0.7f;
 
         public int MainPort { get; set; } = 3802;
-        
+
         public int MaxTickRate { get; set; } = 50;
         public float TickRateLowActivityThreshold { get; set; } = 0.3f;
         public float TickRateLowTCPUplinkBpSThreshold { get; set; } = 4194304; // 4 MBpS
@@ -47,7 +47,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float TickRateHighActivityThreshold { get; set; } = 0.85f;
         public float TickRateHighTCPUplinkBpSThreshold { get; set; } = 16777216; // 16 MBpS
         public float TickRateHighUDPUplinkBpSThreshold { get; set; } = 33554432; // 32 MBpS
-        
+
         public int MaxPacketSize { get; set; } = 1024;
         public int MaxQueueSize { get; set; } = 256;
         public float MergeWindow { get; set; } = 15;

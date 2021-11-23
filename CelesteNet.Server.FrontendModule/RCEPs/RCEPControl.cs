@@ -145,9 +145,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private static object[]? netPlusRoleStats;
 
         private struct BandwithRate {
-        
+
             public float GlobalRate, MinConRate, MaxConRate, AvgConRate;
-        
+
             public void UpdateRate(CelesteNetServer server, Func<CelesteNetConnection, float?> cb) {
                 GlobalRate = 0;
                 MinConRate = float.MaxValue;
@@ -217,11 +217,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     StartupTime = f.Server.StartupTime.ToUnixTime(),
                     GCMemory = GC.GetTotalMemory(false),
                     Modules = f.Server.Modules.Count,
-                    
+
                     f.Server.PlayerCounter,
                     Registered = f.Server.UserData.GetRegisteredCount(),
                     Banned = f.Server.UserData.LoadAll<BanInfo>().GroupBy(ban => ban.UID).Select(g => g.First()).Count(ban => !ban.Reason.IsNullOrEmpty()),
-                    
+
                     Connections = auth ? f.Server.Connections.Count : (int?) null,
                     Sessions = auth ? f.Server.Sessions.Count : (int?) null,
                     PlayersByCon = auth ? f.Server.PlayersByCon.Count : (int?) null,
@@ -298,7 +298,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 p.PlayerInfo?.Name,
                 p.PlayerInfo?.FullName,
                 p.PlayerInfo?.DisplayName,
-                
+
                 Connection = auth ? p.Con.ID : null,
                 ConnectionUID = auth ? p.Con.UID : null,
 

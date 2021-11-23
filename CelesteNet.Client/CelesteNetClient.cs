@@ -111,7 +111,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             // Do the regular connection handshake
                             Handshake.DoConnectionHandshake(Con, features);
                             Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
-                            
+
                         } catch (Exception) {
                             Con?.Dispose();
                             try {

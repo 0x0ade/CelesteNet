@@ -9,7 +9,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public new abstract class RoleWorker : NetPlusThreadRole.RoleWorker {
 
             protected RoleWorker(NetPlusThreadRole role, NetPlusThread thread) : base(role, thread) {}
-            
+
             protected internal override void StartWorker(CancellationToken token) {
                 using (Socket sock = Role.CreateSocket())
                     StartWorker(sock, token);

@@ -79,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 using (roleLock.R()) {
                     Stopwatch watch = new Stopwatch();
                     Logger.Log(LogLevel.DBG, "netplus", "Invoking thread pool scheduler...");
-                    
+
                     // Collect metadata from roles and threads
                     List<(NetPlusThreadRole role, RoleMetadata metadata)> roles = new List<(NetPlusThreadRole, RoleMetadata)>();
                     Dictionary<NetPlusThreadRole, int> roleIdxs = new Dictionary<NetPlusThreadRole, int>();
@@ -106,7 +106,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     // Sort roles and threads by their activity rates
                     roles.Sort((r1, r2) => r1.metadata.actvRate.CompareTo(r2.metadata.actvRate));
                     threads.Sort((t1, t2) => t1.actvRate.CompareTo(t2.actvRate));
-                    
+
                     // Iterate over all overloaded roles or roles with too little threads, and assign them to underloaded threads
                     lastSchedulerExecNumThreadsReassigned = 0;
                     for (int i = roles.Count - 1; i >= 0; i--) {
@@ -146,7 +146,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                             metadata.numThreads--;
                             metadata.numStolenThreads++;
                         }
-                        
+
                         threads.RemoveAt(threadIdx);
                         lastSchedulerExecNumThreadsReassigned++;
                     }
@@ -218,7 +218,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public long LastSchedulerExecDuration { get { lock(schedulerLock) return lastSchedulerExecDuration; } }
         public int LastSchedulerExecNumThreadsReassigned { get { lock(schedulerLock) return lastSchedulerExecNumThreadsReassigned; } }
         public int LastSchedulerExecNumThreadsIdeling { get { lock(schedulerLock) return lastSchedulerExecNumThreadsIdeling; } }
-        
+
         public event Action? OnPreScheduling, OnPostScheduling;
 
     }

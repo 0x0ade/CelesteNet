@@ -37,7 +37,7 @@ namespace Celeste.Mod.CelesteNet {
                             con.Dispose();
                             continue;
                         }
-                        
+
                         Logger.Log(LogLevel.WRN, "tcprecv", $"Error while reading from connection {con}: {e}");
                         con.Dispose();
                     } finally {

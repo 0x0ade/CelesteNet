@@ -45,10 +45,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         private static extern int epoll_create(int size);
         [DllImport("libc", SetLastError = true)]
         private static extern int epoll_ctl(int epfd, uint op, int fd, [In] in epoll_event evt);
-        
+
         [DllImport("libc", SetLastError = true)]
         private static extern int epoll_wait(int epfd, [Out, MarshalAs(UnmanagedType.LPArray)] epoll_event[] evt, int maxevts, int timeout);
-        
+
         private RWLock pollerLock;
         private int epollFD, cancelFD;
         private ConcurrentDictionary<ConPlusTCPUDPConnection, (int fd, int id)> connections;
@@ -65,7 +65,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             epollFD = epoll_create(21); // The documentation says "pass any number, it's unused on modern systems" :)
             if (epollFD < 0)
                 throw new SystemException($"Could not create the EPoll FD: {Marshal.GetLastWin32Error()}");
-                
+
             // Create the cancel eventfd, and initialize it to be not triggered
             // (counter at zero) and behave like a semaphore (so reading it
             // causes to counter to get decremented, not reset to zero)
@@ -111,7 +111,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (!connections.TryAdd(con, (fd, id)))
                     throw new ArgumentException("Connection already part of poller");
                 conIds[id] = con;
-                
+
                 // Add the socket's FD to the EPoll FD
                 // Flag breakdown:
                 //  - EPOLLIN: listen for "read-ready"
@@ -173,7 +173,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 int ret = epoll_wait(epollFD, evts, 1, -1);
                 if (ret < 0)
                     throw new SystemException($"Couldn't poll the EPoll FD: {Marshal.GetLastWin32Error()}");
-                
+
                 // Yield the connections from the event
                 for (int i = 0; i < ret; i++) {
                     int id = (int) evts[i].user;

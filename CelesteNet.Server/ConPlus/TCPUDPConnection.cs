@@ -1,7 +1,6 @@
 using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.IO;
-using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -54,17 +53,20 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly UDPReceiverRole UDPReceiver;
         public readonly TCPUDPSenderRole Sender;
 
-        public readonly RateMetric TCPRecvRate, TCPSendRate;
-        public readonly RateMetric UDPRecvRate, UDPSendRate;
-
+        private RWLock usageLock;
         private byte[] tcpBuffer;
         private int tcpBufferOff;
+        public int UDPNextConnectionID = 0;
+
+        public readonly RateMetric TCPRecvRate, TCPSendRate;
+        public readonly RateMetric UDPRecvRate, UDPSendRate;
 
         public ConPlusTCPUDPConnection(CelesteNetServer server, int token, string uid, Socket tcpSock, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) : base(server.Data, token, uid, server.Settings.MaxPacketSize, server.Settings.MaxQueueSize, server.Settings.MergeWindow, tcpSock, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
             Server = server;
             TCPReceiver = tcpReceiver;
             UDPReceiver = udpReceiver;
             Sender = sender;
+            usageLock = new RWLock();
             TCPRecvRate = new RateMetric(this);
             TCPSendRate = new RateMetric(this);
             UDPRecvRate = new RateMetric(this);
@@ -79,141 +81,163 @@ namespace Celeste.Mod.CelesteNet.Server {
             // Initialize UDP receiving
             udpReceiver.AddConnection(this);
         }
-    
+
         protected override void Dispose(bool disposing) {
-            base.Dispose(disposing);
             TCPReceiver.Poller.RemoveConnection(this);
             UDPReceiver.RemoveConnection(this);
-            TCPRecvRate.Dispose();
-            TCPSendRate.Dispose();
-            UDPRecvRate.Dispose();
-            UDPSendRate.Dispose();
+            using (usageLock.W()) {
+                base.Dispose(disposing);
+                TCPRecvRate.Dispose();
+                TCPSendRate.Dispose();
+                UDPRecvRate.Dispose();
+                UDPSendRate.Dispose();
+                usageLock.Dispose();
+            }
+        }
+
+        // It's OK to do this for edge cases
+        public IDisposable? Utilize(out bool alive) {
+            try {
+                alive = true;
+                return usageLock.R();
+            } catch (ObjectDisposedException) {
+                alive = false;
+                return null;
+            }
         }
 
         public void ReceiveTCPData() {
-            if (!IsConnected)
-                return;
-            do {
-                // Receive data into the buffer
-                int numRead = TCPSocket.Receive(tcpBuffer, tcpBuffer.Length - tcpBufferOff, SocketFlags.None);
-                if (numRead == 0) {
-                    // The remote closed the connection
-                    Logger.Log(LogLevel.INF, "tcpudpcon", $"Remote of connection {this} closed the connection");
-                    Dispose();
+            using (Utilize(out bool alive)) {
+                if (!alive || !IsConnected)
                     return;
-                }
-                tcpBufferOff += numRead;
 
-                // Let the connection know we got a heartbeat
-                TCPHeartbeat();
+                do {
+                    // Receive data into the buffer
+                    int numRead = TCPSocket.Receive(tcpBuffer, tcpBuffer.Length - tcpBufferOff, SocketFlags.None);
+                    if (numRead == 0) {
+                        // The remote closed the connection
+                        Logger.Log(LogLevel.INF, "tcpudpcon", $"Remote of connection {this} closed the connection");
+                        Dispose();
+                        return;
+                    }
+                    tcpBufferOff += numRead;
 
-                // Update metrics and check if we hit the cap
-                TCPRecvRate.UpdateRate(numRead, 0);
-                if (TCPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap) {
-                    Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink byte cap: {TCPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap} cap BpS");
-                    Dispose();
-                    return;
-                }
+                    // Let the connection know we got a heartbeat
+                    TCPHeartbeat();
 
-                while (true) {
-                    // Check if we have read the first two length bytes
-                    if (tcpBufferOff >= 2) {
-                        // Get the packet length
-                        int packetLen = BitConverter.ToUInt16(tcpBuffer, 0);
-                        if (packetLen > Server.Settings.MaxPacketSize) {
-                            Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} sent packet over the size limit: {packetLen} > {Server.Settings.MaxPacketSize}");
-                            Dispose();
-                            return;
-                        }
+                    // Update metrics and check if we hit the cap
+                    TCPRecvRate.UpdateRate(numRead, 0);
+                    if (TCPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap) {
+                        Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink byte cap: {TCPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap} cap BpS");
+                        Dispose();
+                        return;
+                    }
 
-                        // Did we receive the entire packet already?
-                        if (2+packetLen <= tcpBufferOff) {
-                            // Update metrics and check if we hit the cap
-                            TCPRecvRate.UpdateRate(0, 1);
-                            if (TCPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap) {
-                                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink packet cap: {TCPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap} cap PpS");
+                    while (true) {
+                        // Check if we have read the first two length bytes
+                        if (tcpBufferOff >= 2) {
+                            // Get the packet length
+                            int packetLen = BitConverter.ToUInt16(tcpBuffer, 0);
+                            if (packetLen > Server.Settings.MaxPacketSize) {
+                                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} sent packet over the size limit: {packetLen} > {Server.Settings.MaxPacketSize}");
                                 Dispose();
                                 return;
                             }
 
-                            // Read the packet
-                            DataType packet;
-                            using (MemoryStream mStream = new MemoryStream(tcpBuffer, 2, packetLen))
-                            using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream))
-                                packet = Server.Data.Read(reader);
+                            // Did we receive the entire packet already?
+                            if (2+packetLen <= tcpBufferOff) {
+                                // Update metrics and check if we hit the cap
+                                TCPRecvRate.UpdateRate(0, 1);
+                                if (TCPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap) {
+                                    Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink packet cap: {TCPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap} cap PpS");
+                                    Dispose();
+                                    return;
+                                }
 
-                            // Handle the packet
-                            switch (packet) {
-                                case DataLowLevelUDPInfo udpInfo: {
-                                    HandleUDPInfo(udpInfo);
-                                } break;
-                                case DataLowLevelStringMap strMap: {
-                                    Strings.RegisterWrite(strMap.String, strMap.ID);
-                                } break;
-                                case DataLowLevelSlimMap slimMap: {
-                                    if (slimMap.PacketType != null)
-                                        SlimMap.RegisterWrite(slimMap.PacketType, slimMap.ID);
-                                } break;
-                                default: {
-                                    Receive(packet);
-                                } break;
-                            }
+                                // Read the packet
+                                DataType packet;
+                                using (MemoryStream mStream = new MemoryStream(tcpBuffer, 2, packetLen))
+                                using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream))
+                                    packet = Server.Data.Read(reader);
 
-                            // Remove the packet data from the buffer
-                            Buffer.BlockCopy(tcpBuffer, 2+packetLen, tcpBuffer, 0, tcpBufferOff - (2+packetLen));
-                            tcpBufferOff -= 2+packetLen;
+                                // Handle the packet
+                                switch (packet) {
+                                    case DataLowLevelUDPInfo udpInfo: {
+                                        HandleUDPInfo(udpInfo);
+                                    } break;
+                                    case DataLowLevelStringMap strMap: {
+                                        Strings.RegisterWrite(strMap.String, strMap.ID);
+                                    } break;
+                                    case DataLowLevelSlimMap slimMap: {
+                                        if (slimMap.PacketType != null)
+                                            SlimMap.RegisterWrite(slimMap.PacketType, slimMap.ID);
+                                    } break;
+                                    default: {
+                                        Receive(packet);
+                                    } break;
+                                }
+
+                                // Remove the packet data from the buffer
+                                Buffer.BlockCopy(tcpBuffer, 2+packetLen, tcpBuffer, 0, tcpBufferOff - (2+packetLen));
+                                tcpBufferOff -= 2+packetLen;
+                            } else
+                                break;
                         } else
                             break;
-                    } else
-                        break;
-                }
-            } while (TCPSocket.Available > 0);
-
-            // Promote optimizations
-            PromoteOptimizations();
-        }
-
-        public void HandleUDPDatagram(byte[] buffer, int dgSize) {
-            lock (UDPLock) {
-                if (!IsConnected || dgSize <= 0)
-                    return;
-
-                // Update metrics
-                UDPRecvRate.UpdateRate(dgSize, 0);
-                if (UDPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap) {
-                    Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink byte cap: {UDPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap} cap BpS");
-                    Dispose();
-                    return;
-                }
-
-                // Let the connection know we got a heartbeat
-                UDPHeartbeat();
-                
-                using (MemoryStream mStream = new MemoryStream(buffer, 0, dgSize))
-                using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream)) {
-                    // Get the container ID
-                    byte containerID = reader.ReadByte();
-
-                    // Read packets until we run out data
-                    while (mStream.Position < dgSize-1) {
-                        DataType packet = Server.Data.Read(reader);
-                        
-                        // Update metrics
-                        UDPRecvRate.UpdateRate(0, 1);
-                        if (UDPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap) {
-                            Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink packet cap: {UDPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap} cap PpS");
-                            Dispose();
-                            return;
-                        }
-
-                        if (packet.TryGet<MetaOrderedUpdate>(Server.Data, out MetaOrderedUpdate? orderedUpdate))
-                            orderedUpdate.UpdateID = containerID;
-                        Receive(packet);
                     }
-                }
+                } while (TCPSocket.Available > 0);
 
                 // Promote optimizations
                 PromoteOptimizations();
+            }
+        }
+
+        public void HandleUDPDatagram(byte[] buffer, int dgSize) {
+            using (Utilize(out bool alive)) {
+                if (!alive || !IsConnected)
+                    return;
+
+                lock (UDPLock) {
+                    if (!IsConnected || dgSize <= 0)
+                        return;
+
+                    // Update metrics
+                    UDPRecvRate.UpdateRate(dgSize, 0);
+                    if (UDPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap) {
+                        Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink byte cap: {UDPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap} cap BpS");
+                        Dispose();
+                        return;
+                    }
+
+                    // Let the connection know we got a heartbeat
+                    UDPHeartbeat();
+
+                    using (MemoryStream mStream = new MemoryStream(buffer, 0, dgSize))
+                    using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream)) {
+                        // Get the container ID
+                        byte containerID = reader.ReadByte();
+
+                        // Read packets until we run out data
+                        while (mStream.Position < dgSize-1) {
+                            DataType packet = Server.Data.Read(reader);
+
+                            // Update metrics
+                            UDPRecvRate.UpdateRate(0, 1);
+                            if (UDPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap) {
+                                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink packet cap: {UDPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap} cap PpS");
+                                Dispose();
+                                return;
+                            }
+
+                            if (packet.TryGet<MetaOrderedUpdate>(Server.Data, out MetaOrderedUpdate? orderedUpdate))
+                                orderedUpdate.UpdateID = containerID;
+                            Receive(packet);
+                        }
+                    }
+
+                    // Promote optimizations
+                    PromoteOptimizations();
+                }
             }
         }
 

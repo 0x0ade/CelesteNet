@@ -131,7 +131,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             ModulesFSWatcher.EnableRaisingEvents = true;
 
             ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? Environment.ProcessorCount : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.HeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
-        
+
             heartbeatTimer = new(Settings.HeartbeatInterval);
             heartbeatTimer.Elapsed += (_,_) => DoHeartbeatTick();
         }
@@ -277,7 +277,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         session?.Dispose();
                     }
                 }
-                
+
                 OnDisconnect?.Invoke(this, con, session);
             }));
         }
@@ -361,7 +361,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 nextTickRate = CurrentTickRate / 2;
             } else
                 return;
-            
+
             // Broadcast the new tick rate
             BroadcastAsync(new DataTickRate() {
                 TickRate = nextTickRate

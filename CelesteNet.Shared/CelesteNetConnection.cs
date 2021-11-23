@@ -225,7 +225,7 @@ namespace Celeste.Mod.CelesteNet {
         private void TimerElapsed(object? s, EventArgs a) {
             if (inMergeWindow != 1)
                 throw new InvalidOperationException("Not currently flushing the queue");
-                
+
             timer.Stop();
             if (swapQueues)
                 backQueue = Interlocked.Exchange(ref frontQueue, backQueue);

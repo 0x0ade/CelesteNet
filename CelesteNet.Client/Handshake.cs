@@ -35,7 +35,7 @@ Can I have some tea?
                 if (statusSegs.Length != 3)
                     throw new InvalidDataException($"Invalid HTTP response status line: '{statusLine}'");
                 int statusCode = int.Parse(statusSegs[1]);
-                    
+
                 Dictionary<string, string> headers = new Dictionary<string, string>();
                 for (string line = reader.ReadLine(); !string.IsNullOrEmpty(line); line = reader.ReadLine()) {
                     string[] lineSegs = (line!).Split(new[]{':'}, 2).Select(s => s.Trim()).ToArray()!;
@@ -51,7 +51,7 @@ Can I have some tea?
                 // Parse the "HTTP response"
                 if (statusCode != 418)
                     throw new ConnectionErrorException($"Server rejected teapot handshake (status {statusCode})", content.Trim());
-                
+
                 int conToken = int.Parse(headers["CelesteNet-ConnectionToken"]);
                 IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[]{','}).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray();
                 int maxPacketSize = int.Parse(headers["CelesteNet-MaxPacketSize"]);

@@ -201,7 +201,7 @@ namespace Celeste.Mod.CelesteNet {
                 return buffer;
             }
         }
-        
+
         private const int SOL_SOCKET = 1, SO_REUSEPORT = 15;
         [DllImport("libc", SetLastError = true)] 
         private static extern int setsockopt(IntPtr socket, int level, int opt, [In, MarshalAs(UnmanagedType.LPArray)] int[] val, int len);

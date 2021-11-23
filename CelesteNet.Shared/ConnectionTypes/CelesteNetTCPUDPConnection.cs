@@ -13,7 +13,7 @@ namespace Celeste.Mod.CelesteNet {
         private const int UDPDowngradeScoreMax = 3;
         private const int UDPDeathScoreMin = -2;
         private const int UDPDeathScoreMax = 3;
-        
+
         public readonly int ConnectionToken;
         public override bool IsConnected => IsAlive && tcpSock.Connected;
         public override string ID { get; }
@@ -93,7 +93,7 @@ namespace Celeste.Mod.CelesteNet {
                     OnUDPDeath?.Invoke(this, ep);
                 }
             }
-            
+
             udpEP = null;
             tcpQueue.Dispose();
             udpQueue.Dispose();
@@ -122,19 +122,19 @@ namespace Celeste.Mod.CelesteNet {
                     ID = id
                 });
         }
-        
+
         public virtual void InitUDP(EndPoint endpoint, int conId, int maxDatagramSize) {
             lock (UDPLock) {
                 // Can't initialize two connections at once
                 if (!UseUDP || UDPEndpoint != null)
                     return;
-                
+
                 // Initialize a new connection
                 udpEP = endpoint;
                 udpConnectionId = conId;
                 udpMaxDatagramSize = maxDatagramSize;
                 udpAliveScore = udpDowngradeScore = 0;
-                
+
                 // If the connection is already established, send a state update
                 if (conId >= 0)
                     Send(new DataLowLevelUDPInfo() {
@@ -214,7 +214,7 @@ namespace Celeste.Mod.CelesteNet {
                 // Check the packet
                 if (info.ConnectionID != udpConnectionId)
                     return;
-                
+
                 if (info.MaxDatagramSize <= 0)
                     throw new InvalidDataException($"Maximum datagram size can't be smaller than zero for established connections [{info.MaxDatagramSize}]");
 
@@ -228,7 +228,7 @@ namespace Celeste.Mod.CelesteNet {
                     ConnectionID = udpConnectionId,
                     MaxDatagramSize = udpMaxDatagramSize
                 });
-                
+
                 Logger.Log(LogLevel.INF, "tcpudpcon", $"Reduced maximum UDP datagram size of connection {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
             }
         }

@@ -78,7 +78,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             foreach (Stream s in Pending.Values)
                 s.Dispose();
             Pending.Clear();
-            
+
             foreach (string id in Registered)
                 Emoji.Register(id, GFX.Misc["whiteCube"]);
 

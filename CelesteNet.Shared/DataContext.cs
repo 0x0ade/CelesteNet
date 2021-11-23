@@ -270,7 +270,7 @@ namespace Celeste.Mod.CelesteNet {
                 DataType? slimData = Activator.CreateInstance(slimType) as DataType;
                 if (slimData == null)
                     throw new InvalidDataException($"Cannot create instance of data type {slimType.FullName}");
-                
+
                 slimData.ReadAll(reader);
 
                 return slimData;

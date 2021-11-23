@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 sockWriter = new BinaryWriter(sockStream);
                 packetStream = new MemoryStream(role.Server.Settings.MaxPacketSize);
                 packetWriter = new CelesteNetBinaryWriter(role.Server.Data, null, null, packetStream);
-                
+
                 udpSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
                 udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
                 udpSocket.EnableEndpointReuse();
@@ -116,7 +116,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Check if the connection's capped
                 if (con.TCPSendCapped) {
                     Logger.Log(LogLevel.WRN, "tcpsend", $"Connection {con} hit TCP uplink cap: {con.TCPSendRate.ByteRate} BpS {con.TCPSendRate.PacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkPpTCap} cap PpS");
-                    
+
                     // Requeue the queue to be flushed later
                     queue.DelayFlush(con.TCPSendCapDelay);
                     return;
@@ -165,11 +165,11 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             private void FlushUDPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
                 // TODO This could be optimized with sendmmsg
-                
+
                 // Check if the connection's capped
                 if (con.UDPSendCapped) {
                     Logger.Log(LogLevel.WRN, "udpsend", $"Connection {con} hit UDP uplink cap: {con.UDPSendRate.ByteRate} BpS {con.UDPSendRate.PacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkPpTCap} cap PpS");
-                    
+
                     // UDP's unreliable, just drop the excess packets
                     queue.SignalFlushed();
                     return;
@@ -196,7 +196,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         udpSocket.SendTo(udpBuffer, bufOff, SocketFlags.None, con.UDPEndpoint!);
                         udpBuffer[0] = con.NextUDPContainerID();
                         bufOff = 1;
-                        
+
                         // Update connection metrics and check if we hit the connection cap
                         con.UDPSendRate.UpdateRate(bufOff, 1);
                         if (con.UDPSendCapped)
@@ -272,7 +272,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
-        
+
         public void TriggerTCPQueueFlush(CelesteNetSendQueue queue) => queueQueue.Add((QueueType.TCP, queue));
         public void TriggerUDPQueueFlush(CelesteNetSendQueue queue) => queueQueue.Add((QueueType.UDP, queue));
 
@@ -284,7 +284,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public float TCPByteRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).TCPByteRate);
         public float TCPPacketRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).TCPPacketRate);
-        
+
         public float UDPByteRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).UDPByteRate);
         public float UDPPacketRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).UDPPacketRate);
 

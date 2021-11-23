@@ -107,12 +107,12 @@ namespace Celeste.Mod.CelesteNet {
 
         public override long Seek(long offset, SeekOrigin origin) => throw new System.NotImplementedException();
         public override void SetLength(long value) => throw new System.NotImplementedException();
-        
+
         public override bool CanRead => true;
         public override bool CanWrite => true;
         public override bool CanSeek => false;
         public override long Length => throw new System.NotImplementedException();
         public override long Position { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-        
+
     }
 }

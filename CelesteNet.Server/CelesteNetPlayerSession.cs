@@ -135,7 +135,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     }
                     foreach (DataNetEmoji frag in avatarFrags.SkipLast(1))
                         frag.MoreFragments = true;
-                    
+
                     // Turn avatar fragments into blobs
                     AvatarFragments = avatarFrags.Select(frag => DataInternalBlob.For(Server.Data, frag)).ToArray();
                 } else
@@ -156,7 +156,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             // Send packets to players
             DataInternalBlob blobPlayerInfo = DataInternalBlob.For(Server.Data, playerInfo)!;
-            
+
             Con.Send(playerInfo);
             foreach (DataInternalBlob fragBlob in AvatarFragments)
                 Con.Send(fragBlob);

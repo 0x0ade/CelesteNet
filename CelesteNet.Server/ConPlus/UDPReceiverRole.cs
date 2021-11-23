@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 Logger.Log(LogLevel.INF, "udprecv", $"Connection {con} UDP endpoint changed: {con.UDPEndpoint} -> {dgramSender}");
                                 Role.endPointMap.TryRemove(con.UDPEndpoint, out _);
                             }
-                            
+
                             // Initialize and establish the UDP connection
                             con.InitUDP(dgramSender, con.UDPNextConnectionID++, Role.Server.Settings.UDPMaxDatagramSize);
 
@@ -96,7 +96,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override NetPlusThreadRole.RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
-        
+
         public void AddConnection(ConPlusTCPUDPConnection con) {
             conTokenMap.TryAdd(con.ConnectionToken, con);
             con.OnUDPDeath += UDPDeath;

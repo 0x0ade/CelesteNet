@@ -12,6 +12,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
     public class CelesteNetTickerComponent : CelesteNetGameComponent {
 
+        public const float MinTickDelay = 0.01f;
+
         public volatile float TickRate = 0f;
         private float tickDelay = 0f;
 
@@ -25,7 +27,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             tickDelay -= Engine.RawDeltaTime;
             if (tickDelay <= 0) {
-                tickDelay = 1 / TickRate;
+                tickDelay += 1 / TickRate;
+                if (tickDelay < MinTickDelay)
+                    tickDelay = MinTickDelay;
 
                 // Tick components
                 foreach (ITickReceiver receiver in Context.Components.Values)

@@ -177,12 +177,13 @@ namespace Celeste.Mod.CelesteNet {
                     if ((udpMaxDatagramSize /= 2) >= 1+MaxPacketSize) {
                         Logger.Log(LogLevel.INF, "tcpudpcon", $"Downgrading UDP connection of {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
 
-                        Send(new DataLowLevelUDPInfo() {
-                            ConnectionID = udpConnectionId,
-                            MaxDatagramSize = udpMaxDatagramSize
-                        });
+                        if (udpConnectionId >= 0)
+                            Send(new DataLowLevelUDPInfo() {
+                                ConnectionID = udpConnectionId,
+                                MaxDatagramSize = udpMaxDatagramSize
+                            });
                     } else
-                        UDPConnectionDeath("Too many downgrades");
+                        UDPConnectionDeath(true, "Too many downgrades");
                 } else
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Decreased score of UDP connection of {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
 
@@ -194,14 +195,16 @@ namespace Celeste.Mod.CelesteNet {
                 if (!UseUDP || UDPEndpoint == null)
                     return;
 
-                // Handle connection ID changes
-                // Going from a ID to no ID -> connection death
-                // Going from no ID to a ID -> connection established 
+                // Handle connection ID
+                // If the packet contains a negative connection ID, disable UDP
+                // If we don't have a connection ID, try to establish the connection
+                // Otherwise, the packet must contain our connection ID
                 if (info.ConnectionID < 0) {
-                    if (udpConnectionId >= 0)
-                        UDPConnectionDeath("Remote connection died");
+                    udpAliveScore = udpDowngradeScore = 0;
+                    udpDeathScore = UDPDeathScoreMax;
+                    Logger.Log(LogLevel.INF, "tcpudpcon", $"Remote disabled UDP for connection {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
                     return;
-                } else if (info.ConnectionID >= 0 && udpConnectionId < 0) {
+                } else if (udpConnectionId < 0) {
                     // If it referes to an old connection, just ignore it
                     if (info.ConnectionID <= udpLastConnectionId)
                         return;
@@ -209,14 +212,14 @@ namespace Celeste.Mod.CelesteNet {
                     udpMaxDatagramSize = info.MaxDatagramSize;
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Established UDP connection of {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
                     return;
-                }
-
-                // Check the packet
-                if (info.ConnectionID != udpConnectionId)
+                } else if (info.ConnectionID != udpConnectionId)
                     return;
 
-                if (info.MaxDatagramSize <= 0)
-                    throw new InvalidDataException($"Maximum datagram size can't be smaller than zero for established connections [{info.MaxDatagramSize}]");
+                // Check if the remote notified us of a connection death
+                if (info.MaxDatagramSize < 1+MaxPacketSize) {
+                    UDPConnectionDeath(false, "Remote connection died");
+                    return;
+                }
 
                 // Decrease the maximum datagram size
                 if (info.MaxDatagramSize == udpMaxDatagramSize)
@@ -233,28 +236,29 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        private void UDPConnectionDeath(string reason) {
+        private void UDPConnectionDeath(bool increaseScore, string reason) {
             EndPoint ep = udpEP!;
 
-            if (udpConnectionId >= 0) {
-                udpLastConnectionId = udpConnectionId;
-
-                // Notify the remote of our connection death if the connection was established
-                Send(new DataLowLevelUDPInfo() {
-                    ConnectionID = -1,
-                    MaxDatagramSize = 0
-                });
-            }
-
             // Uninitialize the connection
+            if (udpConnectionId >= 0)
+                udpLastConnectionId = udpConnectionId;
             udpEP = null;
             udpMaxDatagramSize = udpAliveScore = udpDowngradeScore = 0;
             udpQueue.Clear();
 
             // Increment the death score
             // If it exceeds the maximum, disable UDP
-            if (udpDeathScore < UDPDeathScoreMax)
-                udpDeathScore++;
+            if (increaseScore && udpDeathScore < UDPDeathScoreMax) {
+                if (++udpDeathScore >= UDPDeathScoreMax)
+                    Logger.Log(LogLevel.INF, "tcpudpcon", $"Disabling UDP for connection {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+            }
+
+            // Notify the remote
+            if (udpLastConnectionId >= 0)
+                Send(new DataLowLevelUDPInfo() {
+                    ConnectionID = UseUDP ? udpLastConnectionId : -1,
+                    MaxDatagramSize = 0
+                });
 
             Logger.Log(LogLevel.INF, "tcpudpcon", $"UDP connection of {this} died: {reason} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
             OnUDPDeath?.Invoke(this, ep);

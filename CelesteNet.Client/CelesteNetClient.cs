@@ -88,13 +88,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                             sock.Connect(Settings.Host, Settings.Port);
 
                             // Do the teapot handshake
-                            (int conToken, IConnectionFeature[] conFeatures, CelesteNetTCPUDPConnection.Settings conSettings, int udpRecvPort, int udpSendPort) = Handshake.DoTeapotHandshake(sock, ConFeatures, Settings.Name);
-                            Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {conToken} conFeatures '{conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}' udpRecvPort {udpRecvPort} udpSendPort {udpSendPort}");
+                            var res = Handshake.DoTeapotHandshake(sock, ConFeatures, Settings.Name);
+                            Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {res.conToken} conFeatures '{res.conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}' udpRecvPort {res.udpRecvPort} udpSendPort {res.udpSendPort}");
 
                             // Create a connection and start the heartbeat timer
-                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, conToken, conSettings, sock, udpRecvPort, udpSendPort);
+                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, res.conToken, res.settings, sock, res.udpRecvPort, res.udpSendPort);
                             con.OnDisconnect += _ => Dispose();
-                            heartbeatTimer = new Timer(conSettings.HeartbeatInterval);
+                            heartbeatTimer = new Timer(res.settings.HeartbeatInterval);
                             heartbeatTimer.AutoReset = true;
                             heartbeatTimer.Elapsed += (_,_) => {
                                 if (con.DoHeartbeatTick()) {
@@ -109,7 +109,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             Con = con;
 
                             // Do the regular connection handshake
-                            Handshake.DoConnectionHandshake(Con, conFeatures);
+                            Handshake.DoConnectionHandshake(Con, res.conFeatures);
                             Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
 
                         } catch (Exception) {

@@ -283,7 +283,11 @@ namespace Celeste.Mod.CelesteNet {
                 // Must have an initialized connection
                 if (UDPEndpoint == null)
                     throw new InvalidOperationException("No established UDP connection");
-                return unchecked(udpNextContainerID++);
+                    
+                byte id = 0xff;
+                while (id == 0xff)
+                    id = unchecked(udpNextContainerID++);
+                return id;
             }
         }
 

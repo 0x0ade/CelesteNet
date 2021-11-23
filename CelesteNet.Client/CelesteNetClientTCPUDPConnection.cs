@@ -2,6 +2,7 @@ using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -259,7 +260,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 // Try to establish the UDP connection
                                 // If it succeeeds, we'll receive a UDPInfo packet with our connection parameters
                                 if (p == null)
-                                    udpSendSocket.Send(BitConverter.GetBytes(ConnectionToken));
+                                    udpSendSocket.Send(new byte[] { 0xff }.Concat(BitConverter.GetBytes(ConnectionToken)).ToArray());
                                 continue;
                             } else if (p == null)
                                 continue;

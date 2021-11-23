@@ -33,43 +33,44 @@ namespace Celeste.Mod.CelesteNet.Server {
                     }
                     EnterActiveZone();
 
-                    // Try to get the associated connection
-                    if (!Role.endPointMap.TryGetValue(dgramSender, out ConPlusTCPUDPConnection? con) || con == null) {
+                    if (dgSize == 5 && dgBuffer[0] == 0xff) {
                         // Get the connection token
-                        if (dgSize != 4)
-                            continue;
-                        int conToken = BitConverter.ToInt32(dgBuffer, 0);
+                        int conToken = BitConverter.ToInt32(dgBuffer, 1);
 
                         // Get the connection from the token
-                        if (!Role.conTokenMap.TryGetValue(conToken, out con))
+                        if (!Role.conTokenMap.TryGetValue(conToken, out ConPlusTCPUDPConnection tokCon))
                             continue;
 
                         // Initialize the connection
-                        lock (con.UDPLock) {
-                            if (!con.UseUDP) {
-                                con.Send(new DataLowLevelUDPInfo() {
+                        lock (tokCon.UDPLock) {
+                            if (!tokCon.UseUDP) {
+                                tokCon.Send(new DataLowLevelUDPInfo() {
                                     ConnectionID = -1,
                                     MaxDatagramSize = 0
                                 });
                                 continue;
                             }
 
-                            if (con.UDPEndpoint != null) {
+                            if (tokCon.UDPEndpoint != null) {
                                 // This makes hijacking possible, but is also
                                 // how a client with changing IP addresses can
                                 // reconnect it's UDP connection :(
-                                Logger.Log(LogLevel.INF, "udprecv", $"Connection {con} UDP endpoint changed: {con.UDPEndpoint} -> {dgramSender}");
-                                Role.endPointMap.TryRemove(con.UDPEndpoint, out _);
+                                Logger.Log(LogLevel.INF, "udprecv", $"Connection {tokCon} UDP endpoint changed: {tokCon.UDPEndpoint} -> {dgramSender}");
+                                Role.endPointMap.TryRemove(tokCon.UDPEndpoint, out _);
                             }
 
                             // Initialize and establish the UDP connection
-                            con.InitUDP(dgramSender, con.UDPNextConnectionID++, Role.Server.Settings.UDPMaxDatagramSize);
+                            tokCon.InitUDP(dgramSender, tokCon.UDPNextConnectionID++, Role.Server.Settings.UDPMaxDatagramSize);
 
                             // Add the connection to the map
-                            Role.endPointMap[dgramSender] = con;
+                            Role.endPointMap[dgramSender] = tokCon;
                         }
                         continue;
                     }
+
+                    // Get the associated connection
+                    if (!Role.endPointMap.TryGetValue(dgramSender, out ConPlusTCPUDPConnection? con) || con == null)
+                        continue;
 
                     try {
                         // Handle the UDP datagram

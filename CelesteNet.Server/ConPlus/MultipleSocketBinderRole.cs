@@ -30,7 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Socket? socket = null;
             try {
                 // Create socket and perform socket options magic
-                socket = new Socket(Protocol switch {
+                socket = new Socket(EndPoint.AddressFamily, Protocol switch {
                     ProtocolType.Tcp => SocketType.Stream,
                     ProtocolType.Udp => SocketType.Dgram,
                     _ => throw new InvalidOperationException($"Unknown protocol type {Protocol}")

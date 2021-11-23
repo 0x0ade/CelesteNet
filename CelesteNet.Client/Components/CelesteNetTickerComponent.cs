@@ -37,16 +37,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (Engine.Scene?.Tracker != null) {
                     // Tick all tracked entities and components which implement the interface
-                    foreach ((Type type, List<Entity> entities) in Engine.Scene.Tracker.Entities) {
-                        if (typeof(ITickReceiver).IsAssignableFrom(type)) {
-                            foreach (Entity et in entities)
+                    foreach (var ets in Engine.Scene.Tracker.Entities) {
+                        if (typeof(ITickReceiver).IsAssignableFrom(ets.Key)) {
+                            foreach (Entity et in ets.Value)
                                 ((ITickReceiver) et).Tick(); 
                         }
                     }
 
-                    foreach ((Type type, List<Component> components) in Engine.Scene.Tracker.Components) {
-                        if (typeof(ITickReceiver).IsAssignableFrom(type)) {
-                            foreach (Component cp in components)
+                    foreach (var cps in Engine.Scene.Tracker.Components) {
+                        if (typeof(ITickReceiver).IsAssignableFrom(cps.Key)) {
+                            foreach (Component cp in cps.Value)
                                 ((ITickReceiver) cp).Tick(); 
                         }
                     }

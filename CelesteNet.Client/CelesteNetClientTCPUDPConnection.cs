@@ -60,9 +60,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         protected override void Dispose(bool disposing) {
             // Wait for threads
             tokenSrc.Cancel();
-            TCPSocket.Shutdown(SocketShutdown.Receive);
-            udpRecvSocket.Shutdown(SocketShutdown.Both);
-            udpSendSocket.Shutdown(SocketShutdown.Both);
+            if (TCPSocket.Connected)
+                TCPSocket.Shutdown(SocketShutdown.Both);
+            if (udpRecvSocket.Connected)
+                udpRecvSocket.Shutdown(SocketShutdown.Both);
+            if (udpSendSocket.Connected)
+                udpSendSocket.Shutdown(SocketShutdown.Both);
 
             if (Thread.CurrentThread != tcpRecvThread)
                 tcpRecvThread.Join();
@@ -195,15 +198,15 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // Promote optimizations
                         PromoteOptimizations();
                     } catch (Exception e) {
+                        if (e is SocketException se && se.SocketErrorCode == SocketError.Interrupted && tokenSrc.IsCancellationRequested)
+                            return;
+
                         Logger.Log(LogLevel.WRN, "udprecv", $"Error in UDP receiving thread: {e}");
                         DecreaseUDPScore();
                     }
                 }
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
-                    return;
-                
-                if (e is SocketException se && se.SocketErrorCode == SocketError.Interrupted && tokenSrc.IsCancellationRequested)
                     return;
 
                 Logger.Log(LogLevel.WRN, "udprecv", $"Error in UDP receiving thread: {e}");

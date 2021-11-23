@@ -104,7 +104,8 @@ namespace Celeste.Mod.CelesteNet {
             tcpQueue.Dispose();
             udpQueue.Dispose();
             try {
-                tcpSock.Shutdown(SocketShutdown.Both);
+                if (tcpSock.Connected)
+                    tcpSock.Shutdown(SocketShutdown.Both);
                 tcpSock.Close();
             } catch (Exception e) {
                 Logger.Log(LogLevel.WRN, "tcpudpcon", $"Error while closing TCP socket: {e}");

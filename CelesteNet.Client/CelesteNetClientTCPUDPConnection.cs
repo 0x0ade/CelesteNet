@@ -158,8 +158,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
 
                 Logger.Log(LogLevel.WRN, "tcprecv", $"Error in TCP receiving thread: {e}");
-                if (!tokenSrc.IsCancellationRequested)
-                    Dispose();
+                try {
+                    if (!tokenSrc.IsCancellationRequested)
+                        Dispose();
+                } catch (Exception) {}
             }
         }
 
@@ -210,8 +212,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
 
                 Logger.Log(LogLevel.WRN, "udprecv", $"Error in UDP receiving thread: {e}");
-                if (!tokenSrc.IsCancellationRequested)
-                    Dispose();
+                try {
+                    if (!tokenSrc.IsCancellationRequested)
+                        Dispose();
+                } catch (Exception) {}
             }
         }
 
@@ -236,8 +240,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
 
                 Logger.Log(LogLevel.WRN, "tcpsend", $"Error in TCP sending thread: {e}");
-                if (!tokenSrc.IsCancellationRequested)
-                    Dispose();
+                try {
+                    if (!tokenSrc.IsCancellationRequested)
+                        Dispose();
+                } catch (Exception) {}
             }
         }
 
@@ -300,8 +306,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
 
                 Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");
-                if (!tokenSrc.IsCancellationRequested)
-                    Dispose();
+                try {
+                    if (!tokenSrc.IsCancellationRequested)
+                        Dispose();
+                } catch (Exception) {}
             }
         }
 

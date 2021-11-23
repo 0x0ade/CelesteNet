@@ -624,32 +624,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         snapshot?.Update();
             }
 
-            bool sendState = StateUpdated;
-            StateUpdated = false;
-
             if (Player == null || Player.Scene != level) {
                 Player = level.Tracker.GetEntity<Player>();
                 if (Player != null) {
                     Session = level.Session;
                     WasIdle = false;
                     WasInteractive = false;
-                    sendState = true;
+                    StateUpdated |= true;
                 }
             }
 
             bool idle = level.FrozenOrPaused || level.Overlay != null;
             if (WasIdle != idle) {
                 WasIdle = idle;
-                sendState = true;
+                StateUpdated |= true;
             }
 
             if (WasInteractive != Settings.Interactions) {
                 WasInteractive = Settings.Interactions;
-                sendState = true;
+                StateUpdated |= true;
             }
-
-            if (sendState)
-                SendState();
 
             if (Player == null)
                 return;
@@ -678,8 +672,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
             }
             PlayerNameTag.Alpha = Settings.ShowOwnName ? 1f : 0f;
+        }
 
-            SendFrame();
+        public override void Tick() {
+            if (StateUpdated)
+                SendState();
+            StateUpdated = false;
+
+            if (Player != null)
+                SendFrame();
         }
 
         #region Hooks

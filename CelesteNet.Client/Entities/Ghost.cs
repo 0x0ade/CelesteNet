@@ -10,7 +10,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities {
-    public class Ghost : Actor {
+    [Tracked]
+    public class Ghost : Actor, ITickReceiver {
 
         public CelesteNetClientContext Context;
 
@@ -46,6 +47,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public float GrabCooldown = 0f;
         public const float GrabCooldownMax = CelesteNetMainComponent.GrabCooldownMax;
+        protected DataPlayerGrabPlayer GrabPacket;
 
         protected Color LastSpriteColor;
         protected Color LastHairColor;
@@ -143,18 +145,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (PlayerInfo == null || client == null)
                 return;
 
-            try {
-                client.Send(new DataPlayerGrabPlayer {
-                    Player = client.PlayerInfo,
+            GrabPacket = new DataPlayerGrabPlayer {
+                Player = client.PlayerInfo,
 
-                    Grabbing = PlayerInfo,
-                    Position = position,
-                    Force = null
-                });
-            } catch (Exception e) {
-                Logger.Log(LogLevel.INF, "client-ghost", $"Error in OnCarry:\n{e}");
-                Context.Dispose();
-            }
+                Grabbing = PlayerInfo,
+                Position = position,
+                Force = null
+            };
         }
 
         public void OnRelease(Vector2 force) {
@@ -167,18 +164,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (PlayerInfo == null || client == null)
                 return;
 
-            try {
-                client.Send(new DataPlayerGrabPlayer {
-                    Player = client.PlayerInfo,
+            GrabPacket = new DataPlayerGrabPlayer {
+                Player = client.PlayerInfo,
 
-                    Grabbing = PlayerInfo,
-                    Position = Position,
-                    Force = force
-                });
-            } catch (Exception e) {
-                Logger.Log(LogLevel.INF, "client-ghost", $"Error in OnRelease:\n{e}");
-                Context.Dispose();
-            }
+                Grabbing = PlayerInfo,
+                Position = Position,
+                Force = force
+            };
         }
 
         public override void Update() {
@@ -260,6 +252,21 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             // TODO: Get rid of this, sync particles separately!
             if (DashWasB != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
                 level.ParticlesFG.Emit(DashWasB.Value ? Player.P_DashB : Player.P_DashA, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Angle());
+        }
+
+        public void Tick() {
+            if (GrabPacket != null) {
+                CelesteNetClient client = Context?.Client;
+                if (client != null) {
+                    try {
+                        client.Send(GrabPacket);
+                    } catch (Exception e) {
+                        Logger.Log(LogLevel.INF, "client-ghost", $"Error sending grab packet: {e}");
+                        Context.Dispose();
+                    }
+                }
+            }
+            GrabPacket = null;
         }
 
         public void RunOnUpdate(Action<Ghost> action, bool wait = false) {

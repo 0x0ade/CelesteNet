@@ -77,13 +77,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Color = reader.ReadColor();
             Facing = reader.ReadBoolean() ? Facings.Left : Facings.Right;
             Depth = reader.ReadInt32();
+            SpriteMode = (PlayerSpriteMode) reader.ReadInt32();
 
-            // TODO: Switch to Int32 with next protocol version bump.
-            SpriteMode = (PlayerSpriteMode) reader.ReadByte();
-            if ((byte) SpriteMode == 0xFF) {
-                // Let's assume that we're connected to someone who also supports using 0xFF a full sprite mode indicator.
-                SpriteMode = (PlayerSpriteMode) reader.ReadInt32();
-            }
             SpriteRate = reader.ReadSingle();
             SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null;
 
@@ -156,15 +151,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(Color);
             writer.Write(Facing == Facings.Left);
             writer.Write(Depth);
+            writer.Write((int) SpriteMode);
 
-            // TODO: Switch to Int32 with next protocol version bump.
-            if ((int) SpriteMode < 0xFF) {
-                // Let's assume that we're connected to someone who also supports using 0xFF a full sprite mode indicator.
-                writer.Write((byte) SpriteMode);
-            } else {
-                writer.Write((byte) 0xFF);
-                writer.Write((int) SpriteMode);
-            }
             writer.Write(SpriteRate);
             if (SpriteJustify == null) {
                 writer.Write(false);

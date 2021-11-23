@@ -1,3 +1,4 @@
+using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.Collections.Concurrent;
 using System.Net;
@@ -20,10 +21,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 EnterActiveZone();
                 token.Register(() => socket.Close());
                 while (!token.IsCancellationRequested) {
-                    EndPoint dgramSender = new IPEndPoint(IPAddress.Any, ((IPEndPoint) Role.EndPoint).Port);
+                    EndPoint dgramSender = socket.LocalEndPoint!;
                     ExitActiveZone();
                     try {
-                        dgSize = socket.ReceiveFrom(dgBuffer, dgBuffer.Length, SocketFlags.None, ref dgramSender);
+                        dgSize = socket.ReceiveFrom(dgBuffer, ref dgramSender);
                     } catch (SocketException) {
                         // There's no better way to do this, as far as I know...
                         if (token.IsCancellationRequested) 
@@ -45,13 +46,28 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                         // Initialize the connection
                         lock (con.UDPLock) {
-                            if (!con.UseUDP || con.UDPEndpoint != null)
+                            if (!con.UseUDP) {
+                                con.Send(new DataLowLevelUDPInfo() {
+                                    ConnectionID = -1,
+                                    MaxDatagramSize = 0
+                                });
                                 continue;
-                            con.InitUDP(dgramSender, Role.Server.Settings.UDPMaxDatagramSize);
-                        }
+                            }
 
-                        // Add the connection to the map
-                        Role.endPointMap.TryAdd(dgramSender, con!);
+                            if (con.UDPEndpoint != null) {
+                                // This makes hijacking possible, but is also
+                                // how a client with changing IP addresses can
+                                // reconnect it's UDP connection :(
+                                Logger.Log(LogLevel.INF, "udprecv", $"Connection {con} UDP endpoint changed: {con.UDPEndpoint} -> {dgramSender}");
+                                Role.endPointMap.TryRemove(con.UDPEndpoint, out _);
+                            }
+                            
+                            // Initialize and establish the UDP connection
+                            con.InitUDP(dgramSender, con.UDPNextConnectionID++, Role.Server.Settings.UDPMaxDatagramSize);
+
+                            // Add the connection to the map
+                            Role.endPointMap[dgramSender] = con;
+                        }
                         continue;
                     }
 

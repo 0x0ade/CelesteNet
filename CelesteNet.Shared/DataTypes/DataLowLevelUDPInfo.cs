@@ -5,19 +5,19 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "udpInfo";
         }
 
-        public override DataFlags DataFlags => DataFlags.SlimHeader;
+        public override DataFlags DataFlags => DataFlags.SlimHeader | DataFlags.Small;
 
+        public int ConnectionID;
         public int MaxDatagramSize;
-        public bool DisableUDP;
 
         protected override void Read(CelesteNetBinaryReader reader) {
+            ConnectionID = reader.Read7BitEncodedInt();
             MaxDatagramSize = reader.Read7BitEncodedInt();
-            DisableUDP = reader.ReadBoolean();
         }
 
         protected override void Write(CelesteNetBinaryWriter writer) {
+            writer.Write7BitEncodedInt(ConnectionID);
             writer.Write7BitEncodedInt(MaxDatagramSize);
-            writer.Write(DisableUDP);
         }
 
     }

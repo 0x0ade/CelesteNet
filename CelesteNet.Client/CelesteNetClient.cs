@@ -188,7 +188,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) { 
             // The first DataPlayerInfo sent from the server is our own
-            Logger.Log(LogLevel.WRN, "con", $"Received PlayerInfo: {info} {info.ID}");
             if (PlayerInfo == null || PlayerInfo.ID == info.ID)
                 PlayerInfo = info;
         }

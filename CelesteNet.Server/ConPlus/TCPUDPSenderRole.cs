@@ -192,17 +192,15 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Copy packet data to the container buffer
                     if (bufOff + packLen > udpBuffer.Length) {
-                        // Send container
+                        // Send container & start a new one
                         udpSocket.SendTo(udpBuffer, bufOff, SocketFlags.None, con.UDPEndpoint!);
+                        udpBuffer[0] = con.NextUDPContainerID();
                         bufOff = 1;
                         
                         // Update connection metrics and check if we hit the connection cap
                         con.UDPSendRate.UpdateRate(bufOff, 1);
                         if (con.UDPSendCapped)
                             break;
-
-                        // Start a new container
-                        udpBuffer[0] = con.NextUDPContainerID();
                     }
 
                     Buffer.BlockCopy(packetStream.GetBuffer(), 0, udpBuffer, bufOff, packLen);

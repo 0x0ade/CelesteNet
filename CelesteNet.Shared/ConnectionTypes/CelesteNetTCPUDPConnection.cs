@@ -1,16 +1,17 @@
 using Celeste.Mod.CelesteNet.DataTypes;
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
 namespace Celeste.Mod.CelesteNet {
     public class CelesteNetTCPUDPConnection : CelesteNetConnection {
 
-        public const int MaxHeartbeatDelay = 8;
-        private const int UDPAliveScoreMax = 100;
-        private const int UDPDowngradeScoreMin = -1;
-        private const int UDPDowngradeScoreMax = 5;
-        private const int UDPDeathScoreMin = -1;
+        public const int MaxHeartbeatDelay = 3;
+        private const int UDPAliveScoreMax = 60;
+        private const int UDPDowngradeScoreMin = -2;
+        private const int UDPDowngradeScoreMax = 3;
+        private const int UDPDeathScoreMin = -2;
         private const int UDPDeathScoreMax = 3;
         
         public readonly int ConnectionToken;
@@ -23,6 +24,16 @@ namespace Celeste.Mod.CelesteNet {
 
         public Socket TCPSocket => tcpSock;
 
+        private Socket tcpSock;
+        private EndPoint? udpEP;
+        private CelesteNetSendQueue tcpQueue, udpQueue;
+
+        public readonly object UDPLock = new object();
+        private int udpConnectionId, udpLastConnectionId = -1;
+        private int udpMaxDatagramSize;
+        private int udpAliveScore = 0, udpDowngradeScore = 0, udpDeathScore = 0;
+        private byte udpNextContainerID = 0;
+
         public bool UseUDP {
             get {
                 lock (UDPLock)
@@ -33,18 +44,16 @@ namespace Celeste.Mod.CelesteNet {
         public EndPoint? UDPEndpoint {
             get {
                 lock (UDPLock)
-                    return (UseUDP && udpMaxDatagramSize > 0) ? udpEP : null;
+                    return UseUDP ? udpEP : null;
             }
         }
 
-        private Socket tcpSock;
-        private EndPoint? udpEP;
-        private CelesteNetSendQueue tcpQueue, udpQueue;
-
-        public readonly object UDPLock = new object();
-        private int udpMaxDatagramSize;
-        private byte udpSendContainerCounter = 0;
-        private int udpAliveScore = 0, udpDowngradeScore = 0, udpDeathScore = 0;
+        public int UDPConnectionID {
+            get {
+                lock (UDPLock)
+                    return UseUDP ? udpConnectionId : -1;
+            }
+        }
 
         public int UDPMaxDatagramSize {
             get {
@@ -98,9 +107,9 @@ namespace Celeste.Mod.CelesteNet {
 
         }
 
-        protected override CelesteNetSendQueue? GetQueue(DataType data) => (UDPEndpoint != null && (data.DataFlags & DataFlags.Unreliable) != 0) ? udpQueue : tcpQueue;
+        protected override CelesteNetSendQueue? GetQueue(DataType data) => (UseUDP && UDPEndpoint != null && udpConnectionId > 0 && (data.DataFlags & DataFlags.Unreliable) != 0) ? udpQueue : tcpQueue;
 
-        public void PromoteOptimizations() {
+        public virtual void PromoteOptimizations() {
             foreach ((string str, int id) in Strings.PromoteRead())
                 Send(new DataLowLevelStringMap() {
                     String = str,
@@ -114,17 +123,36 @@ namespace Celeste.Mod.CelesteNet {
                 });
         }
         
-        public void InitUDP(EndPoint endpoint, int maxDatagramSize) {
+        public virtual void InitUDP(EndPoint endpoint, int conId, int maxDatagramSize) {
             lock (UDPLock) {
+                // Can't initialize two connections at once
+                if (!UseUDP || UDPEndpoint != null)
+                    return;
+                
+                // Initialize a new connection
                 udpEP = endpoint;
+                udpConnectionId = conId;
                 udpMaxDatagramSize = maxDatagramSize;
-                udpAliveScore = udpDowngradeScore = udpDeathScore = 0;
-                Logger.Log(LogLevel.INF, "tcpudpcon", $"Initialized UDP connection of {this} [{udpMaxDatagramSize}, {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+                udpAliveScore = udpDowngradeScore = 0;
+                
+                // If the connection is already established, send a state update
+                if (conId >= 0)
+                    Send(new DataLowLevelUDPInfo() {
+                        ConnectionID = conId,
+                        MaxDatagramSize = maxDatagramSize
+                    });
+
+                Logger.Log(LogLevel.INF, "tcpudpcon", $"Initialized UDP connection of {this} [{conId} | {udpMaxDatagramSize} | {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
             }
         }
 
-        public void IncreaseUDPScore() {
+        public virtual void IncreaseUDPScore() {
             lock (UDPLock) {
+                // Must have an initialized connection
+                if (UDPEndpoint == null)
+                    return;
+
+                // Increment the alive score, then decrement the downgrade score, then the death score
                 if (++udpAliveScore > UDPAliveScoreMax) {
                     udpAliveScore = 0;
                     if (udpDowngradeScore > UDPDowngradeScoreMin)
@@ -135,72 +163,131 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public void DecreaseUDPScore() {
+        public virtual void DecreaseUDPScore() {
             lock (UDPLock) {
-                udpAliveScore = 0;
-                if (++udpDowngradeScore >= UDPDowngradeScoreMax)
-                    DowngradeUDP();
-            }
-        }
-
-        public void HandleUDPInfo(DataLowLevelUDPInfo info) {
-            lock (UDPLock) {
-                if (UDPEndpoint != null) {
-                    if (info.DisableUDP) {
-                        udpDeathScore = UDPDeathScoreMax;
-                        udpEP = null;
-                        udpMaxDatagramSize = 0;
-                    } else if (udpMaxDatagramSize > info.MaxDatagramSize)
-                        udpMaxDatagramSize = info.MaxDatagramSize;
-                }
-                Logger.Log(LogLevel.INF, "tcpudpcon", $"Handled remote UDP info from connection {this} [{udpMaxDatagramSize}, {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
-                Send(new DataLowLevelUDPInfo() {
-                    MaxDatagramSize = udpMaxDatagramSize,
-                    DisableUDP = udpDeathScore >= UDPDeathScoreMax
-                });
-            }
-        }
-
-        private void DowngradeUDP() {
-            lock (UDPLock) {
+                // Must have an initialized connection
                 if (UDPEndpoint == null)
                     return;
 
-                Logger.Log(LogLevel.INF, "tcpudpcon", $"Downgrading UDP connection of {this} [{udpMaxDatagramSize}, {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+                // Reset the alive score, half the maximum datagram size, and increment the downgrade score
+                // If it reaches it's maximum, the connection died
                 udpAliveScore = 0;
-                udpDowngradeScore = 0;
-                udpMaxDatagramSize /= 2;
-                if (udpMaxDatagramSize < 1+MaxPacketSize) {
-                    EndPoint ep = udpEP!;
-                    udpEP = null;
-                    udpMaxDatagramSize = 0;
-                    if (udpDeathScore < UDPDeathScoreMax)
-                        udpDeathScore++;
-                    udpQueue.Clear();
-                    Logger.Log(LogLevel.INF, "tcpudpcon", $"UDP connection of {this} died [{udpMaxDatagramSize}, {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
-                    OnUDPDeath?.Invoke(this, ep);
-                }
-                Send(new DataLowLevelUDPInfo() {
-                    MaxDatagramSize = udpMaxDatagramSize,
-                    DisableUDP = udpDeathScore >= UDPDeathScoreMax
-                });
+                if (++udpDowngradeScore >= UDPDowngradeScoreMax) {
+                    udpDowngradeScore = 0;
+                    if ((udpMaxDatagramSize /= 2) >= 1+MaxPacketSize) {
+                        Logger.Log(LogLevel.INF, "tcpudpcon", $"Downgrading UDP connection of {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+
+                        Send(new DataLowLevelUDPInfo() {
+                            ConnectionID = udpConnectionId,
+                            MaxDatagramSize = udpMaxDatagramSize
+                        });
+                    } else
+                        UDPConnectionDeath("Too many downgrades");
+                } else
+                    Logger.Log(LogLevel.INF, "tcpudpcon", $"Decreased score of UDP connection of {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+
             }
         }
 
-        public bool DoHeartbeatTick() {
+        public virtual void HandleUDPInfo(DataLowLevelUDPInfo info) {
+            lock (UDPLock) {
+                if (!UseUDP || UDPEndpoint == null)
+                    return;
+
+                // Handle connection ID changes
+                // Going from a ID to no ID -> connection death
+                // Going from no ID to a ID -> connection established 
+                if (info.ConnectionID < 0) {
+                    if (udpConnectionId >= 0)
+                        UDPConnectionDeath("Remote connection died");
+                    return;
+                } else if (info.ConnectionID >= 0 && udpConnectionId < 0) {
+                    // If it referes to an old connection, just ignore it
+                    if (info.ConnectionID <= udpLastConnectionId)
+                        return;
+                    udpConnectionId = info.ConnectionID;
+                    udpMaxDatagramSize = info.MaxDatagramSize;
+                    Logger.Log(LogLevel.INF, "tcpudpcon", $"Established UDP connection of {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+                    return;
+                }
+
+                // Check the packet
+                if (info.ConnectionID != udpConnectionId)
+                    return;
+                
+                if (info.MaxDatagramSize <= 0)
+                    throw new InvalidDataException($"Maximum datagram size can't be smaller than zero for established connections [{info.MaxDatagramSize}]");
+
+                // Decrease the maximum datagram size
+                if (info.MaxDatagramSize == udpMaxDatagramSize)
+                    return;
+                udpMaxDatagramSize = Math.Min(udpMaxDatagramSize, info.MaxDatagramSize);
+
+                // Notify the remote of the change in our state
+                Send(new DataLowLevelUDPInfo() {
+                    ConnectionID = udpConnectionId,
+                    MaxDatagramSize = udpMaxDatagramSize
+                });
+                
+                Logger.Log(LogLevel.INF, "tcpudpcon", $"Reduced maximum UDP datagram size of connection {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+            }
+        }
+
+        private void UDPConnectionDeath(string reason) {
+            EndPoint ep = udpEP!;
+
+            if (udpConnectionId >= 0) {
+                udpLastConnectionId = udpConnectionId;
+
+                // Notify the remote of our connection death if the connection was established
+                Send(new DataLowLevelUDPInfo() {
+                    ConnectionID = -1,
+                    MaxDatagramSize = 0
+                });
+            }
+
+            // Uninitialize the connection
+            udpEP = null;
+            udpMaxDatagramSize = udpAliveScore = udpDowngradeScore = 0;
+            udpQueue.Clear();
+
+            // Increment the death score
+            // If it exceeds the maximum, disable UDP
+            if (udpDeathScore < UDPDeathScoreMax)
+                udpDeathScore++;
+
+            Logger.Log(LogLevel.INF, "tcpudpcon", $"UDP connection of {this} died: {reason} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+            OnUDPDeath?.Invoke(this, ep);
+        }
+
+        public virtual byte NextUDPContainerID() {
+            lock (UDPLock) {
+                // Must have an initialized connection
+                if (UDPEndpoint == null)
+                    throw new InvalidOperationException("No established UDP connection");
+                return unchecked(udpNextContainerID++);
+            }
+        }
+
+        public virtual bool DoHeartbeatTick() {
             lock (HeartbeatLock) {
+                // Check if we got a TCP heartbeat in the required timeframe
                 if ((tcpLastHeartbeatDelay++) > MaxHeartbeatDelay)
                     return true;
+
+                // Check if we need to send a TCP keep-alive
                 if (tcpSendKeepAlive)
                     tcpQueue.Enqueue(new DataLowLevelKeepAlive());
                 tcpSendKeepAlive = true;
 
                 if (UDPEndpoint != null) {
+                    // Check if we got a UDP heartbeat in the required timeframe
                     if ((udpLastHeartbeatDelay++) > MaxHeartbeatDelay) {
                         udpLastHeartbeatDelay = 0;
-                        DowngradeUDP();
+                        DecreaseUDPScore();
                     }
 
+                    // Check if we need to send a UDP keep-alive
                     if (UDPEndpoint != null && udpSendKeepAlive)
                         udpQueue.Enqueue(new DataLowLevelKeepAlive());
                     udpSendKeepAlive = true;
@@ -209,32 +296,24 @@ namespace Celeste.Mod.CelesteNet {
             return false;
         }
 
-        public void TCPHeartbeat() {
+        public virtual void TCPHeartbeat() {
             lock (HeartbeatLock)
                 tcpLastHeartbeatDelay = 0;
         }
 
-        public void UDPHeartbeat() {
+        public virtual void UDPHeartbeat() {
             lock (HeartbeatLock)
                 udpLastHeartbeatDelay = 0;
         }
 
-        public void SurpressTCPKeepAlives() {
+        public virtual void SurpressTCPKeepAlives() {
             lock (HeartbeatLock)
                 tcpSendKeepAlive = false;
         }
 
-        public void SurpressUDPKeepAlives() {
+        public virtual void SurpressUDPKeepAlives() {
             lock (HeartbeatLock)
                 udpSendKeepAlive = false;
-        }
-
-        public byte NextUDPContainerID() {
-            if (UDPEndpoint == null)
-                throw new InvalidOperationException("Connection doesn't have a UDP tunnel");
-            byte id = udpSendContainerCounter;
-            udpSendContainerCounter = unchecked(udpSendContainerCounter++);
-            return id;
         }
 
     }

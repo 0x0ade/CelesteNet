@@ -10,10 +10,12 @@ using System.Threading;
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientTCPUDPConnection : CelesteNetTCPUDPConnection {
 
-        public const int TcpBufferSize = 16384;
+        public const int TCPBufferSize = 16384;
+        public const int UDPEstablishDelay = 1;
 
         private BufferedSocketStream tcpStream;
         private ManualResetEventSlim udpReadyEvent;
+        private int udpEstablishDelay = -1;
         private BlockingCollection<DataType> tcpSendQueue, udpSendQueue;
 
         private CancellationTokenSource tokenSrc;
@@ -22,15 +24,16 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetClientTCPUDPConnection(DataContext data, int token, int maxPacketSize, float mergeWindow, Socket tcpSock) : base(data, token, $"tcpudp-srv-{BitConverter.ToString(((IPEndPoint) tcpSock.RemoteEndPoint).Address.GetAddressBytes())}-prt-{((IPEndPoint) tcpSock.RemoteEndPoint).Port}", maxPacketSize, int.MaxValue, mergeWindow, tcpSock, FlushTCPQueue, FlushUDPQueue) {
             // Initialize networking
             tcpSock.Blocking = false;
-            tcpStream = new BufferedSocketStream(TcpBufferSize) { Socket = tcpSock };
+            tcpStream = new BufferedSocketStream(TCPBufferSize) { Socket = tcpSock };
             udpReadyEvent = new ManualResetEventSlim(false);
             OnUDPDeath += (_, _) => {
+                udpEstablishDelay = UDPEstablishDelay;
                 udpReadyEvent.Reset();
-                udpSendQueue.Add(null);
+                if (CelesteNetClientModule.Instance?.Context?.Status != null)
+                    CelesteNetClientModule.Instance.Context.Status.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
             };
             tcpSendQueue = new BlockingCollection<DataType>();
             udpSendQueue = new BlockingCollection<DataType>();
-            udpSendQueue.Add(null);
 
             // Start threads
             tokenSrc = new CancellationTokenSource();
@@ -48,8 +51,6 @@ namespace Celeste.Mod.CelesteNet.Client {
         protected override void Dispose(bool disposing) {
             // Wait for threads
             tokenSrc.Cancel();
-            tcpSendQueue.CompleteAdding();
-            udpSendQueue.CompleteAdding();
             TCPSocket.Shutdown(SocketShutdown.Receive);
             if (Thread.CurrentThread != tcpRecvThread)
                 tcpRecvThread.Join();
@@ -67,6 +68,36 @@ namespace Celeste.Mod.CelesteNet.Client {
             tcpStream.Dispose();
             tcpSendQueue.Dispose();
             udpSendQueue.Dispose();
+        }
+
+        public override bool DoHeartbeatTick() {
+            if (base.DoHeartbeatTick())
+                return true;
+
+            lock (UDPLock) {
+                if (udpEstablishDelay < 0) {}
+                else if (udpEstablishDelay == 0) {
+                    // If the UDP connection died, try re-establishing it if UDP's not disabled
+                    if (UseUDP && UDPEndpoint == null) {
+                        // Initialize a UDP connection which isn't established yet
+                        InitUDP(TCPSocket.RemoteEndPoint, -1, 0);
+                        udpSendQueue.Add(null);
+                    }
+                } else
+                    udpEstablishDelay--;
+            }
+
+            return false;
+        }
+
+        public override void TCPHeartbeat() {
+            base.TCPHeartbeat();
+
+            // Establish the UDP connection after we received the first TCP heartbeat
+            lock (UDPLock) {
+                if (udpEstablishDelay < 0)
+                    udpEstablishDelay = 0;
+            }
         }
 
         private void TCPRecvThreadFunc() {
@@ -93,11 +124,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // Handle the packet
                         switch (packet) {
                             case DataLowLevelUDPInfo udpInfo: {
-                                if (UseUDP && UDPEndpoint == null && udpInfo.MaxDatagramSize > 0) {
-                                    InitUDP(TCPSocket.RemoteEndPoint, udpInfo.MaxDatagramSize);
-                                    udpReadyEvent.Set();
-                                } else
+                                lock (UDPLock) {
                                     HandleUDPInfo(udpInfo);
+                                    if (UseUDP && UDPEndpoint != null && UDPConnectionID > 0)
+                                        udpReadyEvent.Set();
+                                }
                             } break;
                             case DataLowLevelStringMap strMap: {
                                 Strings.RegisterWrite(strMap.String, strMap.ID);
@@ -141,12 +172,13 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 // Dispose the socket when the connection dies, to stop listenting for datagrams.
                 OnUDPDeath += (_,_) => Interlocked.Exchange(ref sock, null)?.Dispose();
+                using (tokenSrc.Token.Register(() => Interlocked.Exchange(ref sock, null)?.Dispose()))
                 while (!tokenSrc.IsCancellationRequested) {
                     // Wait until UDP is ready
                     udpReadyEvent.Wait(tokenSrc.Token);
 
                     lock (UDPLock) {
-                        if (UDPEndpoint == null)
+                        if (UDPEndpoint == null || UDPConnectionID < 0)
                             continue;
                         
                         // Adjust the datagram buffer size
@@ -160,36 +192,44 @@ namespace Celeste.Mod.CelesteNet.Client {
                         }
                     }
 
-                    // Receive a datagram
-                    int dgSize;
                     try {
-                        dgSize = sock.Receive(buffer, buffer.Length, SocketFlags.None);
-                    } catch (SocketException) {
-                        if (sock == null)
+                        // Receive a datagram
+                        int dgSize;
+                        try {
+                            dgSize = sock.Receive(buffer);
+                        } catch (SocketException) {
+                            if (sock == null)
+                                continue;
+                            throw;
+                        }
+                        if (dgSize == 0)
                             continue;
-                        throw;
+
+                        // Let the connection now we got a UDP heartbeat
+                        // FIXME Heartbeats don't happen -> no packets get through
+                        Logger.Log(LogLevel.INF, "udp", "Heartbeat");
+                        UDPHeartbeat();
+
+                        using (MemoryStream mStream = new MemoryStream(buffer, 0, dgSize))
+                        using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Data, Strings, SlimMap, mStream)) {
+                            // Get the container ID
+                            byte containerID = reader.ReadByte();
+                            
+                            // Read packets until we run out data
+                            while (mStream.Position < dgSize-1) {
+                                DataType packet = Data.Read(reader);
+                                if (packet.TryGet<MetaOrderedUpdate>(Data, out MetaOrderedUpdate orderedUpdate))
+                                    orderedUpdate.UpdateID = containerID;
+                                Receive(packet);
+                            }
+                        }
+
+                        // Promote optimizations
+                        PromoteOptimizations();
+                    } catch (Exception e) {
+                        Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");
+                        DecreaseUDPScore();
                     }
-                    if (dgSize == 0)
-                        continue;
-
-                    // Let the connection now we got a UDP heartbeat
-                    UDPHeartbeat();
-
-                    // Get the container ID
-                    byte containerID = buffer[0];
-
-                    // Read packets until we run out data
-                    using (MemoryStream mStream = new MemoryStream(buffer, 1, dgSize-1))
-                    using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Data, Strings, SlimMap, mStream))
-                    while (mStream.Position < dgSize-1) {
-                        DataType packet = Data.Read(reader);
-                        if (packet.TryGet<MetaOrderedUpdate>(Data, out MetaOrderedUpdate orderedUpdate))
-                            orderedUpdate.UpdateID = containerID;
-                        Receive(packet);
-                    }
-
-                    // Promote optimizations
-                    PromoteOptimizations();
                 }
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
@@ -231,54 +271,59 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void UDPSendThreadFunc() {
             try {
-                byte[] dgramBuffer = null;
+                byte[] dgBuffer = null;
                 using (MemoryStream mStream = new MemoryStream(MaxPacketSize))
                 using (CelesteNetBinaryWriter bufWriter = new CelesteNetBinaryWriter(Data, Strings, SlimMap, mStream))
                 using (Socket sock = new Socket(SocketType.Dgram, ProtocolType.Udp))
                 foreach (DataType p in udpSendQueue.GetConsumingEnumerable(tokenSrc.Token)) {
-                    lock (UDPLock) {
-                        EndPoint ep = UDPEndpoint;
-                        if (ep == null) {
-                            if (!UseUDP)
-                                return;
+                    try {
+                        lock (UDPLock) {
+                            EndPoint ep = UDPEndpoint;
+                            if (ep == null || UDPMaxDatagramSize <= 0) {
+                                if (!UseUDP)
+                                    return;
                             
-                            if (p == null) {
-                                // Try to establish a UDP connection
-                                sock.SendTo(BitConverter.GetBytes(ConnectionToken), 4, SocketFlags.None, TCPSocket.RemoteEndPoint);
+                                // Try to establish the UDP connection
+                                // If it succeeeds, we'll receive a udpInfo packet with our connection parameters
+                                if (p == null)
+                                    sock.SendTo(BitConverter.GetBytes(ConnectionToken), 4, SocketFlags.None, TCPSocket.RemoteEndPoint);
+                                
+                                continue;
+                            } else if (p == null)
+                                continue;
+
+                            // Adjust the datagram buffer size
+                            if (dgBuffer == null || dgBuffer.Length != UDPMaxDatagramSize)
+                                Array.Resize(ref dgBuffer, UDPMaxDatagramSize);
+                                
+                            // Try to send as many packets as possible
+                            dgBuffer[0] = NextUDPContainerID();
+                            int bufOff = 1;
+                            for (DataType packet = p; packet != null; packet = udpSendQueue.TryTake(out packet, 0) ? packet : null) {
+                                mStream.Position = 0;
+                                int packLen = Data.Write(bufWriter, packet);
+                                if (!(packet is DataLowLevelKeepAlive))
+                                    SurpressUDPKeepAlives();
+
+                                // Copy packet data to the container buffer
+                                if (bufOff + packLen > dgBuffer.Length) {
+                                    // Send container & start a new one
+                                    sock.SendTo(dgBuffer, bufOff, SocketFlags.None, UDPEndpoint!);
+                                    dgBuffer[0] = NextUDPContainerID();
+                                    bufOff = 1;
+                                }
+
+                                Buffer.BlockCopy(mStream.GetBuffer(), 0, dgBuffer, bufOff, packLen);
+                                bufOff += packLen;
                             }
-                            continue;
+
+                            // Send the last container
+                            if (bufOff > 1)
+                                sock.SendTo(dgBuffer, bufOff, SocketFlags.None, ep);
                         }
-
-                        // Adjust the datagram buffer size
-                        if (dgramBuffer == null || dgramBuffer.Length != UDPMaxDatagramSize)
-                            Array.Resize(ref dgramBuffer, UDPMaxDatagramSize);
-                            
-                        // Try to send as many packets as possible
-                        dgramBuffer[0] = NextUDPContainerID();
-                        int bufOff = 1;
-                        for (DataType packet = p; packet != null; packet = udpSendQueue.TryTake(out packet, 0) ? packet : null) {
-                            mStream.Position = 0;
-                            int packLen = Data.Write(bufWriter, packet);
-                            if (!(packet is DataLowLevelKeepAlive))
-                                SurpressUDPKeepAlives();
-
-                            // Copy packet data to the container buffer
-                            if (bufOff + packLen > dgramBuffer.Length) {
-                                // Send container
-                                sock.SendTo(dgramBuffer, bufOff, SocketFlags.None, ep);
-                                bufOff = 1;
-
-                                // Start a new container
-                                dgramBuffer[0] = NextUDPContainerID();
-                            }
-
-                            Buffer.BlockCopy(mStream.GetBuffer(), 0, dgramBuffer, bufOff, packLen);
-                            bufOff += packLen;
-                        }
-
-                        // Send the last container
-                        if (bufOff > 1)
-                            sock.SendTo(dgramBuffer, bufOff, SocketFlags.None, ep);
+                    } catch (Exception e) {
+                        Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");
+                        DecreaseUDPScore();
                     }
                 }
             } catch (Exception e) {

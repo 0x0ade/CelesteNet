@@ -103,16 +103,18 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
 
-        public async Task DoTCPUDPHandshake(Socket sock, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) {
+        public async Task DoTCPUDPHandshake(Socket sock, CelesteNetTCPUDPConnection.Settings settings, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) {
             EndPoint remoteEP = sock.RemoteEndPoint!;
             ConPlusTCPUDPConnection? con = null;
             try {
+                // Get the connection UID
+                string conUID = $"con-tpcudp-{BitConverter.ToString(((IPEndPoint) sock.RemoteEndPoint!).Address.MapToIPv6().GetAddressBytes())}";
+
                 // Obtain a connection token
                 int conToken = Server.ConTokenGenerator.GenerateToken();
 
                 // Do the teapot handshake
                 bool teapotSuccess;
-                string conUID = null!;
                 IConnectionFeature[] conFeatures = null!;
                 string playerUID = null!, playerName = null!;
                 using (CancellationTokenSource tokenSrc = new CancellationTokenSource()) {
@@ -121,10 +123,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                     tokenSrc.CancelAfter(TeapotTimeout);
                     tokenSrc.Token.Register(() => sock.Close());
                     try {
-                        var teapotRes = await TeapotHandshake(sock, conToken);
+                        var teapotRes = await TeapotHandshake(sock, conUID, conToken, settings, ((IPEndPoint) udpReceiver.EndPoint).Port, ((IPEndPoint) sender.UDPEndPoint).Port);
                         teapotSuccess = teapotRes != null;
                         if (teapotRes != null)
-                            (conUID, conFeatures, playerUID, playerName) = teapotRes.Value;
+                            (conFeatures, playerUID, playerName) = teapotRes.Value;
                     } catch (Exception) {
                         if (tokenSrc.IsCancellationRequested) {
                             Logger.Log(LogLevel.VVV, "tcpudphs", $"Handshake for connection {remoteEP} timed out, maybe an old client?");
@@ -144,7 +146,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Logger.Log(LogLevel.VVV, "tcpudphs", $"Connection {remoteEP} teapot handshake success: connection UID {conUID} connection features '{conFeatures.Aggregate((string) null!, (a, f) => ((a == null) ? $"{f}" : $"{a}, {f}"))}' player UID {playerUID} player name {playerName}");
 
                 // Create the connection, do the generic connection handshake and create a session
-                Server.HandleConnect(con = new ConPlusTCPUDPConnection(Server, conToken, conUID, sock, tcpReceiver, udpReceiver, sender));
+                Server.HandleConnect(con = new ConPlusTCPUDPConnection(Server, conUID, conToken, settings, sock, tcpReceiver, udpReceiver, sender));
                 await DoConnectionHandshake(con, conFeatures);
                 Server.CreateSession(con, playerUID, playerName);
             } catch(Exception) {
@@ -156,17 +158,12 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         // Let's mess with web crawlers even more ;)
         // Also: I'm a Teapot
-        private async Task<(string conUID, IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake(Socket sock, int conToken) {
+        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake(Socket sock, string conUID,int conToken, CelesteNetTCPUDPConnection.Settings settings, int udpRecvPort, int udpSendPort) {
             using (NetworkStream netStream = new NetworkStream(sock, false))
             using (BufferedStream bufStream = new BufferedStream(netStream))
             using (StreamReader reader = new StreamReader(bufStream))
             using (StreamWriter writer = new StreamWriter(bufStream)) {
-                string conUID = sock.RemoteEndPoint switch {
-                    IPEndPoint ipEP => $"con-ip-{BitConverter.ToString(ipEP.Address.MapToIPv6().GetAddressBytes())}",
-                    _ => $"con-unknown"
-                };
-
-                async Task<(string, IConnectionFeature[], string, string)?> Send500() {
+                async Task<(IConnectionFeature[], string, string)?> Send500() {
                     await writer.WriteAsync(@"
 HTTP/1.1 500 Internal Server Error
 Connection: close
@@ -253,14 +250,23 @@ Connection: close
 CelesteNet-TeapotVersion: {TeapotVersion}
 CelesteNet-ConnectionToken: {conToken}
 CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
-CelesteNet-MaxPacketSize: {Server.Settings.MaxPacketSize}
-CelesteNet-MergeWindow: {Server.Settings.MergeWindow}
-CelesteNet-HeartbeatInterval: {Server.Settings.HeartbeatInterval}
+CelesteNet-MaxPacketSize: {settings.MaxPacketSize}
+CelesteNet-MaxQueueSize: {settings.MaxQueueSize}
+CelesteNet-MergeWindow: {settings.MergeWindow}
+CelesteNet-MaxHeartbeatDelay: {settings.MaxHeartbeatDelay}
+CelesteNet-HeartbeatInterval: {settings.HeartbeatInterval}
+CelesteNet-UDPAliveScoreMax: {settings.UDPAliveScoreMax}
+CelesteNet-UDPDowngradeScoreMin: {settings.UDPDowngradeScoreMin}
+CelesteNet-UDPDowngradeScoreMax: {settings.UDPDowngradeScoreMax}
+CelesteNet-UDPDeathScoreMin: {settings.UDPDeathScoreMin}
+CelesteNet-UDPDeathScoreMax: {settings.UDPDeathScoreMax}
+CelesteNet-UDPReceivePort: {udpRecvPort}
+CelesteNet-UDPSendPort: {udpSendPort}
 
 Who wants some tea?
                 ".Trim().Replace("\n", "\r\n") + "\r\n" + "\r\n");
 
-                return (conUID, matchedFeats.Select(f => f.feature).ToArray(), (playerData!).Value.uid, (playerData!).Value.name);
+                return (matchedFeats.Select(f => f.feature).ToArray(), (playerData!).Value.uid, (playerData!).Value.name);
             }
         }
 

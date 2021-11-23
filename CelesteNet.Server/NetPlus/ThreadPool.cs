@@ -9,11 +9,11 @@ namespace Celeste.Mod.CelesteNet.Server {
         private bool disposed = false;
         private RWLock poolLock;
         private Stopwatch runtimeWatch;
-
+        
         private NetPlusThread[] threads;
         private int[] threadRestarts;
         private CancellationTokenSource tokenSrc;
-
+        
         private RWLock roleLock;
         private IdleThreadRole idleRole;
 
@@ -56,7 +56,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 tokenSrc.Dispose();
                 foreach (NetPlusThread thread in threads)
                     thread.Thread.Join();
-
+                
                 runtimeWatch.Stop();
                 roleLock.Dispose();
                 poolLock.Dispose();
@@ -129,7 +129,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
     public class NetPlusThread {
         private Thread thread;
-
+        
         private NetPlusThreadRole role;
         private SemaphoreSlim roleSwitchSem;
         private NetPlusThreadRole.RoleWorker? roleWorker;
@@ -155,7 +155,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 poolToken.Register(() => roleWorkerTokenSrc?.Cancel());
                 while (!poolToken.IsCancellationRequested) {
                     Logger.Log(LogLevel.DBG, "netplus", $"Thread pool thread {Index} starting role worker for role {role}");
-
+                    
                     // Start the worker
                     using (roleWorker = role.CreateWorker(this))
                     using (roleWorkerTokenSrc = new CancellationTokenSource()) {
@@ -172,7 +172,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             } catch (Exception e) {
                 if (e is OperationCanceledException ce && ce.CancellationToken == lastWorkerToken) return;
-
+                
                 // Report error to the pool
                 Pool.ReportThreadError(this, e);
             } finally {

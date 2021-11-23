@@ -10,7 +10,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int TeapotTimeout = 5000;
 
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
-        public static (int conToken, IConnectionFeature[] conFeatures, int maxPacketSize, float mergeWindow, float heartbeatInterval) DoTeapotHandshake(Socket sock, IConnectionFeature[] features, string nameKey) {
+        public static (int conToken, IConnectionFeature[] conFeatures, CelesteNetTCPUDPConnection.Settings settings, int udpRecvPort, int udpSendPort) DoTeapotHandshake(Socket sock, IConnectionFeature[] features, string nameKey) {
             // Find connection features
             // We don't buffer, as we could read actual packet data
             using (NetworkStream netStream = new NetworkStream(sock, false))
@@ -54,12 +54,24 @@ Can I have some tea?
 
                 int conToken = int.Parse(headers["CelesteNet-ConnectionToken"]);
                 IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[]{','}).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray();
-                int maxPacketSize = int.Parse(headers["CelesteNet-MaxPacketSize"]);
-                float mergeWindow = float.Parse(headers["CelesteNet-MergeWindow"]);
-                float heartbeatInterval = float.Parse(headers["CelesteNet-HeartbeatInterval"]);
+
+                CelesteNetTCPUDPConnection.Settings conSettings = default;
+                conSettings.MaxPacketSize = int.Parse(headers["CelesteNet-MaxPacketSize"]);
+                conSettings.MaxQueueSize = int.Parse(headers["CelesteNet-MaxQueueSize"]);
+                conSettings.MergeWindow = float.Parse(headers["CelesteNet-MergeWindow"]);
+                conSettings.MaxHeartbeatDelay = int.Parse(headers["CelesteNet-MaxHeartbeatDelay"]);
+                conSettings.HeartbeatInterval = float.Parse(headers["CelesteNet-HeartbeatInterval"]);
+                conSettings.UDPAliveScoreMax = int.Parse(headers["CelesteNet-UDPAliveScoreMax"]);
+                conSettings.UDPDowngradeScoreMin = int.Parse(headers["CelesteNet-UDPDowngradeScoreMin"]);
+                conSettings.UDPDowngradeScoreMax = int.Parse(headers["CelesteNet-UDPDowngradeScoreMax"]);
+                conSettings.UDPDeathScoreMin = int.Parse(headers["CelesteNet-UDPDeathScoreMin"]);
+                conSettings.UDPDeathScoreMax = int.Parse(headers["CelesteNet-UDPDeathScoreMax"]);
+                
+                int udpRecvPort = int.Parse(headers["CelesteNet-UDPReceivePort"]);
+                int udpSendPort = int.Parse(headers["CelesteNet-UDPSendPort"]);
 
                 netStream.ReadTimeout = netStream.WriteTimeout = -1;
-                return (conToken, conFeatures, maxPacketSize, mergeWindow, heartbeatInterval);
+                return (conToken, conFeatures, conSettings, udpRecvPort, udpSendPort);
             }
         }
 

@@ -88,13 +88,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                             sock.Connect(Settings.Host, Settings.Port);
 
                             // Do the teapot handshake
-                            (int conToken, IConnectionFeature[] features, int maxPacketSize, float mergeWindow, float heartbeatInterval) = Handshake.DoTeapotHandshake(sock, ConFeatures, Settings.Name);
-                            Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {conToken} conFeatures '{features.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}' maxPacketSize {maxPacketSize} mergeWindow {mergeWindow} heartbeatInterval {heartbeatInterval}");
+                            (int conToken, IConnectionFeature[] conFeatures, CelesteNetTCPUDPConnection.Settings conSettings, int udpRecvPort, int udpSendPort) = Handshake.DoTeapotHandshake(sock, ConFeatures, Settings.Name);
+                            Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {conToken} conFeatures '{conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}' udpRecvPort {udpRecvPort} udpSendPort {udpSendPort}");
 
                             // Create a connection and start the heartbeat timer
-                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, conToken, maxPacketSize, mergeWindow, sock);
+                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, conToken, conSettings, sock, udpRecvPort, udpSendPort);
                             con.OnDisconnect += _ => Dispose();
-                            heartbeatTimer = new Timer(heartbeatInterval);
+                            heartbeatTimer = new Timer(conSettings.HeartbeatInterval);
                             heartbeatTimer.AutoReset = true;
                             heartbeatTimer.Elapsed += (_,_) => {
                                 if (con.DoHeartbeatTick()) {
@@ -109,7 +109,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             Con = con;
 
                             // Do the regular connection handshake
-                            Handshake.DoConnectionHandshake(Con, features);
+                            Handshake.DoConnectionHandshake(Con, conFeatures);
                             Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
 
                         } catch (Exception) {

@@ -7,20 +7,26 @@ using System.Net.Sockets;
 namespace Celeste.Mod.CelesteNet {
     public class CelesteNetTCPUDPConnection : CelesteNetConnection {
 
-        public const int MaxHeartbeatDelay = 3;
-        private const int UDPAliveScoreMax = 60;
-        private const int UDPDowngradeScoreMin = -2;
-        private const int UDPDowngradeScoreMax = 3;
-        private const int UDPDeathScoreMin = -2;
-        private const int UDPDeathScoreMax = 3;
+        public struct Settings {
 
-        public readonly int ConnectionToken;
+            public int MaxPacketSize, MaxQueueSize;
+            public float MergeWindow;
+            public int MaxHeartbeatDelay;
+            public float HeartbeatInterval;
+            public int UDPAliveScoreMax;
+            public int UDPDowngradeScoreMin, UDPDowngradeScoreMax;
+            public int UDPDeathScoreMin, UDPDeathScoreMax;
+
+        }
+
         public override bool IsConnected => IsAlive && tcpSock.Connected;
         public override string ID { get; }
         public override string UID { get; }
-        public readonly int MaxPacketSize;
         public readonly OptMap<string> Strings = new OptMap<string>("StringMap");
         public readonly OptMap<Type> SlimMap = new OptMap<Type>("SlimMap");
+
+        public readonly int ConnectionToken;
+        public readonly Settings ConnectionSettings;
 
         public Socket TCPSocket => tcpSock;
 
@@ -37,7 +43,7 @@ namespace Celeste.Mod.CelesteNet {
         public bool UseUDP {
             get {
                 lock (UDPLock)
-                    return IsConnected && udpDeathScore < UDPDeathScoreMax;
+                    return IsConnected && udpDeathScore < ConnectionSettings.UDPDeathScoreMax;
             }
         }
 
@@ -68,18 +74,18 @@ namespace Celeste.Mod.CelesteNet {
 
         public event Action<CelesteNetTCPUDPConnection, EndPoint>? OnUDPDeath;
 
-        public CelesteNetTCPUDPConnection(DataContext data, int token,  string uid, int maxPacketSize, int maxQueueSize, float mergeWindow, Socket tcpSock, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
+        public CelesteNetTCPUDPConnection(DataContext data, string uid, int token, Settings settings, Socket tcpSock, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
             ConnectionToken = token;
             ID = $"TCP/UDP uid '{uid}' EP {tcpSock.RemoteEndPoint}";
             UID = uid;
 
             // Initialize networking stuff
-            MaxPacketSize = maxPacketSize;
+            ConnectionSettings = settings;
             this.tcpSock = tcpSock;
             udpEP = null;
             udpMaxDatagramSize = 0;
-            tcpQueue = new CelesteNetSendQueue(this, "TCP Queue", maxQueueSize, mergeWindow, tcpQueueFlusher);
-            udpQueue = new CelesteNetSendQueue(this, "UDP Queue", maxQueueSize, mergeWindow, udpQueueFlusher);
+            tcpQueue = new CelesteNetSendQueue(this, "TCP Queue", settings.MaxQueueSize, settings.MergeWindow, tcpQueueFlusher);
+            udpQueue = new CelesteNetSendQueue(this, "UDP Queue", settings.MaxQueueSize, settings.MergeWindow, udpQueueFlusher);
         }
 
         protected override void Dispose(bool disposing) {
@@ -89,7 +95,7 @@ namespace Celeste.Mod.CelesteNet {
                 if (udpEP != null) {
                     EndPoint ep = udpEP!;
                     udpEP = null;
-                    udpDeathScore = UDPDeathScoreMax;
+                    udpDeathScore = ConnectionSettings.UDPDeathScoreMax;
                     OnUDPDeath?.Invoke(this, ep);
                 }
             }
@@ -107,7 +113,7 @@ namespace Celeste.Mod.CelesteNet {
 
         }
 
-        protected override CelesteNetSendQueue? GetQueue(DataType data) => (UseUDP && UDPEndpoint != null && udpConnectionId > 0 && (data.DataFlags & DataFlags.Unreliable) != 0) ? udpQueue : tcpQueue;
+        protected override CelesteNetSendQueue? GetQueue(DataType data) => (UseUDP && UDPEndpoint != null && udpConnectionId >= 0 && (data.DataFlags & DataFlags.Unreliable) != 0) ? udpQueue : tcpQueue;
 
         public virtual void PromoteOptimizations() {
             foreach ((string str, int id) in Strings.PromoteRead())
@@ -142,7 +148,7 @@ namespace Celeste.Mod.CelesteNet {
                         MaxDatagramSize = maxDatagramSize
                     });
 
-                Logger.Log(LogLevel.INF, "tcpudpcon", $"Initialized UDP connection of {this} [{conId} | {udpMaxDatagramSize} | {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+                Logger.Log(LogLevel.INF, "tcpudpcon", $"Initialized UDP connection of {this} [{conId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
             }
         }
 
@@ -153,11 +159,11 @@ namespace Celeste.Mod.CelesteNet {
                     return;
 
                 // Increment the alive score, then decrement the downgrade score, then the death score
-                if (++udpAliveScore > UDPAliveScoreMax) {
+                if (++udpAliveScore > ConnectionSettings.UDPAliveScoreMax) {
                     udpAliveScore = 0;
-                    if (udpDowngradeScore > UDPDowngradeScoreMin)
+                    if (udpDowngradeScore > ConnectionSettings.UDPDowngradeScoreMin)
                         udpDowngradeScore--;
-                    else if (udpDeathScore > UDPDeathScoreMin)
+                    else if (udpDeathScore > ConnectionSettings.UDPDeathScoreMin)
                         udpDeathScore--;
                 }
             }
@@ -172,9 +178,9 @@ namespace Celeste.Mod.CelesteNet {
                 // Reset the alive score, half the maximum datagram size, and increment the downgrade score
                 // If it reaches it's maximum, the connection died
                 udpAliveScore = 0;
-                if (++udpDowngradeScore >= UDPDowngradeScoreMax) {
+                if (++udpDowngradeScore >= ConnectionSettings.UDPDowngradeScoreMax) {
                     udpDowngradeScore = 0;
-                    if ((udpMaxDatagramSize /= 2) >= 1+MaxPacketSize) {
+                    if ((udpMaxDatagramSize /= 2) >= 1+ConnectionSettings.MaxPacketSize) {
                         Logger.Log(LogLevel.INF, "tcpudpcon", $"Downgrading UDP connection of {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
 
                         if (udpConnectionId >= 0)
@@ -201,7 +207,7 @@ namespace Celeste.Mod.CelesteNet {
                 // Otherwise, the packet must contain our connection ID
                 if (info.ConnectionID < 0) {
                     udpAliveScore = udpDowngradeScore = 0;
-                    udpDeathScore = UDPDeathScoreMax;
+                    udpDeathScore = ConnectionSettings.UDPDeathScoreMax;
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Remote disabled UDP for connection {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
                     return;
                 }
@@ -214,7 +220,7 @@ namespace Celeste.Mod.CelesteNet {
                     // If it referes to an old connection, just ignore it
                     if (info.ConnectionID <= udpLastConnectionId)
                         return;
-                    if (info.MaxDatagramSize < 1+MaxPacketSize)
+                    if (info.MaxDatagramSize < 1+ConnectionSettings.MaxPacketSize)
                         return;
                     udpConnectionId = info.ConnectionID;
                     udpMaxDatagramSize = info.MaxDatagramSize;
@@ -224,7 +230,7 @@ namespace Celeste.Mod.CelesteNet {
                     return;
 
                 // Check if the remote notified us of a connection death
-                if (info.MaxDatagramSize < 1+MaxPacketSize) {
+                if (info.MaxDatagramSize < 1+ConnectionSettings.MaxPacketSize) {
                     UDPConnectionDeath(false, "Remote connection died");
                     return;
                 }
@@ -256,8 +262,8 @@ namespace Celeste.Mod.CelesteNet {
 
             // Increment the death score
             // If it exceeds the maximum, disable UDP
-            if (increaseScore && udpDeathScore < UDPDeathScoreMax) {
-                if (++udpDeathScore >= UDPDeathScoreMax)
+            if (increaseScore && udpDeathScore < ConnectionSettings.UDPDeathScoreMax) {
+                if (++udpDeathScore >= ConnectionSettings.UDPDeathScoreMax)
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Disabling UDP for connection {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
             }
 
@@ -284,7 +290,7 @@ namespace Celeste.Mod.CelesteNet {
         public virtual bool DoHeartbeatTick() {
             lock (HeartbeatLock) {
                 // Check if we got a TCP heartbeat in the required timeframe
-                if ((tcpLastHeartbeatDelay++) > MaxHeartbeatDelay)
+                if ((tcpLastHeartbeatDelay++) > ConnectionSettings.MaxHeartbeatDelay)
                     return true;
 
                 // Check if we need to send a TCP keep-alive
@@ -294,7 +300,7 @@ namespace Celeste.Mod.CelesteNet {
 
                 if (UDPEndpoint != null) {
                     // Check if we got a UDP heartbeat in the required timeframe
-                    if ((udpLastHeartbeatDelay++) > MaxHeartbeatDelay) {
+                    if ((udpLastHeartbeatDelay++) > ConnectionSettings.MaxHeartbeatDelay) {
                         udpLastHeartbeatDelay = 0;
                         DecreaseUDPScore();
                     }

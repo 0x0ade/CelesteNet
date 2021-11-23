@@ -2,7 +2,6 @@ using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.IO;
 using System.Net.Sockets;
-using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class ConPlusTCPUDPConnection : CelesteNetTCPUDPConnection {
@@ -61,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly RateMetric TCPRecvRate, TCPSendRate;
         public readonly RateMetric UDPRecvRate, UDPSendRate;
 
-        public ConPlusTCPUDPConnection(CelesteNetServer server, int token, string uid, Socket tcpSock, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) : base(server.Data, token, uid, server.Settings.MaxPacketSize, server.Settings.MaxQueueSize, server.Settings.MergeWindow, tcpSock, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
+        public ConPlusTCPUDPConnection(CelesteNetServer server, string uid, int token, Settings settings, Socket tcpSock, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) : base(server.Data, uid, token, settings, tcpSock, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
             Server = server;
             TCPReceiver = tcpReceiver;
             UDPReceiver = udpReceiver;
@@ -244,10 +243,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                             Receive(packet);
                         }
                     }
-
-                    // Promote optimizations
-                    PromoteOptimizations();
                 }
+
+                // Promote optimizations
+                PromoteOptimizations();
             }
 
             // I'm sorry :(

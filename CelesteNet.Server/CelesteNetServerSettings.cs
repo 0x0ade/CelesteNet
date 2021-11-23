@@ -39,6 +39,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float NetPlusSchedulerStealThreshold { get; set; } = 0.7f;
 
         public int MainPort { get; set; } = 3802;
+        public int UDPReceivePort { get; set; } = 3803;
+        public int UDPSendPort { get; set; } = 3804;
 
         public int MaxTickRate { get; set; } = 50;
         public float TickRateLowActivityThreshold { get; set; } = 0.3f;
@@ -51,6 +53,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int MaxPacketSize { get; set; } = 1024;
         public int MaxQueueSize { get; set; } = 256;
         public float MergeWindow { get; set; } = 15;
+        public int MaxHeartbeatDelay { get; set; } = 2;
         public float HeartbeatInterval { get; set; } = 500f;
 
         public bool TCPRecvUseEPoll { get; set; } = true;
@@ -58,6 +61,12 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int TCPBufferSize { get; set; } = 16384;
         public int TCPSockSendBufferSize { get; set; } = 65536;
         public int UDPMaxDatagramSize { get; set; } = 4096;
+
+        public int UDPAliveScoreMax { get; set; } = 70;
+        public int UDPDowngradeScoreMin { get; set; } = -2;
+        public int UDPDowngradeScoreMax { get; set; } = 2;
+        public int UDPDeathScoreMin { get; set; } = -2;
+        public int UDPDeathScoreMax { get; set; } = 2;
 
         public float PlayerTCPDownlinkBpTCap { get; set; } = 256;
         public float PlayerTCPDownlinkPpTCap { get; set; } = 8;

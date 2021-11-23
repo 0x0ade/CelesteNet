@@ -192,7 +192,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public virtual void HandleUDPInfo(DataLowLevelUDPInfo info) {
             lock (UDPLock) {
-                if (!UseUDP || UDPEndpoint == null)
+                if (!UseUDP)
                     return;
 
                 // Handle connection ID
@@ -204,9 +204,17 @@ namespace Celeste.Mod.CelesteNet {
                     udpDeathScore = UDPDeathScoreMax;
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Remote disabled UDP for connection {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
                     return;
-                } else if (udpConnectionId < 0) {
+                }
+                
+                // We need an initialized connection for the following branches
+                if (UDPEndpoint == null)
+                    return;
+
+                if (udpConnectionId < 0) {
                     // If it referes to an old connection, just ignore it
                     if (info.ConnectionID <= udpLastConnectionId)
+                        return;
+                    if (info.MaxDatagramSize < 1+MaxPacketSize)
                         return;
                     udpConnectionId = info.ConnectionID;
                     udpMaxDatagramSize = info.MaxDatagramSize;

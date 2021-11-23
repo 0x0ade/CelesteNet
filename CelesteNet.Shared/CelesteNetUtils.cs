@@ -202,6 +202,19 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
+        public static void ShutdownSafe(this Socket sock, SocketShutdown shutdown) {
+            if (!sock.Connected)
+                return;
+            try {
+                sock.Shutdown(shutdown);
+            } catch (SocketException se) {
+                // Sometime the first check isn't enough
+                if (se.SocketErrorCode == SocketError.NotConnected)
+                    return;
+                throw;
+            }
+        }
+
         private const int SOL_SOCKET = 1, SO_REUSEPORT = 15;
         [DllImport("libc", SetLastError = true)] 
         private static extern int setsockopt(IntPtr socket, int level, int opt, [In, MarshalAs(UnmanagedType.LPArray)] int[] val, int len);

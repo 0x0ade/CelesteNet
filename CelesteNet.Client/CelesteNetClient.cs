@@ -115,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         } catch (Exception) {
                             Con?.Dispose();
                             try {
-                                sock.Shutdown(SocketShutdown.Both);
+                                sock.ShutdownSafe(SocketShutdown.Both);
                                 sock.Close();
                             } catch (Exception) {}
                             sock.Dispose();

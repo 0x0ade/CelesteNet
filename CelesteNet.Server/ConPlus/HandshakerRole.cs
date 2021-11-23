@@ -139,7 +139,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 if (!teapotSuccess) {
                     Logger.Log(LogLevel.VVV, "tcpudphs", $"Connection from {remoteEP} failed teapot handshake");
-                    sock.Shutdown(SocketShutdown.Both);
+                    sock.ShutdownSafe(SocketShutdown.Both);
                     sock.Close();
                     return;
                 }

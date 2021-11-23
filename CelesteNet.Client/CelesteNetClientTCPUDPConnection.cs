@@ -60,12 +60,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         protected override void Dispose(bool disposing) {
             // Wait for threads
             tokenSrc.Cancel();
-            if (TCPSocket.Connected)
-                TCPSocket.Shutdown(SocketShutdown.Both);
-            if (udpRecvSocket.Connected)
-                udpRecvSocket.Shutdown(SocketShutdown.Both);
-            if (udpSendSocket.Connected)
-                udpSendSocket.Shutdown(SocketShutdown.Both);
+            TCPSocket.ShutdownSafe(SocketShutdown.Both);
+            udpRecvSocket.ShutdownSafe(SocketShutdown.Both);
+            udpSendSocket.ShutdownSafe(SocketShutdown.Both);
 
             if (Thread.CurrentThread != tcpRecvThread)
                 tcpRecvThread.Join();

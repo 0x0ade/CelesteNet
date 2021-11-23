@@ -106,7 +106,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        public void ReceiveTCPData() {
+        public void HandleTCPData() {
             using (Utilize(out bool alive)) {
                 if (!alive || !IsConnected)
                     return;
@@ -198,7 +198,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     return;
 
                 lock (UDPLock) {
-                    if (!IsConnected || dgSize <= 0)
+                    if (UDPEndpoint == null || dgSize <= 0)
                         return;
 
                     // Update metrics

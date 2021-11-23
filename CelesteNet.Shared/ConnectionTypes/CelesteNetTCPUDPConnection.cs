@@ -37,7 +37,7 @@ namespace Celeste.Mod.CelesteNet {
         public bool UseUDP {
             get {
                 lock (UDPLock)
-                    return IsAlive && udpDeathScore < UDPDeathScoreMax;
+                    return IsConnected && udpDeathScore < UDPDeathScoreMax;
             }
         }
 

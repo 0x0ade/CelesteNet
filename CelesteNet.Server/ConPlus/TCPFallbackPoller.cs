@@ -49,6 +49,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void ArmConnectionPoll(ConPlusTCPUDPConnection con) {
             using (pollerLock.R()) {
+                if (!cons.Contains(con))
+                    return;
+
                 con.TCPSocket.BeginReceive(PollBuffer, 0, 0, SocketFlags.None, _ => {
                     using (pollerLock.R())
                         if (cons.Contains(con))

@@ -188,7 +188,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void ArmConnectionPoll(ConPlusTCPUDPConnection con) {
             using (pollerLock.R()) {
                 if (!connections.TryGetValue(con, out var conData))
-                    throw new ArgumentException("Connection not part of poller");
+                    return;
 
                 // Modify all flags to how they were originally. This causes the
                 // EPoll FD to monitor the socket again

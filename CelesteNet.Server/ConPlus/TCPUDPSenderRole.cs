@@ -72,39 +72,41 @@ namespace Celeste.Mod.CelesteNet.Server {
                     ConPlusTCPUDPConnection con = (ConPlusTCPUDPConnection) queue.Con;
                     EnterActiveZone();
                     try {
-                        // Maybe the connection got closed while it was in the queue
-                        if (!con.IsConnected)
-                            continue;
+                        using (con.Utilize(out bool alive)) {
+                            // Maybe the connection got closed while it was in the queue
+                            if (!alive || !con.IsConnected)
+                                continue;
 
-                        switch (queueType) {
-                            case QueueType.TCP: {
-                                try {
-                                    FlushTCPQueue(con, queue, token);
-                                } catch (Exception e) {
-                                    if (e is SocketException se && se.IsDisconnect()) {
-                                        Logger.Log(LogLevel.INF, "tcpsend", $"Remote of connection {con} closed the connection");
+                            switch (queueType) {
+                                case QueueType.TCP: {
+                                    try {
+                                        FlushTCPQueue(con, queue, token);
+                                    } catch (Exception e) {
+                                        if (e is SocketException se && se.IsDisconnect()) {
+                                            Logger.Log(LogLevel.INF, "tcpsend", $"Remote of connection {con} closed the connection");
+                                            con.Dispose();
+                                            continue;
+                                        }
+
+                                        Logger.Log(LogLevel.WRN, "tcpsend", $"Error flushing connection {con} TCP queue '{queue.Name}': {e}");
                                         con.Dispose();
-                                        continue;
                                     }
-
-                                    Logger.Log(LogLevel.WRN, "tcpsend", $"Error flushing connection {con} TCP queue '{queue.Name}': {e}");
-                                    con.Dispose();
-                                }
-                            } break;
-                            case QueueType.UDP: {
-                                try {
-                                    lock (con.UDPLock) {
-                                        // If there's no established UDP connection, just drop all packets
-                                        if (con.UDPEndpoint == null)
-                                            queue.SignalFlushed();
-                                        else
-                                            FlushUDPQueue(con, queue, token);
+                                } break;
+                                case QueueType.UDP: {
+                                    try {
+                                        lock (con.UDPLock) {
+                                            // If there's no established UDP connection, just drop all packets
+                                            if (con.UDPEndpoint == null)
+                                                queue.SignalFlushed();
+                                            else
+                                                FlushUDPQueue(con, queue, token);
+                                        }
+                                    } catch (Exception e) {
+                                        Logger.Log(LogLevel.DBG, "udpsend", $"Error flushing connection {con} UDP queue '{queue.Name}': {e}");
+                                        con.DecreaseUDPScore();
                                     }
-                                } catch (Exception e) {
-                                    Logger.Log(LogLevel.DBG, "udpsend", $"Error flushing connection {con} UDP queue '{queue.Name}': {e}");
-                                    con.DecreaseUDPScore();
-                                }
-                            } break;
+                                } break;
+                            }
                         }
                     } finally {
                         ExitActiveZone();

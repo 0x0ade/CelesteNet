@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet {
                     EnterActiveZone();
                     try {
                         // Receive data from the connection
-                        con.ReceiveTCPData();
+                        con.HandleTCPData();
 
                         // Arm the connection to be polled again
                         if (con.IsConnected)

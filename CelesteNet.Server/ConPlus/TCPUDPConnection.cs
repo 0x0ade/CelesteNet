@@ -82,6 +82,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             udpReceiver.AddConnection(this);
         }
 
+        // The usage lock could still be used after we dispose
+        // So keep it alive as long as possible
+        ~ConPlusTCPUDPConnection() => usageLock.Dispose();
+
         protected override void Dispose(bool disposing) {
             TCPReceiver.Poller.RemoveConnection(this);
             UDPReceiver.RemoveConnection(this);
@@ -91,19 +95,26 @@ namespace Celeste.Mod.CelesteNet.Server {
                 TCPSendRate.Dispose();
                 UDPRecvRate.Dispose();
                 UDPSendRate.Dispose();
-                usageLock.Dispose();
             }
         }
 
-        // It's OK to do this for edge cases
         public IDisposable? Utilize(out bool alive) {
-            try {
-                alive = true;
-                return usageLock.R();
-            } catch (ObjectDisposedException) {
+            if (!IsAlive) {
                 alive = false;
                 return null;
             }
+
+            IDisposable dis = usageLock.R();
+
+            // Detect race conditions with Dispose
+            if (!IsAlive) {
+                dis.Dispose();
+                alive = false;
+                return null;
+            }
+
+            alive = true;
+            return dis;
         }
 
         public void HandleTCPData() {
@@ -117,8 +128,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     if (numRead == 0) {
                         // The remote closed the connection
                         Logger.Log(LogLevel.INF, "tcpudpcon", $"Remote of connection {this} closed the connection");
-                        Dispose();
-                        return;
+                        goto closeConnection;
                     }
                     tcpBufferOff += numRead;
 
@@ -129,8 +139,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     TCPRecvRate.UpdateRate(numRead, 0);
                     if (TCPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap) {
                         Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink byte cap: {TCPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap} cap BpS");
-                        Dispose();
-                        return;
+                        goto closeConnection;
                     }
 
                     while (true) {
@@ -140,8 +149,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                             int packetLen = BitConverter.ToUInt16(tcpBuffer, 0);
                             if (packetLen > Server.Settings.MaxPacketSize) {
                                 Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} sent packet over the size limit: {packetLen} > {Server.Settings.MaxPacketSize}");
-                                Dispose();
-                                return;
+                                goto closeConnection;
                             }
 
                             // Did we receive the entire packet already?
@@ -150,8 +158,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 TCPRecvRate.UpdateRate(0, 1);
                                 if (TCPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap) {
                                     Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink packet cap: {TCPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap} cap PpS");
-                                    Dispose();
-                                    return;
+                                    goto closeConnection;
                                 }
 
                                 // Read the packet
@@ -190,6 +197,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Promote optimizations
                 PromoteOptimizations();
             }
+
+            // I'm sorry :(
+            return;
+            closeConnection:
+                Dispose();
         }
 
         public void HandleUDPDatagram(byte[] buffer, int dgSize) {
@@ -205,8 +217,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     UDPRecvRate.UpdateRate(dgSize, 0);
                     if (UDPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap) {
                         Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink byte cap: {UDPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap} cap BpS");
-                        Dispose();
-                        return;
+                        goto closeConnection;
                     }
 
                     // Let the connection know we got a heartbeat
@@ -225,8 +236,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                             UDPRecvRate.UpdateRate(0, 1);
                             if (UDPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap) {
                                 Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink packet cap: {UDPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap} cap PpS");
-                                Dispose();
-                                return;
+                                goto closeConnection;
                             }
 
                             if (packet.TryGet<MetaOrderedUpdate>(Server.Data, out MetaOrderedUpdate? orderedUpdate))
@@ -239,6 +249,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                     PromoteOptimizations();
                 }
             }
+
+            // I'm sorry :(
+            return;
+            closeConnection:
+                Dispose();
         }
 
         public bool TCPSendCapped => TCPSendRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkBpTCap || TCPSendRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkPpTCap;

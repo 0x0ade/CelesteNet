@@ -106,6 +106,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void RemoveConnection(ConPlusTCPUDPConnection con) {
             con.OnUDPDeath -= UDPDeath;
             conTokenMap.TryRemove(con.ConnectionToken, out _);
+
+            EndPoint? udpEP = con.UDPEndpoint;
             endPointMap.TryRemove(con.UDPEndpoint!, out _);
         }
 

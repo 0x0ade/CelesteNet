@@ -37,40 +37,35 @@ namespace Celeste.Mod.CelesteNet {
         private CelesteNetSendQueue tcpQueue, udpQueue;
 
         public readonly object UDPLock = new object();
-        private int udpConnectionId, udpLastConnectionId = -1;
-        private int udpMaxDatagramSize;
-        private int udpAliveScore = 0, udpDowngradeScore = 0, udpDeathScore = 0;
+        private volatile int udpConnectionId, udpLastConnectionId = -1;
+        private volatile int udpMaxDatagramSize;
+        private volatile int udpAliveScore = 0, udpDowngradeScore = 0, udpDeathScore = 0;
         private byte udpNextContainerID = 0;
 
         public virtual bool UseUDP {
             get {
-                lock (UDPLock)
-                    return IsConnected && !(ConnectionSettings.UDPReceivePort <= 0 || ConnectionSettings.UDPSendPort <= 0) && udpDeathScore < ConnectionSettings.UDPDeathScoreMax;
+                return IsConnected && !(ConnectionSettings.UDPReceivePort <= 0 || ConnectionSettings.UDPSendPort <= 0) && udpDeathScore < ConnectionSettings.UDPDeathScoreMax;
             }
             set {
-                lock (UDPLock)
-                    udpDeathScore = value ? 0 : ConnectionSettings.UDPDeathScoreMax;
+                udpDeathScore = value ? 0 : ConnectionSettings.UDPDeathScoreMax;
             }
         }
 
         public virtual EndPoint? UDPEndpoint {
             get {
-                lock (UDPLock)
-                    return UseUDP ? udpEP : null;
+                return UseUDP ? udpEP : null;
             }
         }
 
         public virtual int UDPConnectionID {
             get {
-                lock (UDPLock)
-                    return UseUDP ? udpConnectionId : -1;
+                return UseUDP ? udpConnectionId : -1;
             }
         }
 
         public virtual int UDPMaxDatagramSize {
             get {
-                lock (UDPLock)
-                    return udpMaxDatagramSize;
+                return udpMaxDatagramSize;
             }
         }
 
@@ -299,6 +294,9 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public virtual bool DoHeartbeatTick() {
+            if (!IsAlive)
+                return false;
+
             lock (HeartbeatLock) {
                 // Check if we got a TCP heartbeat in the required timeframe
                 if (Interlocked.Increment(ref tcpLastHeartbeatDelay) > ConnectionSettings.MaxHeartbeatDelay)

@@ -9,7 +9,6 @@ namespace Celeste.Mod.CelesteNet.Client {
     public static class Handshake {
 
         public const int TeapotVersion = 1;
-        public const int TeapotTimeout = 5000;
 
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
         public static (int conToken, IConnectionFeature[] conFeatures, T settings) DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey) where T : struct {
@@ -18,8 +17,6 @@ namespace Celeste.Mod.CelesteNet.Client {
             using (NetworkStream netStream = new NetworkStream(sock, false))
             using (StreamReader reader = new StreamReader(netStream))
             using (StreamWriter writer = new StreamWriter(netStream)) {
-                netStream.ReadTimeout = netStream.WriteTimeout = TeapotTimeout;
-
                 // Send the "HTTP" request
                 writer.Write($@"
 CONNECT /teapot HTTP/1.1
@@ -57,8 +54,7 @@ Can I have some tea?
                 int conToken = int.Parse(headers["CelesteNet-ConnectionToken"]);
                 IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[]{','}).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray();
 
-                T conSettings = default;
-                object boxedSettings = conSettings;
+                object boxedSettings = default(T);
                 foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
                     string headerName = $"CelesteNet-Settings-{field.Name}";
                     switch (Type.GetTypeCode(field.FieldType)) {
@@ -73,8 +69,7 @@ Can I have some tea?
                     }
                 }
                 
-                netStream.ReadTimeout = netStream.WriteTimeout = -1;
-                return (conToken, conFeatures, conSettings);
+                return (conToken, conFeatures, (T) boxedSettings);
             }
         }
 
@@ -83,7 +78,7 @@ Can I have some tea?
             foreach (IConnectionFeature feature in features)
                 feature.Register(con, true);
             foreach (IConnectionFeature feature in features)
-                feature.DoHandShake(con, true).Wait();
+                feature.DoHandshake(con, true).Wait();
         }
 
     }

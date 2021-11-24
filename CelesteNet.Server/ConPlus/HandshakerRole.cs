@@ -280,7 +280,7 @@ Who wants some tea?
             foreach (IConnectionFeature feature in features)
                 feature.Register(con, false);
             foreach (IConnectionFeature feature in features)
-                await feature.DoHandShake(con, false);
+                await feature.DoHandshake(con, false);
 
             // Send the current tick rate
             con.Send(new DataTickRate() {

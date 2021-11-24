@@ -219,20 +219,6 @@ namespace Celeste.Mod.CelesteNet {
         [DllImport("libc", SetLastError = true)] 
         private static extern int setsockopt(IntPtr socket, int level, int opt, [In, MarshalAs(UnmanagedType.LPArray)] int[] val, int len);
 
-        public static void FixTTL(this Socket sock) {
-            // For some bizare reason, some sockets are initialized with a TTL of 1
-            // Also sock.Ttl is broken (sets ReuseAddress instead of TTL)
-            sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontRoute, false);
-            switch (sock.AddressFamily) {
-                case AddressFamily.InterNetwork:
-                    sock.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.IpTimeToLive, 64);
-                break;
-                case AddressFamily.InterNetworkV6:
-                    sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IpTimeToLive, 64);
-                break;
-            }
-        }
-
         public static void EnableEndpointReuse(this Socket sock) {
             // Set reuse address and port options (if available)
             // We have to set SO_REUSEPORT directly though

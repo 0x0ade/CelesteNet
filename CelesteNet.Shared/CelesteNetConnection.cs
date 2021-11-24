@@ -150,6 +150,9 @@ namespace Celeste.Mod.CelesteNet {
 
     public class CelesteNetSendQueue : IDisposable {
 
+        private volatile bool _Alive = true;
+        public bool Alive => _Alive;
+
         public readonly CelesteNetConnection Con;
         public readonly string Name;
         public readonly int MaxSize;
@@ -162,7 +165,7 @@ namespace Celeste.Mod.CelesteNet {
         private Action<CelesteNetSendQueue> queueFlushCB;
         private int inMergeWindow;
         private System.Timers.Timer timer;
-        private bool swapQueues;
+        private volatile bool swapQueues;
 
         public CelesteNetSendQueue(CelesteNetConnection con, string name, int maxSize, float mergeWindow, Action<CelesteNetSendQueue> queueFlusher) {
             Con = con;
@@ -180,10 +183,14 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void Dispose() {
-            timer.Dispose();
+            lock (timer) {
+                _Alive = false;
+                timer.Dispose();
+            }
         }
 
         public void Enqueue(DataType data) {
+            if (!Alive) return;
             if (frontQueue.Count >= MaxSize)
                 throw new InvalidOperationException("Queue is at maximum size");
             frontQueue.Enqueue(data);
@@ -196,23 +203,28 @@ namespace Celeste.Mod.CelesteNet {
 
         public void Flush() {
             if (Interlocked.CompareExchange(ref inMergeWindow, 1, 0) == 0) {
-                swapQueues = true;
-                timer.Interval = MergeWindow;
-                timer.Start();
+                lock (timer) {
+                    if (!Alive) return;
+                    swapQueues = true;
+                    timer.Interval = MergeWindow;
+                    timer.Start();
+                }
             }
         }
 
         public void DelayFlush(float delay) {
-            if (inMergeWindow != 1)
+            if (Volatile.Read(ref inMergeWindow) != 1)
                 throw new InvalidOperationException("Not currently flushing the queue");
 
             swapQueues = false;
-            timer.Interval = delay;
-            timer.Start();
+            lock (timer) {
+                timer.Interval = delay;
+                timer.Start();
+            }
         }
 
         public void SignalFlushed() {
-            if (inMergeWindow != 1)
+            if (Volatile.Read(ref inMergeWindow) != 1)
                 throw new InvalidOperationException("Not currently flushing the queue");
 
             backQueue.Clear();
@@ -223,10 +235,12 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         private void TimerElapsed(object? s, EventArgs a) {
-            if (inMergeWindow != 1)
+            if (Volatile.Read(ref inMergeWindow) != 1)
                 throw new InvalidOperationException("Not currently flushing the queue");
 
-            timer.Stop();
+            lock (timer)
+                timer.Stop();
+
             if (swapQueues)
                 backQueue = Interlocked.Exchange(ref frontQueue, backQueue);
             try {

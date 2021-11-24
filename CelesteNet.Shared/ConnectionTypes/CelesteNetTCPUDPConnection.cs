@@ -46,6 +46,10 @@ namespace Celeste.Mod.CelesteNet {
                 lock (UDPLock)
                     return IsConnected && !(ConnectionSettings.UDPReceivePort <= 0 || ConnectionSettings.UDPSendPort <= 0) && udpDeathScore < ConnectionSettings.UDPDeathScoreMax;
             }
+            set {
+                lock (UDPLock)
+                    udpDeathScore = value ? 0 : ConnectionSettings.UDPDeathScoreMax;
+            }
         }
 
         public virtual EndPoint? UDPEndpoint {

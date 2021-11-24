@@ -71,13 +71,5 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public CelesteNetTCPUDPConnection.Settings ConnectionSettings { get; }
 
-        /*
-        Having more than one thread accepting connections will cause all TCP
-        packets to be sent with a TTL of 1. This of course breaks things, so we
-        just, don't do that (accepting connections isn't a big bottleneck anyway).
-        */
-        // TODO Investigate the Linux kernel code for what causes this to happen
-        public override int MaxThreads => 1;
-
     }
 }

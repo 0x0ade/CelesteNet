@@ -223,8 +223,14 @@ namespace Celeste.Mod.CelesteNet {
             // Set reuse address and port options (if available)
             // We have to set SO_REUSEPORT directly though
             sock.ExclusiveAddressUse = false;
-            sock.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.ReuseAddress, true);
-            sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
+            switch (sock.AddressFamily) {
+                case AddressFamily.InterNetwork:
+                    sock.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.ReuseAddress, true);
+                    break;
+                case AddressFamily.InterNetworkV6:
+                    sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
+                    break;
+            }
             if (Environment.OSVersion.Platform == PlatformID.Unix) {
                 if (setsockopt(sock.Handle, SOL_SOCKET, SO_REUSEPORT, new[] { 1 }, sizeof(int)) < 0)
                     throw new SystemException($"Could not set SO_REUSEPORT: {Marshal.GetLastWin32Error()}");

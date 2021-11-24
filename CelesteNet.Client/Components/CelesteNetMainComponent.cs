@@ -442,10 +442,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (GrabbedBy != null && grab.Player.ID != GrabbedBy.PlayerInfo.ID)
                     goto Release;
 
-                if ((ghost.Position - player.Position).LengthSquared() > 4096f)
+                if ((ghost.Position - player.Position).LengthSquared() > 16384f)
                     goto Release;
 
-                if ((grab.Position - player.Position).LengthSquared() > 4096f)
+                if ((grab.Position - player.Position).LengthSquared() > 16384f)
                     goto Release;
 
                 RunOnMainThread(() => {

@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             tickDelay -= Engine.RawDeltaTime;
-            if (tickDelay <= 0) {
+            if (TickRate >= 60 || tickDelay <= 0) {
                 tickDelay += 1 / TickRate;
                 if (tickDelay < MinTickDelay)
                     tickDelay = MinTickDelay;

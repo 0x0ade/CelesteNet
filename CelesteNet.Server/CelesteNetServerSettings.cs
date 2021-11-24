@@ -42,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int UDPReceivePort { get; set; } = 3803;
         public int UDPSendPort { get; set; } = 3804;
 
-        public int MaxTickRate { get; set; } = 50;
+        public int MaxTickRate { get; set; } = 60;
         public float TickRateLowActivityThreshold { get; set; } = 0.3f;
         public float TickRateLowTCPUplinkBpSThreshold { get; set; } = 4194304; // 4 MBpS
         public float TickRateLowUDPUplinkBpSThreshold { get; set; } = 8388608; // 8 MBpS

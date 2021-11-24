@@ -38,7 +38,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         int conToken = BitConverter.ToInt32(dgBuffer, 1);
 
                         // Get the connection from the token
-                        if (!Role.conTokenMap.TryGetValue(conToken, out ConPlusTCPUDPConnection tokCon))
+                        if (!Role.conTokenMap.TryGetValue(conToken, out ConPlusTCPUDPConnection? tokCon) || tokCon == null)
                             continue;
 
                         // Initialize the connection

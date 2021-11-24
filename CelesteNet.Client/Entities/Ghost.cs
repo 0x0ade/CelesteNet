@@ -147,7 +147,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             GrabPacket = new DataPlayerGrabPlayer {
                 Player = client.PlayerInfo,
-
                 Grabbing = PlayerInfo,
                 Position = position,
                 Force = null
@@ -166,7 +165,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             GrabPacket = new DataPlayerGrabPlayer {
                 Player = client.PlayerInfo,
-
                 Grabbing = PlayerInfo,
                 Position = Position,
                 Force = force

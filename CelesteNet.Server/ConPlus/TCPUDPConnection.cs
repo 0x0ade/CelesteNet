@@ -197,7 +197,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 PromoteOptimizations();
             }
 
-            // I'm sorry :(
             return;
             closeConnection:
                 Dispose();
@@ -249,7 +248,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 PromoteOptimizations();
             }
 
-            // I'm sorry :(
             return;
             closeConnection:
                 Dispose();

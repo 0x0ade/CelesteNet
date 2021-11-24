@@ -18,11 +18,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         // Too many too quickly to make tasking worth it.
-        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.SlimHeader | DataFlags.Small;
+        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.SlimHeader | DataFlags.Small | DataFlags.NoStandardMeta;
 
-        public DataPlayerInfo? Player;
-
-        public DataPlayerInfo? Grabbing;
+        public DataPlayerInfo? Player, Grabbing;
         public Vector2 Position;
         public Vector2? Force;
 
@@ -43,26 +41,24 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Player = playerUpd;
         }
 
-        protected override void Read(CelesteNetBinaryReader reader) {
+        public override void ReadAll(CelesteNetBinaryReader reader) {
+            Player = reader.ReadRef<DataPlayerInfo>();
             Grabbing = reader.ReadOptRef<DataPlayerInfo>();
-
             Position = reader.ReadVector2();
+            Force = reader.ReadBoolean() ? reader.ReadVector2() : null;
 
-            if (reader.ReadBoolean())
-                Force = reader.ReadVector2();
+            Meta = GenerateMeta(reader.Data);
         }
 
-        protected override void Write(CelesteNetBinaryWriter writer) {
-            writer.WriteRef(Grabbing);
+        public override void WriteAll(CelesteNetBinaryWriter writer) {
+            FixupMeta(writer.Data);
 
+            writer.WriteRef(Player);
+            writer.WriteOptRef(Grabbing);
             writer.Write(Position);
-
-            if (Force == null) {
-                writer.Write(false);
-            } else {
-                writer.Write(true);
+            writer.Write(Force.HasValue);
+            if (Force.HasValue)
                 writer.Write(Force.Value);
-            }
         }
 
     }

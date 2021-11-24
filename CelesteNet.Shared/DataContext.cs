@@ -449,7 +449,7 @@ namespace Celeste.Mod.CelesteNet {
                     updateIDLast = 0;
                 }
 
-                if ((updateID - updateIDLast + 256) % 256 < 128)
+                if ((updateID - updateIDLast + 256) % 256 > 128)
                     return;
 
                 updateIDs[id] = updateID;

@@ -217,6 +217,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     StartupTime = f.Server.StartupTime.ToUnixTime(),
                     GCMemory = GC.GetTotalMemory(false),
                     Modules = f.Server.Modules.Count,
+                    TickRate = f.Server.CurrentTickRate,
 
                     f.Server.PlayerCounter,
                     Registered = f.Server.UserData.GetRegisteredCount(),

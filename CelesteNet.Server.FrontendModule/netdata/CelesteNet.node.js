@@ -13,6 +13,7 @@
     StartupTime: number,
     GCMemory: number,
     Modules: number,
+    TickRate: number,
     PlayerCounter: number,
     Registered: number,
     Banned: number,
@@ -162,6 +163,18 @@ let CelesteNet = {
                         },
                     },
                 },
+
+                tickRate: {
+                    title: "$ tick rate",
+                    units: "TpS",
+                    family: "ticker",
+                    dimensions: {
+                        time: {
+                            value: data.TickRate * 1000,
+                            divisor: 1000
+                        },
+                    },
+                },
  
                 counted: {
                     title: "$ player counter",
@@ -211,6 +224,7 @@ let CelesteNet = {
                     title: "$ TCP BpS downlink",
                     units: "bytes per second",
                     family: "bandwith",
+                    type: netdata.chartTypes.area,
                     dimensions: {
                         global: { value: data.TCPDownlinkBpS.GlobalRate * 1000, divisor: 1000 },
                         minCon: { value: data.TCPDownlinkBpS.MinConRate * 1000, divisor: 1000 },
@@ -223,6 +237,7 @@ let CelesteNet = {
                     title: "$ TCP PpS downlink",
                     units: "packets per second",
                     family: "bandwith",
+                    type: netdata.chartTypes.area,
                     dimensions: {
                         global: { value: data.TCPDownlinkPpS.GlobalRate * 1000, divisor: 1000 },
                         minCon: { value: data.TCPDownlinkPpS.MinConRate * 1000, divisor: 1000 },
@@ -235,6 +250,7 @@ let CelesteNet = {
                     title: "$ UDP BpS downlink",
                     units: "bytes per second",
                     family: "bandwith",
+                    type: netdata.chartTypes.area,
                     dimensions: {
                         global: { value: data.UDPDownlinkBpS.GlobalRate * 1000, divisor: 1000 },
                         minCon: { value: data.UDPDownlinkBpS.MinConRate * 1000, divisor: 1000 },
@@ -247,6 +263,7 @@ let CelesteNet = {
                     title: "$ UDP PpS downlink",
                     units: "packets per second",
                     family: "bandwith",
+                    type: netdata.chartTypes.area,
                     dimensions: {
                         global: { value: data.UDPDownlinkPpS.GlobalRate * 1000, divisor: 1000 },
                         minCon: { value: data.UDPDownlinkPpS.MinConRate * 1000, divisor: 1000 },
@@ -259,6 +276,7 @@ let CelesteNet = {
                     title: "$ TCP BpS uplink",
                     units: "bytes per second",
                     family: "bandwith",
+                    type: netdata.chartTypes.area,
                     dimensions: {
                         global: { value: data.TCPUplinkBpS.GlobalRate * 1000, divisor: 1000 },
                         minCon: { value: data.TCPUplinkBpS.MinConRate * 1000, divisor: 1000 },
@@ -271,6 +289,7 @@ let CelesteNet = {
                     title: "$ TCP PpS uplink",
                     units: "bytes per second",
                     family: "bandwith",
+                    type: netdata.chartTypes.area,
                     dimensions: {
                         global: { value: data.TCPUplinkPpS.GlobalRate * 1000, divisor: 1000 },
                         minCon: { value: data.TCPUplinkPpS.MinConRate * 1000, divisor: 1000 },
@@ -283,6 +302,7 @@ let CelesteNet = {
                     title: "$ UDP TpS uplink",
                     units: "packets per second",
                     family: "bandwith",
+                    type: netdata.chartTypes.area,
                     dimensions: {
                         global: { value: data.UDPUplinkBpS.GlobalRate * 1000, divisor: 1000 },
                         minCon: { value: data.UDPUplinkBpS.MinConRate * 1000, divisor: 1000 },
@@ -295,6 +315,7 @@ let CelesteNet = {
                     title: "$ UDP PpS uplink",
                     units: "packets per second",
                     family: "bandwith",
+                    type: netdata.chartTypes.area,
                     dimensions: {
                         global: { value: data.UDPUplinkPpS.GlobalRate * 1000, divisor: 1000 },
                         minCon: { value: data.UDPUplinkPpS.MinConRate * 1000, divisor: 1000 },
@@ -319,6 +340,7 @@ let CelesteNet = {
                     title: "$ Total pool activity rate",
                     units: "percent",
                     family: "activity",
+                    type: netdata.chartTypes.area,
                     dimensions: {
                         time: {
                             value: data.PoolActivityRate * 10000,
@@ -330,6 +352,7 @@ let CelesteNet = {
                     title: "$ Last scheduler execution duration",
                     units: "ms",
                     family: "scheduler",
+                    type: netdata.chartTypes.area,
                     dimensions: {
                         time: {
                             value: data.SchedulerExecDuration * 10000,
@@ -368,6 +391,7 @@ let CelesteNet = {
                     title: "$ Thread activity rates",
                     units: "percent",
                     family: "activity",
+                    type: netdata.chartTypes.area,
                     dimensions: threadActvDims
                 };
             }
@@ -382,14 +406,15 @@ let CelesteNet = {
                     title: "$ Role activity rates",
                     units: "percent",
                     family: "activity",
+                    type: netdata.chartTypes.area,
                     dimensions: roleActvDims
                 };
                 nCharts["roleThreadCount"] = {
                     title: "$ Role thread counts",
                     units: "threads",
                     family: "activity",
-                    dimensions: roleThreadsDims,
-                    type: netdata.chartTypes.stacked
+                    type: netdata.chartTypes.stacked,
+                    dimensions: roleThreadsDims
                 };
             }
 

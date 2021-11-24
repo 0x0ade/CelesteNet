@@ -192,7 +192,7 @@ namespace Celeste.Mod.CelesteNet {
         public void Enqueue(DataType data) {
             if (!Alive) return;
             if (frontQueue.Count >= MaxSize)
-                throw new InvalidOperationException("Queue is at maximum size");
+                throw new InvalidOperationException($"Queue '{Name}' is at maximum size");
             frontQueue.Enqueue(data);
             Flush();
         }
@@ -214,7 +214,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public void DelayFlush(float delay) {
             if (Volatile.Read(ref inMergeWindow) != 1)
-                throw new InvalidOperationException("Not currently flushing the queue");
+                throw new InvalidOperationException($"Not currently flushing queue '{Name}'");
 
             swapQueues = false;
             lock (timer) {
@@ -225,7 +225,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public void SignalFlushed() {
             if (Volatile.Read(ref inMergeWindow) != 1)
-                throw new InvalidOperationException("Not currently flushing the queue");
+                throw new InvalidOperationException($"Not currently flushing queue '{Name}'");
 
             // TODO For whatever reason, MonoKickstart can't clear concurrent queues
             backQueue = new ConcurrentQueue<DataType>();
@@ -237,7 +237,7 @@ namespace Celeste.Mod.CelesteNet {
 
         private void TimerElapsed(object? s, EventArgs a) {
             if (Volatile.Read(ref inMergeWindow) != 1)
-                throw new InvalidOperationException("Not currently flushing the queue");
+                throw new InvalidOperationException($"Not currently flushing queue '{Name}'");
 
             lock (timer)
                 timer.Stop();

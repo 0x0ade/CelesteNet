@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -107,9 +109,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             EndPoint remoteEP = sock.RemoteEndPoint!;
             ConPlusTCPUDPConnection? con = null;
             try {
-                // Get the connection UID
-                string conUID = $"con-tpcudp-{BitConverter.ToString(((IPEndPoint) sock.RemoteEndPoint!).Address.MapToIPv6().GetAddressBytes())}";
-
                 // Obtain a connection token
                 int conToken = Server.ConTokenGenerator.GenerateToken();
 
@@ -123,7 +122,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     tokenSrc.CancelAfter(TeapotTimeout);
                     tokenSrc.Token.Register(() => sock.Close());
                     try {
-                        var teapotRes = await TeapotHandshake(sock, conUID, conToken, settings, ((IPEndPoint) udpReceiver.EndPoint).Port, ((IPEndPoint) sender.UDPEndPoint).Port);
+                        var teapotRes = await TeapotHandshake(sock, conToken, settings, $"fb-tpcudp-{BitConverter.ToString(((IPEndPoint) sock.RemoteEndPoint!).Address.MapToIPv6().GetAddressBytes())}");
                         teapotSuccess = teapotRes != null;
                         if (teapotRes != null)
                             (conFeatures, playerUID, playerName) = teapotRes.Value;
@@ -143,10 +142,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                     sock.Close();
                     return;
                 }
-                Logger.Log(LogLevel.VVV, "tcpudphs", $"Connection {remoteEP} teapot handshake success: connection UID {conUID} connection features '{conFeatures.Aggregate((string) null!, (a, f) => ((a == null) ? $"{f}" : $"{a}, {f}"))}' player UID {playerUID} player name {playerName}");
+                Logger.Log(LogLevel.VVV, "tcpudphs", $"Connection {remoteEP} teapot handshake success: connection features '{conFeatures.Aggregate((string) null!, (a, f) => ((a == null) ? $"{f}" : $"{a}, {f}"))}' player UID {playerUID} player name {playerName}");
 
                 // Create the connection, do the generic connection handshake and create a session
-                Server.HandleConnect(con = new ConPlusTCPUDPConnection(Server, conUID, conToken, settings, sock, tcpReceiver, udpReceiver, sender));
+                Server.HandleConnect(con = new ConPlusTCPUDPConnection(Server, conToken, settings, sock, tcpReceiver, udpReceiver, sender));
                 await DoConnectionHandshake(con, conFeatures);
                 Server.CreateSession(con, playerUID, playerName);
             } catch(Exception) {
@@ -158,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         // Let's mess with web crawlers even more ;)
         // Also: I'm a Teapot
-        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake(Socket sock, string conUID,int conToken, CelesteNetTCPUDPConnection.Settings settings, int udpRecvPort, int udpSendPort) {
+        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake<T>(Socket sock, int conToken, T settings, string fbUID) where T : struct {
             using (NetworkStream netStream = new NetworkStream(sock, false))
             using (BufferedStream bufStream = new BufferedStream(netStream))
             using (StreamReader reader = new StreamReader(bufStream))
@@ -230,7 +229,7 @@ Connection: close
                     return await Send500();
 
                 // Authenticate name-key
-                ((string uid, string name)? playerData, string? errorReason) = AuthenticatePlayerNameKey(conUID, playerNameKey!);
+                ((string uid, string name)? playerData, string? errorReason) = AuthenticatePlayerNameKey(playerNameKey!, fbUID);
 
                 if (errorReason != null) {
                     Logger.Log(LogLevel.VVV, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
@@ -244,24 +243,30 @@ Connection: close
                 }
 
                 // Answer with the almighty teapot
+                StringBuilder settingsBuilder = new StringBuilder();
+                object boxedSettings = settings;
+                foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+                    switch (Type.GetTypeCode(field.FieldType)) {
+                        case TypeCode.Int16:
+                        case TypeCode.Int32:
+                        case TypeCode.Int64:
+                        case TypeCode.UInt16:
+                        case TypeCode.UInt32:
+                        case TypeCode.UInt64:
+                        case TypeCode.Single:
+                        case TypeCode.Double: {
+                            settingsBuilder.AppendLine($"CelesteNet-Settings-{field.Name}: {field.GetValue(boxedSettings)}");
+                        } break;
+                    }
+                }
+
                 await writer.WriteAsync($@"
 HTTP/1.1 418 I'm a teapot
 Connection: close
 CelesteNet-TeapotVersion: {TeapotVersion}
 CelesteNet-ConnectionToken: {conToken}
 CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
-CelesteNet-MaxPacketSize: {settings.MaxPacketSize}
-CelesteNet-MaxQueueSize: {settings.MaxQueueSize}
-CelesteNet-MergeWindow: {settings.MergeWindow}
-CelesteNet-MaxHeartbeatDelay: {settings.MaxHeartbeatDelay}
-CelesteNet-HeartbeatInterval: {settings.HeartbeatInterval}
-CelesteNet-UDPAliveScoreMax: {settings.UDPAliveScoreMax}
-CelesteNet-UDPDowngradeScoreMin: {settings.UDPDowngradeScoreMin}
-CelesteNet-UDPDowngradeScoreMax: {settings.UDPDowngradeScoreMax}
-CelesteNet-UDPDeathScoreMin: {settings.UDPDeathScoreMin}
-CelesteNet-UDPDeathScoreMax: {settings.UDPDeathScoreMax}
-CelesteNet-UDPReceivePort: {udpRecvPort}
-CelesteNet-UDPSendPort: {udpSendPort}
+{settingsBuilder.ToString().Trim()}
 
 Who wants some tea?
                 ".Trim().Replace("\n", "\r\n") + "\r\n" + "\r\n");
@@ -283,7 +288,7 @@ Who wants some tea?
             });
         }
 
-        public ((string playerUID, string playerName)?, string? errorReason) AuthenticatePlayerNameKey(string conUID, string nameKey) {
+        public ((string playerUID, string playerName)?, string? errorReason) AuthenticatePlayerNameKey(string nameKey, string fbUID) {
             // Get the player UID and name from the player name-key
             string playerUID = null!, playerName = null!;
             if ((nameKey!).StartsWith('#')) {
@@ -291,21 +296,21 @@ Who wants some tea?
                 if (playerUID != null && Server.UserData.TryLoad<BasicUserInfo>(playerUID, out BasicUserInfo info))
                     playerName = info.Name!;
                 else
-                    return (null, string.Format(Server.Settings.MessageInvalidKey, conUID, nameKey));
+                    return (null, string.Format(Server.Settings.MessageInvalidKey, nameKey));
             } else if (!Server.Settings.AuthOnly) {
                 playerName = nameKey!;
-                playerUID = conUID;
+                playerUID = fbUID;
             } else
-                return (null, string.Format(Server.Settings.MessageAuthOnly, conUID, nameKey));
+                return (null, string.Format(Server.Settings.MessageAuthOnly, nameKey));
 
             // Check if the player's banned
             BanInfo? ban = null;
             if (Server.UserData.TryLoad<BanInfo>(playerUID!, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To))
                 ban = banInfo;
-            if (Server.UserData.TryLoad<BanInfo>(conUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To))
+            if (Server.UserData.TryLoad<BanInfo>(fbUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To))
                 ban = conBanInfo;
             if (ban != null)
-                return (null, string.Format(Server.Settings.MessageBan, conUID, playerUID, playerName, ban.Reason));
+                return (null, string.Format(Server.Settings.MessageBan, playerUID, playerName, ban.Reason));
 
             // Sanitize the player's name
             playerName = playerName.Sanitize(CelesteNetPlayerSession.IllegalNameChars);

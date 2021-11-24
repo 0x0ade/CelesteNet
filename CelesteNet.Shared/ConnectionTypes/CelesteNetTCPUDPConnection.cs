@@ -9,6 +9,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public struct Settings {
 
+            public int UDPReceivePort, UDPSendPort;
             public int MaxPacketSize, MaxQueueSize;
             public float MergeWindow;
             public int MaxHeartbeatDelay;
@@ -40,28 +41,28 @@ namespace Celeste.Mod.CelesteNet {
         private int udpAliveScore = 0, udpDowngradeScore = 0, udpDeathScore = 0;
         private byte udpNextContainerID = 0;
 
-        public bool UseUDP {
+        public virtual bool UseUDP {
             get {
                 lock (UDPLock)
-                    return IsConnected && udpDeathScore < ConnectionSettings.UDPDeathScoreMax;
+                    return IsConnected && !(ConnectionSettings.UDPReceivePort <= 0 || ConnectionSettings.UDPSendPort <= 0) && udpDeathScore < ConnectionSettings.UDPDeathScoreMax;
             }
         }
 
-        public EndPoint? UDPEndpoint {
+        public virtual EndPoint? UDPEndpoint {
             get {
                 lock (UDPLock)
                     return UseUDP ? udpEP : null;
             }
         }
 
-        public int UDPConnectionID {
+        public virtual int UDPConnectionID {
             get {
                 lock (UDPLock)
                     return UseUDP ? udpConnectionId : -1;
             }
         }
 
-        public int UDPMaxDatagramSize {
+        public virtual int UDPMaxDatagramSize {
             get {
                 lock (UDPLock)
                     return udpMaxDatagramSize;
@@ -74,13 +75,15 @@ namespace Celeste.Mod.CelesteNet {
 
         public event Action<CelesteNetTCPUDPConnection, EndPoint>? OnUDPDeath;
 
-        public CelesteNetTCPUDPConnection(DataContext data, string uid, int token, Settings settings, Socket tcpSock, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
+        public CelesteNetTCPUDPConnection(DataContext data, int token, Settings settings, Socket tcpSock, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
+            IPEndPoint serverEp = (IPEndPoint) tcpSock.RemoteEndPoint!;
+            ID = $"TCP/UDP {serverEp.Address}:{serverEp.Port}";
+            UID = $"con-tcpudp-{BitConverter.ToString(serverEp.Address.GetAddressBytes())}-{serverEp.Port}";
+
             ConnectionToken = token;
-            ID = $"TCP/UDP uid '{uid}' EP {tcpSock.RemoteEndPoint}";
-            UID = uid;
+            ConnectionSettings = settings;
 
             // Initialize networking stuff
-            ConnectionSettings = settings;
             this.tcpSock = tcpSock;
             udpEP = null;
             udpMaxDatagramSize = 0;

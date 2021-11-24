@@ -167,6 +167,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             EndPoint udpSendEP = new IPEndPoint(IPAddress.IPv6Any, Settings.UDPSendPort);
             
             CelesteNetTCPUDPConnection.Settings tcpUdpConSettings = new() {
+                UDPReceivePort = Settings.UDPReceivePort,
+                UDPSendPort = Settings.UDPSendPort,
                 MaxPacketSize = Settings.MaxPacketSize,
                 MaxQueueSize = Settings.MaxQueueSize,
                 MergeWindow = Settings.MergeWindow,

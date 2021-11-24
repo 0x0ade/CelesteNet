@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
+using System.Reflection;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public static class Handshake {
@@ -10,7 +12,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int TeapotTimeout = 5000;
 
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
-        public static (int conToken, IConnectionFeature[] conFeatures, CelesteNetTCPUDPConnection.Settings settings, int udpRecvPort, int udpSendPort) DoTeapotHandshake(Socket sock, IConnectionFeature[] features, string nameKey) {
+        public static (int conToken, IConnectionFeature[] conFeatures, T settings) DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey) where T : struct {
             // Find connection features
             // We don't buffer, as we could read actual packet data
             using (NetworkStream netStream = new NetworkStream(sock, false))
@@ -55,23 +57,24 @@ Can I have some tea?
                 int conToken = int.Parse(headers["CelesteNet-ConnectionToken"]);
                 IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[]{','}).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray();
 
-                CelesteNetTCPUDPConnection.Settings conSettings = default;
-                conSettings.MaxPacketSize = int.Parse(headers["CelesteNet-MaxPacketSize"]);
-                conSettings.MaxQueueSize = int.Parse(headers["CelesteNet-MaxQueueSize"]);
-                conSettings.MergeWindow = float.Parse(headers["CelesteNet-MergeWindow"]);
-                conSettings.MaxHeartbeatDelay = int.Parse(headers["CelesteNet-MaxHeartbeatDelay"]);
-                conSettings.HeartbeatInterval = float.Parse(headers["CelesteNet-HeartbeatInterval"]);
-                conSettings.UDPAliveScoreMax = int.Parse(headers["CelesteNet-UDPAliveScoreMax"]);
-                conSettings.UDPDowngradeScoreMin = int.Parse(headers["CelesteNet-UDPDowngradeScoreMin"]);
-                conSettings.UDPDowngradeScoreMax = int.Parse(headers["CelesteNet-UDPDowngradeScoreMax"]);
-                conSettings.UDPDeathScoreMin = int.Parse(headers["CelesteNet-UDPDeathScoreMin"]);
-                conSettings.UDPDeathScoreMax = int.Parse(headers["CelesteNet-UDPDeathScoreMax"]);
+                T conSettings = default;
+                object boxedSettings = conSettings;
+                foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+                    string headerName = $"CelesteNet-Settings-{field.Name}";
+                    switch (Type.GetTypeCode(field.FieldType)) {
+                        case TypeCode.Int16:  field.SetValue(boxedSettings,  Int16.Parse(headers[headerName])); break;
+                        case TypeCode.Int32:  field.SetValue(boxedSettings,  Int32.Parse(headers[headerName])); break;
+                        case TypeCode.Int64:  field.SetValue(boxedSettings,  Int64.Parse(headers[headerName])); break;
+                        case TypeCode.UInt16: field.SetValue(boxedSettings, UInt16.Parse(headers[headerName])); break;
+                        case TypeCode.UInt32: field.SetValue(boxedSettings, UInt32.Parse(headers[headerName])); break;
+                        case TypeCode.UInt64: field.SetValue(boxedSettings, UInt64.Parse(headers[headerName])); break;
+                        case TypeCode.Single: field.SetValue(boxedSettings, Single.Parse(headers[headerName])); break; 
+                        case TypeCode.Double: field.SetValue(boxedSettings, Double.Parse(headers[headerName])); break;
+                    }
+                }
                 
-                int udpRecvPort = int.Parse(headers["CelesteNet-UDPReceivePort"]);
-                int udpSendPort = int.Parse(headers["CelesteNet-UDPSendPort"]);
-
                 netStream.ReadTimeout = netStream.WriteTimeout = -1;
-                return (conToken, conFeatures, conSettings, udpRecvPort, udpSendPort);
+                return (conToken, conFeatures, conSettings);
             }
         }
 

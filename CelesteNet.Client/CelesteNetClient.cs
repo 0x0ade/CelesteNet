@@ -85,14 +85,15 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // Create a TCP connection
                         Socket sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
                         try {
+                            sock.FixTTL();
                             sock.Connect(Settings.Host, Settings.Port);
 
                             // Do the teapot handshake
-                            var res = Handshake.DoTeapotHandshake(sock, ConFeatures, Settings.Name);
-                            Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {res.conToken} conFeatures '{res.conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}' udpRecvPort {res.udpRecvPort} udpSendPort {res.udpSendPort}");
+                            var res = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
+                            Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {res.conToken} conFeatures '{res.conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}'");
 
                             // Create a connection and start the heartbeat timer
-                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, res.conToken, res.settings, sock, res.udpRecvPort, res.udpSendPort);
+                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, res.conToken, res.settings, sock);
                             con.OnDisconnect += _ => Dispose();
                             heartbeatTimer = new Timer(res.settings.HeartbeatInterval);
                             heartbeatTimer.AutoReset = true;

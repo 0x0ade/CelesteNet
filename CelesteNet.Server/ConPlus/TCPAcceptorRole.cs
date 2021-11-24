@@ -33,6 +33,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     EnterActiveZone();
 
                     // Setup the new socket
+                    newConn.FixTTL();
                     newConn.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, Role.Server.Settings.TCPSockSendBufferSize);
 
                     // Start the connection handshake

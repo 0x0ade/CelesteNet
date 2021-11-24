@@ -27,7 +27,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        private const int EBADF = 9;
+        private const int EINTR = 4, EBADF = 9;
 
         private const int EFD_SEMAPHORE = 1;
         [DllImport("libc", SetLastError = true)]
@@ -170,7 +170,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             using (token.Register(() => write(cancelFD, BitConverter.GetBytes((UInt64) 1), 8)))
             while (!token.IsCancellationRequested) {
                 // Poll the EPoll FD
-                int ret = epoll_wait(epollFD, evts, 1, -1);
+                int ret;
+                do {
+                    ret = epoll_wait(epollFD, evts, 1, -1);
+                } while (!token.IsCancellationRequested && ret == EINTR);
                 if (ret < 0)
                     throw new SystemException($"Couldn't poll the EPoll FD: {Marshal.GetLastWin32Error()}");
 

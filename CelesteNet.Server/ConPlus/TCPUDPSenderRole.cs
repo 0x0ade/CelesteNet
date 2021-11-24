@@ -46,6 +46,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 packetWriter = new CelesteNetBinaryWriter(role.Server.Data, null, null, packetStream);
 
                 udpSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+                udpSocket.FixTTL();
                 udpSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
                 udpSocket.EnableEndpointReuse();
                 udpSocket.Bind(role.UDPEndPoint);

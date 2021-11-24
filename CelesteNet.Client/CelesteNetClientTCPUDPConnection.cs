@@ -22,20 +22,22 @@ namespace Celeste.Mod.CelesteNet.Client {
         private CancellationTokenSource tokenSrc;
         private Thread tcpRecvThread, udpRecvThread, tcpSendThread, udpSendThread;
 
-        public CelesteNetClientTCPUDPConnection(DataContext data, int token, Settings settings, Socket tcpSock, int udpRecvPort, int udpSendPort) : base(data, $"con-tcpudp-{BitConverter.ToString(((IPEndPoint) tcpSock.RemoteEndPoint).Address.GetAddressBytes())}-prt-{((IPEndPoint) tcpSock.RemoteEndPoint).Port}", token, settings, tcpSock, FlushTCPQueue, FlushUDPQueue) {
+        public CelesteNetClientTCPUDPConnection(DataContext data, int token, Settings settings, Socket tcpSock) : base(data, token, settings, tcpSock, FlushTCPQueue, FlushUDPQueue) {
             // Initialize networking
             tcpSock.Blocking = false;
             tcpStream = new BufferedSocketStream(TCPBufferSize) { Socket = tcpSock };
             IPAddress serverAddr = ((IPEndPoint) tcpSock.RemoteEndPoint).Address;
             
             udpRecvSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+            udpRecvSocket.FixTTL();
             udpRecvSocket.EnableEndpointReuse();
-            udpRecvSocket.Connect(serverAddr, udpSendPort);
+            udpRecvSocket.Connect(serverAddr, settings.UDPSendPort);
 
             udpSendSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+            udpSendSocket.FixTTL();
             udpSendSocket.EnableEndpointReuse();
             udpSendSocket.Bind(udpRecvSocket.LocalEndPoint);
-            udpSendSocket.Connect(serverAddr, udpRecvPort);
+            udpSendSocket.Connect(serverAddr, settings.UDPReceivePort);
 
             OnUDPDeath += (_, _) => {
                 if (CelesteNetClientModule.Instance?.Context?.Status != null)

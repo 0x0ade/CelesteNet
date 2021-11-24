@@ -59,9 +59,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public override bool FilterHandle(DataContext ctx) => Data.FilterHandle(ctx);
         public override bool FilterSend(DataContext ctx) => Data.FilterSend(ctx);
 
-        public override uint GetDuplicateFilterID() => Data.GetDuplicateFilterID();
-        public override bool ConsideredDuplicate(DataType data) => data is DataInternalBlob blob ? Data.ConsideredDuplicate(blob.Data) : Data.ConsideredDuplicate(data);
-
         public override MetaType[] GenerateMeta(DataContext ctx) => Data.GenerateMeta(ctx);
 
         public override void FixupMeta(DataContext ctx) => Data.FixupMeta(ctx);

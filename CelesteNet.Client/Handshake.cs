@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
@@ -11,7 +12,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int TeapotVersion = 1;
 
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
-        public static (int conToken, IConnectionFeature[] conFeatures, T settings) DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey) where T : struct {
+        public static (uint conToken, IConnectionFeature[] conFeatures, T settings) DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey) where T : struct {
             // Find connection features
             // We don't buffer, as we could read actual packet data
             using (NetworkStream netStream = new NetworkStream(sock, false))
@@ -51,7 +52,7 @@ Can I have some tea?
                 if (statusCode != 418)
                     throw new ConnectionErrorException($"Server rejected teapot handshake (status {statusCode})", content.Trim());
 
-                int conToken = int.Parse(headers["CelesteNet-ConnectionToken"]);
+                uint conToken = uint.Parse(headers["CelesteNet-ConnectionToken"], NumberStyles.HexNumber);
                 IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[]{','}).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray();
 
                 object boxedSettings = default(T);

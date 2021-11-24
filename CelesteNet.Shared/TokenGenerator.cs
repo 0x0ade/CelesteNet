@@ -62,7 +62,7 @@ namespace Celeste.Mod.CelesteNet {
             xorKey = RandomUInt();
         }
 
-        public int GenerateToken() {
+        public uint GenerateToken() {
             uint val = 0;
 
             // Step the (Galois) LFSR a random number of times
@@ -83,7 +83,7 @@ namespace Celeste.Mod.CelesteNet {
             // XOR the value with the random XOR key
             val ^= xorKey;
 
-            return unchecked((int) val);
+            return val;
         }
 
     }

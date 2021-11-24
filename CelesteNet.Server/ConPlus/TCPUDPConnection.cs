@@ -60,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly RateMetric TCPRecvRate, TCPSendRate;
         public readonly RateMetric UDPRecvRate, UDPSendRate;
 
-        public ConPlusTCPUDPConnection(CelesteNetServer server, int token, Settings settings, Socket tcpSock, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) : base(server.Data, token, settings, tcpSock, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
+        public ConPlusTCPUDPConnection(CelesteNetServer server, uint token, Settings settings, Socket tcpSock, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) : base(server.Data, token, settings, tcpSock, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
             Server = server;
             TCPReceiver = tcpReceiver;
             UDPReceiver = udpReceiver;

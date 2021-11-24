@@ -110,7 +110,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             ConPlusTCPUDPConnection? con = null;
             try {
                 // Obtain a connection token
-                int conToken = Server.ConTokenGenerator.GenerateToken();
+                uint conToken = Server.ConTokenGenerator.GenerateToken();
 
                 // Do the teapot handshake
                 bool teapotSuccess;
@@ -157,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         // Let's mess with web crawlers even more ;)
         // Also: I'm a Teapot
-        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake<T>(Socket sock, int conToken, T settings, string fbUID) where T : struct {
+        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake<T>(Socket sock, uint conToken, T settings, string fbUID) where T : struct {
             using (NetworkStream netStream = new NetworkStream(sock, false))
             using (BufferedStream bufStream = new BufferedStream(netStream))
             using (StreamReader reader = new StreamReader(bufStream))
@@ -264,7 +264,7 @@ Connection: close
 HTTP/1.1 418 I'm a teapot
 Connection: close
 CelesteNet-TeapotVersion: {TeapotVersion}
-CelesteNet-ConnectionToken: {conToken}
+CelesteNet-ConnectionToken: {conToken:X}
 CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
 {settingsBuilder.ToString().Trim()}
 

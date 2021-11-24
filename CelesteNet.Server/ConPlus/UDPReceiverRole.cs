@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     if (dgSize == 5 && dgBuffer[0] == 0xff) {
                         // Get the connection token
-                        int conToken = BitConverter.ToInt32(dgBuffer, 1);
+                        uint conToken = BitConverter.ToUInt32(dgBuffer, 1);
 
                         // Get the connection from the token
                         if (!Role.conTokenMap.TryGetValue(conToken, out ConPlusTCPUDPConnection? tokCon) || tokCon == null)
@@ -87,12 +87,12 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        private ConcurrentDictionary<int, ConPlusTCPUDPConnection> conTokenMap;
+        private ConcurrentDictionary<uint, ConPlusTCPUDPConnection> conTokenMap;
         private ConcurrentDictionary<EndPoint, ConPlusTCPUDPConnection> endPointMap;
 
         public UDPReceiverRole(NetPlusThreadPool pool, CelesteNetServer server, EndPoint endPoint) : base(pool, ProtocolType.Udp, endPoint) {
             Server = server;
-            conTokenMap = new ConcurrentDictionary<int, ConPlusTCPUDPConnection>();
+            conTokenMap = new ConcurrentDictionary<uint, ConPlusTCPUDPConnection>();
             endPointMap = new ConcurrentDictionary<EndPoint, ConPlusTCPUDPConnection>();
         }
 

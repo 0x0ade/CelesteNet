@@ -23,7 +23,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         private CancellationTokenSource tokenSrc;
         private Thread tcpRecvThread, udpRecvThread, tcpSendThread, udpSendThread;
 
-        public CelesteNetClientTCPUDPConnection(DataContext data, int token, Settings settings, Socket tcpSock) : base(data, token, settings, tcpSock, FlushTCPQueue, FlushUDPQueue) {
+        public CelesteNetClientTCPUDPConnection(DataContext data, uint token, Settings settings, Socket tcpSock) : base(data, token, settings, tcpSock, FlushTCPQueue, FlushUDPQueue) {
             // Initialize networking
             tcpSock.Blocking = false;
             tcpStream = new BufferedSocketStream(TCPBufferSize) { Socket = tcpSock };

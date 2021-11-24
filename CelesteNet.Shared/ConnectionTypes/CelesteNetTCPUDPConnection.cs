@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet {
         public readonly OptMap<string> Strings = new OptMap<string>("StringMap");
         public readonly OptMap<Type> SlimMap = new OptMap<Type>("SlimMap");
 
-        public readonly int ConnectionToken;
+        public readonly uint ConnectionToken;
         public readonly Settings ConnectionSettings;
 
         public Socket TCPSocket => tcpSock;
@@ -79,7 +79,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public event Action<CelesteNetTCPUDPConnection, EndPoint>? OnUDPDeath;
 
-        public CelesteNetTCPUDPConnection(DataContext data, int token, Settings settings, Socket tcpSock, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
+        public CelesteNetTCPUDPConnection(DataContext data, uint token, Settings settings, Socket tcpSock, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
             IPEndPoint serverEp = (IPEndPoint) tcpSock.RemoteEndPoint!;
             ID = $"TCP/UDP {serverEp.Address}:{serverEp.Port}";
             UID = $"con-tcpudp-{BitConverter.ToString(serverEp.Address.GetAddressBytes())}-{serverEp.Port}";

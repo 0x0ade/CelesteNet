@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace Celeste.Mod.CelesteNet {
     public class CelesteNetTCPUDPConnection : CelesteNetConnection {
@@ -74,8 +75,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public readonly object HeartbeatLock = new object();
-        private int tcpLastHeartbeatDelay = 0, udpLastHeartbeatDelay = 0;
-        private bool tcpSendKeepAlive, udpSendKeepAlive;
+        private int tcpLastHeartbeatDelay = 0, udpLastHeartbeatDelay = 0, tcpSendKeepAlive = 0, udpSendKeepAlive = 0;
 
         public event Action<CelesteNetTCPUDPConnection, EndPoint>? OnUDPDeath;
 
@@ -301,48 +301,42 @@ namespace Celeste.Mod.CelesteNet {
         public virtual bool DoHeartbeatTick() {
             lock (HeartbeatLock) {
                 // Check if we got a TCP heartbeat in the required timeframe
-                if ((tcpLastHeartbeatDelay++) > ConnectionSettings.MaxHeartbeatDelay)
+                if (Interlocked.Increment(ref tcpLastHeartbeatDelay) > ConnectionSettings.MaxHeartbeatDelay)
                     return true;
 
                 // Check if we need to send a TCP keep-alive
-                if (tcpSendKeepAlive)
+                if (Interlocked.Exchange(ref tcpSendKeepAlive, 1) > 0)
                     tcpQueue.Enqueue(new DataLowLevelKeepAlive());
-                tcpSendKeepAlive = true;
 
                 if (UDPEndpoint != null) {
                     // Check if we got a UDP heartbeat in the required timeframe
-                    if ((udpLastHeartbeatDelay++) > ConnectionSettings.MaxHeartbeatDelay) {
-                        udpLastHeartbeatDelay = 0;
+                    if (Interlocked.Increment(ref udpLastHeartbeatDelay) > ConnectionSettings.MaxHeartbeatDelay) {
+                        Volatile.Write(ref udpLastHeartbeatDelay, 0);
                         DecreaseUDPScore();
                     }
 
                     // Check if we need to send a UDP keep-alive
-                    if (UDPEndpoint != null && udpSendKeepAlive)
+                    if (UDPEndpoint != null && Interlocked.Exchange(ref udpSendKeepAlive, 1) > 0)
                         udpQueue.Enqueue(new DataLowLevelKeepAlive());
-                    udpSendKeepAlive = true;
                 }
             }
             return false;
         }
 
         public virtual void TCPHeartbeat() {
-            lock (HeartbeatLock)
-                tcpLastHeartbeatDelay = 0;
+            Volatile.Write(ref tcpLastHeartbeatDelay, 0);
         }
 
         public virtual void UDPHeartbeat() {
-            lock (HeartbeatLock)
-                udpLastHeartbeatDelay = 0;
+            Volatile.Write(ref udpLastHeartbeatDelay, 0);
         }
 
         public virtual void SurpressTCPKeepAlives() {
-            lock (HeartbeatLock)
-                tcpSendKeepAlive = false;
+            Volatile.Write(ref tcpSendKeepAlive, 0);
         }
 
         public virtual void SurpressUDPKeepAlives() {
-            lock (HeartbeatLock)
-                udpSendKeepAlive = false;
+            Volatile.Write(ref udpSendKeepAlive, 0);
         }
 
     }

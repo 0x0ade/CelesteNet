@@ -48,10 +48,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             // Start threads
             tokenSrc = new CancellationTokenSource();
-            tcpRecvThread = new Thread(TCPRecvThreadFunc) { Name = "TCP Recv Thread" };
+            tcpRecvThread = new Thread(TCPRecvThreadFunc) { Name = "TCP Send Thread" };
             udpRecvThread = new Thread(UDPRecvThreadFunc) { Name = "UDP Send Thread" };
             tcpSendThread = new Thread(TCPSendThreadFunc) { Name = "TCP Recv Thread" };
-            udpSendThread = new Thread(UDPSendThreadFunc) { Name = "UDP Send Thread" };
+            udpSendThread = new Thread(UDPSendThreadFunc) { Name = "UDP Recv Thread" };
 
             tcpRecvThread.Start();
             udpRecvThread.Start();

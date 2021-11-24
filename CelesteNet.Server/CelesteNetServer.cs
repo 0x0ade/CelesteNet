@@ -372,7 +372,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     nextTickRate = Math.Min(Settings.MaxTickRate, CurrentTickRate * 2);
                     Logger.Log(LogLevel.INF, "main", $"Increased the tick rate {CurrentTickRate} TpS -> {nextTickRate} TpS");
                     CurrentTickRate = nextTickRate;
-                }
+                } else
+                    return;
             } else if (actvRate > Settings.TickRateHighActivityThreshold && tcpByteRate > Settings.TickRateHighTCPUplinkBpSThreshold && udpByteRate > Settings.TickRateHighUDPUplinkBpSThreshold) {
                 // Decrease the tick rate
                 Logger.Log(LogLevel.INF, "main", $"Decreased the tick rate {CurrentTickRate} TpS -> {nextTickRate} TpS");

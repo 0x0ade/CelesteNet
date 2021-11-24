@@ -227,7 +227,8 @@ namespace Celeste.Mod.CelesteNet {
             if (Volatile.Read(ref inMergeWindow) != 1)
                 throw new InvalidOperationException("Not currently flushing the queue");
 
-            backQueue.Clear();
+            // TODO For whatever reason, MonoKickstart can't clear concurrent queues
+            backQueue = new ConcurrentQueue<DataType>();
             inMergeWindow = 0;
             Interlocked.MemoryBarrier();
             if (frontQueue.Count > 0)

@@ -165,7 +165,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             EndPoint serverEP = new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort);
             EndPoint udpRecvEP = new IPEndPoint(IPAddress.IPv6Any, Settings.UDPReceivePort);
             EndPoint udpSendEP = new IPEndPoint(IPAddress.IPv6Any, Settings.UDPSendPort);
-            
+
             CelesteNetTCPUDPConnection.Settings tcpUdpConSettings = new() {
                 UDPReceivePort = Settings.UDPReceivePort,
                 UDPSendPort = Settings.UDPSendPort,

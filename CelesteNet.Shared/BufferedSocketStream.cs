@@ -93,7 +93,7 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public Socket? Socket { 
+        public Socket? Socket {
             get => socket;
             set {
                 if (value?.Blocking ?? false)

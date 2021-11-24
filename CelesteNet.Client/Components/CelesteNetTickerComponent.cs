@@ -40,14 +40,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     foreach (var ets in Engine.Scene.Tracker.Entities) {
                         if (typeof(ITickReceiver).IsAssignableFrom(ets.Key)) {
                             foreach (Entity et in ets.Value)
-                                ((ITickReceiver) et).Tick(); 
+                                ((ITickReceiver) et).Tick();
                         }
                     }
 
                     foreach (var cps in Engine.Scene.Tracker.Components) {
                         if (typeof(ITickReceiver).IsAssignableFrom(cps.Key)) {
                             foreach (Component cp in cps.Value)
-                                ((ITickReceiver) cp).Tick(); 
+                                ((ITickReceiver) cp).Tick();
                         }
                     }
                 }

@@ -9,7 +9,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     A thread role represents something a thread could be doing, e.g. waiting for
     TCP connections, polling sockets, flushing send queues, or just ideling. The
     thread pool contains a list of thread roles, and it will monitor their
-    activity rates and heuristicaly distribute roles among all threads. 
+    activity rates and heuristicaly distribute roles among all threads.
     -Popax21
     */
     public abstract class NetPlusThreadRole : IDisposable {
@@ -27,12 +27,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Init heuristic stuff
                 activityLock = new RWLock();
 
-                using (Role.workerLock.W()) 
+                using (Role.workerLock.W())
                     role.workers.Add(this);
             }
 
             public virtual void Dispose() {
-                using (Role.workerLock.W()) 
+                using (Role.workerLock.W())
                     Role.workers.Remove(this);
                 activityLock.Dispose();
             }

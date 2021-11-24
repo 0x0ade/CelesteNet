@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         established, it's max datagram size can only go down. If the other peer
         has a different datagram size than here requested BEFORE the change,
         it'll respond an info packet with it's new maximum datagram size.
-    
+
     If a peer (in the current implementation, only the client) has an
     initialized but unestablished connection, when it receives a packet falling
     into the last case, and it doesn't refer to an old connection

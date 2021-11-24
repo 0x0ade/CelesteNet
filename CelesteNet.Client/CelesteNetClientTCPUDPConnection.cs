@@ -28,7 +28,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             tcpSock.Blocking = false;
             tcpStream = new BufferedSocketStream(TCPBufferSize) { Socket = tcpSock };
             IPAddress serverAddr = ((IPEndPoint) tcpSock.RemoteEndPoint).Address;
-            
+
             udpRecvSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
             udpRecvSocket.EnableEndpointReuse();
             udpRecvSocket.Connect(serverAddr, settings.UDPSendPort);

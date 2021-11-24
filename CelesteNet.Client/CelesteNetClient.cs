@@ -103,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             };
                             if (Settings.ConnectionType == ConnectionType.TCP)
                                 con.UseUDP = false;
-                            
+
                             // Initialize the heartbeat timer
                             heartbeatTimer = new Timer(res.settings.HeartbeatInterval);
                             heartbeatTimer.AutoReset = true;
@@ -198,7 +198,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             return data;
         }
 
-        public void Handle(CelesteNetConnection con, DataPlayerInfo info) { 
+        public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
             // The first DataPlayerInfo sent from the server is our own
             if (PlayerInfo == null || PlayerInfo.ID == info.ID)
                 PlayerInfo = info;

@@ -27,7 +27,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         dgSize = socket.ReceiveFrom(dgBuffer, ref dgramSender);
                     } catch (SocketException) {
                         // There's no better way to do this, as far as I know...
-                        if (token.IsCancellationRequested) 
+                        if (token.IsCancellationRequested)
                             return;
                         throw;
                     }

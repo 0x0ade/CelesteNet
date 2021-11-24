@@ -173,7 +173,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Invoke the individual role schedulers
                     foreach (NetPlusThreadRole role in this.roles)
-                        role.InvokeSchedular(); 
+                        role.InvokeSchedular();
 
                     Logger.Log(LogLevel.DBG, "netplus", $"Thread pool scheduler done in {watch.ElapsedMilliseconds}ms");
                     lastSchedulerExecDuration = watch.ElapsedMilliseconds;

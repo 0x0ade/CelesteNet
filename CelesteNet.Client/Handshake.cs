@@ -65,11 +65,11 @@ Can I have some tea?
                         case TypeCode.UInt16: field.SetValue(boxedSettings, UInt16.Parse(headers[headerName])); break;
                         case TypeCode.UInt32: field.SetValue(boxedSettings, UInt32.Parse(headers[headerName])); break;
                         case TypeCode.UInt64: field.SetValue(boxedSettings, UInt64.Parse(headers[headerName])); break;
-                        case TypeCode.Single: field.SetValue(boxedSettings, Single.Parse(headers[headerName])); break; 
+                        case TypeCode.Single: field.SetValue(boxedSettings, Single.Parse(headers[headerName])); break;
                         case TypeCode.Double: field.SetValue(boxedSettings, Double.Parse(headers[headerName])); break;
                     }
                 }
-                
+
                 return (conToken, conFeatures, (T) boxedSettings);
             }
         }

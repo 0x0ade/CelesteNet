@@ -216,7 +216,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         private const int SOL_SOCKET = 1, SO_REUSEPORT = 15;
-        [DllImport("libc", SetLastError = true)] 
+        [DllImport("libc", SetLastError = true)]
         private static extern int setsockopt(IntPtr socket, int level, int opt, [In, MarshalAs(UnmanagedType.LPArray)] int[] val, int len);
 
         public static void EnableEndpointReuse(this Socket sock) {

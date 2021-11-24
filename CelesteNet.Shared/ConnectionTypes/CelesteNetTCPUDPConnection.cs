@@ -218,7 +218,7 @@ namespace Celeste.Mod.CelesteNet {
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Remote disabled UDP for connection {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
                     return;
                 }
-                
+
                 // We need an initialized connection for the following branches
                 if (UDPEndpoint == null)
                     return;
@@ -290,7 +290,7 @@ namespace Celeste.Mod.CelesteNet {
                 // Must have an initialized connection
                 if (UDPEndpoint == null)
                     throw new InvalidOperationException("No established UDP connection");
-                    
+
                 byte id = 0xff;
                 while (id == 0xff)
                     id = unchecked(udpNextContainerID++);

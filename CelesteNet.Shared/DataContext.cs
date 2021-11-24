@@ -271,7 +271,11 @@ namespace Celeste.Mod.CelesteNet {
                 if (slimData == null)
                     throw new InvalidDataException($"Cannot create instance of data type {slimType.FullName}");
 
-                slimData.ReadAll(reader);
+                try {
+                    slimData.ReadAll(reader);
+                } catch (Exception e) {
+                    throw new Exception($"Error reading DataType '{slimData.GetTypeID(this)}'", e);
+                }
 
                 return slimData;
             }
@@ -295,7 +299,11 @@ namespace Celeste.Mod.CelesteNet {
                     throw new InvalidOperationException($"Cannot create instance of DataType '{type.FullName}'");
             }
 
-            data.ReadAll(reader);
+            try {
+                data.ReadAll(reader);
+            } catch (Exception e) {
+                throw new Exception($"Error reading DataType '{data.GetTypeID(this)}'", e);
+            }
 
             long lengthReal = reader.BaseStream.Position - start;
             if (lengthReal != length)
@@ -325,7 +333,11 @@ namespace Celeste.Mod.CelesteNet {
             if (meta == null)
                 throw new InvalidOperationException($"Cannot create instance of MetaType '{type.FullName}'");
 
-            meta.Read(reader);
+            try {
+                meta.Read(reader);
+            } catch (Exception e) {
+                throw new Exception($"Error reading MetaType '{meta.GetTypeID(this)}'", e);
+            }
 
             long lengthReal = reader.BaseStream.Position - start;
             if (lengthReal != length)
@@ -341,7 +353,11 @@ namespace Celeste.Mod.CelesteNet {
 
             if (writer.SlimMap != null && writer.TryGetSlimID(data.GetType(), out int slimID)) {
                 writer.Write((ushort) (slimID | (ushort) DataFlags.InteralSlimIndicator));
-                data.WriteAll(writer);
+                try {
+                    data.WriteAll(writer);
+                } catch (Exception e) {
+                    throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
+                }
                 return (int) (writer.BaseStream.Position - start);
             }
 
@@ -356,27 +372,17 @@ namespace Celeste.Mod.CelesteNet {
             writer.WriteNetMappedString(data.GetTypeID(this));
             writer.WriteNetMappedString(data.GetSource(this));
 
-            writer.Flush();
-            long lenPos = writer.BaseStream.Position;
-            if (small)
-                writer.Write((byte) 0);
-            else
-                writer.Write((ushort) 0);
+            writer.WriteSizeDummy((byte) (small ? 1 : 2));
 
-            data.WriteAll(writer);
+            try {
+                data.WriteAll(writer);
+            } catch (Exception e) {
+                throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
+            }
 
-            writer.Flush();
-            long end = writer.BaseStream.Position;
-            long len = end - (lenPos + (small ? 1 : 2));
-            writer.BaseStream.Position = lenPos;
-            if (small)
-                writer.Write((byte) len);
-            else
-                writer.Write((ushort) len);
-            writer.Flush();
-            writer.BaseStream.Position = end;
+            writer.UpdateSizeDummy();
 
-            return (int) (end - start);
+            return (int) (writer.BaseStream.Position - start);
         }
 
         public int WriteMeta(CelesteNetBinaryWriter writer, MetaType meta) {
@@ -385,22 +391,17 @@ namespace Celeste.Mod.CelesteNet {
             long start = writer.BaseStream.Position;
 
             writer.WriteNetMappedString(meta.GetTypeID(this));
+            writer.WriteSizeDummy(1);
 
-            writer.Flush();
-            long lenPos = writer.BaseStream.Position;
-            writer.Write((byte) 0);
+            try {
+                meta.Write(writer);
+            } catch (Exception e) {
+                throw new Exception($"Error writing MetaType {meta} [{meta.GetTypeID(this)}]", e);
+            }
 
-            meta.Write(writer);
+            writer.UpdateSizeDummy();
 
-            writer.Flush();
-            long end = writer.BaseStream.Position;
-            long len = end - (lenPos + 1);
-            writer.BaseStream.Position = lenPos;
-            writer.Write((byte) len);
-            writer.Flush();
-            writer.BaseStream.Position = end;
-
-            return (int) (end - start);
+            return (int) (writer.BaseStream.Position - start);
         }
 
         public void Handle(CelesteNetConnection con, DataType? data)

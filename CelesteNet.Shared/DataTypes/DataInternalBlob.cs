@@ -94,6 +94,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             public string? String;
 
+            public int SizeDummy;
+
             public Part? Next;
 
             public void Dump(CelesteNetBinaryWriter writer) {
@@ -102,6 +104,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
                 if (String != null)
                     writer.WriteNetMappedString(String);
+
+                if (SizeDummy == int.MaxValue)
+                    writer.UpdateSizeDummy();
+                else if (SizeDummy != 0)
+                    writer.WriteSizeDummy(SizeDummy);
             }
 
         }

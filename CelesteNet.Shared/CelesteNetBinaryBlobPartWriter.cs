@@ -44,6 +44,16 @@ namespace Celeste.Mod.CelesteNet {
             LastSplitPosition = pos;
         }
 
+        public override void WriteSizeDummy(int size) {
+            SplitBytes();
+            Blob.PartNext().SizeDummy = size;
+        }
+
+        public override void UpdateSizeDummy() {
+            SplitBytes();
+            Blob.PartNext().SizeDummy = int.MaxValue;
+        }
+
         public override void WriteNetMappedString(string? text) {
             SplitBytes();
             Blob.PartNext().String = text ?? "";

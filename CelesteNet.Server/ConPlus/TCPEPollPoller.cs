@@ -144,7 +144,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             using (pollerLock.W()) {
                 // Remove the connection from the ID table
                 if (!connections.TryRemove(con, out var conData))
-                    throw new ArgumentException("Connection not part of poller");
+                    return;
                 conIds.TryRemove(conData.id, out _);
 
                 // Remove the socket from the EPoll FD

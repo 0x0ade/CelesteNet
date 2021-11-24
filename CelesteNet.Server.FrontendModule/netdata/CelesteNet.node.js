@@ -169,7 +169,7 @@ let CelesteNet = {
                     units: "TpS",
                     family: "ticker",
                     dimensions: {
-                        time: {
+                        tickRate: {
                             value: data.TickRate * 1000,
                             divisor: 1000
                         },
@@ -342,7 +342,7 @@ let CelesteNet = {
                     family: "activity",
                     type: netdata.chartTypes.area,
                     dimensions: {
-                        time: {
+                        activity: {
                             value: data.PoolActivityRate * 10000,
                             divisor: 100
                         },
@@ -365,7 +365,7 @@ let CelesteNet = {
                     units: "threads",
                     family: "scheduler",
                     dimensions: {
-                        time: {
+                        numReassigned: {
                             value: data.SchedulerNumThreadsReassigned
                         },
                     },
@@ -375,7 +375,7 @@ let CelesteNet = {
                     units: "threads",
                     family: "scheduler",
                     dimensions: {
-                        time: {
+                        numIdled: {
                             value: data.SchedulerNumThreadsIdled
                         },
                     },

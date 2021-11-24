@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,14 +19,14 @@ namespace Celeste.Mod.CelesteNet {
         public OptMap<string>? Strings;
         public OptMap<Type>? SlimMap;
 
-        protected long SizeDummyIndex;
-        protected int SizeDummySize;
+        protected ConcurrentStack<(long pos, int size)> SizeDummyStack;
 
         public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output)
             : base(output, CelesteNetUtils.UTF8NoBOM) {
             Data = ctx;
             Strings = strings;
             SlimMap = slimMap;
+            SizeDummyStack = new ConcurrentStack<(long, int)>();
         }
 
         public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output, bool leaveOpen)
@@ -33,51 +34,41 @@ namespace Celeste.Mod.CelesteNet {
             Data = ctx;
             Strings = strings;
             SlimMap = slimMap;
+            SizeDummyStack = new ConcurrentStack<(long, int)>();
         }
 
         public virtual void WriteSizeDummy(int size) {
             Flush();
-            SizeDummyIndex = BaseStream.Position;
+            long pos = BaseStream.Position;
 
-            if (size == 1) {
-                SizeDummySize = 1;
+            if (size == 1)
                 Write((byte) 0);
-
-            } else if (size == 4) {
-                SizeDummySize = 4;
-                Write((uint) 0);
-
-            } else {
-                SizeDummySize = 2;
+            else if (size == 2)
                 Write((ushort) 0);
-            }
+            else if (size == 4)
+                Write((uint) 0);
+            else
+                throw new ArgumentException($"Invalid size dummy size {size}");
+
+            SizeDummyStack.Push((pos, size));
         }
 
         public virtual void UpdateSizeDummy() {
-            if (SizeDummySize == 0)
-                return;
+            if (!SizeDummyStack.TryPop(out var dummy))
+                throw new InvalidOperationException("No size dummy on the stack");
 
             Flush();
             long end = BaseStream.Position;
-            long length = end - (SizeDummyIndex + SizeDummySize);
+            long length = end - (dummy.pos + dummy.size);
 
-            BaseStream.Seek(SizeDummyIndex, SeekOrigin.Begin);
+            BaseStream.Seek(dummy.pos, SeekOrigin.Begin);
 
-            if (SizeDummySize == 1) {
-                if (length > byte.MaxValue)
-                    length = byte.MaxValue;
+            if (dummy.size == 1)
                 Write((byte) length);
-
-            } else if (SizeDummySize == 4) {
-                if (length > uint.MaxValue)
-                    length = uint.MaxValue;
-                Write((uint) length);
-
-            } else {
-                if (length > ushort.MaxValue)
-                    length = ushort.MaxValue;
+            else if (dummy.size == 2)
                 Write((ushort) length);
-            }
+            else if (dummy.size == 4)
+                Write((uint) length);
 
             Flush();
             BaseStream.Seek(end, SeekOrigin.Begin);

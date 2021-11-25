@@ -75,6 +75,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 using (new DetourContext("CelesteNetMain") {
                     Before = { "*" }
                 }) {
+                    On.Monocle.Scene.SetActualDepth += OnSetActualDepth;
                     On.Celeste.Level.LoadLevel += OnLoadLevel;
                     Everest.Events.Level.OnExit += OnExitLevel;
                     On.Celeste.Level.LoadNewPlayer += OnLoadNewPlayer;
@@ -100,16 +101,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             base.Dispose(disposing);
 
             MainThreadHelper.Do(() => {
+                On.Monocle.Scene.SetActualDepth -= OnSetActualDepth;
                 On.Celeste.Level.LoadLevel -= OnLoadLevel;
                 Everest.Events.Level.OnExit -= OnExitLevel;
+                On.Celeste.Level.LoadNewPlayer -= OnLoadNewPlayer;
+                On.Celeste.Player.Added -= OnPlayerAdded;
+                On.Celeste.Player.ResetSprite -= OnPlayerResetSprite;
+                On.Celeste.Player.Play -= OnPlayerPlayAudio;
+                On.Celeste.PlayerSprite.ctor -= OnPlayerSpriteCtor;
                 On.Celeste.PlayerHair.GetHairColor -= OnGetHairColor;
                 On.Celeste.PlayerHair.GetHairScale -= OnGetHairScale;
                 On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
-                On.Celeste.Player.Play -= OnPlayerPlayAudio;
                 On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
-                On.Celeste.PlayerSprite.ctor -= OnPlayerSpriteCtor;
-                On.Celeste.Level.LoadNewPlayer -= OnLoadNewPlayer;
-                On.Celeste.Player.Added -= OnPlayerAdded;
 
                 ILHookTransitionRoutine?.Dispose();
                 ILHookTransitionRoutine = null;
@@ -722,6 +725,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         #region Hooks
+
+        public void OnSetActualDepth(On.Monocle.Scene.orig_SetActualDepth orig, Scene scene, Entity entity) {
+            orig(scene, entity);
+
+            if (Client != null && entity == Player)
+                SendGraphics();
+        }
 
         public void OnLoadLevel(On.Celeste.Level.orig_LoadLevel orig, Level level, Player.IntroTypes playerIntro, bool isFromLoader = false) {
             orig(level, playerIntro, isFromLoader);

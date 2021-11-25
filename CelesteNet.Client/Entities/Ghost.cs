@@ -282,6 +282,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 Hair.Nodes.Add(Hair.Nodes.LastOrDefault());
             while (Hair.Nodes.Count > graphics.HairCount)
                 Hair.Nodes.RemoveAt(Hair.Nodes.Count - 1);
+            Hair.Alpha = Alpha;
             Sprite.HairCount = graphics.HairCount;
         }
 
@@ -305,6 +306,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 Position = pos;
             Sprite.Scale = scale;
             Sprite.Scale.X *= (float) facing;
+            Hair.Facing = facing;
             Speed = speed;
         }
 

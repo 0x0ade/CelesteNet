@@ -301,6 +301,7 @@ namespace Celeste.Mod.CelesteNet {
                 // Check if we dropped more packets than the threshold
                 if ((containerID - udpRecvLastContainerID + 256) % 256 > UDPPacketDropThreshold)
                     DecreaseUDPScore();
+                udpRecvLastContainerID = containerID;
             }
         }
 

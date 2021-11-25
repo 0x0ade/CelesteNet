@@ -25,6 +25,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Vector2 Position;
         public Vector2 Scale;
         public Facings Facing;
+        public Vector2 Speed;
 
         public int CurrentAnimationID;
         public int CurrentAnimationFrame;
@@ -67,6 +68,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Position = new(reader.Read7BitEncodedInt(), reader.Read7BitEncodedInt());
             Scale = new(reader.ReadSByte() / 16f, reader.ReadSByte() / 16f);
             Facing = ((flags & Flags.FacingLeft) != 0) ? Facings.Left : Facings.Right;
+            Speed = new(reader.ReadInt16(), reader.ReadInt16());
 
             CurrentAnimationID = reader.Read7BitEncodedInt();
             CurrentAnimationFrame = reader.Read7BitEncodedInt();
@@ -143,6 +145,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write7BitEncodedInt((int) Position.Y);
             writer.Write((sbyte) Calc.Clamp((int) (Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
             writer.Write((sbyte) Calc.Clamp((int) (Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
+            writer.Write((short) Calc.Clamp((int) Speed.X, short.MinValue, short.MaxValue));
+            writer.Write((short) Calc.Clamp((int) Speed.Y, short.MinValue, short.MaxValue));
 
             writer.Write7BitEncodedInt(CurrentAnimationID);
             writer.Write7BitEncodedInt(CurrentAnimationFrame);

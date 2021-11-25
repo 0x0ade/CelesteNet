@@ -221,8 +221,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                         goto closeConnection;
                     }
 
-                    // Let the connection know we got a heartbeat
-                    UDPHeartbeat();
+                    // Let the connection know we received a container
+                    ReceivedUDPContainer(buffer[0]);
 
                     using (MemoryStream mStream = new MemoryStream(buffer, 0, dgSize))
                     using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream)) {

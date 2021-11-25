@@ -184,8 +184,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                         if (UDPConnectionID < 0)
                             continue;
 
-                        // Let the connection now we got a UDP heartbeat
-                        UDPHeartbeat();
+                        // Let the connection know we received a container
+                        ReceivedUDPContainer(buffer[0]);
 
                         using (MemoryStream mStream = new MemoryStream(buffer, 0, dgSize))
                         using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Data, Strings, SlimMap, mStream)) {

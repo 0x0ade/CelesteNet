@@ -36,11 +36,12 @@ namespace Celeste.Mod.CelesteNet {
         private EndPoint? udpEP;
         private CelesteNetSendQueue tcpQueue, udpQueue;
 
+        public const int UDPPacketDropThreshold = 8;
         public readonly object UDPLock = new object();
         private volatile int udpConnectionId, udpLastConnectionId = -1;
         private volatile int udpMaxDatagramSize;
         private volatile int udpAliveScore = 0, udpDowngradeScore = 0, udpDeathScore = 0;
-        private byte udpNextContainerID = 0;
+        private byte udpRecvLastContainerID = 0, udpSendNextContainerID = 0;
 
         public virtual bool UseUDP {
             get {
@@ -142,6 +143,7 @@ namespace Celeste.Mod.CelesteNet {
                 udpConnectionId = conId;
                 udpMaxDatagramSize = maxDatagramSize;
                 udpAliveScore = udpDowngradeScore = 0;
+                udpRecvLastContainerID = udpSendNextContainerID = 0;
 
                 // If the connection is already established, send a state update
                 if (conId >= 0)
@@ -288,8 +290,17 @@ namespace Celeste.Mod.CelesteNet {
 
                 byte id = 0xff;
                 while (id == 0xff)
-                    id = unchecked(udpNextContainerID++);
+                    id = unchecked(udpSendNextContainerID++);
                 return id;
+            }
+        }
+
+        protected virtual void ReceivedUDPContainer(byte containerID) {
+            UDPHeartbeat();
+            lock (UDPLock) {
+                // Check if we dropped more packets than the threshold
+                if ((containerID - udpRecvLastContainerID + 256) % 256 > UDPPacketDropThreshold)
+                    DecreaseUDPScore();
             }
         }
 

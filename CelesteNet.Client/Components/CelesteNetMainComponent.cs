@@ -98,8 +98,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public override void Start() {
-            if (Engine.Scene is Level)
-                SendGraphics();
+            MainThreadHelper.Do(() => {
+                if (Engine.Scene is Level)
+                    SendGraphics();
+            });
         }
 
         protected override void Dispose(bool disposing) {

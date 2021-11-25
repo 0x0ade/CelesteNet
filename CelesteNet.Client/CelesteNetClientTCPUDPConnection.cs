@@ -63,8 +63,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             // Wait for threads
             tokenSrc.Cancel();
             TCPSocket.ShutdownSafe(SocketShutdown.Both);
-            udpRecvSocket.ShutdownSafe(SocketShutdown.Both);
-            udpSendSocket.ShutdownSafe(SocketShutdown.Both);
+            udpRecvSocket.Close();
+            udpSendSocket.Close();
 
             if (Thread.CurrentThread != tcpRecvThread)
                 tcpRecvThread.Join();

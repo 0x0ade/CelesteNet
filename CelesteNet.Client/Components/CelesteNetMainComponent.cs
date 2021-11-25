@@ -93,6 +93,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         ?.GetMethod("MoveNext");
                     if (transitionRoutine != null)
                         ILHookTransitionRoutine = new(transitionRoutine, ILTransitionRoutine);
+                    
+                    if (Engine.Scene is Level)
+                        SendGraphics();
                 }
             });
         }

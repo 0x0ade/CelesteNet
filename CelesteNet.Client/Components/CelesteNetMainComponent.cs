@@ -93,11 +93,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         ?.GetMethod("MoveNext");
                     if (transitionRoutine != null)
                         ILHookTransitionRoutine = new(transitionRoutine, ILTransitionRoutine);
-                    
-                    if (Engine.Scene is Level)
-                        SendGraphics();
                 }
             });
+        }
+
+        public override void Start() {
+            if (Engine.Scene is Level)
+                SendGraphics();
         }
 
         protected override void Dispose(bool disposing) {
@@ -265,10 +267,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 ghost.NameTag.Name = frame.Player.DisplayName;
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
-                ghost.UpdatePosition(frame.Position, frame.Scale, frame.Speed, frame.Facing);
+                ghost.UpdatePosition(frame.Position, frame.Scale, frame.Facing);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
-                ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairTexture0, frame.HairSimulateMotion);
-                ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
+                ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion);
+                ghost.UpdateDash(frame.Dash); // TODO: Get rid of this, sync particles separately!
                 ghost.UpdateDead(frame.Dead && state.Level == session.Level);
                 ghost.UpdateFollowers((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
                 ghost.UpdateHolding((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? null : frame.Holding);
@@ -807,7 +809,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private Vector2 OnGetHairScale(On.Celeste.PlayerHair.orig_GetHairScale orig, PlayerHair self, int index) {
             if (self.Entity is Ghost ghost && ghost.PlayerGraphics.HairScales != null && 0 <= index && index < ghost.PlayerGraphics.HairScales.Length)
-                return ghost.PlayerGraphics.HairScales[index];
+                return ghost.PlayerGraphics.HairScales[index] * new Vector2((int) ghost.Hair.Facing, 1);
             return orig(self, index);
         }
 
@@ -880,7 +882,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 hairColors[i] = player.Hair.GetHairColor(i);
             Vector2[] hairScales = new Vector2[hairCount];
             for (int i = 0; i < hairCount; i++)
-                hairScales[i] = player.Hair.GetHairScale(i);
+                hairScales[i] = player.Hair.GetHairScale(i) * new Vector2((int) player.Hair.Facing, 1);
             string[] hairTextures = new string[hairCount];
             for (int i = 0; i < hairCount; i++)
                 hairTextures[i] = player.Hair.GetHairTexture(i).AtlasPath;
@@ -975,25 +977,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Player = Client.PlayerInfo,
 
                     Position = player.Position,
-                    Speed = player.Speed,
                     Scale = player.Sprite.Scale,
-                    Color = player.Sprite.Color,
                     Facing = player.Facing,
 
                     CurrentAnimationID = animID,
                     CurrentAnimationFrame = player.Sprite.CurrentAnimationFrame,
 
-                    HairColor = player.Hair.Color,
+                    HairColors = Enumerable.Range(0, player.Sprite.HairCount).Select(i => player.Hair.GetHairColor(i)).ToArray(),
                     HairTexture0 = player.Hair.GetHairTexture(0).AtlasPath,
                     HairSimulateMotion = player.Hair.SimulateMotion,
 
                     Followers = followers,
-
                     Holding = holding,
 
                     // TODO: Get rid of this, sync particles separately!
-                    DashWasB = player.StateMachine.State == Player.StDash ? player.GetWasDashB() : (bool?) null,
-                    DashDir = player.DashDir,
+                    Dash = player.StateMachine.State == Player.StDash ? (player.GetWasDashB(), player.DashDir) : ((bool, Vector2)?) null,
 
                     Dead = player.Dead
                 });

@@ -20,8 +20,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public float Alpha = 0.875f;
 
-        public Vector2 Speed;
-
         public PlayerSprite Sprite;
         public PlayerHair Hair;
         public Leader Leader;
@@ -31,8 +29,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public GhostNameTag NameTag;
         public GhostEmote IdleTag;
 
-        public bool? DashWasB;
-        public Vector2 DashDir;
+        public (bool wasB, Vector2 dir)? Dash;
 
         public bool Dead;
 
@@ -224,8 +221,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 level.Add(Holding);
 
             // TODO: Get rid of this, sync particles separately!
-            if (DashWasB != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
-                level.ParticlesFG.Emit(DashWasB.Value ? Player.P_DashB : Player.P_DashA, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Angle());
+            if (Dash != null && level != null && level.OnRawInterval(0.02f))
+                level.ParticlesFG.Emit(Dash.Value.wasB ? Player.P_DashB : Player.P_DashA, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), Dash.Value.dir.Angle());
         }
 
         public void Tick() {
@@ -308,28 +305,25 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             }
         }
 
-        public void UpdatePosition(Vector2 pos, Vector2 scale, Vector2 speed, Facings facing) {
+        public void UpdatePosition(Vector2 pos, Vector2 scale, Facings facing) {
             if (Holdable.Holder == null)
                 Position = pos;
             Sprite.Scale = scale;
             Sprite.Scale.X *= (float) facing;
             Hair.Facing = facing;
-            Speed = speed;
         }
-
-        public void UpdateHair(Facings facing, Color color, string texture0, bool simulateMotion) {
+        public void UpdateHair(Facings facing, Color[] colors, string texture0, bool simulateMotion) {
             if (PlayerGraphics == null)
                 return;
 
             Hair.Facing = facing;
-            Hair.Color = color;
             Hair.SimulateMotion = simulateMotion;
+            PlayerGraphics.HairColors = colors;
             PlayerGraphics.HairTextures[0] = texture0;
         }
 
-        public void UpdateDash(bool? wasB, Vector2 dir) {
-            DashWasB = wasB;
-            DashDir = dir;
+        public void UpdateDash((bool wasB, Vector2 dir)? dash) {
+            Dash = dash;
         }
 
         public void UpdateDead(bool dead) {

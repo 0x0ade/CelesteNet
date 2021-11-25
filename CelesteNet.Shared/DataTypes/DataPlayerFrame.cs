@@ -18,20 +18,18 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         // Too many too quickly to make tasking worth it.
-        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.SlimHeader;
+        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.SlimHeader | DataFlags.Small | DataFlags.NoStandardMeta;
 
         public DataPlayerInfo? Player;
 
         public Vector2 Position;
-        public Vector2 Speed;
         public Vector2 Scale;
-        public Color Color;
         public Facings Facing;
 
         public int CurrentAnimationID;
         public int CurrentAnimationFrame;
 
-        public Color HairColor;
+        public Color[] HairColors = Dummy<Color>.EmptyArray;
         public string HairTexture0 = string.Empty;
         public bool HairSimulateMotion;
 
@@ -40,8 +38,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Entity? Holding;
 
         // TODO: Get rid of this, sync particles separately!
-        public bool? DashWasB;
-        public Vector2 DashDir;
+        public (bool wasB, Vector2 dir)? Dash;
 
         public bool Dead;
 
@@ -62,86 +59,107 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Player = playerUpd;
         }
 
-        protected override void Read(CelesteNetBinaryReader reader) {
-            Position = reader.ReadVector2();
-            Speed = reader.ReadVector2();
-            Scale = reader.ReadVector2Scale();
-            Color = reader.ReadColor();
-            Facing = reader.ReadBoolean() ? Facings.Left : Facings.Right;
+        public override void ReadAll(CelesteNetBinaryReader reader) {
+            Player = reader.ReadRef<DataPlayerInfo>();
+
+            Flags flags = (Flags) reader.ReadByte();
+
+            Position = new(reader.Read7BitEncodedInt(), reader.Read7BitEncodedInt());
+            Scale = new(reader.ReadSByte() / 16f, reader.ReadSByte() / 16f);
+            Facing = ((flags & Flags.FacingLeft) != 0) ? Facings.Left : Facings.Right;
 
             CurrentAnimationID = reader.Read7BitEncodedInt();
-            CurrentAnimationFrame = reader.ReadInt32();
+            CurrentAnimationFrame = reader.Read7BitEncodedInt();
 
-            HairColor = reader.ReadColor();
+            HairColors = new Color[reader.ReadByte()];
+            for (int i = 0; i < HairColors.Length; i++)
+                HairColors[i] = reader.ReadColorNoA();
             HairTexture0 = reader.ReadNetMappedString();
-            HairSimulateMotion = reader.ReadBoolean();
+            HairSimulateMotion = (flags & Flags.HairSimulateMotion) != 0;
 
             Followers = new Entity[reader.ReadByte()];
             for (int i = 0; i < Followers.Length; i++) {
                 Entity f = new();
-                f.Scale = reader.ReadVector2Scale();
+                f.Scale = new Vector2(reader.ReadSByte() / 16f, reader.ReadSByte() / 16f);
                 f.Color = reader.ReadColor();
-                f.Depth = reader.ReadInt32();
+                f.Depth = reader.Read7BitEncodedInt();
                 f.SpriteRate = reader.ReadSingle();
                 f.SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null;
                 f.SpriteID = reader.ReadNetMappedString();
-                if (f.SpriteID == "-") {
+                if (string.IsNullOrEmpty(f.SpriteID)) {
                     Entity p = Followers[i - 1];
                     f.SpriteID = p.SpriteID;
                     f.CurrentAnimationID = p.CurrentAnimationID;
                 } else {
                     f.CurrentAnimationID = reader.ReadNetMappedString();
                 }
-                f.CurrentAnimationFrame = reader.ReadInt32();
+                f.CurrentAnimationFrame = reader.Read7BitEncodedInt();
                 Followers[i] = f;
             }
 
-            if (reader.ReadBoolean())
+            if ((flags & Flags.Holding) != 0)
                 Holding = new() {
-                    Position = reader.ReadVector2(),
-                    Scale = reader.ReadVector2Scale(),
+                    Position = this.Position + new Vector2(reader.Read7BitEncodedInt(), reader.Read7BitEncodedInt()),
+                    Scale = new Vector2(reader.ReadSByte() / 16f, reader.ReadSByte() / 16f),
                     Color = reader.ReadColor(),
-                    Depth = reader.ReadInt32(),
+                    Depth = reader.Read7BitEncodedInt(),
                     SpriteRate = reader.ReadSingle(),
                     SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null,
                     SpriteID = reader.ReadNetMappedString(),
                     CurrentAnimationID = reader.ReadNetMappedString(),
-                    CurrentAnimationFrame = reader.ReadInt32()
+                    CurrentAnimationFrame = reader.Read7BitEncodedInt()
                 };
 
-            if (reader.ReadBoolean()) {
-                DashWasB = reader.ReadBoolean();
-                DashDir = reader.ReadVector2();
+            if ((flags & Flags.Dashing) != 0)
+                Dash = ((flags & Flags.DashB) != 0, Calc.AngleToVector((float) (reader.ReadByte() / 256f * 2*Math.PI), 1));
+            else
+                Dash = null;
 
-            } else {
-                DashWasB = null;
-                DashDir = default;
-            }
+            Dead = (flags & Flags.Dead) != 0;
 
-            Dead = reader.ReadBoolean();
+            Meta = GenerateMeta(reader.Data);
         }
 
-        protected override void Write(CelesteNetBinaryWriter writer) {
-            writer.Write(Position);
-            writer.Write(Speed);
-            writer.Write(Scale);
-            writer.Write(Color);
-            writer.Write(Facing == Facings.Left);
+        public override void WriteAll(CelesteNetBinaryWriter writer) {
+            FixupMeta(writer.Data);
+            writer.WriteRef(Player);
+
+            Flags flags = 0;
+            if (Facing == Facings.Left)
+                flags |= Flags.FacingLeft;
+            if (HairSimulateMotion)
+                flags |= Flags.HairSimulateMotion;
+            if (Dash != null)
+                flags |= Flags.Dashing;
+            if (Dash?.wasB ?? false)
+                flags |= Flags.DashB;
+            if (Holding != null)
+                flags |= Flags.Holding;
+            if (Dead)
+                flags |= Flags.Dead;
+            writer.Write((byte) flags);
+
+            writer.Write7BitEncodedInt((int) Position.X);
+            writer.Write7BitEncodedInt((int) Position.Y);
+            writer.Write((sbyte) Calc.Clamp((int) (Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
+            writer.Write((sbyte) Calc.Clamp((int) (Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
 
             writer.Write7BitEncodedInt(CurrentAnimationID);
-            writer.Write(CurrentAnimationFrame);
+            writer.Write7BitEncodedInt(CurrentAnimationFrame);
 
-            writer.Write(HairColor);
+            writer.Write((byte) HairColors.Length);
+            for (int i = 0; i < HairColors.Length; i++)
+                writer.WriteNoA(HairColors[i]);
             writer.WriteNetMappedString(HairTexture0);
-            writer.Write(HairSimulateMotion);
 
             writer.Write((byte) Followers.Length);
             if (Followers.Length != 0) {
                 for (int i = 0; i < Followers.Length; i++) {
                     Entity f = Followers[i];
-                    writer.Write(f.Scale);
+                    writer.Write((sbyte) Calc.Clamp((int) (f.Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
+                    writer.Write((sbyte) Calc.Clamp((int) (f.Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
                     writer.Write(f.Color);
-                    writer.Write(f.Depth);
+                    writer.Write7BitEncodedInt(f.Depth);
                     writer.Write(f.SpriteRate);
                     if (f.SpriteJustify == null) {
                         writer.Write(false);
@@ -157,20 +175,18 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                         writer.WriteNetMappedString(f.SpriteID);
                         writer.WriteNetMappedString(f.CurrentAnimationID);
                     }
-                    writer.Write(f.CurrentAnimationFrame);
+                    writer.Write7BitEncodedInt(f.CurrentAnimationFrame);
                 }
             }
 
-            if (Holding == null) {
-                writer.Write(false);
-
-            } else {
-                writer.Write(true);
+            if (Holding != null) {
                 Entity h = Holding;
-                writer.Write(h.Position);
-                writer.Write(h.Scale);
+                writer.Write7BitEncodedInt((int) (h.Position.X - Position.X));
+                writer.Write7BitEncodedInt((int) (h.Position.Y - Position.Y));
+                writer.Write((sbyte) Calc.Clamp((int) (h.Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
+                writer.Write((sbyte) Calc.Clamp((int) (h.Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
                 writer.Write(h.Color);
-                writer.Write(h.Depth);
+                writer.Write7BitEncodedInt(h.Depth);
                 writer.Write(h.SpriteRate);
                 if (h.SpriteJustify == null) {
                     writer.Write(false);
@@ -181,19 +197,21 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 }
                 writer.WriteNetMappedString(h.SpriteID);
                 writer.WriteNetMappedString(h.CurrentAnimationID);
-                writer.Write(h.CurrentAnimationFrame);
+                writer.Write7BitEncodedInt(h.CurrentAnimationFrame);
             }
 
-            if (DashWasB == null) {
-                writer.Write(false);
+            if (Dash != null)
+                writer.Write((byte) ((Dash.Value.dir.Angle() / (2*Math.PI) * 256f) % 256));
+        }
 
-            } else {
-                writer.Write(true);
-                writer.Write(DashWasB.Value);
-                writer.Write(DashDir);
-            }
-
-            writer.Write(Dead);
+        [Flags]
+        private enum Flags {
+            FacingLeft = 0b00000001,
+            HairSimulateMotion = 0b00000010,
+            Dashing = 0b00000100,
+            DashB = 0b00001000,
+            Holding = 0b00010000,
+            Dead = 0b00100000
         }
 
         public class Entity {

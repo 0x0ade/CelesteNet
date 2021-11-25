@@ -2,9 +2,12 @@ using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.IO;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class ConPlusTCPUDPConnection : CelesteNetTCPUDPConnection {
+
+        public const int DownlinkCapCounterMax = 8;
 
         public class RateMetric : IDisposable {
 
@@ -53,6 +56,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly TCPUDPSenderRole Sender;
 
         private RWLock usageLock;
+        private int downlinkCapCounter = 0;
         private object tcpLock = new object();
         private byte[] tcpBuffer;
         private int tcpBufferOff;
@@ -117,6 +121,17 @@ namespace Celeste.Mod.CelesteNet.Server {
             return dis;
         }
 
+        public override bool DoHeartbeatTick() {
+            if (base.DoHeartbeatTick())
+                return true;
+
+            // Decrement the amount of times we hit the downlink cap
+            if (Volatile.Read(ref downlinkCapCounter) > 0)
+                Interlocked.Decrement(ref downlinkCapCounter);
+
+            return false;
+        }
+
         public void HandleTCPData() {
             lock (tcpLock) {
                 using (Utilize(out bool alive)) {
@@ -138,7 +153,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                         // Update metrics and check if we hit the cap
                         TCPRecvRate.UpdateRate(numRead, 0);
-                        if (TCPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap) {
+                        if (TCPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap && Interlocked.Increment(ref downlinkCapCounter) >= DownlinkCapCounterMax) {
                             Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink byte cap: {TCPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap} cap BpS");
                             goto closeConnection;
                         }
@@ -216,7 +231,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Update metrics
                     UDPRecvRate.UpdateRate(dgSize, 0);
-                    if (UDPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap) {
+                    if (UDPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap && Interlocked.Increment(ref downlinkCapCounter) >= DownlinkCapCounterMax) {
                         Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink byte cap: {UDPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap} cap BpS");
                         goto closeConnection;
                     }

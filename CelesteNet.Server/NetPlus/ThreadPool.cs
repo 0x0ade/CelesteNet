@@ -162,7 +162,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                         lastWorkerToken = roleWorkerTokenSrc.Token;
                         roleSwitchSem.Release();
                         try {
-                            roleWorker.StartWorker(roleWorkerTokenSrc.Token);
+                            while (!roleWorkerTokenSrc.IsCancellationRequested) {
+                                roleWorker.StartWorker(roleWorkerTokenSrc.Token);
+                                if (!roleWorkerTokenSrc.IsCancellationRequested)
+                                    Logger.Log(LogLevel.WRN, "netplus", $"Thread pool thread {Index} worker {roleWorker} exited prematurely!");
+                            }
                         } finally {
                             roleWorker.activeZoneCounter = 0;
                             roleWorker = null;

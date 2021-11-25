@@ -32,6 +32,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public int CurrentAnimationFrame;
 
         public Color HairColor;
+        public string HairTexture0 = string.Empty;
         public bool HairSimulateMotion;
 
         public Entity[] Followers = Dummy<Entity>.EmptyArray;
@@ -72,6 +73,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             CurrentAnimationFrame = reader.ReadInt32();
 
             HairColor = reader.ReadColor();
+            HairTexture0 = reader.ReadNetMappedString();
             HairSimulateMotion = reader.ReadBoolean();
 
             Followers = new Entity[reader.ReadByte()];
@@ -130,6 +132,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(CurrentAnimationFrame);
 
             writer.Write(HairColor);
+            writer.WriteNetMappedString(HairTexture0);
             writer.Write(HairSimulateMotion);
 
             writer.Write((byte) Followers.Length);

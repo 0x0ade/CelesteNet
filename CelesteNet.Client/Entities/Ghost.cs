@@ -272,6 +272,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void UpdateGraphics(DataPlayerGraphics graphics) {
+            if (graphics.HairCount == 0) {
+                graphics.HairCount = 1;
+                graphics.HairColors = new[] { Color.White };
+                graphics.HairScales = new[] { Vector2.One };
+                graphics.HairTextures = new[] { "characters/player/hair00" };
+            }
+
             PlayerGraphics = graphics;
 
             Depth = graphics.Depth + 1;
@@ -310,13 +317,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Speed = speed;
         }
 
-        public void UpdateHair(Facings facing, Color color, bool simulateMotion) {
+        public void UpdateHair(Facings facing, Color color, string texture0, bool simulateMotion) {
             if (PlayerGraphics == null)
                 return;
 
             Hair.Facing = facing;
             Hair.Color = color;
             Hair.SimulateMotion = simulateMotion;
+            PlayerGraphics.HairTextures[0] = texture0;
         }
 
         public void UpdateDash(bool? wasB, Vector2 dir) {

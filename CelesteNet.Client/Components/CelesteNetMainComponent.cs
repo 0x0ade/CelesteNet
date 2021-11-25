@@ -267,7 +267,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
                 ghost.UpdatePosition(frame.Position, frame.Scale, frame.Speed, frame.Facing);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
-                ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion);
+                ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairTexture0, frame.HairSimulateMotion);
                 ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
                 ghost.UpdateDead(frame.Dead && state.Level == session.Level);
                 ghost.UpdateFollowers((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
@@ -984,6 +984,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     CurrentAnimationFrame = player.Sprite.CurrentAnimationFrame,
 
                     HairColor = player.Hair.Color,
+                    HairTexture0 = player.Hair.GetHairTexture(0).AtlasPath,
                     HairSimulateMotion = player.Hair.SimulateMotion,
 
                     Followers = followers,

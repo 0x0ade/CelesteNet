@@ -266,7 +266,11 @@ namespace Celeste.Mod.CelesteNet {
                 if (reader.SlimMap == null)
                     throw new InvalidDataException("Trying to read a slim packet header without a slim map!");
 
-                Type slimType = reader.SlimMap.Get((int) (flags & ~DataFlags.InteralSlimIndicator));
+                int slimID = (int) (flags & ~(DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID));
+                if ((flags & DataFlags.InteralSlimBigID) != 0)
+                    slimID |= reader.Read7BitEncodedInt() << 6;
+
+                Type slimType = reader.SlimMap.Get(slimID);
                 DataType? slimData = Activator.CreateInstance(slimType) as DataType;
                 if (slimData == null)
                     throw new InvalidDataException($"Cannot create instance of data type {slimType.FullName}");
@@ -279,6 +283,7 @@ namespace Celeste.Mod.CelesteNet {
 
                 return slimData;
             }
+            flags &= ~DataFlags.RESERVED;
 
             string id = reader.ReadNetMappedString();
             string source = reader.ReadNetMappedString();
@@ -352,19 +357,26 @@ namespace Celeste.Mod.CelesteNet {
             long start = writer.BaseStream.Position;
 
             if (writer.SlimMap != null && writer.TryGetSlimID(data.GetType(), out int slimID)) {
-                writer.Write((ushort) (slimID | (ushort) DataFlags.InteralSlimIndicator));
+                if (slimID < (1<<6)) 
+                    writer.Write((ushort) (slimID | (ushort) DataFlags.InteralSlimIndicator));
+                else {
+                    writer.Write((ushort) (slimID & (1<<6 - 1) | (ushort) (DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID)));
+                    writer.Write7BitEncodedInt(slimID >> 6);
+                }
+
                 try {
                     data.WriteAll(writer);
                 } catch (Exception e) {
                     throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
                 }
+
                 return (int) (writer.BaseStream.Position - start);
             }
 
             DataFlags flags = data.DataFlags;
-            if ((flags & (DataFlags.RESERVED | DataFlags.InteralSlimIndicator)) != 0)
-                Logger.Log(LogLevel.WRN, "datactx", $"DataType {data} has reserved flags set [flags {(ushort) flags}]");
-            flags &= ~(DataFlags.RESERVED | DataFlags.InteralSlimIndicator);
+            if ((flags & DataFlags.RESERVED) != 0)
+                Logger.Log(LogLevel.WRN, "datactx", $"DataType {data} has reserved flags set: {flags & DataFlags.RESERVED}");
+            flags &= ~DataFlags.RESERVED;
 
             bool small = (flags & DataFlags.Small) != 0;
 

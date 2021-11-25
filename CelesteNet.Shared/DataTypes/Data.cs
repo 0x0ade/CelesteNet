@@ -207,6 +207,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             0b0000000000100000,
         InteralSlimIndicator =
             0b1000000000000000,
+        InteralSlimBigID =
+            0b0100000000000000,
 
         RESERVED =
             0b1100110000001110

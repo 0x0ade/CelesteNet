@@ -1,0 +1,89 @@
+﻿using Microsoft.Xna.Framework;
+using Monocle;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Celeste.Mod.CelesteNet.DataTypes {
+    public class DataPlayerGraphics : DataType<DataPlayerGraphics> {
+
+        static DataPlayerGraphics() {
+            DataID = "playerGraphics";
+        }
+
+        public override DataFlags DataFlags => DataFlags.Taskable | DataFlags.SlimHeader;
+
+        public DataPlayerInfo? Player;
+
+        public int Depth;
+        public PlayerSpriteMode SpriteMode;
+        public Color SpriteColor;
+        public float SpriteRate;
+        public string[] SpriteAnimations = Dummy<string>.EmptyArray;
+
+        public byte HairCount;
+        public Color[] HairColors = Dummy<Color>.EmptyArray;
+        public Vector2[] HairScales = Dummy<Vector2>.EmptyArray;
+        public string[] HairTextures = Dummy<string>.EmptyArray;
+
+        public override bool FilterHandle(DataContext ctx)
+            => Player != null; // Can be RECEIVED BY CLIENT TOO EARLY because UDP is UDP.
+
+        public override MetaType[] GenerateMeta(DataContext ctx)
+            => new MetaType[] {
+                new MetaPlayerPublicState(Player),
+                new MetaBoundRef(DataPlayerInfo.DataID, Player?.ID ?? uint.MaxValue, true)
+            };
+
+        public override void FixupMeta(DataContext ctx) {
+            Player = Get<MetaPlayerPublicState>(ctx);
+            Get<MetaBoundRef>(ctx).ID = Player?.ID ?? uint.MaxValue;
+        }
+
+        protected override void Read(CelesteNetBinaryReader reader) {
+            Depth = reader.ReadInt32();
+            SpriteMode = (PlayerSpriteMode) reader.Read7BitEncodedInt();
+            SpriteColor = reader.ReadColor();
+            SpriteRate = reader.ReadSingle();
+            SpriteAnimations = new string[reader.Read7BitEncodedInt()];
+            for (int i = 0; i < SpriteAnimations.Length; i++)
+                SpriteAnimations[i] = reader.ReadNetMappedString();
+
+            HairCount = reader.ReadByte();
+            HairColors = new Color[HairCount];
+            for (int i = 0; i < HairCount; i++)
+                HairColors[i] = reader.ReadColor();
+            HairScales = new Vector2[HairCount];
+            for (int i = 0; i < HairCount; i++)
+                HairScales[i] = reader.ReadVector2Scale();
+            HairTextures = new string[HairCount];
+            for (int i = 0; i < HairCount; i++)
+                HairTextures[i] = reader.ReadNetMappedString();
+        }
+
+        protected override void Write(CelesteNetBinaryWriter writer) {
+            writer.Write(Depth);
+            writer.Write7BitEncodedInt((int) SpriteMode);
+            writer.Write(SpriteColor);
+            writer.Write(SpriteRate);
+            writer.Write7BitEncodedInt(SpriteAnimations.Length);
+            for (int i = 0; i < SpriteAnimations.Length; i++)
+                writer.WriteNetMappedString(SpriteAnimations[i]);
+
+            writer.Write(HairCount);
+            for (int i = 0; i < HairCount; i++)
+                writer.Write(HairColors[i]);
+            for (int i = 0; i < HairCount; i++)
+                writer.Write(HairScales[i]);
+            for (int i = 0; i < HairCount; i++)
+                writer.WriteNetMappedString(HairTextures[i]);
+        }
+
+    }
+}

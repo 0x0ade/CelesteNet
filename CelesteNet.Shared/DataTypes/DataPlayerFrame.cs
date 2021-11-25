@@ -27,21 +27,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Vector2 Scale;
         public Color Color;
         public Facings Facing;
-        public int Depth;
 
-        public PlayerSpriteMode SpriteMode;
-        public float SpriteRate;
-        public Vector2? SpriteJustify;
-
-        public string CurrentAnimationID = "";
+        public int CurrentAnimationID;
         public int CurrentAnimationFrame;
 
         public Color HairColor;
         public bool HairSimulateMotion;
-
-        public byte HairCount;
-        public Color[] HairColors = Dummy<Color>.EmptyArray;
-        public string[] HairTextures = Dummy<string>.EmptyArray;
 
         public Entity[] Followers = Dummy<Entity>.EmptyArray;
 
@@ -76,28 +67,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Scale = reader.ReadVector2Scale();
             Color = reader.ReadColor();
             Facing = reader.ReadBoolean() ? Facings.Left : Facings.Right;
-            Depth = reader.ReadInt32();
-            SpriteMode = (PlayerSpriteMode) reader.ReadInt32();
 
-            SpriteRate = reader.ReadSingle();
-            SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null;
-
-            CurrentAnimationID = reader.ReadNetMappedString();
+            CurrentAnimationID = reader.Read7BitEncodedInt();
             CurrentAnimationFrame = reader.ReadInt32();
 
             HairColor = reader.ReadColor();
             HairSimulateMotion = reader.ReadBoolean();
-
-            HairCount = reader.ReadByte();
-            HairColors = new Color[HairCount];
-            for (int i = 0; i < HairColors.Length; i++)
-                HairColors[i] = reader.ReadColor();
-            HairTextures = new string[HairCount];
-            for (int i = 0; i < HairColors.Length; i++) {
-                HairTextures[i] = reader.ReadNetMappedString();
-                if (HairTextures[i] == "-")
-                    HairTextures[i] = HairTextures[i - 1];
-            }
 
             Followers = new Entity[reader.ReadByte()];
             for (int i = 0; i < Followers.Length; i++) {
@@ -150,35 +125,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(Scale);
             writer.Write(Color);
             writer.Write(Facing == Facings.Left);
-            writer.Write(Depth);
-            writer.Write((int) SpriteMode);
 
-            writer.Write(SpriteRate);
-            if (SpriteJustify == null) {
-                writer.Write(false);
-            } else {
-                writer.Write(true);
-                writer.Write(SpriteJustify.Value);
-            }
-            writer.WriteNetMappedString(CurrentAnimationID);
+            writer.Write7BitEncodedInt(CurrentAnimationID);
             writer.Write(CurrentAnimationFrame);
 
             writer.Write(HairColor);
             writer.Write(HairSimulateMotion);
-
-            writer.Write(HairCount);
-            if (HairCount != 0) {
-                for (int i = 0; i < HairCount; i++)
-                    writer.Write(HairColors[i]);
-            }
-            if (HairCount != 0) {
-                for (int i = 0; i < HairCount; i++) {
-                    if (i >= 1 && HairTextures[i] == HairTextures[i - 1])
-                        writer.WriteNetMappedString("-");
-                    else
-                        writer.WriteNetMappedString(HairTextures[i]);
-                }
-            }
 
             writer.Write((byte) Followers.Length);
             if (Followers.Length != 0) {

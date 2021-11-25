@@ -16,6 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public CelesteNetClientContext Context;
 
         public DataPlayerInfo PlayerInfo;
+        public volatile DataPlayerGraphics PlayerGraphics;
 
         public float Alpha = 0.875f;
 
@@ -30,11 +31,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public GhostNameTag NameTag;
         public GhostEmote IdleTag;
 
-        public static readonly Color[] FallbackHairColors = new Color[] { Color.Transparent };
-        public Color[] HairColors;
-        public static readonly string[] FallbackHairTextures = new string[] { "characters/player/hair00" };
-        public string[] HairTextures;
-
         public bool? DashWasB;
         public Vector2 DashDir;
 
@@ -48,11 +44,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public float GrabCooldown = 0f;
         public const float GrabCooldownMax = CelesteNetMainComponent.GrabCooldownMax;
         protected DataPlayerGrabPlayer GrabPacket;
-
-        protected Color LastSpriteColor;
-        protected Color LastHairColor;
-        protected int LastDepth;
-        protected int DepthOffset;
 
         // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
         protected List<Action<Ghost>> UpdateQueue = new();
@@ -211,21 +202,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             } else {
                 Alpha = 0.875f * ((CelesteNetClientModule.Settings.PlayerOpacity + 2) / 6f);
             }
-            DepthOffset = 0;
-            Player p = Scene.Tracker.GetEntity<Player>();
-            if (p != null) {
-                float dist = (p.Position - Position).LengthSquared();
-                if (CelesteNetClientModule.Settings.PlayerOpacity > 2)
-                    Alpha = Calc.LerpClamp(Alpha * 0.5f, Alpha, dist / 256f);
-                if (dist <= 256f) {
-                    Depth = LastDepth + 1;
-                    DepthOffset = 1;
-                }
-            }
-
-            Hair.Color = LastHairColor * Alpha;
-            Hair.Alpha = Alpha;
-            Sprite.Color = LastSpriteColor * Alpha;
 
             if (NameTag.Scene != Scene)
                 Scene.Add(NameTag);
@@ -295,56 +271,50 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 WaitHandle.WaitAny(new WaitHandle[] { waiter });
         }
 
-        public void UpdateHair(Facings facing, Color color, bool simulateMotion, int count, Color[] colors, string[] textures) {
-            Hair.Facing = facing;
-            LastHairColor = color;
-            Hair.Color = color * Alpha;
-            Hair.SimulateMotion = simulateMotion;
+        public void UpdateGraphics(DataPlayerGraphics graphics) {
+            PlayerGraphics = graphics;
 
-            if (count == 0) {
-                count = 1;
-                colors = FallbackHairColors;
-                textures = FallbackHairTextures;
-                Hair.Alpha = 0;
-            }
+            Depth = graphics.Depth + 1;
+            Sprite.Color = graphics.SpriteColor * Alpha;
+            Sprite.Rate = graphics.SpriteRate;
 
-            while (Hair.Nodes.Count < count)
+            while (Hair.Nodes.Count < graphics.HairCount)
                 Hair.Nodes.Add(Hair.Nodes.LastOrDefault());
-            while (Hair.Nodes.Count > count)
+            while (Hair.Nodes.Count > graphics.HairCount)
                 Hair.Nodes.RemoveAt(Hair.Nodes.Count - 1);
-            HairColors = colors;
-            HairTextures = textures;
-            Sprite.HairCount = count;
+            Sprite.HairCount = graphics.HairCount;
         }
 
-        public void UpdateSprite(Vector2 position, Vector2 speed, Vector2 scale, Facings facing, int depth, Color color, float rate, Vector2? justify, string animationID, int animationFrame) {
-            if (Holdable.Holder == null) {
-                Position = position;
-            }
-            Speed = speed;
+        public void UpdateAnimation(int animationID, int animationFrame) {
+            if (PlayerGraphics == null)
+                return;
 
+            if (animationID < 0 || PlayerGraphics.SpriteAnimations.Length <= animationID)
+                return;
+
+            string strID = PlayerGraphics.SpriteAnimations[animationID];
+            if (strID != null && Sprite.Animations.ContainsKey(strID)) {
+                if (Sprite.CurrentAnimationID != strID)
+                    Sprite.Play(strID);
+                Sprite.SetAnimationFrame(animationFrame);
+            }
+        }
+
+        public void UpdatePosition(Vector2 pos, Vector2 scale, Vector2 speed, Facings facing) {
+            if (Holdable.Holder == null)
+                Position = pos;
             Sprite.Scale = scale;
             Sprite.Scale.X *= (float) facing;
+            Speed = speed;
+        }
 
-            LastDepth = depth;
-            Depth = depth + DepthOffset;
+        public void UpdateHair(Facings facing, Color color, bool simulateMotion) {
+            if (PlayerGraphics == null)
+                return;
 
-            LastSpriteColor = color;
-            Sprite.Color = color * Alpha;
-
-            Sprite.Rate = rate;
-            Sprite.Justify = justify;
-
-            if (!string.IsNullOrEmpty(animationID)) {
-                try {
-                    if (Sprite.CurrentAnimationID != animationID)
-                        Sprite.Play(animationID);
-                    Sprite.SetAnimationFrame(animationFrame);
-                } catch {
-                    // Play likes to fail randomly as the ID doesn't exist in an underlying dict.
-                    // Let's ignore this for now.
-                }
-            }
+            Hair.Facing = facing;
+            Hair.Color = color;
+            Hair.SimulateMotion = simulateMotion;
         }
 
         public void UpdateDash(bool? wasB, Vector2 dir) {

@@ -46,6 +46,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public ConcurrentDictionary<uint, Ghost> Ghosts = new();
         public ConcurrentDictionary<uint, DataPlayerFrame> LastFrames = new();
 
+        public ConcurrentDictionary<string, int> SpriteAnimationIDs = new();
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new();
 
         public Ghost GrabbedBy;
@@ -76,13 +77,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }) {
                     On.Celeste.Level.LoadLevel += OnLoadLevel;
                     Everest.Events.Level.OnExit += OnExitLevel;
-                    On.Celeste.PlayerHair.GetHairColor += OnGetHairColor;
-                    On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
-                    On.Celeste.Player.Play += OnPlayerPlayAudio;
-                    On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
-                    On.Celeste.PlayerSprite.ctor += OnPlayerSpriteCtor;
                     On.Celeste.Level.LoadNewPlayer += OnLoadNewPlayer;
                     On.Celeste.Player.Added += OnPlayerAdded;
+                    On.Celeste.Player.ResetSprite += OnPlayerResetSprite;
+                    On.Celeste.Player.Play += OnPlayerPlayAudio;
+                    On.Celeste.PlayerSprite.ctor += OnPlayerSpriteCtor;
+                    On.Celeste.PlayerHair.GetHairColor += OnGetHairColor;
+                    On.Celeste.PlayerHair.GetHairScale += OnGetHairScale;
+                    On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
+                    On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
 
                     MethodInfo transitionRoutine =
                         typeof(Level).GetNestedType("<TransitionRoutine>d__24", BindingFlags.NonPublic)
@@ -100,6 +103,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 On.Celeste.Level.LoadLevel -= OnLoadLevel;
                 Everest.Events.Level.OnExit -= OnExitLevel;
                 On.Celeste.PlayerHair.GetHairColor -= OnGetHairColor;
+                On.Celeste.PlayerHair.GetHairScale -= OnGetHairScale;
                 On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
                 On.Celeste.Player.Play -= OnPlayerPlayAudio;
                 On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
@@ -209,46 +213,45 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        public void Handle(CelesteNetConnection con, DataPlayerGraphics graphics) {
+            if (UnsupportedSpriteModes.Contains(graphics.SpriteMode))
+                graphics.SpriteMode = PlayerSpriteMode.Madeline;
+
+            if (!Ghosts.TryGetValue(graphics.Player.ID, out Ghost ghost) || ghost?.Sprite?.Mode != graphics.SpriteMode) {
+                RemoveGhost(graphics.Player);
+                ghost = null;
+            }
+
+            Level level = Player?.Scene as Level;
+            if (ghost == null && !IsGhostOutside(Session, level, graphics.Player, out _)) 
+                ghost = CreateGhost(level, graphics.Player, graphics);
+
+            if (ghost != null)
+                ghost.UpdateGraphics(graphics);
+        }
+
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
             LastFrames[frame.Player.ID] = frame;
 
-            Level level = Player?.Scene as Level;
             Session session = Session;
-
-            bool outside =
-                !Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
-                level == null ||
-                session == null ||
-                state.SID != session.Area.SID ||
-                state.Mode != session.Area.Mode ||
-                state.Level == LevelDebugMap;
-
-            if (UnsupportedSpriteModes.Contains(frame.SpriteMode))
-                frame.SpriteMode = PlayerSpriteMode.Madeline;
+            Level level = Player?.Scene as Level;
+            bool outside = IsGhostOutside(session, level, frame.Player, out DataPlayerState state);
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
                 ghost == null ||
                 (ghost.Active && ghost.Scene != level) ||
-                ghost.Sprite.Mode != frame.SpriteMode ||
                 outside) {
-                ghost?.RunOnUpdate(ghost => ghost.NameTag.Name = "");
+                RemoveGhost(frame.Player);
                 ghost = null;
-                Ghosts.TryRemove(frame.Player.ID, out _);
             }
 
             if (level == null || outside)
                 return;
 
             if (ghost == null) {
-                Ghosts[frame.Player.ID] = ghost = new(Context, frame.Player, frame.SpriteMode);
-                ghost.Active = false;
-                ghost.NameTag.Name = frame.Player.DisplayName;
-                if (ghost.Sprite.Mode != frame.SpriteMode)
-                    UnsupportedSpriteModes.Add(frame.SpriteMode);
-                RunOnMainThread(() => {
-                    level.Add(ghost);
-                    level.OnEndOfFrame += () => ghost.Active = true;
-                });
+                if (!Client.Data.TryGetBoundRef<DataPlayerInfo, DataPlayerGraphics>(frame.Player, out DataPlayerGraphics graphics) || graphics == null)
+                    return;
+                ghost = CreateGhost(level, frame.Player, graphics);
             }
 
             ghost.RunOnUpdate(ghost => {
@@ -256,8 +259,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 ghost.NameTag.Name = frame.Player.DisplayName;
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
-                ghost.UpdateSprite(frame.Position, frame.Speed, frame.Scale, frame.Facing, frame.Depth, frame.Color, frame.SpriteRate, frame.SpriteJustify, frame.CurrentAnimationID, frame.CurrentAnimationFrame);
-                ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion, frame.HairCount, frame.HairColors, frame.HairTextures);
+                ghost.UpdatePosition(frame.Position, frame.Scale, frame.Speed, frame.Facing);
+                ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
+                ghost.UpdateHair(frame.Facing, frame.HairColor, frame.HairSimulateMotion);
                 ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
                 ghost.UpdateDead(frame.Dead && state.Level == session.Level);
                 ghost.UpdateFollowers((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
@@ -541,6 +545,40 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         #endregion
 
+        protected bool IsGhostOutside(Session ses, Level level, DataPlayerInfo player, out DataPlayerState state) {
+            state = null;
+            return
+                level == null ||
+                ses == null ||
+                !Client.Data.TryGetBoundRef(player, out state) ||
+                state.SID != ses.Area.SID ||
+                state.Mode != ses.Area.Mode ||
+                state.Level == LevelDebugMap;
+        }
+
+        protected Ghost CreateGhost(Level level, DataPlayerInfo player, DataPlayerGraphics graphics) {
+            Ghost ghost;
+            lock (Ghosts)
+            if (!Ghosts.TryGetValue(player.ID, out ghost) || ghost == null) {
+                ghost = Ghosts[player.ID] = new(Context, player, graphics.SpriteMode);
+                ghost.Active = false;
+                ghost.NameTag.Name = player.DisplayName;
+                if (ghost.Sprite.Mode != graphics.SpriteMode)
+                    UnsupportedSpriteModes.Add(graphics.SpriteMode);
+                RunOnMainThread(() => {
+                    level.Add(ghost);
+                    level.OnEndOfFrame += () => ghost.Active = true;
+                });
+                ghost.UpdateGraphics(graphics);
+            }
+            return ghost;
+        }
+
+        protected void RemoveGhost(DataPlayerInfo info) {
+            Ghosts.TryRemove(info.ID, out Ghost ghost);
+            ghost?.RunOnUpdate(g => g.NameTag.Name = "");
+        }
+
         public void UpdateIdleTag(Entity target, ref GhostEmote idleTag, bool idle) {
             if (Engine.Scene is not Level level) {
                 idle = false;
@@ -710,36 +748,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             SendState();
         }
 
-        public Color OnGetHairColor(On.Celeste.PlayerHair.orig_GetHairColor orig, PlayerHair self, int index) {
-            if (self.Entity is Ghost ghost && ghost.HairColors != null && 0 <= index && index < ghost.HairColors.Length)
-                return ghost.HairColors[index] * ghost.Alpha;
-            return orig(self, index);
-        }
-
-        private MTexture OnGetHairTexture(On.Celeste.PlayerHair.orig_GetHairTexture orig, PlayerHair self, int index) {
-            if (self.Entity is Ghost ghost && ghost.HairTextures != null && 0 <= index && index < ghost.HairTextures.Length && GFX.Game.Textures.TryGetValue(ghost.HairTextures[index], out MTexture tex))
-                return tex;
-            return orig(self, index);
-        }
-
-        private EventInstance OnPlayerPlayAudio(On.Celeste.Player.orig_Play orig, Player self, string sound, string param, float value) {
-            SendAudioPlay(self.Center, sound, param, value);
-            return orig(self, sound, param, value);
-        }
-
-        private TrailManager.Snapshot OnDashTrailAdd(
-            On.Celeste.TrailManager.orig_Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool orig,
-            Vector2 position, Image sprite, PlayerHair hair, Vector2 scale, Color color, int depth, float duration, bool frozenUpdate, bool useRawDeltaTime
-        ) {
-            if (hair?.Entity is Player)
-                SendDashTrail(position, sprite, hair, scale, color, depth, duration, frozenUpdate, useRawDeltaTime);
-            return orig(position, sprite, hair, scale, color, depth, duration, frozenUpdate, useRawDeltaTime);
-        }
-
-        private void OnPlayerSpriteCtor(On.Celeste.PlayerSprite.orig_ctor orig, PlayerSprite self, PlayerSpriteMode mode) {
-            orig(self, mode & (PlayerSpriteMode) ~(1 << 31));
-        }
-
         private Player OnLoadNewPlayer(On.Celeste.Level.orig_LoadNewPlayer orig, Vector2 position, PlayerSpriteMode spriteMode) {
             Player player = orig(position, spriteMode);
             if (NextRespawnPosition != null) {
@@ -758,9 +766,51 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Player = self;
 
             SendState();
+            SendGraphics();
 
             foreach (DataPlayerFrame frame in LastFrames.Values.ToArray())
                 Handle(null, frame);
+        }
+
+        private void OnPlayerResetSprite(On.Celeste.Player.orig_ResetSprite orig, Player self, PlayerSpriteMode mode) {
+            orig(self, mode);
+            SendGraphics();
+        }
+
+        private EventInstance OnPlayerPlayAudio(On.Celeste.Player.orig_Play orig, Player self, string sound, string param, float value) {
+            SendAudioPlay(self.Center, sound, param, value);
+            return orig(self, sound, param, value);
+        }
+
+        private void OnPlayerSpriteCtor(On.Celeste.PlayerSprite.orig_ctor orig, PlayerSprite self, PlayerSpriteMode mode) {
+            orig(self, mode & (PlayerSpriteMode) ~(1 << 31));
+        }
+
+        private Color OnGetHairColor(On.Celeste.PlayerHair.orig_GetHairColor orig, PlayerHair self, int index) {
+            if (self.Entity is Ghost ghost && ghost.PlayerGraphics.HairColors != null && 0 <= index && index < ghost.PlayerGraphics.HairColors.Length)
+                return ghost.PlayerGraphics.HairColors[index] * ghost.Alpha;
+            return orig(self, index);
+        }
+
+        private Vector2 OnGetHairScale(On.Celeste.PlayerHair.orig_GetHairScale orig, PlayerHair self, int index) {
+            if (self.Entity is Ghost ghost && ghost.PlayerGraphics.HairScales != null && 0 <= index && index < ghost.PlayerGraphics.HairScales.Length)
+                return ghost.PlayerGraphics.HairScales[index];
+            return orig(self, index);
+        }
+
+        private MTexture OnGetHairTexture(On.Celeste.PlayerHair.orig_GetHairTexture orig, PlayerHair self, int index) {
+            if (self.Entity is Ghost ghost && ghost.PlayerGraphics.HairTextures != null && 0 <= index && index < ghost.PlayerGraphics.HairTextures.Length && GFX.Game.Textures.TryGetValue(ghost.PlayerGraphics.HairTextures[index], out MTexture tex))
+                return tex;
+            return orig(self, index);
+        }
+
+        private TrailManager.Snapshot OnDashTrailAdd(
+            On.Celeste.TrailManager.orig_Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool orig,
+            Vector2 position, Image sprite, PlayerHair hair, Vector2 scale, Color color, int depth, float duration, bool frozenUpdate, bool useRawDeltaTime
+        ) {
+            if (hair?.Entity is Player)
+                SendDashTrail(position, sprite, hair, scale, color, depth, duration, frozenUpdate, useRawDeltaTime);
+            return orig(position, sprite, hair, scale, color, depth, duration, frozenUpdate, useRawDeltaTime);
         }
 
         private void ILTransitionRoutine(ILContext il) {
@@ -798,25 +848,61 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
-        public void SendFrame() {
+        public void SendGraphics() {
             Player player = Player;
             if (player == null || player.Sprite == null || player.Hair == null)
                 return;
+
+            SpriteAnimationIDs.Clear();
+            int nextID = 0;
+            List<string> animations = new List<string>();
+            foreach (string animID in player.Sprite.Animations.Keys) {
+                SpriteAnimationIDs.TryAdd(animID, nextID++);
+                animations.Add(animID);
+            }
 
             int hairCount = player.Sprite.HairCount;
             Color[] hairColors = new Color[hairCount];
             for (int i = 0; i < hairCount; i++)
                 hairColors[i] = player.Hair.GetHairColor(i);
+            Vector2[] hairScales = new Vector2[hairCount];
+            for (int i = 0; i < hairCount; i++)
+                hairScales[i] = player.Hair.GetHairScale(i);
             string[] hairTextures = new string[hairCount];
             for (int i = 0; i < hairCount; i++)
                 hairTextures[i] = player.Hair.GetHairTexture(i).AtlasPath;
+
+            try {
+                Client?.Send(new DataPlayerGraphics {
+                    Player = Client.PlayerInfo,
+
+                    Depth = player.Depth,
+                    SpriteMode = player.Sprite.Mode,
+                    SpriteColor = player.Sprite.Color,
+                    SpriteRate = player.Sprite.Rate,
+                    SpriteAnimations = animations.ToArray(),
+
+                    HairCount = (byte) hairCount,
+                    HairColors = hairColors,
+                    HairScales = hairScales,
+                    HairTextures = hairTextures
+                });
+            } catch (Exception e) {
+                Logger.Log(LogLevel.INF, "client-main", $"Error in SendGraphics:\n{e}");
+                Context.Dispose();
+            }
+        }
+
+        public void SendFrame() {
+            Player player = Player;
+            if (player == null || player.Sprite == null || player.Hair == null)
+                return;
 
             DataPlayerFrame.Entity[] followers;
             DataPlayerFrame.Entity holding = null;
 
             if ((Settings.Entities & CelesteNetClientSettings.SyncMode.Send) == 0) {
                 followers = Dummy<DataPlayerFrame.Entity>.EmptyArray;
-
             } else {
                 Leader leader = player.Get<Leader>();
                 followers = new DataPlayerFrame.Entity[leader.Followers.Count];
@@ -868,6 +954,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
+            if (!SpriteAnimationIDs.TryGetValue(player.Sprite.CurrentAnimationID, out int animID))
+                animID = -1;
+
             try {
                 Client?.Send(new DataPlayerFrame {
                     Player = Client.PlayerInfo,
@@ -877,18 +966,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Scale = player.Sprite.Scale,
                     Color = player.Sprite.Color,
                     Facing = player.Facing,
-                    Depth = player.Depth,
 
-                    SpriteMode = player.Sprite.Mode,
-                    CurrentAnimationID = player.Sprite.CurrentAnimationID,
+                    CurrentAnimationID = animID,
                     CurrentAnimationFrame = player.Sprite.CurrentAnimationFrame,
 
                     HairColor = player.Hair.Color,
                     HairSimulateMotion = player.Hair.SimulateMotion,
-
-                    HairCount = (byte) hairCount,
-                    HairColors = hairColors,
-                    HairTextures = hairTextures,
 
                     Followers = followers,
 

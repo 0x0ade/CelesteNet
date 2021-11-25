@@ -360,12 +360,15 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public bool Filter(CelesteNetConnection con, DataPlayerFrame frame) {
-            if (frame.HairCount > Server.Settings.MaxHairLength)
-                frame.HairCount = Server.Settings.MaxHairLength;
-
             if (frame.Followers.Length > Server.Settings.MaxFollowers)
                 Array.Resize(ref frame.Followers, Server.Settings.MaxFollowers);
 
+            return true;
+        }
+
+        public bool Filter(CelesteNetConnection con, DataPlayerGraphics graphics) {
+            if (graphics.HairCount > Server.Settings.MaxHairLength)
+                graphics.HairCount = Server.Settings.MaxHairLength;
             return true;
         }
 

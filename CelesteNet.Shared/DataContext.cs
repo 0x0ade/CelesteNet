@@ -357,7 +357,7 @@ namespace Celeste.Mod.CelesteNet {
             long start = writer.BaseStream.Position;
 
             if (writer.SlimMap != null && writer.TryGetSlimID(data.GetType(), out int slimID)) {
-                if (slimID < (1<<6)) 
+                if (slimID < (1<<6))
                     writer.Write((ushort) (slimID | (ushort) DataFlags.InteralSlimIndicator));
                 else {
                     writer.Write((ushort) (slimID & (1<<6 - 1) | (ushort) (DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID)));

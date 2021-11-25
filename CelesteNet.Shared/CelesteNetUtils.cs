@@ -209,7 +209,7 @@ namespace Celeste.Mod.CelesteNet {
                 sock.Shutdown(shutdown);
             } catch (SocketException se) {
                 // Sometime the first check isn't enough
-                if (se.SocketErrorCode == SocketError.NotConnected)
+                if (se.IsDisconnect())
                     return;
                 throw;
             }

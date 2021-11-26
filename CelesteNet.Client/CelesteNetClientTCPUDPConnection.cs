@@ -232,10 +232,15 @@ namespace Celeste.Mod.CelesteNet.Client {
                     // Try to send as many packets as possible
                     for (DataType packet = p; packet != null; tcpSendQueue.TryTake(out packet)) {
                         mStream.Position = 0;
-                        int packLen = Data.Write(bufWriter, packet);
+                        Data.Write(bufWriter, packet);
+                        bufWriter.Flush();
+                        int packLen = (int) mStream.Position;
+
                         tcpWriter.Write((UInt16) packLen);
                         tcpWriter.Write(mStream.GetBuffer(), 0, packLen);
-                        SurpressTCPKeepAlives();
+
+                        if (!(packet is DataLowLevelKeepAlive))
+                            SurpressTCPKeepAlives();
                     }
                     tcpWriter.Flush();
                 }
@@ -282,9 +287,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                             int bufOff = 1;
                             for (DataType packet = p; packet != null; packet = udpSendQueue.TryTake(out packet, 0) ? packet : null) {
                                 mStream.Position = 0;
-                                int packLen = Data.Write(bufWriter, packet);
-                                if (!(packet is DataLowLevelKeepAlive))
-                                    SurpressUDPKeepAlives();
+                                Data.Write(bufWriter, packet);
+                                bufWriter.Flush();
+                                int packLen = (int) mStream.Position;
 
                                 // Copy packet data to the container buffer
                                 if (bufOff + packLen > dgBuffer.Length) {
@@ -296,6 +301,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                                 Buffer.BlockCopy(mStream.GetBuffer(), 0, dgBuffer, bufOff, packLen);
                                 bufOff += packLen;
+
+                                if (!(packet is DataLowLevelKeepAlive))
+                                    SurpressUDPKeepAlives();
                             }
 
                             // Send the last container

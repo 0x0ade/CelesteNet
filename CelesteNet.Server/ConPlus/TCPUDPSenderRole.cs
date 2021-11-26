@@ -134,20 +134,24 @@ namespace Celeste.Mod.CelesteNet.Server {
                 while (queue.BackQueue.TryDequeue(out DataType? packet)) {
                     // Write the packet onto the temporary packet stream
                     packetStream.Position = 0;
-                    int packLen = con.Data.Write(packetWriter, packet!);
+                    con.Data.Write(packetWriter, packet!);
+                    packetWriter.Flush();
+                    int packLen = (int) packetStream.Position;
 
                     // Write size and raw packet data into the actual stream
                     sockWriter.Write((UInt16) packLen);
                     sockStream.Write(packetStream.GetBuffer(), 0, packLen);
-                    if (!(packet is DataLowLevelKeepAlive))
-                        con.SurpressTCPKeepAlives();
-                    byteCounter += 2 + packLen;
-                    packetCounter++;
 
                     // Update connection metrics and check if we hit the connection cap
                     con.TCPSendRate.UpdateRate(2 + packLen, 1);
                     if (con.TCPSendCapped)
                         break;
+
+                    byteCounter += 2 + packLen;
+                    packetCounter++;
+
+                    if (!(packet is DataLowLevelKeepAlive))
+                        con.SurpressTCPKeepAlives();
                 }
                 sockStream.Flush();
                 sockStream.Socket = null;
@@ -189,9 +193,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 foreach (DataType packet in queue.BackQueue) {
                     // Write the packet onto the temporary packet stream
                     packetStream.Position = 0;
-                    int packLen = con.Data.Write(packetWriter, packet);
-                    if (!(packet is DataLowLevelKeepAlive))
-                        con.SurpressUDPKeepAlives();
+                    con.Data.Write(packetWriter, packet);
+                    packetWriter.Flush();
+                    int packLen = (int) packetStream.Position;
 
                     // Copy packet data to the container buffer
                     if (bufOff + packLen > udpBuffer.Length) {
@@ -211,6 +215,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     byteCounter += packLen;
                     packetCounter++;
+
+                    if (!(packet is DataLowLevelKeepAlive))
+                        con.SurpressUDPKeepAlives();
                 }
 
                 // Send the last container

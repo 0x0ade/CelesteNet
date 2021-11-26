@@ -275,7 +275,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                     udpSendSocket.Send(new byte[] { 0xff }.Concat(BitConverter.GetBytes(ConnectionToken)).ToArray());
                                 }
                                 continue;
-                            } else if (p == null)
+                            } else if (UDPEndpoint == null || p == null)
                                 continue;
 
                             // Adjust the datagram buffer size

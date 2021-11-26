@@ -884,7 +884,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 hairColors[i] = player.Hair.GetHairColor(i);
             Vector2[] hairScales = new Vector2[hairCount];
             for (int i = 0; i < hairCount; i++)
-                hairScales[i] = player.Hair.GetHairScale(i) * new Vector2((int) player.Hair.Facing, 1);
+                hairScales[i] = player.Hair.GetHairScale(i) * new Vector2(((i == 0) ? (int) player.Hair.Facing : 1) / Math.Abs(player.Sprite.Scale.X), 1);
             string[] hairTextures = new string[hairCount];
             for (int i = 0; i < hairCount; i++)
                 hairTextures[i] = player.Hair.GetHairTexture(i).AtlasPath;

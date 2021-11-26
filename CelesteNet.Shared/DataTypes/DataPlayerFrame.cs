@@ -74,8 +74,30 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             CurrentAnimationFrame = reader.Read7BitEncodedInt();
 
             HairColors = new Color[reader.ReadByte()];
-            for (int i = 0; i < HairColors.Length; i++)
-                HairColors[i] = reader.ReadColorNoA();
+            Color lastHairCol = Color.White;
+            for (int i = 0; i < HairColors.Length;) {
+                // Read the first color byte
+                byte firstColByte = reader.ReadByte();
+
+                // If it has the highest bit set, it's a repeat count of the last color
+                if ((firstColByte & (1<<7)) != 0) {
+                    int repCount = firstColByte & ~(1<<7);
+                    for (int j = 0; i < HairColors.Length && j < repCount; i++, j++)
+                        HairColors[i] = lastHairCol;
+                } else {
+                    // Read the second color byte and combine them
+                    int packedCol = (firstColByte << 8) | reader.ReadByte();
+
+                    // Unpack the color (each component is 5 bits)
+                    lastHairCol.R = (byte) (((packedCol >> 0) & 0b11111) << 3);
+                    lastHairCol.G = (byte) (((packedCol >> 5) & 0b11111) << 3);
+                    lastHairCol.B = (byte) (((packedCol >> 10) & 0b11111) << 3);
+                    lastHairCol.A = 255;
+
+                    HairColors[i++] = lastHairCol;
+                }
+            }
+
             HairTexture0 = reader.ReadNetMappedString();
             HairSimulateMotion = (flags & Flags.HairSimulateMotion) != 0;
 
@@ -152,8 +174,21 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write7BitEncodedInt(CurrentAnimationFrame);
 
             writer.Write((byte) HairColors.Length);
+            List<ushort> packedHairCols = new List<ushort>();
             for (int i = 0; i < HairColors.Length; i++)
-                writer.WriteNoA(HairColors[i]);
+                packedHairCols.Add((ushort) (
+                    (HairColors[i].R >> 3) << 0 |
+                    (HairColors[i].G >> 3) << 5 |
+                    (HairColors[i].B >> 3) << 10
+                ));
+            for (int i = 0; i < packedHairCols.Count;) {
+                int origIdx = i;
+                writer.Write(packedHairCols[i]);
+                while (packedHairCols[++i] == packedHairCols[origIdx]);
+                if (origIdx+1 < i)
+                    writer.Write((byte) ((1<<7) | (i-origIdx-1)));
+            }
+
             writer.WriteNetMappedString(HairTexture0);
 
             writer.Write((byte) Followers.Length);

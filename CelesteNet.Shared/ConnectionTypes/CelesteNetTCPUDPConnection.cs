@@ -173,7 +173,7 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public virtual void DecreaseUDPScore() {
+        public virtual void DecreaseUDPScore(bool immediateDowngrade = false) {
             lock (UDPLock) {
                 // Must have an initialized connection
                 if (UDPEndpoint == null)
@@ -182,7 +182,7 @@ namespace Celeste.Mod.CelesteNet {
                 // Reset the alive score, half the maximum datagram size, and increment the downgrade score
                 // If it reaches it's maximum, the connection died
                 udpAliveScore = 0;
-                if (++udpDowngradeScore >= ConnectionSettings.UDPDowngradeScoreMax) {
+                if (immediateDowngrade || ++udpDowngradeScore >= ConnectionSettings.UDPDowngradeScoreMax) {
                     udpDowngradeScore = 0;
                     if ((udpMaxDatagramSize /= 2) >= 1+ConnectionSettings.MaxPacketSize) {
                         Logger.Log(LogLevel.INF, "tcpudpcon", $"Downgrading UDP connection of {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
@@ -322,7 +322,7 @@ namespace Celeste.Mod.CelesteNet {
                     // Check if we got a UDP heartbeat in the required timeframe
                     if (Interlocked.Increment(ref udpLastHeartbeatDelay) > ConnectionSettings.MaxHeartbeatDelay) {
                         Volatile.Write(ref udpLastHeartbeatDelay, 0);
-                        DecreaseUDPScore();
+                        DecreaseUDPScore(true);
                     }
 
                     // Check if we need to send a UDP keep-alive

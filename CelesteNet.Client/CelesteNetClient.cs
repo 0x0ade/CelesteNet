@@ -69,7 +69,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             ConFeatures = conFeatures.ToArray();
         }
 
-        public void Start() {
+        public void Start(CancellationToken token) {
             if (IsAlive)
                 return;
             IsAlive = true;
@@ -88,16 +88,19 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // Create a TCP connection
                         Socket sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
                         try {
-                            sock.ReceiveTimeout = sock.SendTimeout = 5000;
-                            sock.Connect(Settings.Host, Settings.Port);
+                            (uint conToken, IConnectionFeature[] conFeatures, CelesteNetTCPUDPConnection.Settings settings) teapotRes;
+                            using (token.Register(() => sock.Close())) {
+                                sock.ReceiveTimeout = sock.SendTimeout = 5000;
+                                sock.Connect(Settings.Host, Settings.Port);
 
-                            // Do the teapot handshake
-                            var res = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
-                            sock.ReceiveTimeout = sock.SendTimeout = -1;
-                            Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {res.conToken} conFeatures '{res.conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}'");
+                                // Do the teapot handshake
+                                teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
+                                Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {teapotRes.conToken} conFeatures '{teapotRes.conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}'");
+                                sock.ReceiveTimeout = sock.SendTimeout = -1;
+                            }
 
                             // Create a connection and start the heartbeat timer
-                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, res.conToken, res.settings, sock);
+                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, teapotRes.conToken, teapotRes.settings, sock);
                             con.OnDisconnect += _ => {
                                 if (CelesteNetClientModule.Instance.Context != null)
                                     CelesteNetClientModule.Instance.Context.Dispose();
@@ -108,7 +111,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 con.UseUDP = false;
 
                             // Initialize the heartbeat timer
-                            heartbeatTimer = new(res.settings.HeartbeatInterval);
+                            heartbeatTimer = new(teapotRes.settings.HeartbeatInterval);
                             heartbeatTimer.AutoReset = true;
                             heartbeatTimer.Elapsed += (_,_) => {
                                 if (con.DoHeartbeatTick()) {
@@ -121,9 +124,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                             };
                             heartbeatTimer.Start();
 
-
                             // Do the regular connection handshake
-                            Handshake.DoConnectionHandshake(Con, res.conFeatures);
+                            Handshake.DoConnectionHandshake(Con, teapotRes.conFeatures, token);
                             Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
 
                             Con = con;
@@ -148,7 +150,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             SendFilterList();
 
             // Wait until the server sent the ready packet
-            _ReadyEvent.Wait();
+            _ReadyEvent.Wait(token);
 
             Logger.Log(LogLevel.INF, "main", "Ready");
             IsReady = true;

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public static class Handshake {
@@ -74,12 +75,12 @@ Can I have some tea?
             }
         }
 
-        public static void DoConnectionHandshake(CelesteNetConnection con, IConnectionFeature[] features) {
+        public static void DoConnectionHandshake(CelesteNetConnection con, IConnectionFeature[] features, CancellationToken token) {
             // Handshake connection features
             foreach (IConnectionFeature feature in features)
                 feature.Register(con, true);
             foreach (IConnectionFeature feature in features)
-                feature.DoHandshake(con, true).Wait();
+                feature.DoHandshake(con, true).Wait(token);
         }
 
     }

@@ -77,11 +77,11 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public static event Action<CelesteNetClientContext> OnStart;
 
-        public void Start() {
+        public void Start(CancellationToken token) {
             if (Client == null)
                 return;
 
-            Client.Start();
+            Client.Start(token);
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Start();
 

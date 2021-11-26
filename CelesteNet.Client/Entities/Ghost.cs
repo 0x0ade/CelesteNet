@@ -320,7 +320,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.Facing = facing;
             Speed = speed;
         }
-        
+
         public void UpdateHair(Facings facing, Color[] colors, string texture0, bool simulateMotion) {
             if (PlayerGraphics == null)
                 return;

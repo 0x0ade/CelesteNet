@@ -233,7 +233,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             Level level = Player?.Scene as Level;
-            if (ghost == null && !IsGhostOutside(Session, level, graphics.Player, out _)) 
+            if (ghost == null && !IsGhostOutside(Session, level, graphics.Player, out _))
                 ghost = CreateGhost(level, graphics.Player, graphics);
 
             if (ghost != null)

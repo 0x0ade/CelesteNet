@@ -9,8 +9,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClient : IDisposable {
@@ -34,12 +34,13 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public bool IsReady { get; protected set; }
+        private ManualResetEventSlim _ReadyEvent;
 
         public DataPlayerInfo PlayerInfo;
 
         private readonly object StartStopLock = new();
 
-        private Timer heartbeatTimer;
+        private System.Timers.Timer heartbeatTimer;
 
         public CelesteNetClient()
             : this(new()) {
@@ -50,6 +51,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Data = new();
             Data.RegisterHandlersIn(this);
+
+            _ReadyEvent = new(false);
 
             // Find connection features
             List<IConnectionFeature> conFeatures = new List<IConnectionFeature>();
@@ -105,7 +108,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 con.UseUDP = false;
 
                             // Initialize the heartbeat timer
-                            heartbeatTimer = new Timer(res.settings.HeartbeatInterval);
+                            heartbeatTimer = new(res.settings.HeartbeatInterval);
                             heartbeatTimer.AutoReset = true;
                             heartbeatTimer.Elapsed += (_,_) => {
                                 if (con.DoHeartbeatTick()) {
@@ -144,6 +147,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             SendFilterList();
 
+            // Wait until the server sent the ready packet
+            _ReadyEvent.Wait();
+
             Logger.Log(LogLevel.INF, "main", "Ready");
             IsReady = true;
         }
@@ -164,6 +170,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Con = null;
 
                 Data.Dispose();
+                _ReadyEvent?.Dispose();
             }
         }
 
@@ -202,6 +209,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             // The first DataPlayerInfo sent from the server is our own
             if (PlayerInfo == null || PlayerInfo.ID == info.ID)
                 PlayerInfo = info;
+        }
+
+        public void Handle(CelesteNetConnection con, DataReady ready) {
+            _ReadyEvent.Set();
         }
 
     }

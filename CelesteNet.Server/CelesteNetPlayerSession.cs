@@ -184,6 +184,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
 
             ResendPlayerStates();
+
+            Con.Send(new DataReady());
         }
 
         public Action WaitFor<T>(DataFilter<T> cb) where T : DataType<T>

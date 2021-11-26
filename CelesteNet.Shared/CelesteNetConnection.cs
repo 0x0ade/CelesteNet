@@ -212,12 +212,21 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public void DelayFlush(float delay) {
+        public void DelayFlush(float delay, bool dropUnreliable) {
             if (Volatile.Read(ref inMergeWindow) != 1)
                 throw new InvalidOperationException($"Not currently flushing queue '{Name}'");
 
-            swapQueues = false;
             lock (timer) {
+                if (dropUnreliable) {
+                    ConcurrentQueue<DataType> newBackQueue = new ConcurrentQueue<DataType>();
+                    foreach (DataType data in backQueue) {
+                        if ((data.DataFlags & DataFlags.Unreliable) == 0)
+                            newBackQueue.Enqueue(data);
+                    }
+                    backQueue = newBackQueue;
+                }
+
+                swapQueues = false;
                 timer.Interval = delay;
                 timer.Start();
             }
@@ -239,11 +248,12 @@ namespace Celeste.Mod.CelesteNet {
             if (Volatile.Read(ref inMergeWindow) != 1)
                 throw new InvalidOperationException($"Not currently flushing queue '{Name}'");
 
-            lock (timer)
+            lock (timer) {
                 timer.Stop();
+                if (swapQueues)
+                    backQueue = Interlocked.Exchange(ref frontQueue, backQueue);
+            }
 
-            if (swapQueues)
-                backQueue = Interlocked.Exchange(ref frontQueue, backQueue);
             try {
                 queueFlushCB(this);
             } catch (Exception e) {

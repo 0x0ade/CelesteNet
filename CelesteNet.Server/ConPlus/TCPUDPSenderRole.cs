@@ -121,7 +121,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     Logger.Log(LogLevel.WRN, "tcpsend", $"Connection {con} hit TCP uplink cap: {con.TCPSendRate.ByteRate} BpS {con.TCPSendRate.PacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkPpTCap} cap PpS");
 
                     // Requeue the queue to be flushed later
-                    queue.DelayFlush(con.TCPSendCapDelay);
+                    queue.DelayFlush(con.TCPSendCapDelay, true);
                     return;
                 }
 
@@ -157,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (queue.BackQueue.Count <= 0)
                     queue.SignalFlushed();
                 else
-                    queue.DelayFlush(con.TCPSendCapDelay);
+                    queue.DelayFlush(con.TCPSendCapDelay, true);
 
                 // Iterate metrics
                 using (tcpMetricsLock.W()) {

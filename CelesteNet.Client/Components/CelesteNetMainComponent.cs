@@ -46,7 +46,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public ConcurrentDictionary<uint, Ghost> Ghosts = new();
         public ConcurrentDictionary<uint, DataPlayerFrame> LastFrames = new();
 
-        public ConcurrentDictionary<string, int> SpriteAnimationIDs = new();
+        public ConcurrentDictionary<string, int> SpriteAnimationIDs = new(StringComparer.OrdinalIgnoreCase);
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new();
 
         public Ghost GrabbedBy;

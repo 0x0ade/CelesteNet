@@ -82,8 +82,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 // If it has the highest bit set, it's a repeat count of the last color
                 if ((firstColByte & (1<<7)) != 0) {
                     int repCount = firstColByte & ~(1<<7);
-                    for (int j = 0; i < HairColors.Length && j < repCount; i++, j++)
-                        HairColors[i] = lastHairCol;
+                    for (int j = 0; i < HairColors.Length && j < repCount; j++)
+                        HairColors[i++] = lastHairCol;
                 } else {
                     // Read the second color byte and combine them
                     int packedCol = (firstColByte << 8) | reader.ReadByte();
@@ -183,7 +183,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 ));
             for (int i = 0; i < packedHairCols.Count;) {
                 int origIdx = i;
-                writer.Write(packedHairCols[i]);
+                writer.Write((byte) ((packedHairCols[i] >> 0) & 0xff));
+                writer.Write((byte) ((packedHairCols[i] >> 8) & 0xff));
                 for (i++; i < packedHairCols.Count && packedHairCols[i] == packedHairCols[origIdx]; i++);
                 if (origIdx+1 < i)
                     writer.Write((byte) ((1<<7) | (i-origIdx-1)));

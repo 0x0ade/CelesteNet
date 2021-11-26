@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
-            if (TickRate <= 0)
+            if (TickRate <= 0 || !Client.IsReady)
                 return;
 
             tickDelay -= Engine.RawDeltaTime;

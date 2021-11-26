@@ -97,13 +97,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             });
         }
 
-        public override void Start() {
-            MainThreadHelper.Do(() => {
-                if (Engine.Scene is Level)
-                    SendGraphics();
-            });
-        }
-
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
@@ -679,6 +672,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     WasIdle = false;
                     WasInteractive = false;
                     StateUpdated |= true;
+                    SendGraphics();
                 }
             }
 
@@ -871,10 +865,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             SpriteAnimationIDs.Clear();
-            int nextID = 0;
             List<string> animations = new List<string>();
             foreach (string animID in player.Sprite.Animations.Keys) {
-                SpriteAnimationIDs.TryAdd(animID, nextID++);
+                SpriteAnimationIDs.TryAdd(animID, animations.Count);
                 animations.Add(animID);
             }
 

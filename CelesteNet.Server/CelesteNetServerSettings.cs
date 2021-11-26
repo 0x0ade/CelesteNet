@@ -53,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int MaxPacketSize { get; set; } = 1024;
         public int MaxQueueSize { get; set; } = 256;
         public float MergeWindow { get; set; } = 15;
-        public int MaxHeartbeatDelay { get; set; } = 8;
+        public int MaxHeartbeatDelay { get; set; } = 16;
         public float HeartbeatInterval { get; set; } = 250f;
 
         public bool TCPRecvUseEPoll { get; set; } = true;

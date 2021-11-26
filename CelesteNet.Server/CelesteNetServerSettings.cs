@@ -44,10 +44,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public int MaxTickRate { get; set; } = 60;
         public float TickRateLowActivityThreshold { get; set; } = 0.3f;
-        public float TickRateLowTCPUplinkBpSThreshold { get; set; } = 4194304; // 4 MBpS
+        public float TickRateLowTCPUplinkBpSThreshold { get; set; } = 8388608; // 8 MBpS
         public float TickRateLowUDPUplinkBpSThreshold { get; set; } = 8388608; // 8 MBpS
         public float TickRateHighActivityThreshold { get; set; } = 0.85f;
-        public float TickRateHighTCPUplinkBpSThreshold { get; set; } = 16777216; // 16 MBpS
+        public float TickRateHighTCPUplinkBpSThreshold { get; set; } = 33554432; // 32 MBpS
         public float TickRateHighUDPUplinkBpSThreshold { get; set; } = 33554432; // 32 MBpS
 
         public int MaxPacketSize { get; set; } = 1024;
@@ -68,14 +68,14 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int UDPDeathScoreMin { get; set; } = -2;
         public int UDPDeathScoreMax { get; set; } = 2;
 
-        public float PlayerTCPDownlinkBpTCap { get; set; } = 256;
-        public float PlayerTCPDownlinkPpTCap { get; set; } = 8;
-        public float PlayerTCPUplinkBpTCap { get; set; } = 4096;
-        public float PlayerTCPUplinkPpTCap { get; set; } = 64;
-        public float PlayerUDPDownlinkBpTCap { get; set; } = 512;
-        public float PlayerUDPDownlinkPpTCap { get; set; } = 16;
-        public float PlayerUDPUplinkBpTCap { get; set; } = 8192;
-        public float PlayerUDPUplinkPpTCap { get; set; } = 128;
+        public float PlayerTCPDownlinkBpTCap { get; set; } = 4096;
+        public float PlayerTCPDownlinkPpTCap { get; set; } = 128;
+        public float PlayerTCPUplinkBpTCap { get; set; } = 32768;
+        public float PlayerTCPUplinkPpTCap { get; set; } = 512;
+        public float PlayerUDPDownlinkBpTCap { get; set; } = 4096;
+        public float PlayerUDPDownlinkPpTCap { get; set; } = 128;
+        public float PlayerUDPUplinkBpTCap { get; set; } = 32768;
+        public float PlayerUDPUplinkPpTCap { get; set; } = 512;
 
         public LogLevel LogLevel {
             get => Logger.Level;

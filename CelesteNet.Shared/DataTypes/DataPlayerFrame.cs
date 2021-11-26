@@ -183,8 +183,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 ));
             for (int i = 0; i < packedHairCols.Count;) {
                 int origIdx = i;
-                writer.Write((byte) ((packedHairCols[i] >> 0) & 0xff));
                 writer.Write((byte) ((packedHairCols[i] >> 8) & 0xff));
+                writer.Write((byte) ((packedHairCols[i] >> 0) & 0xff));
                 for (i++; i < packedHairCols.Count && packedHairCols[i] == packedHairCols[origIdx]; i++);
                 if (origIdx+1 < i)
                     writer.Write((byte) ((1<<7) | (i-origIdx-1)));

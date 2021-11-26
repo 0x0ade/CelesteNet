@@ -897,6 +897,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     SpriteAnimations = animations.ToArray(),
 
                     HairCount = (byte) hairCount,
+                    HairStepPerSegment = player.Hair.StepPerSegment,
+                    HairStepInFacingPerSegment = player.Hair.StepInFacingPerSegment,
+                    HairStepApproach = player.Hair.StepApproach,
+                    HairStepYSinePerSegment = player.Hair.StepYSinePerSegment,
                     HairScales = hairScales,
                     HairTextures = hairTextures
                 });

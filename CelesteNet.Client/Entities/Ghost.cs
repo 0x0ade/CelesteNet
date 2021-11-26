@@ -285,12 +285,16 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Sprite.Color = graphics.SpriteColor * Alpha;
             Sprite.Rate = graphics.SpriteRate;
 
+            Sprite.HairCount = graphics.HairCount;
+            Hair.StepPerSegment = graphics.HairStepPerSegment;
+            Hair.StepInFacingPerSegment = graphics.HairStepInFacingPerSegment;
+            Hair.StepApproach = graphics.HairStepApproach;
+            Hair.StepYSinePerSegment = graphics.HairStepYSinePerSegment;
             while (Hair.Nodes.Count < graphics.HairCount)
                 Hair.Nodes.Add(Hair.Nodes.LastOrDefault());
             while (Hair.Nodes.Count > graphics.HairCount)
                 Hair.Nodes.RemoveAt(Hair.Nodes.Count - 1);
             Hair.Alpha = Alpha;
-            Sprite.HairCount = graphics.HairCount;
         }
 
         public void UpdateAnimation(int animationID, int animationFrame) {

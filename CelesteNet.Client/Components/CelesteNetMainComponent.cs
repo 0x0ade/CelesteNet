@@ -804,8 +804,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         private Color OnGetHairColor(On.Celeste.PlayerHair.orig_GetHairColor orig, PlayerHair self, int index) {
-            if (self.Entity is Ghost ghost && ghost.PlayerGraphics.HairColors != null && 0 <= index && index < ghost.PlayerGraphics.HairColors.Length)
-                return ghost.PlayerGraphics.HairColors[index] * ghost.Alpha;
+            if (self.Entity is Ghost ghost && ghost.HairColors != null && 0 <= index && index < ghost.HairColors.Length)
+                return ghost.HairColors[index] * ghost.Alpha;
             return orig(self, index);
         }
 
@@ -879,9 +879,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             int hairCount = player.Sprite.HairCount;
-            Color[] hairColors = new Color[hairCount];
-            for (int i = 0; i < hairCount; i++)
-                hairColors[i] = player.Hair.GetHairColor(i);
             Vector2[] hairScales = new Vector2[hairCount];
             for (int i = 0; i < hairCount; i++)
                 hairScales[i] = player.Hair.GetHairScale(i) * new Vector2(((i == 0) ? (int) player.Hair.Facing : 1) / Math.Abs(player.Sprite.Scale.X), 1);
@@ -900,7 +897,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     SpriteAnimations = animations.ToArray(),
 
                     HairCount = (byte) hairCount,
-                    HairColors = hairColors,
                     HairScales = hairScales,
                     HairTextures = hairTextures
                 });

@@ -31,6 +31,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public GhostNameTag NameTag;
         public GhostEmote IdleTag;
 
+        public Color[] HairColors = new[] { Color.White };
+
         public (bool wasB, Vector2 dir)? Dash;
 
         public bool Dead;
@@ -273,7 +275,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void UpdateGraphics(DataPlayerGraphics graphics) {
             if (graphics.HairCount == 0) {
                 graphics.HairCount = 1;
-                graphics.HairColors = new[] { Color.White };
                 graphics.HairScales = new[] { Vector2.One };
                 graphics.HairTextures = new[] { "characters/player/hair00" };
             }
@@ -320,10 +321,15 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (PlayerGraphics == null)
                 return;
 
+            if (colors.Length <= 0)
+                colors = new[] { Color.White };
+            if (PlayerGraphics.HairCount < colors.Length)
+                Array.Resize(ref colors, PlayerGraphics.HairCount);
+
             Hair.Facing = facing;
-            Hair.SimulateMotion = simulateMotion;
-            PlayerGraphics.HairColors = colors;
+            HairColors = colors;
             PlayerGraphics.HairTextures[0] = texture0;
+            Hair.SimulateMotion = simulateMotion;
         }
 
         public void UpdateDash((bool wasB, Vector2 dir)? dash) {

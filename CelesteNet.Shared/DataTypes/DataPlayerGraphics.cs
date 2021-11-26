@@ -28,7 +28,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public string[] SpriteAnimations = Dummy<string>.EmptyArray;
 
         public byte HairCount;
-        public Color[] HairColors = Dummy<Color>.EmptyArray;
         public Vector2[] HairScales = Dummy<Vector2>.EmptyArray;
         public string[] HairTextures = Dummy<string>.EmptyArray;
 
@@ -56,9 +55,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 SpriteAnimations[i] = reader.ReadNetMappedString();
 
             HairCount = reader.ReadByte();
-            HairColors = new Color[HairCount];
-            for (int i = 0; i < HairCount; i++)
-                HairColors[i] = reader.ReadColor();
             HairScales = new Vector2[HairCount];
             for (int i = 0; i < HairCount; i++)
                 HairScales[i] = reader.ReadVector2Scale();
@@ -77,8 +73,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 writer.WriteNetMappedString(SpriteAnimations[i]);
 
             writer.Write(HairCount);
-            for (int i = 0; i < HairCount; i++)
-                writer.Write(HairColors[i]);
             for (int i = 0; i < HairCount; i++)
                 writer.Write(HairScales[i]);
             for (int i = 0; i < HairCount; i++)

@@ -204,7 +204,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // Promote optimizations
                         PromoteOptimizations();
                     } catch (Exception e) {
-                        if (e is SocketException se && se.SocketErrorCode == SocketError.Interrupted && tokenSrc.IsCancellationRequested)
+                        if (e is SocketException se && tokenSrc.IsCancellationRequested)
                             return;
 
                         Logger.Log(LogLevel.WRN, "udprecv", $"Error in UDP receiving thread: {e}");

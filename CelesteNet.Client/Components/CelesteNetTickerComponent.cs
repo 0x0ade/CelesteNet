@@ -51,6 +51,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         }
                     }
                 }
+
+                OnTick?.Invoke();
             }
         }
 
@@ -58,6 +60,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             TickRate = rate.TickRate;
             Logger.Log(LogLevel.INF, "client-ticker", $"Changed tick rate to {rate.TickRate} TpS");
         }
+
+        public event Action OnTick;
 
     }
 }

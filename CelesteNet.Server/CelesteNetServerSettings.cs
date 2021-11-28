@@ -50,7 +50,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float TickRateHighTCPUplinkBpSThreshold { get; set; } = 33554432; // 32 MBpS
         public float TickRateHighUDPUplinkBpSThreshold { get; set; } = 33554432; // 32 MBpS
 
-        public int MaxPacketSize { get; set; } = 1024;
+        public int MaxPacketSize { get; set; } = 2048;
         public int MaxQueueSize { get; set; } = 256;
         public float MergeWindow { get; set; } = 15;
         public int MaxHeartbeatDelay { get; set; } = 16;

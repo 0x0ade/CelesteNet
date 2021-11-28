@@ -68,14 +68,14 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int UDPDeathScoreMin { get; set; } = -2;
         public int UDPDeathScoreMax { get; set; } = 2;
 
-        public float PlayerTCPDownlinkBpTCap { get; set; } = 4096;
-        public float PlayerTCPDownlinkPpTCap { get; set; } = 128;
-        public float PlayerTCPUplinkBpTCap { get; set; } = 32768;
-        public float PlayerTCPUplinkPpTCap { get; set; } = 512;
-        public float PlayerUDPDownlinkBpTCap { get; set; } = 4096;
-        public float PlayerUDPDownlinkPpTCap { get; set; } = 128;
-        public float PlayerUDPUplinkBpTCap { get; set; } = 32768;
-        public float PlayerUDPUplinkPpTCap { get; set; } = 512;
+        public float PlayerTCPDownlinkBpTCap { get; set; } = 128;
+        public float PlayerTCPDownlinkPpTCap { get; set; } = 8;
+        public float PlayerTCPUplinkBpTCap { get; set; } = 2048;
+        public float PlayerTCPUplinkPpTCap { get; set; } = 64;
+        public float PlayerUDPDownlinkBpTCap { get; set; } = 128;
+        public float PlayerUDPDownlinkPpTCap { get; set; } = 8;
+        public float PlayerUDPUplinkBpTCap { get; set; } = 2048;
+        public float PlayerUDPUplinkPpTCap { get; set; } = 64;
 
         public LogLevel LogLevel {
             get => Logger.Level;

@@ -86,6 +86,15 @@ namespace Celeste.Mod.CelesteNet.Client {
             udpSendQueue.Dispose();
         }
 
+        private void DisposeSafe() {
+            try {
+                if(!tokenSrc.IsCancellationRequested)
+                    Dispose();
+            } catch (Exception e2) {
+                Logger.Log(LogLevel.WRN, "tpcudpcon", $"Error disposing connection: {e2}");
+            }
+        }
+
         public override bool DoHeartbeatTick() {
             if (base.DoHeartbeatTick())
                 return true;
@@ -151,7 +160,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             } catch (EndOfStreamException) {
                 if (!tokenSrc.IsCancellationRequested) {
                     Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
-                    Dispose();
+                    DisposeSafe();
                 }
                 return;
             } catch (Exception e) {
@@ -162,10 +171,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
 
                 Logger.Log(LogLevel.WRN, "tcprecv", $"Error in TCP receiving thread: {e}");
-                try {
-                    if (!tokenSrc.IsCancellationRequested)
-                        Dispose();
-                } catch (Exception) {}
+                DisposeSafe();
             }
         }
 
@@ -219,10 +225,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
 
                 Logger.Log(LogLevel.WRN, "udprecv", $"Error in UDP receiving thread: {e}");
-                try {
-                    if (!tokenSrc.IsCancellationRequested)
-                        Dispose();
-                } catch (Exception) {}
+                DisposeSafe();
             }
         }
 
@@ -252,10 +255,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
 
                 Logger.Log(LogLevel.WRN, "tcpsend", $"Error in TCP sending thread: {e}");
-                try {
-                    if (!tokenSrc.IsCancellationRequested)
-                        Dispose();
-                } catch (Exception) {}
+                DisposeSafe();
             }
         }
 
@@ -323,10 +323,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
 
                 Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");
-                try {
-                    if (!tokenSrc.IsCancellationRequested)
-                        Dispose();
-                } catch (Exception) {}
+                DisposeSafe();
             }
         }
 

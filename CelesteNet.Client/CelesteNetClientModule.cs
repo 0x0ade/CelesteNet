@@ -149,6 +149,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Start() {
+            try {
+                _StartTokenSource?.Cancel();
+            } catch (ObjectDisposedException) {}
+            
             if (_StartThread?.IsAlive ?? false)
                 _StartThread.Join();
 

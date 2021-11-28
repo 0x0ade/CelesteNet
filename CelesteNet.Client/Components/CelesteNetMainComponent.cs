@@ -431,7 +431,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Engine.Scene is not Level level || level.Paused || player == null || !Settings.Interactions)
                 goto Release;
 
-            if (grab.Grabbing.ID == Client.PlayerInfo.ID) {
+            if (grab.Player.ID != Client.PlayerInfo.ID && grab.Grabbing.ID == Client.PlayerInfo.ID) {
                 if (GrabCooldown > 0f) {
                     GrabCooldown = GrabCooldownMax;
                     goto Release;

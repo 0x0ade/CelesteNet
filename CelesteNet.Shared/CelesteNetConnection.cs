@@ -191,8 +191,12 @@ namespace Celeste.Mod.CelesteNet {
 
         public void Enqueue(DataType data) {
             if (!Alive) return;
-            if (frontQueue.Count >= MaxSize)
-                throw new InvalidOperationException($"Queue '{Name}' is at maximum size");
+            if (frontQueue.Count >= MaxSize) {
+                Logger.Log(LogLevel.WRN, "sendqueue", $"Connection {Con}'s send queue '{Name}' is at maximum size");
+                Con.Dispose();
+                return;
+            }
+            
             frontQueue.Enqueue(data);
             Flush();
         }

@@ -51,7 +51,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float TickRateHighUDPUplinkBpSThreshold { get; set; } = 33554432; // 32 MBpS
 
         public int MaxPacketSize { get; set; } = 1024;
-        public int MaxQueueSize { get; set; } = 256;
+        public int MaxQueueSize { get; set; } = 1024;
         public float MergeWindow { get; set; } = 15;
         public int MaxHeartbeatDelay { get; set; } = 16;
         public float HeartbeatInterval { get; set; } = 250f;
@@ -68,14 +68,14 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int UDPDeathScoreMin { get; set; } = -2;
         public int UDPDeathScoreMax { get; set; } = 2;
 
-        public float PlayerTCPDownlinkBpTCap { get; set; } = 128;
-        public float PlayerTCPDownlinkPpTCap { get; set; } = 8;
-        public float PlayerTCPUplinkBpTCap { get; set; } = 2048;
-        public float PlayerTCPUplinkPpTCap { get; set; } = 64;
-        public float PlayerUDPDownlinkBpTCap { get; set; } = 128;
-        public float PlayerUDPDownlinkPpTCap { get; set; } = 8;
-        public float PlayerUDPUplinkBpTCap { get; set; } = 2048;
-        public float PlayerUDPUplinkPpTCap { get; set; } = 64;
+        public float PlayerTCPDownlinkBpTCap { get; set; } = 256;
+        public float PlayerTCPDownlinkPpTCap { get; set; } = 32;
+        public float PlayerTCPUplinkBpTCap { get; set; } = 4096;
+        public float PlayerTCPUplinkPpTCap { get; set; } = 128;
+        public float PlayerUDPDownlinkBpTCap { get; set; } = 256;
+        public float PlayerUDPDownlinkPpTCap { get; set; } = 32;
+        public float PlayerUDPUplinkBpTCap { get; set; } = 4096;
+        public float PlayerUDPUplinkPpTCap { get; set; } = 128;
 
         public LogLevel LogLevel {
             get => Logger.Level;

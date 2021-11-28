@@ -210,7 +210,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     if (i >= 1 &&
                         f.SpriteID == Followers[i - 1].SpriteID &&
                         f.CurrentAnimationID == Followers[i - 1].CurrentAnimationID) {
-                        writer.WriteNetMappedString("-");
+                        writer.WriteNetMappedString(null);
                     } else {
                         writer.WriteNetMappedString(f.SpriteID);
                         writer.WriteNetMappedString(f.CurrentAnimationID);

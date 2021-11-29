@@ -184,7 +184,7 @@ namespace Celeste.Mod.CelesteNet {
                 udpAliveScore = 0;
                 if (downgradeImmediatly || ++udpDowngradeScore >= ConnectionSettings.UDPDowngradeScoreMax) {
                     udpDowngradeScore = 0;
-                    Logger.Log(LogLevel.INF, "tcpudpcon", $"Downgrading UDP connection of {this}{((reason != null)? $": {reason}" : string.Empty)} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+                    Logger.Log(LogLevel.INF, "tcpudpcon", $"Downgrading UDP connection of {this}{((reason != null) ? $": {reason}" : string.Empty)} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
                     if ((udpMaxDatagramSize /= 2) >= 1+ConnectionSettings.MaxPacketSize) {
                         if (udpConnectionId >= 0)
                             Send(new DataLowLevelUDPInfo() {
@@ -194,7 +194,7 @@ namespace Celeste.Mod.CelesteNet {
                     } else
                         UDPConnectionDeath(true, "Too many downgrades");
                 } else
-                    Logger.Log(LogLevel.INF, "tcpudpcon", $"Decreased score of UDP connection of {this}{((reason != null)? $": {reason}" : string.Empty)} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+                    Logger.Log(LogLevel.INF, "tcpudpcon", $"Decreased score of UDP connection of {this}{((reason != null) ? $": {reason}" : string.Empty)} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
 
             }
         }

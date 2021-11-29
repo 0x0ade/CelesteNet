@@ -21,14 +21,13 @@ namespace Celeste.Mod.CelesteNet {
 
         }
 
-        private volatile bool disposeSafe = false;
-        public override bool IsAlive { get => base.IsAlive && !disposeSafe; protected set => base.IsAlive = value; }
         public override bool IsConnected => IsAlive && tcpSock.Connected;
         public override string ID { get; }
         public override string UID { get; }
         public readonly OptMap<string> Strings = new OptMap<string>("StringMap");
         public readonly OptMap<Type> SlimMap = new OptMap<Type>("SlimMap");
 
+        private volatile bool disposeSafe = false;
         public readonly uint ConnectionToken;
         public readonly Settings ConnectionSettings;
 

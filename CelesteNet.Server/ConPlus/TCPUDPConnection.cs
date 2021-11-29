@@ -121,15 +121,16 @@ namespace Celeste.Mod.CelesteNet.Server {
             return dis;
         }
 
-        public override bool DoHeartbeatTick() {
-            if (base.DoHeartbeatTick())
-                return true;
+        public override string? DoHeartbeatTick() {
+            string? disposeReason = base.DoHeartbeatTick();
+            if (disposeReason != null)
+                return disposeReason;
 
             // Decrement the amount of times we hit the downlink cap
             if (Volatile.Read(ref downlinkCapCounter) > 0)
                 Interlocked.Decrement(ref downlinkCapCounter);
 
-            return false;
+            return null;
         }
 
         public void HandleTCPData() {

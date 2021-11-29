@@ -86,18 +86,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             udpSendQueue.Dispose();
         }
 
-        private void DisposeSafe() {
-            try {
-                if(!tokenSrc.IsCancellationRequested)
-                    Dispose();
-            } catch (Exception e2) {
-                Logger.Log(LogLevel.WRN, "tpcudpcon", $"Error disposing connection: {e2}");
-            }
-        }
-
-        public override bool DoHeartbeatTick() {
-            if (base.DoHeartbeatTick())
-                return true;
+        public override string DoHeartbeatTick() {
+            string disposeReason = base.DoHeartbeatTick();
+            if (disposeReason != null)
+                return disposeReason;
 
             lock (UDPLock) {
                 if (UseUDP && UDPEndpoint == null) {
@@ -112,7 +104,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
             }
 
-            return false;
+            return null;
         }
 
         private void TCPRecvThreadFunc() {

@@ -345,18 +345,19 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         private void DoHeartbeatTick() {
-            HashSet<CelesteNetConnection> timedOutCons = new HashSet<CelesteNetConnection>();
+            HashSet<(CelesteNetConnection con, string reason)> disposeCons = new HashSet<(CelesteNetConnection, string)>();
             using (ConLock.R())
                 foreach (CelesteNetConnection con in new HashSet<CelesteNetConnection>(Connections)) {
                     switch (con) {
                         case CelesteNetTCPUDPConnection tcpUdpCon: {
-                            if (tcpUdpCon.DoHeartbeatTick())
-                                timedOutCons.Add(tcpUdpCon);
+                            string? disposeReason = tcpUdpCon.DoHeartbeatTick();
+                            if (disposeReason != null)
+                                disposeCons.Add((tcpUdpCon, disposeReason));
                         } break;
                     }
                 }
-            foreach (CelesteNetConnection con in timedOutCons) {
-                Logger.Log(LogLevel.WRN, "main", $"Connection {con} timed out");
+            foreach ((CelesteNetConnection con, string reason) in disposeCons) {
+                Logger.Log(LogLevel.WRN, "main", reason);
                 con.Dispose();
             }
         }

@@ -114,12 +114,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                             heartbeatTimer = new(teapotRes.settings.HeartbeatInterval);
                             heartbeatTimer.AutoReset = true;
                             heartbeatTimer.Elapsed += (_,_) => {
-                                if (con.DoHeartbeatTick()) {
-                                    Logger.Log(LogLevel.CRI, "main", $"Connection timed out");
+                                string disposeReason = con.DoHeartbeatTick();
+                                if (disposeReason != null) {
+                                    Logger.Log(LogLevel.CRI, "main", disposeReason);
                                     CelesteNetClientContext ctx = CelesteNetClientModule.Instance.Context;
                                     Dispose();
-                                    if (ctx?.Status != null)
-                                        ctx.Status.Set("Timeout", 3f, false);
                                 }
                             };
                             heartbeatTimer.Start();

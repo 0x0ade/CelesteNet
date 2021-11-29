@@ -34,12 +34,12 @@ namespace Celeste.Mod.CelesteNet {
                     } catch (Exception e) {
                         if (e is SocketException se && se.IsDisconnect()) {
                             Logger.Log(LogLevel.INF, "tcprecv", $"Remote of connection {con} closed the connection");
-                            con.Dispose();
+                            con.DisposeSafe();
                             continue;
                         }
 
                         Logger.Log(LogLevel.WRN, "tcprecv", $"Error while reading from connection {con}: {e}");
-                        con.Dispose();
+                        con.DisposeSafe();
                     } finally {
                         ExitActiveZone();
                     }

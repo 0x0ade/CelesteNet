@@ -27,6 +27,7 @@ namespace Celeste.Mod.CelesteNet {
         public readonly OptMap<string> Strings = new OptMap<string>("StringMap");
         public readonly OptMap<Type> SlimMap = new OptMap<Type>("SlimMap");
 
+        private volatile bool disposeSafe = false;
         public readonly uint ConnectionToken;
         public readonly Settings ConnectionSettings;
 
@@ -113,7 +114,10 @@ namespace Celeste.Mod.CelesteNet {
                 Logger.Log(LogLevel.WRN, "tcpudpcon", $"Error while closing TCP socket: {e}");
             }
             tcpSock.Dispose();
+        }
 
+        public override void DisposeSafe() {
+            disposeSafe = true;
         }
 
         protected override CelesteNetSendQueue? GetQueue(DataType data) => (UseUDP && UDPEndpoint != null && udpConnectionId >= 0 && (data.DataFlags & DataFlags.Unreliable) != 0) ? udpQueue : tcpQueue;
@@ -307,14 +311,17 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public virtual bool DoHeartbeatTick() {
+        public virtual string? DoHeartbeatTick() {
             if (!IsAlive)
-                return false;
+                return null;
+
+            if (disposeSafe)
+                return $"Safe dispose triggered for connection {this}";
 
             lock (HeartbeatLock) {
                 // Check if we got a TCP heartbeat in the required timeframe
                 if (Interlocked.Increment(ref tcpLastHeartbeatDelay) > ConnectionSettings.MaxHeartbeatDelay)
-                    return true;
+                    return $"Connection {this} timed out";
 
                 // Check if we need to send a TCP keep-alive
                 if (Interlocked.Exchange(ref tcpSendKeepAlive, 1) > 0)
@@ -332,7 +339,8 @@ namespace Celeste.Mod.CelesteNet {
                         udpQueue.Enqueue(new DataLowLevelKeepAlive());
                 }
             }
-            return false;
+
+            return null;
         }
 
         public virtual void TCPHeartbeat() {

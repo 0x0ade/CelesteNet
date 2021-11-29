@@ -144,6 +144,8 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
+        public virtual void DisposeSafe() => Dispose();
+
         public override string ToString() => $"{GetType()}({ID})";
 
     }
@@ -193,7 +195,7 @@ namespace Celeste.Mod.CelesteNet {
             if (!Alive) return;
             if (frontQueue.Count >= MaxSize) {
                 Logger.Log(LogLevel.WRN, "sendqueue", $"Connection {Con}'s send queue '{Name}' is at maximum size");
-                Con.Dispose();
+                Con.DisposeSafe();
                 return;
             }
             
@@ -262,7 +264,7 @@ namespace Celeste.Mod.CelesteNet {
                 queueFlushCB(this);
             } catch (Exception e) {
                 Logger.Log(LogLevel.WRN, "sendqueue", $"Error flushing connection {Con}'s send queue '{Name}': {e}");
-                Con.Dispose();
+                Con.DisposeSafe();
             }
         }
 

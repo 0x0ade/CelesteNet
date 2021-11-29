@@ -553,7 +553,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return
                 level == null ||
                 ses == null ||
-                !Client.Data.TryGetBoundRef(player, out state) ||
+                !(Client?.Data?.TryGetBoundRef(player, out state) ?? false) ||
                 state.SID != ses.Area.SID ||
                 state.Mode != ses.Area.Mode ||
                 state.Level == LevelDebugMap;
@@ -571,6 +571,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 RunOnMainThread(() => {
                     level.Add(ghost);
                     level.OnEndOfFrame += () => ghost.Active = true;
+                    ghost.UpdateGraphics(graphics);
                 });
                 ghost.UpdateGraphics(graphics);
             }

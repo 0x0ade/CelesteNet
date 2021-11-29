@@ -174,11 +174,38 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         private static object statLock = new object();
+        private static int numCons, numTcpCons, numUdpCons;
         private static BandwithRate tcpRecvBpSRate, tcpRecvPpSRate, tcpSendBpSRate, tcpSendPpSRate;
         private static BandwithRate udpRecvBpSRate, udpRecvPpSRate, udpSendBpSRate, udpSendPpSRate;
 
         public static void UpdateStats(CelesteNetServer server) {
             lock (statLock) {
+                // Update connection stats
+                numCons = 0;
+                numTcpCons = 0;
+                numUdpCons = 0;
+                using (server.ConLock.R())
+                    foreach (CelesteNetConnection con in server.Connections) {
+                        numCons++;
+                        if (con is CelesteNetTCPUDPConnection tcpUdpCon) {
+                            numTcpCons++;
+                            if (tcpUdpCon.UDPConnectionID >= 0)
+                                numUdpCons++;
+                        }
+                    }
+
+                // Update bandwith stats
+                using (server.ConLock.R()) {
+                    tcpRecvBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPRecvRate.ByteRate : null);
+                    tcpRecvPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPRecvRate.PacketRate : null);
+                    tcpSendBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPSendRate.ByteRate : null);
+                    tcpSendPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPSendRate.PacketRate : null);
+                    udpRecvBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPRecvRate.ByteRate : null);
+                    udpRecvPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPRecvRate.PacketRate : null);
+                    udpSendBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPSendRate.ByteRate : null);
+                    udpSendPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPSendRate.PacketRate : null);
+                }
+
                 // Update NetPlus stats
                 using (server.ThreadPool.PoolLock.R())
                 using (server.ThreadPool.RoleLock.R())
@@ -193,18 +220,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         ActivityRate = r.ActivityRate,
                         NumThreads = server.ThreadPool.EnumerateThreads().Count(t => t.Role == r)
                     }).ToArray();
-                }
-
-                // Update bandwith stats
-                using (server.ConLock.R()) {
-                    tcpRecvBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPRecvRate.ByteRate : null);
-                    tcpRecvPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPRecvRate.PacketRate : null);
-                    tcpSendBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPSendRate.ByteRate : null);
-                    tcpSendPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPSendRate.PacketRate : null);
-                    udpRecvBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPRecvRate.ByteRate : null);
-                    udpRecvPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPRecvRate.PacketRate : null);
-                    udpSendBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPSendRate.ByteRate : null);
-                    udpSendPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPSendRate.PacketRate : null);
                 }
             }
         }
@@ -223,7 +238,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     Registered = f.Server.UserData.GetRegisteredCount(),
                     Banned = f.Server.UserData.LoadAll<BanInfo>().GroupBy(ban => ban.UID).Select(g => g.First()).Count(ban => !ban.Reason.IsNullOrEmpty()),
 
-                    Connections = auth ? f.Server.Connections.Count : (int?) null,
+                    Connections = auth ? numCons : (int?) null,
+                    TCPConnections = auth ? numTcpCons : (int?) null,
+                    UDPConnections = auth ? numUdpCons : (int?) null,
                     Sessions = auth ? f.Server.Sessions.Count : (int?) null,
                     PlayersByCon = auth ? f.Server.PlayersByCon.Count : (int?) null,
                     PlayersByID = auth ? f.Server.PlayersByID.Count : (int?) null,

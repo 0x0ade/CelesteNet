@@ -182,7 +182,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     try {
                         // Receive a datagram
                         int dgSize = udpRecvSocket.Receive(buffer);
-                        if (dgSize == 0)
+                        if (dgSize <= 0)
                             continue;
 
                         // Ignore it if we don't actually have an established connection
@@ -236,7 +236,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 using (CelesteNetBinaryWriter bufWriter = new CelesteNetBinaryWriter(Data, Strings, SlimMap, mStream))
                 foreach (DataType p in tcpSendQueue.GetConsumingEnumerable(tokenSrc.Token)) {
                     // Try to send as many packets as possible
-                    for (DataType packet = p; packet != null; tcpSendQueue.TryTake(out packet)) {
+                    for (DataType packet = p; packet != null; packet = tcpSendQueue.TryTake(out packet) ? packet : null) {
                         mStream.Position = 0;
                         Data.Write(bufWriter, packet);
                         bufWriter.Flush();

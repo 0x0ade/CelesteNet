@@ -299,9 +299,12 @@ namespace Celeste.Mod.CelesteNet {
             UDPHeartbeat();
             lock (UDPLock) {
                 // Check if we dropped more packets than the threshold
-                if ((containerID - udpRecvLastContainerID + 256) % 256 > UDPPacketDropThreshold)
-                    DecreaseUDPScore();
-                udpRecvLastContainerID = containerID;
+                int skipCount = (containerID - udpRecvLastContainerID + 256) % 256;
+                if (skipCount <= 128) {
+                    if (skipCount > UDPPacketDropThreshold)
+                        DecreaseUDPScore();
+                    udpRecvLastContainerID = containerID;
+                }
             }
         }
 

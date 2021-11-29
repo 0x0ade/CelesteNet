@@ -348,17 +348,25 @@ namespace Celeste.Mod.CelesteNet.Server {
             HashSet<(CelesteNetConnection con, string reason)> disposeCons = new HashSet<(CelesteNetConnection, string)>();
             using (ConLock.R())
                 foreach (CelesteNetConnection con in new HashSet<CelesteNetConnection>(Connections)) {
-                    switch (con) {
-                        case CelesteNetTCPUDPConnection tcpUdpCon: {
-                            string? disposeReason = tcpUdpCon.DoHeartbeatTick();
-                            if (disposeReason != null)
-                                disposeCons.Add((tcpUdpCon, disposeReason));
-                        } break;
+                    try {
+                        switch (con) {
+                            case CelesteNetTCPUDPConnection tcpUdpCon: {
+                                string? disposeReason = tcpUdpCon.DoHeartbeatTick();
+                                if (disposeReason != null)
+                                    disposeCons.Add((tcpUdpCon, disposeReason));
+                            } break;
+                        }
+                    } catch (Exception e) {
+                        disposeCons.Add((con, $"Error in heartbeat tick of connection {con}: {e}"));
                     }
                 }
             foreach ((CelesteNetConnection con, string reason) in disposeCons) {
                 Logger.Log(LogLevel.WRN, "main", reason);
-                con.Dispose();
+                try {
+                    con.Dispose();
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.WRN, "main", $"Error disposing connection {con}: {e}");
+                }
             }
         }
 

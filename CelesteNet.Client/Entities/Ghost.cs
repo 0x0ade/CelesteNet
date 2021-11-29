@@ -242,10 +242,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 }
             }
             GrabPacket = null;
-
-            // Sometimes there're race condition where the graphics packet isn't
-            if (PlayerGraphics == null && (Context?.Client?.Data?.TryGetBoundRef<DataPlayerInfo, DataPlayerGraphics>(PlayerInfo, out DataPlayerGraphics graphics) ?? false))
-                UpdateGraphics(graphics);
         }
 
         public void RunOnUpdate(Action<Ghost> action, bool wait = false) {

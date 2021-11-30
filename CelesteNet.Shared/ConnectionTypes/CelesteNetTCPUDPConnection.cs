@@ -21,7 +21,7 @@ namespace Celeste.Mod.CelesteNet {
 
         }
 
-        private volatile bool disposeSafe = false;
+        private volatile bool disposeSafe = false, safeDisposeTriggered = false;
         public override bool IsConnected => IsAlive && !disposeSafe && tcpSock.Connected;
         public override string ID { get; }
         public override string UID { get; }
@@ -312,16 +312,20 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public virtual string? DoHeartbeatTick() {
-            if (!IsAlive)
+            if (!IsAlive || safeDisposeTriggered)
                 return null;
 
-            if (disposeSafe)
+            if (disposeSafe) {
+                safeDisposeTriggered = true;
                 return $"Safe dispose triggered for connection {this}";
+            }
 
             lock (HeartbeatLock) {
                 // Check if we got a TCP heartbeat in the required timeframe
-                if (Interlocked.Increment(ref tcpLastHeartbeatDelay) > ConnectionSettings.MaxHeartbeatDelay)
+                if (Interlocked.Increment(ref tcpLastHeartbeatDelay) > ConnectionSettings.MaxHeartbeatDelay) {
+                    safeDisposeTriggered = true;
                     return $"Connection {this} timed out";
+                }
 
                 // Check if we need to send a TCP keep-alive
                 if (Interlocked.Exchange(ref tcpSendKeepAlive, 1) > 0)

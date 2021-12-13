@@ -156,12 +156,15 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 int numCons = 0;
                 foreach (CelesteNetConnection con in server.Connections) {
                     float? r = cb(con);
-                    if (r == null) continue;
+                    if (r == null)
+                        continue;
                     float conRate = r.Value;
 
                     GlobalRate += conRate;
-                    if (conRate < MinConRate) MinConRate = conRate;
-                    if (conRate > MaxConRate) MaxConRate = conRate;
+                    if (conRate < MinConRate)
+                        MinConRate = conRate;
+                    if (conRate > MaxConRate)
+                        MaxConRate = conRate;
                     AvgConRate += conRate;
                     numCons++;
                 }

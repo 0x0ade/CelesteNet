@@ -40,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private readonly object StartStopLock = new();
 
-        private System.Timers.Timer heartbeatTimer;
+        private System.Timers.Timer HeartbeatTimer;
 
         public CelesteNetClient()
             : this(new()) {

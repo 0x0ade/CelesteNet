@@ -39,8 +39,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             udpSendSocket.Connect(serverAddr, settings.UDPReceivePort);
 
             OnUDPDeath += (_, _) => {
-                if (CelesteNetClientModule.Instance?.Context?.Status != null)
-                    CelesteNetClientModule.Instance.Context.Status.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
+                CelesteNetClientModule.Instance?.Context?.Status?.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
             };
 
             tcpSendQueue = new BlockingCollection<DataType>();
@@ -149,12 +148,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                         PromoteOptimizations();
                     }
                 }
+
             } catch (EndOfStreamException) {
                 if (!tokenSrc.IsCancellationRequested) {
                     Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
                     DisposeSafe();
                 }
                 return;
+
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
                     return;
@@ -191,7 +192,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             byte containerID = reader.ReadByte();
 
                             // Read packets until we run out data
-                            while (mStream.Position < dgSize-1) {
+                            while (mStream.Position < dgSize - 1) {
                                 DataType packet = Data.Read(reader);
                                 if (packet.TryGet<MetaOrderedUpdate>(Data, out MetaOrderedUpdate orderedUpdate))
                                     orderedUpdate.UpdateID = containerID;
@@ -201,6 +202,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                         // Promote optimizations
                         PromoteOptimizations();
+
                     } catch (Exception e) {
                         if (e is SocketException se && tokenSrc.IsCancellationRequested)
                             return;
@@ -209,6 +211,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         DecreaseUDPScore();
                     }
                 }
+
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
                     return;
@@ -242,6 +245,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     }
                     tcpWriter.Flush();
                 }
+
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
                     return;
@@ -305,11 +309,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                             if (bufOff > 1)
                                 udpSendSocket.Send(dgBuffer, bufOff, SocketFlags.None);
                         }
+
                     } catch (Exception e) {
                         Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");
                         DecreaseUDPScore();
                     }
                 }
+
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
                     return;

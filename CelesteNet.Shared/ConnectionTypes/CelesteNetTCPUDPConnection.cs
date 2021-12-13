@@ -189,16 +189,18 @@ namespace Celeste.Mod.CelesteNet {
                 if (downgradeImmediatly || ++udpDowngradeScore >= ConnectionSettings.UDPDowngradeScoreMax) {
                     udpDowngradeScore = 0;
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Downgrading UDP connection of {this}{((reason != null) ? $": {reason}" : string.Empty)} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
-                    if ((udpMaxDatagramSize /= 2) >= 1+ConnectionSettings.MaxPacketSize) {
+                    if ((udpMaxDatagramSize /= 2) >= 1 + ConnectionSettings.MaxPacketSize) {
                         if (udpConnectionId >= 0)
                             Send(new DataLowLevelUDPInfo() {
                                 ConnectionID = udpConnectionId,
                                 MaxDatagramSize = udpMaxDatagramSize
                             });
-                    } else
+                    } else {
                         UDPConnectionDeath(true, "Too many downgrades");
-                } else
+                    }
+                } else {
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Decreased score of UDP connection of {this}{((reason != null) ? $": {reason}" : string.Empty)} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
+                }
 
             }
         }
@@ -227,13 +229,15 @@ namespace Celeste.Mod.CelesteNet {
                     // If it referes to an old connection, just ignore it
                     if (info.ConnectionID <= udpLastConnectionId)
                         return;
-                    if (info.MaxDatagramSize < 1+ConnectionSettings.MaxPacketSize)
+                    if (info.MaxDatagramSize < 1 + ConnectionSettings.MaxPacketSize)
                         return;
                     udpConnectionId = info.ConnectionID;
                     udpMaxDatagramSize = info.MaxDatagramSize;
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Established UDP connection of {this} [{udpConnectionId} / {udpMaxDatagramSize} / {udpAliveScore} / {udpDowngradeScore} / {udpDeathScore}]");
                     return;
-                } else if (info.ConnectionID != udpConnectionId)
+                }
+
+                if (info.ConnectionID != udpConnectionId)
                     return;
 
                 // Check if the remote notified us of a connection death

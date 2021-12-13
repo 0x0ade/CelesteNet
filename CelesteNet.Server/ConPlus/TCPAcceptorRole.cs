@@ -52,7 +52,16 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        public TCPAcceptorRole(NetPlusThreadPool pool, CelesteNetServer server, EndPoint endPoint, HandshakerRole handshaker, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender, CelesteNetTCPUDPConnection.Settings conSettings) : base(pool, ProtocolType.Tcp, endPoint) {
+        public TCPAcceptorRole(
+            NetPlusThreadPool pool,
+            CelesteNetServer server,
+            EndPoint endPoint,
+            HandshakerRole handshaker,
+            TCPReceiverRole tcpReceiver,
+            UDPReceiverRole udpReceiver,
+            TCPUDPSenderRole sender,
+            CelesteNetTCPUDPConnection.Settings conSettings
+        ) : base(pool, ProtocolType.Tcp, endPoint) {
             Server = server;
             Handshaker = handshaker;
             TCPReceiver = tcpReceiver;

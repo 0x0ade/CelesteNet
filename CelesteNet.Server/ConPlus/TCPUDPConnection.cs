@@ -170,7 +170,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 }
 
                                 // Did we receive the entire packet already?
-                                if (2+packetLen <= tcpBufferOff) {
+                                if (2 + packetLen <= tcpBufferOff) {
                                     // Update metrics and check if we hit the cap
                                     TCPRecvRate.UpdateRate(0, 1);
                                     if (TCPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap) {
@@ -202,8 +202,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                                     }
 
                                     // Remove the packet data from the buffer
-                                    tcpBufferOff -= 2+packetLen;
-                                    Buffer.BlockCopy(tcpBuffer, 2+packetLen, tcpBuffer, 0, tcpBufferOff);
+                                    tcpBufferOff -= 2 + packetLen;
+                                    Buffer.BlockCopy(tcpBuffer, 2 + packetLen, tcpBuffer, 0, tcpBufferOff);
                                     continue;
                                 }
                             }

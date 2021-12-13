@@ -562,19 +562,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected Ghost CreateGhost(Level level, DataPlayerInfo player, DataPlayerGraphics graphics) {
             Ghost ghost;
             lock (Ghosts)
-            if (!Ghosts.TryGetValue(player.ID, out ghost) || ghost == null) {
-                ghost = Ghosts[player.ID] = new(Context, player, graphics.SpriteMode);
-                ghost.Active = false;
-                ghost.NameTag.Name = player.DisplayName;
-                if (ghost.Sprite.Mode != graphics.SpriteMode)
-                    UnsupportedSpriteModes.Add(graphics.SpriteMode);
-                RunOnMainThread(() => {
-                    level.Add(ghost);
-                    level.OnEndOfFrame += () => ghost.Active = true;
+                if (!Ghosts.TryGetValue(player.ID, out ghost) || ghost == null) {
+                    ghost = Ghosts[player.ID] = new(Context, player, graphics.SpriteMode);
+                    ghost.Active = false;
+                    ghost.NameTag.Name = player.DisplayName;
+                    if (ghost.Sprite.Mode != graphics.SpriteMode)
+                        UnsupportedSpriteModes.Add(graphics.SpriteMode);
+                    RunOnMainThread(() => {
+                        level.Add(ghost);
+                        level.OnEndOfFrame += () => ghost.Active = true;
+                        ghost.UpdateGraphics(graphics);
+                    });
                     ghost.UpdateGraphics(graphics);
-                });
-                ghost.UpdateGraphics(graphics);
-            }
+                }
             return ghost;
         }
 

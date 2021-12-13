@@ -65,7 +65,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override MetaUpdateContext UpdateMeta(DataContext ctx) => Data.UpdateMeta(ctx);
 
-        public override void ReadAll(CelesteNetBinaryReader reader) => throw new InvalidOperationException("Cann't read internal blobs");
+        public override void ReadAll(CelesteNetBinaryReader reader) => throw new InvalidOperationException("Can't read internal blobs");
 
         public override void WriteAll(CelesteNetBinaryWriter writer) {
             for (Part? part = PartFirst; part != null; part = part.Next)

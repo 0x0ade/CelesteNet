@@ -176,7 +176,5 @@ namespace Celeste.Mod.CelesteNet.Client {
         public ConnectionErrorException(string msg, string status) : base($"{msg}: {status}") {
             Status = status;
         }
-
-
     }
 }

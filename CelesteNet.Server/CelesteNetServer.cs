@@ -133,7 +133,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? Environment.ProcessorCount : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.HeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
 
             heartbeatTimer = new(Settings.HeartbeatInterval);
-            heartbeatTimer.Elapsed += (_,_) => DoHeartbeatTick();
+            heartbeatTimer.Elapsed += (_, _) => DoHeartbeatTick();
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
@@ -381,14 +381,16 @@ namespace Celeste.Mod.CelesteNet.Server {
                     nextTickRate = Math.Min(Settings.MaxTickRate, CurrentTickRate * 2);
                     Logger.Log(LogLevel.INF, "main", $"Increased the tick rate {CurrentTickRate} TpS -> {nextTickRate} TpS");
                     CurrentTickRate = nextTickRate;
-                } else
+                } else {
                     return;
+                }
             } else if (actvRate > Settings.TickRateHighActivityThreshold && tcpByteRate > Settings.TickRateHighTCPUplinkBpSThreshold && udpByteRate > Settings.TickRateHighUDPUplinkBpSThreshold) {
                 // Decrease the tick rate
                 Logger.Log(LogLevel.INF, "main", $"Decreased the tick rate {CurrentTickRate} TpS -> {nextTickRate} TpS");
                 nextTickRate = CurrentTickRate / 2;
-            } else
+            } else {
                 return;
+            }
 
             // Broadcast the new tick rate
             BroadcastAsync(new DataTickRate() {

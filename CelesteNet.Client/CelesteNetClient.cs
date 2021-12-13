@@ -112,7 +112,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             // Initialize the heartbeat timer
                             heartbeatTimer = new(teapotRes.settings.HeartbeatInterval);
                             heartbeatTimer.AutoReset = true;
-                            heartbeatTimer.Elapsed += (_,_) => {
+                            heartbeatTimer.Elapsed += (_, _) => {
                                 string disposeReason = con.DoHeartbeatTick();
                                 if (disposeReason != null) {
                                     Logger.Log(LogLevel.CRI, "main", disposeReason);

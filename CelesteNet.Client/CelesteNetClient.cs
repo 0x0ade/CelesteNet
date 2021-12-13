@@ -102,8 +102,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             // Create a connection and start the heartbeat timer
                             CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, teapotRes.conToken, teapotRes.settings, sock);
                             con.OnDisconnect += _ => {
-                                if (CelesteNetClientModule.Instance.Context != null)
-                                    CelesteNetClientModule.Instance.Context.Dispose();
+                                CelesteNetClientModule.Instance.Context?.Dispose();
                                 Dispose();
                                 CelesteNetClientModule.Instance.Context?.Status?.Set("Server disconnected", 3f);
                             };

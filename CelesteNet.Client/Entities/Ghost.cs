@@ -33,7 +33,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public Color[] HairColors = new[] { Color.White };
 
-        public (bool wasB, Vector2 dir)? Dash;
+        public bool? DashWasB;
+        public Vector2? DashDir;
 
         public bool Dead;
 
@@ -166,11 +167,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Update() {
             lock (UpdateQueue) {
                 IsUpdating = true;
-                while (UpdateQueue.Count > 0) {
-                    Action<Ghost> act = UpdateQueue[0];
-                    UpdateQueue.RemoveAt(0);
-                    act(this);
-                }
+                for(int i = 0; i < UpdateQueue.Count; i++)
+                    UpdateQueue[i](this);
+                UpdateQueue.Clear();
                 IsUpdating = false;
             }
 
@@ -225,8 +224,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 level.Add(Holding);
 
             // TODO: Get rid of this, sync particles separately!
-            if (Dash != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
-                level.ParticlesFG.Emit(Dash.Value.wasB ? Player.P_DashB : Player.P_DashA, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), Dash.Value.dir.Angle());
+            if (DashWasB != null && DashDir != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
+                level.ParticlesFG.Emit(DashWasB.Value ? Player.P_DashB : Player.P_DashA, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Value.Angle());
         }
 
         public void Tick() {
@@ -336,8 +335,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.SimulateMotion = simulateMotion;
         }
 
-        public void UpdateDash((bool wasB, Vector2 dir)? dash) {
-            Dash = dash;
+        public void UpdateDash(bool? wasB, Vector2? dir) {
+            DashWasB = wasB;
+            DashDir = dir;
         }
 
         public void UpdateDead(bool dead) {

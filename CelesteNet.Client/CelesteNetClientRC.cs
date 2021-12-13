@@ -25,6 +25,8 @@ namespace Celeste.Mod.CelesteNet.Client {
     // Based off of Everest's own DebugRC.
     public static class CelesteNetClientRC {
 
+        private static readonly char[] URLArgsSeperator = new[] { '&' };
+
         private static HttpListener Listener;
         private static Thread ListenerThread;
 
@@ -132,8 +134,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return nvc;
             url = url.Substring(indexOfSplit + 1);
 
-            // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
-            string[] args = url.Split(new[]{'&'});
+            string[] args = url.Split(URLArgsSeperator);
             foreach (string arg in args) {
                 indexOfSplit = arg.IndexOf('=');
                 if (indexOfSplit == -1)

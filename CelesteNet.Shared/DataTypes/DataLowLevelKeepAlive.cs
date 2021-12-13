@@ -7,7 +7,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "keepAlive";
         }
 
-        public override DataFlags DataFlags => DataFlags.SlimHeader | DataFlags.Small;
+        public override DataFlags DataFlags => DataFlags.CoreType | DataFlags.Small;
 
         protected override void Read(CelesteNetBinaryReader reader) {}
         protected override void Write(CelesteNetBinaryWriter writer) {}

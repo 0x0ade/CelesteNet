@@ -7,7 +7,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     A UDP connection has two properties which are of interest to us here:
     -> UDP connections can be "initialized"
         This means the connection knows its peer's endpoint, it's receiving and
-        sending infrastructure is up and running and is beeing activly monitored
+        sending infrastructure is up and running and is activly beeing monitored
         for heartbeats and keepalives. However, just beeing initialized isn't enough
         for the connection to actually enqueue anything onto it's send queue.
     -> UDP connections can be "established"
@@ -30,7 +30,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
     This packet is used to coordinate established connections, and has a few
     different meanings, depending on the values in it:
-    - ConnectionID < 1
+    - ConnectionID < 0
         Disable UDP for this client's connection. This is the only packet
         handled even when no connection is initialized.
     - ConnectionID >= 0 && MaxDatagramSize < 1+MaxPacketSize
@@ -40,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         New MAXIMUM datagram size. Note that once a connection is initially
         established, it's max datagram size can only go down. If the other peer
         has a different datagram size than here requested BEFORE the change,
-        it'll respond an info packet with it's new maximum datagram size.
+        it'll respond with an info packet containing it's new maximum datagram size.
 
     If a peer (in the current implementation, only the client) has an
     initialized but unestablished connection, when it receives a packet falling
@@ -70,6 +70,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         <client decides to disable UDP>
                                             -> UDPInfo(-1, 0)
                                                                             <won't accept UDP connections from client>
+
+    -Popax21
     */
     public class DataLowLevelUDPInfo : DataType<DataLowLevelUDPInfo> {
 
@@ -77,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "udpInfo";
         }
 
-        public override DataFlags DataFlags => DataFlags.SlimHeader | DataFlags.Small;
+        public override DataFlags DataFlags => DataFlags.CoreType | DataFlags.Small;
 
         public int ConnectionID;
         public int MaxDatagramSize;

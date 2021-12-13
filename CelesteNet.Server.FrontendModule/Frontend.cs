@@ -30,7 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private HttpServer? HTTPServer;
         private WebSocketServiceHost? WSHost;
 
-        private Timer? netPlusStatsTimer;
+        private Timer? StatsTimer;
 
 #if NETCORE
         private readonly FileExtensionContentTypeProvider ContentTypeProvider = new();
@@ -85,10 +85,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             HTTPServer.WebSocketServices.TryGetServiceHost("/ws", out WSHost);
 
-            netPlusStatsTimer = new Timer(Settings.NetPlusStatsUpdateRate);
-            netPlusStatsTimer.AutoReset = true;
-            netPlusStatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateStats(Server);
-            netPlusStatsTimer.Enabled = true;
+            StatsTimer = new Timer(Settings.NetPlusStatsUpdateRate);
+            StatsTimer.AutoReset = true;
+            StatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateStats(Server);
+            StatsTimer.Enabled = true;
         }
 
         public override void Dispose() {
@@ -96,7 +96,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             Logger.Log(LogLevel.INF, "frontend", "Shutdown");
 
-            netPlusStatsTimer?.Dispose();
+            StatsTimer?.Dispose();
 
             try {
                 HTTPServer?.Stop();

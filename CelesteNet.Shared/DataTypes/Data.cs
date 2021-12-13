@@ -201,7 +201,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             0b0001000000000000,
         Small =
             0b0010000000000000,
-        SlimHeader =
+        CoreType =
             0b0000000000010000,
         NoStandardMeta =
             0b0000000000100000,

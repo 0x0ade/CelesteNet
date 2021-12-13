@@ -77,13 +77,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            try {
-                session.Con.Send(new DataChannelList {
-                    List = channels.ToArray()
-                });
-            } catch (Exception e) {
-                Logger.Log(LogLevel.WRN, "channels", $"Error in SendListTo: {e}");
-            }
+            session.Con.Send(new DataChannelList {
+                List = channels.ToArray()
+            });
         }
 
         public Action<Channels>? OnBroadcastList;

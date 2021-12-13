@@ -107,10 +107,16 @@ namespace Celeste.Mod.CelesteNet {
             lock (SendFilterLock)
                 if (!(_OnSendFilter?.InvokeWhileTrue(this, data) ?? true))
                     return;
-            GetQueue(data)?.Enqueue(data);
+            CelesteNetSendQueue? queue = GetQueue(data);
+            if (queue != null)
+                queue.Enqueue(data);
+            else
+                SendNoQueue(data);
         }
 
         protected abstract CelesteNetSendQueue? GetQueue(DataType data);
+        protected virtual void SendNoQueue(DataType data) {
+        }
 
         protected virtual void Receive(DataType data) {
             lock (ReceiveFilterLock)
@@ -160,14 +166,14 @@ namespace Celeste.Mod.CelesteNet {
         public readonly int MaxSize;
         public readonly float MergeWindow;
 
-        private ConcurrentQueue<DataType> frontQueue, backQueue;
-        public ConcurrentQueue<DataType> FrontQueue => frontQueue;
-        public ConcurrentQueue<DataType> BackQueue => backQueue;
+        private ConcurrentQueue<DataType> _FrontQueue, _BackQueue;
+        public ConcurrentQueue<DataType> FrontQueue => _FrontQueue;
+        public ConcurrentQueue<DataType> BackQueue => _BackQueue;
 
-        private Action<CelesteNetSendQueue> queueFlushCB;
-        private int inMergeWindow;
-        private System.Timers.Timer timer;
-        private volatile bool swapQueues;
+        private Action<CelesteNetSendQueue> QueueFlushCB;
+        private int InMergeWindow;
+        private System.Timers.Timer Timer;
+        private volatile bool SwapQueues;
 
         public CelesteNetSendQueue(CelesteNetConnection con, string name, int maxSize, float mergeWindow, Action<CelesteNetSendQueue> queueFlusher) {
             Con = con;
@@ -175,94 +181,94 @@ namespace Celeste.Mod.CelesteNet {
             MaxSize = maxSize;
             MergeWindow = mergeWindow;
 
-            frontQueue = new ConcurrentQueue<DataType>();
-            backQueue = new ConcurrentQueue<DataType>();
-            queueFlushCB = queueFlusher;
-            inMergeWindow = 0;
-            timer = new(mergeWindow);
-            timer.AutoReset = false;
-            timer.Elapsed += TimerElapsed;
+            _FrontQueue = new ConcurrentQueue<DataType>();
+            _BackQueue = new ConcurrentQueue<DataType>();
+            QueueFlushCB = queueFlusher;
+            InMergeWindow = 0;
+            Timer = new(mergeWindow);
+            Timer.AutoReset = false;
+            Timer.Elapsed += TimerElapsed;
         }
 
         public void Dispose() {
-            lock (timer) {
+            lock (Timer) {
                 _Alive = false;
-                timer.Dispose();
+                Timer.Dispose();
             }
         }
 
         public void Enqueue(DataType data) {
             if (!Alive) return;
-            if (frontQueue.Count >= MaxSize) {
+            if (_FrontQueue.Count >= MaxSize) {
                 Logger.Log(LogLevel.WRN, "sendqueue", $"Connection {Con}'s send queue '{Name}' is at maximum size");
                 Con.DisposeSafe();
                 Dispose();
                 return;
             }
             
-            frontQueue.Enqueue(data);
+            _FrontQueue.Enqueue(data);
             Flush();
         }
 
         public void Clear() {
-            frontQueue.Clear();
+            _FrontQueue.Clear();
         }
 
         public void Flush() {
-            if (Interlocked.CompareExchange(ref inMergeWindow, 1, 0) == 0) {
-                lock (timer) {
+            if (Interlocked.CompareExchange(ref InMergeWindow, 1, 0) == 0) {
+                lock (Timer) {
                     if (!Alive) return;
-                    swapQueues = true;
-                    timer.Interval = MergeWindow;
-                    timer.Start();
+                    SwapQueues = true;
+                    Timer.Interval = MergeWindow;
+                    Timer.Start();
                 }
             }
         }
 
         public void DelayFlush(float delay, bool dropUnreliable) {
-            if (Volatile.Read(ref inMergeWindow) != 1)
+            if (Volatile.Read(ref InMergeWindow) != 1)
                 throw new InvalidOperationException($"Not currently flushing queue '{Name}'");
 
-            lock (timer) {
+            lock (Timer) {
                 if (dropUnreliable) {
                     ConcurrentQueue<DataType> newBackQueue = new ConcurrentQueue<DataType>();
-                    foreach (DataType data in backQueue) {
+                    foreach (DataType data in BackQueue) {
                         if ((data.DataFlags & DataFlags.Unreliable) == 0)
                             newBackQueue.Enqueue(data);
                     }
-                    backQueue = newBackQueue;
+                    _BackQueue = newBackQueue;
                 }
 
-                swapQueues = false;
-                timer.Interval = delay;
-                timer.Start();
+                SwapQueues = false;
+                Timer.Interval = delay;
+                Timer.Start();
             }
         }
 
         public void SignalFlushed() {
-            if (Volatile.Read(ref inMergeWindow) != 1)
+            if (Volatile.Read(ref InMergeWindow) != 1)
                 throw new InvalidOperationException($"Not currently flushing queue '{Name}'");
 
             // TODO For whatever reason, MonoKickstart can't clear concurrent queues
-            backQueue = new ConcurrentQueue<DataType>();
-            inMergeWindow = 0;
+            _BackQueue = new ConcurrentQueue<DataType>();
+            InMergeWindow = 0;
             Interlocked.MemoryBarrier();
-            if (frontQueue.Count > 0)
+            if (FrontQueue.Count > 0)
                 Flush();
         }
 
         private void TimerElapsed(object? s, EventArgs a) {
-            if (Volatile.Read(ref inMergeWindow) != 1)
+            if (Volatile.Read(ref InMergeWindow) != 1)
                 throw new InvalidOperationException($"Not currently flushing queue '{Name}'");
 
-            lock (timer) {
-                timer.Stop();
-                if (swapQueues)
-                    backQueue = Interlocked.Exchange(ref frontQueue, backQueue);
+            lock (Timer) {
+                Timer.Stop();
+                if (SwapQueues)
+                    _BackQueue = Interlocked.Exchange(ref _FrontQueue, BackQueue);
             }
 
             try {
-                queueFlushCB(this);
+                QueueFlushCB.Invoke(this);
             } catch (Exception e) {
                 Logger.Log(LogLevel.WRN, "sendqueue", $"Error flushing connection {Con}'s send queue '{Name}': {e}");
                 Con.DisposeSafe();

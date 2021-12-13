@@ -54,6 +54,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         public EndPoint EndPoint { get; }
 
         public override int MinThreads => 1;
-        public override int MaxThreads => (Environment.OSVersion.Platform != PlatformID.Unix) ? 1 : int.MaxValue;
+        public override int MaxThreads => MonoMod.Utils.PlatformHelper.Is(MonoMod.Utils.Platform.Linux) ? int.MaxValue : 1;
     }
 }

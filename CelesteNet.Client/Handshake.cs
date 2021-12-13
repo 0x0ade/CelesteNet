@@ -13,7 +13,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int TeapotVersion = 1;
 
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
-        public static (uint conToken, IConnectionFeature[] conFeatures, T settings) DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey) where T : struct {
+        public static Tuple<uint, IConnectionFeature[], T> DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey) where T : struct {
             // Find connection features
             // We don't buffer, as we could read actual packet data
             using (NetworkStream netStream = new NetworkStream(sock, false))
@@ -27,7 +27,7 @@ CelesteNet-ConnectionFeatures: {features.Select(f => f.GetType().FullName).Aggre
 CelesteNet-PlayerNameKey: {nameKey}
 
 Can I have some tea?
-".Trim().Replace("\n", "\r\n") + "\r\n");
+".Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n");
                 writer.Flush();
 
                 // Read the "HTTP" response
@@ -71,7 +71,7 @@ Can I have some tea?
                     }
                 }
 
-                return (conToken, conFeatures, (T) boxedSettings);
+                return new Tuple<uint, IConnectionFeature[], T>(conToken, conFeatures, (T) boxedSettings);
             }
         }
 

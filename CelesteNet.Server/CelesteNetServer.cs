@@ -2,6 +2,7 @@
 using Mono.Cecil;
 using Mono.Options;
 using MonoMod.RuntimeDetour;
+using MonoMod.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -46,10 +47,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly HashSet<CelesteNetPlayerSession> Sessions = new();
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new();
         public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new();
-        private System.Timers.Timer heartbeatTimer;
+        private System.Timers.Timer HeartbeatTimer;
 
         public float CurrentTickRate { get; private set; }
-        private float nextTickRate;
+        private float NextTickRate;
 
         private readonly ManualResetEvent ShutdownEvent = new(false);
 
@@ -132,8 +133,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? Environment.ProcessorCount : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.HeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
 
-            heartbeatTimer = new(Settings.HeartbeatInterval);
-            heartbeatTimer.Elapsed += (_, _) => DoHeartbeatTick();
+            HeartbeatTimer = new(Settings.HeartbeatInterval);
+            HeartbeatTimer.Elapsed += (_, _) => DoHeartbeatTick();
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
@@ -183,13 +184,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Logger.Log(LogLevel.INF, "server", $"Starting server on {serverEP}");
             ThreadPool.Scheduler.AddRole(new HandshakerRole(ThreadPool, this));
-            ThreadPool.Scheduler.AddRole(new TCPReceiverRole(ThreadPool, this, (Environment.OSVersion.Platform == PlatformID.Unix && Settings.TCPRecvUseEPoll) ? new TCPEPollPoller() : new TCPFallbackPoller()));
+            ThreadPool.Scheduler.AddRole(new TCPReceiverRole(ThreadPool, this, (PlatformHelper.Is(MonoMod.Utils.Platform.Linux) && Settings.TCPRecvUseEPoll) ? new TCPEPollPoller() : new TCPFallbackPoller()));
             ThreadPool.Scheduler.AddRole(new UDPReceiverRole(ThreadPool, this, udpRecvEP));
             ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, udpSendEP));
             ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!, tcpUdpConSettings));
 
-            heartbeatTimer.Start();
-            CurrentTickRate = nextTickRate = Settings.MaxTickRate;
+            HeartbeatTimer.Start();
+            CurrentTickRate = NextTickRate = Settings.MaxTickRate;
             ThreadPool.Scheduler.OnPreScheduling += AdjustTickRate;
 
             Logger.Log(LogLevel.CRI, "main", "Ready");
@@ -207,7 +208,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.CRI, "main", "Shutdown");
             IsAlive = false;
 
-            heartbeatTimer.Dispose();
+            HeartbeatTimer.Dispose();
 
             ModulesFSWatcher.Dispose();
 
@@ -371,30 +372,30 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         private void AdjustTickRate() {
-            CurrentTickRate = nextTickRate;
+            CurrentTickRate = NextTickRate;
 
             TCPUDPSenderRole sender = ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!;
             float actvRate = ThreadPool.ActivityRate, tcpByteRate = sender.TCPByteRate, udpByteRate = sender.UDPByteRate;
             if (actvRate < Settings.TickRateLowActivityThreshold && tcpByteRate < Settings.TickRateLowTCPUplinkBpSThreshold && udpByteRate < Settings.TickRateLowUDPUplinkBpSThreshold) {
                 if (CurrentTickRate < Settings.MaxTickRate) {
                     // Increase the tick rate
-                    nextTickRate = Math.Min(Settings.MaxTickRate, CurrentTickRate * 2);
-                    Logger.Log(LogLevel.INF, "main", $"Increased the tick rate {CurrentTickRate} TpS -> {nextTickRate} TpS");
-                    CurrentTickRate = nextTickRate;
+                    NextTickRate = Math.Min(Settings.MaxTickRate, CurrentTickRate * 2);
+                    Logger.Log(LogLevel.INF, "main", $"Increased the tick rate {CurrentTickRate} TpS -> {NextTickRate} TpS");
+                    CurrentTickRate = NextTickRate;
                 } else {
                     return;
                 }
             } else if (actvRate > Settings.TickRateHighActivityThreshold && tcpByteRate > Settings.TickRateHighTCPUplinkBpSThreshold && udpByteRate > Settings.TickRateHighUDPUplinkBpSThreshold) {
                 // Decrease the tick rate
-                Logger.Log(LogLevel.INF, "main", $"Decreased the tick rate {CurrentTickRate} TpS -> {nextTickRate} TpS");
-                nextTickRate = CurrentTickRate / 2;
+                Logger.Log(LogLevel.INF, "main", $"Decreased the tick rate {CurrentTickRate} TpS -> {NextTickRate} TpS");
+                NextTickRate = CurrentTickRate / 2;
             } else {
                 return;
             }
 
             // Broadcast the new tick rate
             BroadcastAsync(new DataTickRate() {
-                TickRate = nextTickRate
+                TickRate = NextTickRate
             });
         }
 

@@ -93,12 +93,11 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
-            lock (MainThreadQueue)
-                while (MainThreadQueue.Count > 0) {
-                    Action act = MainThreadQueue[0];
-                    MainThreadQueue.RemoveAt(0);
-                    act();
-                }
+            lock (MainThreadQueue) {
+                for(int i = 0; i < MainThreadQueue.Count; i++)
+                    MainThreadQueue[i]();
+                MainThreadQueue.Clear();
+            }
 
             if (Started && !(Client?.IsAlive ?? true))
                 Dispose();

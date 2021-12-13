@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         // Too many too quickly to make tasking worth it.
-        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.SlimHeader | DataFlags.Small | DataFlags.NoStandardMeta;
+        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.CoreType | DataFlags.Small | DataFlags.NoStandardMeta;
 
         public DataPlayerInfo? Player;
 
@@ -39,7 +39,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public Entity? Holding;
 
         // TODO: Get rid of this, sync particles separately!
-        public (bool wasB, Vector2 dir)? Dash;
+        public bool? DashWasB;
+        public Vector2? DashDir;
 
         public bool Dead;
 
@@ -134,10 +135,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     CurrentAnimationFrame = reader.Read7BitEncodedInt()
                 };
 
-            if ((flags & Flags.Dashing) != 0)
-                Dash = ((flags & Flags.DashB) != 0, Calc.AngleToVector((float) (reader.ReadByte() / 256f * 2*Math.PI), 1));
-            else
-                Dash = null;
+            if ((flags & Flags.Dashing) != 0) {
+                DashWasB = ((flags & Flags.DashB) != 0);
+                DashDir = Calc.AngleToVector((float) (reader.ReadByte() / 256f * 2*Math.PI), 1);
+            } else {
+                DashWasB = null;
+                DashDir = null;
+            }
 
             Dead = (flags & Flags.Dead) != 0;
 
@@ -153,9 +157,9 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 flags |= Flags.FacingLeft;
             if (HairSimulateMotion)
                 flags |= Flags.HairSimulateMotion;
-            if (Dash != null)
+            if (DashDir != null && DashWasB != null)
                 flags |= Flags.Dashing;
-            if (Dash?.wasB ?? false)
+            if (DashWasB ?? false)
                 flags |= Flags.DashB;
             if (Holding != null)
                 flags |= Flags.Holding;
@@ -240,8 +244,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 writer.Write7BitEncodedInt(h.CurrentAnimationFrame);
             }
 
-            if (Dash != null)
-                writer.Write((byte) ((Dash.Value.dir.Angle() / (2*Math.PI) * 256f) % 256));
+            if (DashDir != null && DashWasB != null)
+                writer.Write((byte) ((DashDir.Value.Angle() / (2*Math.PI) * 256f) % 256));
         }
 
         [Flags]

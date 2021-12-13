@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "playerGraphics";
         }
 
-        public override DataFlags DataFlags => DataFlags.SlimHeader;
+        public override DataFlags DataFlags => DataFlags.CoreType;
 
         public DataPlayerInfo? Player;
 

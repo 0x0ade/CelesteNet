@@ -14,34 +14,34 @@ namespace Celeste.Mod.CelesteNet {
     */
     public class BufferedSocketStream : Stream {
 
-        private Socket? socket = null;
-        private byte[] recvBuffer, sendBuffer;
-        private int recvAvail = 0, recvBufferOff = 0, sendBufferOff = 0;
+        private Socket? _Socket = null;
+        private byte[] RecvBuffer, SendBuffer;
+        private int RecvAvail = 0, RecvBufferOff = 0, SendBufferOff = 0;
 
         public BufferedSocketStream(int bufferSize) {
-            recvBuffer = new byte[bufferSize];
-            sendBuffer = new byte[bufferSize];
+            RecvBuffer = new byte[bufferSize];
+            SendBuffer = new byte[bufferSize];
         }
 
         public override int Read(byte[] buffer, int offset, int count) {
-            lock (recvBuffer) {
-                if (socket == null)
+            lock (RecvBuffer) {
+                if (_Socket == null)
                     return 0;
 
                 int numRead = 0;
                 while (numRead < count) {
-                    if (recvAvail <= 0 || recvBufferOff >= recvBuffer.Length) {
-                        socket.Poll(-1, SelectMode.SelectRead);
-                        recvAvail = socket.Receive(recvBuffer, recvBuffer.Length, SocketFlags.None);
-                        recvBufferOff = 0;
-                        if (recvAvail <= 0)
+                    if (RecvAvail <= 0 || RecvBufferOff >= RecvBuffer.Length) {
+                        _Socket.Poll(-1, SelectMode.SelectRead);
+                        RecvAvail = _Socket.Receive(RecvBuffer, RecvBuffer.Length, SocketFlags.None);
+                        RecvBufferOff = 0;
+                        if (RecvAvail <= 0)
                             break;
                     }
 
-                    int n = Math.Min(recvAvail, count-numRead);
-                    Buffer.BlockCopy(recvBuffer, recvBufferOff, buffer, offset, n);
-                    recvBufferOff += n;
-                    recvAvail -= n;
+                    int n = Math.Min(RecvAvail, count-numRead);
+                    Buffer.BlockCopy(RecvBuffer, RecvBufferOff, buffer, offset, n);
+                    RecvBufferOff += n;
+                    RecvAvail -= n;
                     offset += n;
                     numRead += n;
                 }
@@ -50,69 +50,69 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public override void Write(byte[] buffer, int offset, int count) {
-            lock (sendBuffer) {
-                if (socket == null)
+            lock (SendBuffer) {
+                if (_Socket == null)
                     return;
 
                 while (count > 0) {
-                    int n = Math.Min(sendBuffer.Length - sendBufferOff, count);
-                    Buffer.BlockCopy(buffer, offset, sendBuffer, sendBufferOff, n);
-                    sendBufferOff += n;
+                    int n = Math.Min(SendBuffer.Length - SendBufferOff, count);
+                    Buffer.BlockCopy(buffer, offset, SendBuffer, SendBufferOff, n);
+                    SendBufferOff += n;
                     count -= n;
-                    if (sendBufferOff >= sendBuffer.Length)
+                    if (SendBufferOff >= SendBuffer.Length)
                         Flush();
                 }
             }
         }
 
         public override void WriteByte(byte val) {
-            lock (sendBuffer) {
-                if (socket == null)
+            lock (SendBuffer) {
+                if (_Socket == null)
                     return;
-                sendBuffer[sendBufferOff++] = val;
-                if (sendBufferOff >= sendBuffer.Length)
+                SendBuffer[SendBufferOff++] = val;
+                if (SendBufferOff >= SendBuffer.Length)
                     Flush();
             }
         }
 
         public override void Flush() {
-            lock (sendBuffer) {
-                if (sendBufferOff != 0 && socket != null) {
+            lock (SendBuffer) {
+                if (SendBufferOff != 0 && _Socket != null) {
                     while (true) {
                         try {
-                            socket.Send(sendBuffer, sendBufferOff, SocketFlags.None);
+                            _Socket.Send(SendBuffer, SendBufferOff, SocketFlags.None);
                             break;
                         } catch (SocketException se) {
-                            if (se.SocketErrorCode == SocketError.TryAgain && socket.Poll(-1, SelectMode.SelectWrite))
+                            if (se.SocketErrorCode == SocketError.TryAgain && _Socket.Poll(-1, SelectMode.SelectWrite))
                                 continue;
                             throw;
                         }
                     }
                 }
-                sendBufferOff = 0;
+                SendBufferOff = 0;
             }
         }
 
         public Socket? Socket {
-            get => socket;
+            get => _Socket;
             set {
                 if (value?.Blocking ?? false)
                     throw new ArgumentException("Only non-blocking sockets are supported");
-                lock (recvBuffer)
-                lock (sendBuffer)
-                    recvBufferOff = recvAvail = sendBufferOff = 0;
-                socket = value;
+                lock (RecvBuffer)
+                lock (SendBuffer)
+                    RecvBufferOff = RecvAvail = SendBufferOff = 0;
+                _Socket = value;
             }
         }
 
-        public override long Seek(long offset, SeekOrigin origin) => throw new System.NotImplementedException();
-        public override void SetLength(long value) => throw new System.NotImplementedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
 
         public override bool CanRead => true;
         public override bool CanWrite => true;
         public override bool CanSeek => false;
-        public override long Length => throw new System.NotImplementedException();
-        public override long Position { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
     }
 }

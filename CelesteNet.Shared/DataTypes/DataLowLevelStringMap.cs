@@ -5,7 +5,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "stringMap";
         }
 
-        public override DataFlags DataFlags => DataFlags.SlimHeader;
+        public override DataFlags DataFlags => DataFlags.CoreType;
 
         public string String = string.Empty;
         public int ID;

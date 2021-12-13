@@ -15,40 +15,40 @@ namespace Celeste.Mod.CelesteNet.Server {
     public abstract class NetPlusThreadRole : IDisposable {
 
         public abstract class RoleWorker : IDisposable {
-            private RWLock activityLock;
-            internal int activeZoneCounter = 0;
-            private long lastActivityUpdate = long.MinValue;
-            private float lastActivityRate = 0f;
+            private RWLock ActivityLock;
+            internal int ActiveZoneCounter = 0;
+            private long LastActivityUpdate = long.MinValue;
+            private float LastActivityRate = 0f;
 
             protected RoleWorker(NetPlusThreadRole role, NetPlusThread thread) {
                 Role = role;
                 Thread = thread;
 
                 // Init heuristic stuff
-                activityLock = new RWLock();
+                ActivityLock = new RWLock();
 
-                using (Role.workerLock.W())
-                    role.workers.Add(this);
+                using (Role.WorkerLock.W())
+                    role.Workers.Add(this);
             }
 
             public virtual void Dispose() {
-                using (Role.workerLock.W())
-                    Role.workers.Remove(this);
-                activityLock.Dispose();
+                using (Role.WorkerLock.W())
+                    Role.Workers.Remove(this);
+                ActivityLock.Dispose();
             }
 
             protected internal abstract void StartWorker(CancellationToken token);
 
             protected void EnterActiveZone() {
-                using (activityLock.W())
-                    Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, (activeZoneCounter++ > 0) ? 1f : 0f, true);
+                using (ActivityLock.W())
+                    Thread.Pool.IterateSteadyHeuristic(ref LastActivityRate, ref LastActivityUpdate, (ActiveZoneCounter++ > 0) ? 1f : 0f, true);
             }
 
             protected void ExitActiveZone() {
-                using (activityLock.W()) {
-                    if (activeZoneCounter <= 0)
+                using (ActivityLock.W()) {
+                    if (ActiveZoneCounter <= 0)
                         throw new InvalidOperationException("Not in an active zone");
-                    Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, (activeZoneCounter-- > 0) ? 1f : 0f, true);
+                    Thread.Pool.IterateSteadyHeuristic(ref LastActivityRate, ref LastActivityUpdate, (ActiveZoneCounter-- > 0) ? 1f : 0f, true);
                 }
             }
 
@@ -57,40 +57,40 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             public float ActivityRate {
                 get {
-                    using (activityLock.R())
-                        return Thread.Pool.IterateSteadyHeuristic(ref lastActivityRate, ref lastActivityUpdate, (activeZoneCounter > 0) ? 1f : 0f);
+                    using (ActivityLock.R())
+                        return Thread.Pool.IterateSteadyHeuristic(ref LastActivityRate, ref LastActivityUpdate, (ActiveZoneCounter > 0) ? 1f : 0f);
                 }
             }
         }
 
-        private bool disposed = false;
-        private RWLock workerLock;
-        private List<RoleWorker> workers;
+        private bool Disposed = false;
+        private RWLock WorkerLock;
+        private List<RoleWorker> Workers;
 
         protected NetPlusThreadRole(NetPlusThreadPool pool) {
             Pool = pool;
 
             // Init workers collection
-            using ((workerLock = new RWLock()).W())
-                workers = new List<RoleWorker>();
+            using ((WorkerLock = new RWLock()).W())
+                Workers = new List<RoleWorker>();
         }
 
         public virtual void Dispose() {
-            if (disposed)
+            if (Disposed)
                 return;
-            disposed = true;
+            Disposed = true;
 
-            using (workerLock.W()) {
-                workers.Clear();
-                workerLock.Dispose();
+            using (WorkerLock.W()) {
+                Workers.Clear();
+                WorkerLock.Dispose();
             }
         }
 
         public virtual void InvokeSchedular() {}
 
         public IEnumerable<RoleWorker> EnumerateWorkers() {
-            using (workerLock.R())
-            foreach (RoleWorker worker in workers)
+            using (WorkerLock.R())
+            foreach (RoleWorker worker in Workers)
                 yield return worker;
         }
 
@@ -105,7 +105,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract RoleWorker CreateWorker(NetPlusThread thread);
 
         public NetPlusThreadPool Pool { get; }
-        public float ActivityRate => EnumerateWorkers().Aggregate(0f, (a, w) => a + w.ActivityRate) / workers.Count;
+        public float ActivityRate => EnumerateWorkers().Aggregate(0f, (a, w) => a + w.ActivityRate / Workers.Count);
 
         public abstract int MinThreads { get; }
         public abstract int MaxThreads { get; }

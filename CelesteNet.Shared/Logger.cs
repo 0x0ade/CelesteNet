@@ -40,15 +40,16 @@ namespace Celeste.Mod.CelesteNet {
             if (level < Level)
                 return;
 
-            lock (Writer) {
-                Writer.Write("(");
-                Writer.Write(DateTime.Now);
-                Writer.Write(LogCelesteNetTag ? ") [CelesteNet] [" : ") [");
-                Writer.Write(level.ToString());
+            TextWriter writer = Writer;
+            lock (writer) {
+                writer.Write("(");
+                writer.Write(DateTime.Now);
+                writer.Write(LogCelesteNetTag ? ") [CelesteNet] [" : ") [");
+                writer.Write(level.ToString());
                 Writer.Write("] [");
-                Writer.Write(tag);
-                Writer.Write("] ");
-                Writer.WriteLine(str);
+                writer.Write(tag);
+                writer.Write("] ");
+                writer.WriteLine(str);
             }
         }
 

@@ -231,14 +231,24 @@ namespace Celeste.Mod.CelesteNet {
                     sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
                     break;
             }
-            if (Environment.OSVersion.Platform == PlatformID.Unix) {
+
+            //All Unix-ish systems should have SO_REUSEPORT
+            if (MonoMod.Utils.PlatformHelper.Is(MonoMod.Utils.Platform.Unix)) {
                 if (setsockopt(sock.Handle, SOL_SOCKET, SO_REUSEPORT, new[] { 1 }, sizeof(int)) < 0)
                     throw new SystemException($"Could not set SO_REUSEPORT: {Marshal.GetLastWin32Error()}");
             }
         }
 
         public static bool IsDisconnect(this SocketException se) {
-            return se.SocketErrorCode == SocketError.NotConnected || se.NativeErrorCode == 32 /* Broken Pipe */;
+            switch (se.SocketErrorCode) {
+                case SocketError.NotConnected:
+                case SocketError.ConnectionRefused:
+                case SocketError.ConnectionAborted:
+                case SocketError.ConnectionReset:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
     }

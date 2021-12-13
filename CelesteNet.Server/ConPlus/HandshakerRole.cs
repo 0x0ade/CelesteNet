@@ -24,24 +24,24 @@ namespace Celeste.Mod.CelesteNet.Server {
         public const int TeapotTimeout = 5000;
         public const int TeapotVersion = 1;
 
-        private class Scheduler : TaskScheduler, IDisposable {
+        private class TaskWorkerScheduler : TaskScheduler, IDisposable {
 
-            private BlockingCollection<Task> taskQueue;
-            private ThreadLocal<bool> executingTasks;
+            private BlockingCollection<Task> TaskQueue;
+            private ThreadLocal<bool> ExecutingTasks;
 
-            public Scheduler() {
-                taskQueue = new BlockingCollection<Task>();
-                executingTasks = new ThreadLocal<bool>();
+            public TaskWorkerScheduler() {
+                TaskQueue = new BlockingCollection<Task>();
+                ExecutingTasks = new ThreadLocal<bool>();
             }
 
             public void Dispose() {
-                executingTasks.Dispose();
-                taskQueue.Dispose();
+                ExecutingTasks.Dispose();
+                TaskQueue.Dispose();
             }
 
             public void ExecuteTasks(Worker worker, CancellationToken token) {
-                executingTasks.Value = true;
-                foreach (Task t in taskQueue.GetConsumingEnumerable(token)) {
+                ExecutingTasks.Value = true;
+                foreach (Task t in TaskQueue.GetConsumingEnumerable(token)) {
                     worker.EnterActiveZone();
                     try {
                         TryExecuteTask(t);
@@ -49,14 +49,14 @@ namespace Celeste.Mod.CelesteNet.Server {
                         worker.ExitActiveZone();
                     }
                 }
-                executingTasks.Value = false;
+                ExecutingTasks.Value = false;
             }
 
-            protected override IEnumerable<Task> GetScheduledTasks() => taskQueue;
-            protected override void QueueTask(Task task) => taskQueue.Add(task);
+            protected override IEnumerable<Task> GetScheduledTasks() => TaskQueue;
+            protected override void QueueTask(Task task) => TaskQueue.Add(task);
 
             protected override bool TryExecuteTaskInline(Task task, bool prevQueued) {
-                if (prevQueued || !executingTasks.Value)
+                if (prevQueued || !ExecutingTasks.Value)
                     return false;
                 return TryExecuteTask(task);
             }
@@ -67,7 +67,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             public Worker(HandshakerRole role, NetPlusThread thread) : base(role, thread) {}
 
-            protected internal override void StartWorker(CancellationToken token) => Role.scheduler.ExecuteTasks(this, token);
+            protected internal override void StartWorker(CancellationToken token) => Role.Scheduler.ExecuteTasks(this, token);
 
             public new void EnterActiveZone() => base.EnterActiveZone();
             public new void ExitActiveZone() => base.ExitActiveZone();
@@ -76,16 +76,16 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        private Scheduler scheduler;
-        private List<(string name, IConnectionFeature feature)> conFeatures;
+        private TaskWorkerScheduler Scheduler;
+        private List<(string, IConnectionFeature)> ConFeatures;
 
         public HandshakerRole(NetPlusThreadPool pool, CelesteNetServer server) : base(pool) {
             Server = server;
-            scheduler = new Scheduler();
-            Factory = new TaskFactory(scheduler);
+            Scheduler = new TaskWorkerScheduler();
+            Factory = new TaskFactory(Scheduler);
 
             // Find connection features
-            conFeatures = new List<(string, IConnectionFeature)>();
+            ConFeatures = new List<(string, IConnectionFeature)>();
             foreach (Type type in CelesteNetUtils.GetTypes()) {
                 if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
                     continue;
@@ -94,12 +94,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (feature == null)
                     throw new Exception($"Cannot create instance of connection feature {type.FullName}");
                 Logger.Log(LogLevel.VVV, "handshake", $"Found connection feature: {type.FullName}");
-                conFeatures.Add((type.FullName!, feature!));
+                ConFeatures.Add((type.FullName!, feature!));
             }
         }
 
         public override void Dispose() {
-            scheduler.Dispose();
+            Scheduler.Dispose();
             base.Dispose();
         }
 
@@ -168,7 +168,7 @@ HTTP/1.1 500 Internal Server Error
 Connection: close
 
 The server encountered an internal error while handling the request
-                    ".Trim().Replace("\n", "\r\n"));
+                    ".Trim().Replace("\r\n", "\n").Replace("\n", "\r\n"));
                     return null;
                 }
 
@@ -206,7 +206,7 @@ HTTP/1.1 409 Version Mismatch
 Connection: close
 
 {string.Format(Server.Settings.MessageTeapotVersionMismatch, teapotVer, TeapotVersion)}
-                    ".Trim().Replace("\n", "\r\n"));
+                    ".Trim().Replace("\r\n", "\n").Replace("\n", "\r\n"));
                     return null;
                 }
 
@@ -219,9 +219,9 @@ Connection: close
 
                 // Match connection features
                 List<(string name, IConnectionFeature feature)> matchedFeats = new List<(string, IConnectionFeature)>();
-                foreach ((string name, IConnectionFeature feat) in this.conFeatures) {
-                    if (conFeatures.Contains(name.ToLower()))
-                        matchedFeats.Add((name, feat));
+                foreach (var feat in ConFeatures) {
+                    if (conFeatures.Contains(feat.Item1.ToLower()))
+                        matchedFeats.Add((feat.Item1, feat.Item2));
                 }
 
                 // Get the player name-key
@@ -229,16 +229,17 @@ Connection: close
                     return await Send500();
 
                 // Authenticate name-key
-                ((string uid, string name)? playerData, string? errorReason) = AuthenticatePlayerNameKey(playerNameKey!, fbUID);
-
-                if (errorReason != null) {
+                string? errorReason = AuthenticatePlayerNameKey(playerNameKey!, fbUID, out string? playerUID, out string? playerName);
+                if(playerUID == null) errorReason ??= "No UID";
+                if(playerName == null) errorReason ??= "No name";
+                if (errorReason != null || playerUID == null || playerName == null) {
                     Logger.Log(LogLevel.VVV, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
                     await writer.WriteAsync($@"
 HTTP/1.1 403 Access Denied
 Connection: close
 
 {errorReason}
-                    ".Trim().Replace("\n", "\r\n"));
+                    ".Trim().Replace("\r\n", "\n").Replace("\n", "\r\n"));
                     return null;
                 }
 
@@ -269,9 +270,9 @@ CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) =>
 {settingsBuilder.ToString().Trim()}
 
 Who wants some tea?
-                ".Trim().Replace("\n", "\r\n") + "\r\n" + "\r\n");
+                ".Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n" + "\r\n");
 
-                return (matchedFeats.Select(f => f.feature).ToArray(), (playerData!).Value.uid, (playerData!).Value.name);
+                return (matchedFeats.Select(f => f.feature).ToArray(), playerUID, playerName);
             }
         }
 
@@ -288,20 +289,20 @@ Who wants some tea?
             });
         }
 
-        public ((string playerUID, string playerName)?, string? errorReason) AuthenticatePlayerNameKey(string nameKey, string fbUID) {
+        public string? AuthenticatePlayerNameKey(string nameKey, string fbUID, out string? playerUID, out string? playerName) {
             // Get the player UID and name from the player name-key
-            string playerUID = null!, playerName = null!;
+            playerUID = playerName = null;
             if ((nameKey!).StartsWith('#')) {
                 playerUID = Server.UserData.GetUID((nameKey!).Substring(1));
                 if (playerUID != null && Server.UserData.TryLoad<BasicUserInfo>(playerUID, out BasicUserInfo info))
                     playerName = info.Name!;
                 else
-                    return (null, string.Format(Server.Settings.MessageInvalidKey, nameKey));
+                    return string.Format(Server.Settings.MessageInvalidKey, nameKey);
             } else if (!Server.Settings.AuthOnly) {
                 playerName = nameKey!;
                 playerUID = fbUID;
             } else
-                return (null, string.Format(Server.Settings.MessageAuthOnly, nameKey));
+                return string.Format(Server.Settings.MessageAuthOnly, nameKey);
 
             // Check if the player's banned
             BanInfo? ban = null;
@@ -310,7 +311,7 @@ Who wants some tea?
             if (Server.UserData.TryLoad<BanInfo>(fbUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To))
                 ban = conBanInfo;
             if (ban != null)
-                return (null, string.Format(Server.Settings.MessageBan, playerUID, playerName, ban.Reason));
+                return string.Format(Server.Settings.MessageBan, playerUID, playerName, ban.Reason);
 
             // Sanitize the player's name
             playerName = playerName.Sanitize(CelesteNetPlayerSession.IllegalNameChars);
@@ -319,7 +320,7 @@ Who wants some tea?
             if (playerName.IsNullOrEmpty())
                 playerName = "Guest";
 
-            return ((playerUID, playerName), null);
+            return null;
         }
 
         public override int MinThreads => 1;

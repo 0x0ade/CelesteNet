@@ -14,49 +14,49 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private readonly byte[] PollBuffer = new byte[0];
 
-        private RWLock pollerLock;
-        private HashSet<ConPlusTCPUDPConnection> cons;
-        private BlockingCollection<ConPlusTCPUDPConnection> conQueue;
+        private RWLock PollerLock;
+        private HashSet<ConPlusTCPUDPConnection> Cons;
+        private BlockingCollection<ConPlusTCPUDPConnection> ConQueue;
 
         public TCPFallbackPoller() {
-            pollerLock = new RWLock();
-            cons = new HashSet<ConPlusTCPUDPConnection>();
-            conQueue = new BlockingCollection<ConPlusTCPUDPConnection>();
+            PollerLock = new RWLock();
+            Cons = new HashSet<ConPlusTCPUDPConnection>();
+            ConQueue = new BlockingCollection<ConPlusTCPUDPConnection>();
         }
 
         public void Dispose() {
-            using (pollerLock.W()) {
-                cons.Clear();
-                conQueue.Dispose();
-                pollerLock.Dispose();
+            using (PollerLock.W()) {
+                Cons.Clear();
+                ConQueue.Dispose();
+                PollerLock.Dispose();
             }
         }
 
         public void AddConnection(ConPlusTCPUDPConnection con) {
-            using (pollerLock.W())
-                cons.Add(con);
+            using (PollerLock.W())
+                Cons.Add(con);
             ArmConnectionPoll(con);
         }
 
         public void RemoveConnection(ConPlusTCPUDPConnection con) {
-            using (pollerLock.W())
-                cons.Remove(con);
+            using (PollerLock.W())
+                Cons.Remove(con);
         }
 
         public IEnumerable<ConPlusTCPUDPConnection> StartPolling(TCPReceiverRole role, CancellationToken token) {
-            return conQueue.GetConsumingEnumerable(token);
+            return ConQueue.GetConsumingEnumerable(token);
         }
 
         public void ArmConnectionPoll(ConPlusTCPUDPConnection con) {
-            using (pollerLock.R()) {
-                if (!cons.Contains(con))
+            using (PollerLock.R()) {
+                if (!Cons.Contains(con))
                     return;
 
                 con.TCPSocket.BeginReceive(PollBuffer, 0, 0, SocketFlags.None, _ => {
-                    using (pollerLock.R())
-                        if (cons.Contains(con))
-                            conQueue.Add(con);
-                }, null!);
+                    using (PollerLock.R())
+                        if (Cons.Contains(con))
+                            ConQueue.Add(con);
+                }, null);
             }
         }
 

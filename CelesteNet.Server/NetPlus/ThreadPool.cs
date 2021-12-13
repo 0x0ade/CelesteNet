@@ -6,65 +6,64 @@ using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class NetPlusThreadPool : IDisposable {
-        private bool disposed = false;
-        private RWLock poolLock;
-        private Stopwatch runtimeWatch;
+        private bool Disposed = false;
+        private RWLock _PoolLock;
+        private Stopwatch RuntimeWatch;
 
-        private NetPlusThread[] threads;
-        private int[] threadRestarts;
-        private CancellationTokenSource tokenSrc;
+        private NetPlusThread[] Threads;
+        private int[] ThreadRestarts;
+        private CancellationTokenSource TokenSrc;
 
-        private RWLock roleLock;
-        private IdleThreadRole idleRole;
-
-        private NetPlusRoleScheduler scheduler;
+        private RWLock _RoleLock;
+        private IdleThreadRole _IdleRole;
+        private NetPlusRoleScheduler _Scheduler;
 
         public NetPlusThreadPool(int numThreads, int maxThreadRestarts, int heuristicSampleWindow, float schedulerInterval, float underloadThreshold, float overloadThreshold, float stealThreshold) {
             MaxThreadsRestart = maxThreadRestarts;
             HeuristicSampleWindow = heuristicSampleWindow;
 
             // Start the runtime watch
-            runtimeWatch = new Stopwatch();
-            runtimeWatch.Start();
+            RuntimeWatch = new Stopwatch();
+            RuntimeWatch.Start();
 
             // Create locks
-            using ((poolLock = new RWLock()).W())
-            using ((roleLock = new RWLock()).W()) {
+            using ((_PoolLock = new RWLock()).W())
+            using ((_RoleLock = new RWLock()).W()) {
                 // Create threads
-                idleRole = new IdleThreadRole(this);
-                tokenSrc = new CancellationTokenSource();
+                TokenSrc = new CancellationTokenSource();
+                _IdleRole = new IdleThreadRole(this);
                 Logger.Log(LogLevel.INF, "netplus", $"Creating thread pool with {numThreads} threads");
-                threadRestarts = new int[numThreads];
-                threads = Enumerable.Range(0, numThreads).Select(idx => new NetPlusThread(this, idx, idleRole)).ToArray();
+                ThreadRestarts = new int[numThreads];
+                Threads = Enumerable.Range(0, numThreads).Select(idx => new NetPlusThread(this, idx, _IdleRole)).ToArray();
             }
 
             // Create the schedular
-            scheduler = new NetPlusRoleScheduler(this, schedulerInterval, underloadThreshold, overloadThreshold, stealThreshold);
+            _Scheduler = new NetPlusRoleScheduler(this, schedulerInterval, underloadThreshold, overloadThreshold, stealThreshold);
         }
 
         public void Dispose() {
-            if (disposed)
+            if (Disposed)
                 return;
-            disposed = true;
+            Disposed = true;
 
             // Stop the scheduler
-            scheduler.Dispose();
+            Scheduler.Dispose();
 
-            using (poolLock.W())
-            using (roleLock.W()) {
+            using (_PoolLock.W())
+            using (_RoleLock.W()) {
                 // Stop threads
-                tokenSrc.Dispose();
-                foreach (NetPlusThread thread in threads)
+                TokenSrc.Dispose();
+                foreach (NetPlusThread thread in Threads)
                     thread.Thread.Join();
 
-                runtimeWatch.Stop();
-                roleLock.Dispose();
-                poolLock.Dispose();
+                RuntimeWatch.Stop();
+                _RoleLock.Dispose();
+                _PoolLock.Dispose();
             }
         }
 
         public float IterateSteadyHeuristic(ref float lastVal, ref long lastUpdate, float curVal, bool update=false) {
-            long curMs = runtimeWatch.ElapsedMilliseconds;
+            long curMs = RuntimeWatch.ElapsedMilliseconds;
             long cutoffMs = curMs - HeuristicSampleWindow;
             float newVal = (lastUpdate < cutoffMs) ? curVal : ((lastVal * (lastUpdate - cutoffMs) + curVal * (curMs - lastUpdate)) / HeuristicSampleWindow);
             if (update) {
@@ -75,7 +74,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public float IterateEventHeuristic(ref float lastVal, ref long lastUpdate, int numEvents=0, bool update=false) {
-            long curMs = runtimeWatch.ElapsedMilliseconds;
+            long curMs = RuntimeWatch.ElapsedMilliseconds;
             long cutoffMs = curMs - HeuristicSampleWindow;
             float newVal = (((lastUpdate < cutoffMs) ? 0 : (lastVal * (lastUpdate - cutoffMs) / 1000f)) + numEvents) / HeuristicSampleWindow * 1000f;
             if (update) {
@@ -86,8 +85,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public IEnumerable<NetPlusThread> EnumerateThreads() {
-            using (poolLock.R())
-            foreach (NetPlusThread thread in threads)
+            using (PoolLock.R())
+            foreach (NetPlusThread thread in Threads)
                 yield return thread;
         }
 
@@ -104,73 +103,82 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.CRI, "netplus", $"Error in thread pool thread {thread.Index}: {ex}");
 
             // It's OK, we can start a new one... right?
-            if (!disposed) {
-                if (++threadRestarts[thread.Index] < MaxThreadsRestart) {
-                    using (poolLock.W()) {
-                        Logger.Log(LogLevel.DBG, "netplus", $"Restarting thread pool thread {thread.Index}");
-                        threads[thread.Index] = new NetPlusThread(this, thread.Index, thread.Role);
-                    }
-                } else throw new InvalidOperationException($"Too many restarts for thread pool thread {thread.Index}", ex);
+            if (!Disposed) {
+                using (PoolLock.W()) {
+                    if (++ThreadRestarts[thread.Index] < MaxThreadsRestart) {
+                            Logger.Log(LogLevel.DBG, "netplus", $"Restarting thread pool thread {thread.Index}");
+                            Threads[thread.Index] = new NetPlusThread(this, thread.Index, thread.Role);
+                    } else throw new InvalidOperationException($"Too many restarts for thread pool thread {thread.Index}", ex);
+                }
             }
         }
 
-        public RWLock PoolLock => poolLock;
-        public RWLock RoleLock => roleLock;
+        internal void IndicateThreadStable(NetPlusThread thread) {
+            // Decrement the thread's restart count
+            if (!Disposed) {
+                using (PoolLock.W()) {
+                    if (ThreadRestarts[thread.Index] > 0)
+                        ThreadRestarts[thread.Index]--;
+                }
+            }
+        }
 
-        public int NumThreads => threads.Length;
+        public RWLock PoolLock => _PoolLock;
+        public RWLock RoleLock => _RoleLock;
+
+        public int NumThreads => Threads.Length;
         public int MaxThreadsRestart { get; }
-        public IdleThreadRole IdleRole => idleRole;
-        public NetPlusRoleScheduler Scheduler => scheduler;
-        public CancellationToken Token => tokenSrc.Token;
+        public IdleThreadRole IdleRole => _IdleRole;
+        public NetPlusRoleScheduler Scheduler => _Scheduler;
+        public CancellationToken Token => TokenSrc.Token;
 
         public int HeuristicSampleWindow { get; }
-        public float ActivityRate => EnumerateThreads().Aggregate(0f, (a, t) => a + t.ActivityRate) / threads.Length;
+        public float ActivityRate => EnumerateThreads().Aggregate(0f, (a, t) => a + t.ActivityRate) / Threads.Length;
     }
 
     public class NetPlusThread {
-        private Thread thread;
-
-        private NetPlusThreadRole role;
-        private SemaphoreSlim roleSwitchSem;
-        private NetPlusThreadRole.RoleWorker? roleWorker;
-        private CancellationTokenSource? roleWorkerTokenSrc;
-        private float lastActivityRate = 0f;
+        private Thread _Thread;
+        private NetPlusThreadRole _Role;
+        private SemaphoreSlim RoleSwitchSem;
+        private NetPlusThreadRole.RoleWorker? _RoleWorker;
+        private CancellationTokenSource? RoleWorkerTokenSrc;
+        private float LastActivityRate = 0f;
 
         internal NetPlusThread(NetPlusThreadPool pool, int idx, NetPlusThreadRole initRole) {
             Pool = pool;
             Index = idx;
-            role = initRole;
-            roleSwitchSem = new SemaphoreSlim(0, 1);
+            _Role = initRole;
+            RoleSwitchSem = new SemaphoreSlim(0, 1);
 
             // Start the thread
-            thread = new Thread(ThreadLoop);
-            thread.Name = $"Thread Pool {pool} Thread {idx}";
-            thread.Start();
+            _Thread = new Thread(ThreadLoop);
+            _Thread.Name = $"CelesteNet.Server Thread Pool {pool} Thread {idx}";
+            _Thread.Start();
         }
 
         private void ThreadLoop() {
             CancellationToken? lastWorkerToken = null;
             try {
                 CancellationToken poolToken = Pool.Token;
-                poolToken.Register(() => roleWorkerTokenSrc?.Cancel());
+                poolToken.Register(() => RoleWorkerTokenSrc?.Cancel());
                 while (!poolToken.IsCancellationRequested) {
-                    Logger.Log(LogLevel.DBG, "netplus", $"Thread pool thread {Index} starting role worker for role {role}");
+                    Logger.Log(LogLevel.DBG, "netplus", $"Thread pool thread {Index} starting role worker for role {_Role}");
 
                     // Start the worker
-                    using (roleWorker = role.CreateWorker(this))
-                    using (roleWorkerTokenSrc = new CancellationTokenSource()) {
-                        lastWorkerToken = roleWorkerTokenSrc.Token;
-                        roleSwitchSem.Release();
+                    using (_RoleWorker = _Role.CreateWorker(this))
+                    using (RoleWorkerTokenSrc = new CancellationTokenSource()) {
+                        lastWorkerToken = RoleWorkerTokenSrc.Token;
+                        RoleSwitchSem.Release();
                         try {
-                            while (!roleWorkerTokenSrc.IsCancellationRequested) {
-                                roleWorker.StartWorker(roleWorkerTokenSrc.Token);
-                                if (!roleWorkerTokenSrc.IsCancellationRequested)
-                                    Logger.Log(LogLevel.WRN, "netplus", $"Thread pool thread {Index} worker {roleWorker} exited prematurely!");
+                            while (!RoleWorkerTokenSrc.IsCancellationRequested) {
+                                _RoleWorker.StartWorker(RoleWorkerTokenSrc.Token);
+                                if (!RoleWorkerTokenSrc.IsCancellationRequested)
+                                    Logger.Log(LogLevel.WRN, "netplus", $"Thread pool thread {Index} worker {_RoleWorker} exited prematurely!");
                             }
                         } finally {
-                            roleWorker.activeZoneCounter = 0;
-                            roleWorker = null;
-                            roleWorkerTokenSrc = null;
+                            _RoleWorker.ActiveZoneCounter = 0;
+                            _RoleWorker = null;
+                            RoleWorkerTokenSrc = null;
                         }
                     }
                 }
@@ -181,26 +189,26 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Pool.ReportThreadError(this, e);
             } finally {
                 // Dispose stuff
-                roleSwitchSem.Dispose();
+                RoleSwitchSem.Dispose();
             }
         }
 
         public NetPlusThreadPool Pool { get; }
         public int Index { get; }
-        public Thread Thread => thread;
+        public Thread Thread => _Thread;
         public NetPlusThreadRole Role {
-            get => role;
+            get => _Role;
             set {
-                if (role == value)
+                if (_Role == value)
                     return;
-                roleSwitchSem.Wait();
+                RoleSwitchSem.Wait();
                 using (Pool.RoleLock.R()) {
-                    role = value;
-                    roleWorkerTokenSrc?.Cancel();
+                    _Role = value;
+                    RoleWorkerTokenSrc?.Cancel();
                 }
             }
         }
-        public NetPlusThreadRole.RoleWorker? RoleWorker => roleWorker;
-        public float ActivityRate => lastActivityRate = roleWorker?.ActivityRate ?? lastActivityRate;
+        public NetPlusThreadRole.RoleWorker? RoleWorker => _RoleWorker;
+        public float ActivityRate => LastActivityRate = _RoleWorker?.ActivityRate ?? LastActivityRate;
     }
 }

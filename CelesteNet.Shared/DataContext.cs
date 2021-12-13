@@ -314,7 +314,7 @@ namespace Celeste.Mod.CelesteNet {
             if (lengthReal != length)
                 throw new InvalidDataException($"Length mismatch for DataType '{id}' {flags} {source} {length} - got {lengthReal}");
 
-            if (type != null && (flags & DataFlags.SlimHeader) != 0)
+            if (type != null && (flags & DataFlags.CoreType) != 0)
                 reader.SlimMap?.CountRead(type);
 
             return data;

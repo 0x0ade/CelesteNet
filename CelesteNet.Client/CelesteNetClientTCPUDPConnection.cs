@@ -11,78 +11,78 @@ using System.Threading;
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientTCPUDPConnection : CelesteNetTCPUDPConnection {
 
-        public const int TCPBufferSize = 16384;
-        public const int UDPBufferSize = 16384;
+        public const int TCPBufferSize = 65536;
+        public const int UDPBufferSize = 65536;
         public const int UDPEstablishDelay = 2;
         private static readonly byte[] UDPHolePunchMessage = new byte[] { 42 };
 
-        private BufferedSocketStream tcpStream;
-        private Socket udpRecvSocket, udpSendSocket;
-        private BlockingCollection<DataType> tcpSendQueue, udpSendQueue;
+        private BufferedSocketStream TCPStream;
+        private Socket UDPRecvSocket, UDPSendSocket;
+        private BlockingCollection<DataType> TCPSendQueue, UDPSendQueue;
 
-        private CancellationTokenSource tokenSrc;
-        private Thread tcpRecvThread, udpRecvThread, tcpSendThread, udpSendThread;
+        private CancellationTokenSource TokenSrc;
+        private Thread TCPRecvThread, UDPRecvThread, TCPSendThread, UDPSendThread;
 
         public CelesteNetClientTCPUDPConnection(DataContext data, uint token, Settings settings, Socket tcpSock) : base(data, token, settings, tcpSock, FlushTCPQueue, FlushUDPQueue) {
             // Initialize networking
             tcpSock.Blocking = false;
-            tcpStream = new BufferedSocketStream(TCPBufferSize) { Socket = tcpSock };
+            TCPStream = new BufferedSocketStream(TCPBufferSize) { Socket = tcpSock };
             IPAddress serverAddr = ((IPEndPoint) tcpSock.RemoteEndPoint).Address;
 
-            udpRecvSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
-            udpRecvSocket.EnableEndpointReuse();
-            udpRecvSocket.Connect(serverAddr, settings.UDPSendPort);
+            UDPRecvSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+            UDPRecvSocket.EnableEndpointReuse();
+            UDPRecvSocket.Connect(serverAddr, settings.UDPSendPort);
 
-            udpSendSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
-            udpSendSocket.EnableEndpointReuse();
-            udpSendSocket.Bind(udpRecvSocket.LocalEndPoint);
-            udpSendSocket.Connect(serverAddr, settings.UDPReceivePort);
+            UDPSendSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+            UDPSendSocket.EnableEndpointReuse();
+            UDPSendSocket.Bind(UDPRecvSocket.LocalEndPoint);
+            UDPSendSocket.Connect(serverAddr, settings.UDPReceivePort);
 
             OnUDPDeath += (_, _) => {
                 CelesteNetClientModule.Instance?.Context?.Status?.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
             };
 
-            tcpSendQueue = new BlockingCollection<DataType>();
-            udpSendQueue = new BlockingCollection<DataType>();
+            TCPSendQueue = new BlockingCollection<DataType>();
+            UDPSendQueue = new BlockingCollection<DataType>();
 
             // Start threads
-            tokenSrc = new CancellationTokenSource();
-            tcpRecvThread = new Thread(TCPRecvThreadFunc) { Name = "TCP Send Thread" };
-            udpRecvThread = new Thread(UDPRecvThreadFunc) { Name = "UDP Send Thread" };
-            tcpSendThread = new Thread(TCPSendThreadFunc) { Name = "TCP Recv Thread" };
-            udpSendThread = new Thread(UDPSendThreadFunc) { Name = "UDP Recv Thread" };
+            TokenSrc = new CancellationTokenSource();
+            TCPRecvThread = new Thread(TCPRecvThreadFunc) { Name = "CelesteNet.Client TCP Send Thread" };
+            UDPRecvThread = new Thread(UDPRecvThreadFunc) { Name = "CelesteNet.Client UDP Send Thread" };
+            TCPSendThread = new Thread(TCPSendThreadFunc) { Name = "CelesteNet.Client TCP Recv Thread" };
+            UDPSendThread = new Thread(UDPSendThreadFunc) { Name = "CelesteNet.Client UDP Recv Thread" };
 
-            tcpRecvThread.Start();
-            udpRecvThread.Start();
-            tcpSendThread.Start();
-            udpSendThread.Start();
+            TCPRecvThread.Start();
+            UDPRecvThread.Start();
+            TCPSendThread.Start();
+            UDPSendThread.Start();
         }
 
         protected override void Dispose(bool disposing) {
             // Wait for threads
-            tokenSrc.Cancel();
+            TokenSrc.Cancel();
             TCPSocket.ShutdownSafe(SocketShutdown.Both);
-            udpRecvSocket.Close();
-            udpSendSocket.Close();
+            UDPRecvSocket.Close();
+            UDPSendSocket.Close();
 
-            if (Thread.CurrentThread != tcpRecvThread)
-                tcpRecvThread.Join();
-            if (Thread.CurrentThread != udpRecvThread)
-                udpRecvThread.Join();
-            if (Thread.CurrentThread != tcpSendThread)
-                tcpSendThread.Join();
-            if (Thread.CurrentThread != udpSendThread)
-                udpSendThread.Join();
+            if (Thread.CurrentThread != TCPRecvThread)
+                TCPRecvThread.Join();
+            if (Thread.CurrentThread != UDPRecvThread)
+                UDPRecvThread.Join();
+            if (Thread.CurrentThread != TCPSendThread)
+                TCPSendThread.Join();
+            if (Thread.CurrentThread != UDPSendThread)
+                UDPSendThread.Join();
 
             base.Dispose(disposing);
 
             // Dispose stuff
-            tokenSrc.Dispose();
-            tcpStream.Dispose();
-            udpRecvSocket.Dispose();
-            udpSendSocket.Dispose();
-            tcpSendQueue.Dispose();
-            udpSendQueue.Dispose();
+            TokenSrc.Dispose();
+            TCPStream.Dispose();
+            UDPRecvSocket.Dispose();
+            UDPSendSocket.Dispose();
+            TCPSendQueue.Dispose();
+            UDPSendQueue.Dispose();
         }
 
         public override string DoHeartbeatTick() {
@@ -93,13 +93,13 @@ namespace Celeste.Mod.CelesteNet.Client {
             lock (UDPLock) {
                 if (UseUDP && UDPEndpoint == null) {
                     // Initialize an unestablished connection and send the token
-                    InitUDP(udpSendSocket.RemoteEndPoint, -1, 0);
-                    udpSendQueue.Add(null);
+                    InitUDP(UDPSendSocket.RemoteEndPoint, -1, 0);
+                    UDPSendQueue.Add(null);
                 }
 
                 if (UDPEndpoint != null) {
                     // Punch a hole so that the server's packets can reach us
-                    udpRecvSocket?.Send(UDPHolePunchMessage);
+                    UDPRecvSocket?.Send(UDPHolePunchMessage);
                 }
             }
 
@@ -109,8 +109,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         private void TCPRecvThreadFunc() {
             try {
                 byte[] packetBuffer = new byte[ConnectionSettings.MaxPacketSize];
-                using (BinaryReader tcpReader = new BinaryReader(tcpStream, Encoding.UTF8, true)) {
-                    while (!tokenSrc.IsCancellationRequested) {
+                using (BinaryReader tcpReader = new BinaryReader(TCPStream, Encoding.UTF8, true)) {
+                    while (!TokenSrc.IsCancellationRequested) {
                         // Read the packet
                         UInt16 packetSize = tcpReader.ReadUInt16();
                         if (packetSize > ConnectionSettings.MaxPacketSize)
@@ -150,17 +150,17 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
 
             } catch (EndOfStreamException) {
-                if (!tokenSrc.IsCancellationRequested) {
+                if (!TokenSrc.IsCancellationRequested) {
                     Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
                     DisposeSafe();
                 }
                 return;
 
             } catch (Exception e) {
-                if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
+                if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
                     return;
 
-                if ((e is IOException || e is SocketException) && tokenSrc.IsCancellationRequested)
+                if ((e is IOException || e is SocketException) && TokenSrc.IsCancellationRequested)
                     return;
 
                 Logger.Log(LogLevel.WRN, "tcprecv", $"Error in TCP receiving thread: {e}");
@@ -171,10 +171,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         private void UDPRecvThreadFunc() {
             try {
                 byte[] buffer = new byte[UDPBufferSize];
-                while (!tokenSrc.IsCancellationRequested) {
+                while (!TokenSrc.IsCancellationRequested) {
                     try {
                         // Receive a datagram
-                        int dgSize = udpRecvSocket.Receive(buffer);
+                        int dgSize = UDPRecvSocket.Receive(buffer);
                         if (dgSize <= 0)
                             continue;
 
@@ -204,7 +204,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         PromoteOptimizations();
 
                     } catch (Exception e) {
-                        if (e is SocketException se && tokenSrc.IsCancellationRequested)
+                        if (e is SocketException se && TokenSrc.IsCancellationRequested)
                             return;
 
                         Logger.Log(LogLevel.WRN, "udprecv", $"Error in UDP receiving thread: {e}");
@@ -213,10 +213,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
 
             } catch (Exception e) {
-                if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
+                if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
                     return;
                 
-                if (e is SocketException && tokenSrc.IsCancellationRequested)
+                if (e is SocketException && TokenSrc.IsCancellationRequested)
                     return;
 
                 Logger.Log(LogLevel.WRN, "udprecv", $"Error in UDP receiving thread: {e}");
@@ -226,12 +226,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void TCPSendThreadFunc() {
             try {
-                using (BinaryWriter tcpWriter = new BinaryWriter(tcpStream, Encoding.UTF8, true))
+                using (BinaryWriter tcpWriter = new BinaryWriter(TCPStream, Encoding.UTF8, true))
                 using (MemoryStream mStream = new MemoryStream(ConnectionSettings.MaxPacketSize))
                 using (CelesteNetBinaryWriter bufWriter = new CelesteNetBinaryWriter(Data, Strings, SlimMap, mStream))
-                foreach (DataType p in tcpSendQueue.GetConsumingEnumerable(tokenSrc.Token)) {
+                foreach (DataType p in TCPSendQueue.GetConsumingEnumerable(TokenSrc.Token)) {
                     // Try to send as many packets as possible
-                    for (DataType packet = p; packet != null; packet = tcpSendQueue.TryTake(out packet) ? packet : null) {
+                    for (DataType packet = p; packet != null; packet = TCPSendQueue.TryTake(out packet) ? packet : null) {
                         mStream.Position = 0;
                         Data.Write(bufWriter, packet);
                         bufWriter.Flush();
@@ -247,7 +247,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
 
             } catch (Exception e) {
-                if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
+                if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
                     return;
 
                 Logger.Log(LogLevel.WRN, "tcpsend", $"Error in TCP sending thread: {e}");
@@ -257,10 +257,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void UDPSendThreadFunc() {
             try {
-                byte[] dgBuffer = null;
+                byte[] dgBuffer = new byte[UDPBufferSize];
                 using (MemoryStream mStream = new MemoryStream(ConnectionSettings.MaxPacketSize))
                 using (CelesteNetBinaryWriter bufWriter = new CelesteNetBinaryWriter(Data, Strings, SlimMap, mStream))
-                foreach (DataType p in udpSendQueue.GetConsumingEnumerable(tokenSrc.Token)) {
+                foreach (DataType p in UDPSendQueue.GetConsumingEnumerable(TokenSrc.Token)) {
                     try {
                         lock (UDPLock) {
                             if (!UseUDP)
@@ -270,21 +270,17 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 // Try to establish the UDP connection
                                 // If it succeeeds, we'll receive a UDPInfo packet with our connection parameters
                                 if (p == null) {
-                                    udpRecvSocket?.Send(UDPHolePunchMessage);
-                                    udpSendSocket.Send(new byte[] { 0xff }.Concat(BitConverter.GetBytes(ConnectionToken)).ToArray());
+                                    UDPRecvSocket?.Send(UDPHolePunchMessage);
+                                    UDPSendSocket.Send(new byte[] { 0xff }.Concat(BitConverter.GetBytes(ConnectionToken)).ToArray());
                                 }
                                 continue;
                             } else if (UDPEndpoint == null || p == null)
                                 continue;
 
-                            // Adjust the datagram buffer size
-                            if (dgBuffer == null || dgBuffer.Length != UDPMaxDatagramSize)
-                                Array.Resize(ref dgBuffer, UDPMaxDatagramSize);
-
                             // Try to send as many packets as possible
                             dgBuffer[0] = NextUDPContainerID();
                             int bufOff = 1;
-                            for (DataType packet = p; packet != null; packet = udpSendQueue.TryTake(out packet, 0) ? packet : null) {
+                            for (DataType packet = p; packet != null; packet = UDPSendQueue.TryTake(out packet, 0) ? packet : null) {
                                 mStream.Position = 0;
                                 Data.Write(bufWriter, packet);
                                 bufWriter.Flush();
@@ -293,7 +289,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 // Copy packet data to the container buffer
                                 if (bufOff + packLen > dgBuffer.Length) {
                                     // Send container & start a new one
-                                    udpSendSocket.Send(dgBuffer, bufOff, SocketFlags.None);
+                                    UDPSendSocket.Send(dgBuffer, bufOff, SocketFlags.None);
                                     dgBuffer[0] = NextUDPContainerID();
                                     bufOff = 1;
                                 }
@@ -307,7 +303,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                             // Send the last container
                             if (bufOff > 1)
-                                udpSendSocket.Send(dgBuffer, bufOff, SocketFlags.None);
+                                UDPSendSocket.Send(dgBuffer, bufOff, SocketFlags.None);
                         }
 
                     } catch (Exception e) {
@@ -317,7 +313,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
 
             } catch (Exception e) {
-                if (e is OperationCanceledException oe && oe.CancellationToken == tokenSrc.Token)
+                if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
                     return;
 
                 Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");
@@ -328,14 +324,14 @@ namespace Celeste.Mod.CelesteNet.Client {
         private static void FlushTCPQueue(CelesteNetSendQueue queue) {
             CelesteNetClientTCPUDPConnection con = (CelesteNetClientTCPUDPConnection) queue.Con;
             foreach (DataType packet in queue.BackQueue)
-                con.tcpSendQueue.Add(packet);
+                con.TCPSendQueue.Add(packet);
             queue.SignalFlushed();
         }
 
         private static void FlushUDPQueue(CelesteNetSendQueue queue) {
             CelesteNetClientTCPUDPConnection con = (CelesteNetClientTCPUDPConnection) queue.Con;
             foreach (DataType packet in queue.BackQueue)
-                con.udpSendQueue.Add(packet);
+                con.UDPSendQueue.Add(packet);
             queue.SignalFlushed();
         }
 

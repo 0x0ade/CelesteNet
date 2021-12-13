@@ -88,19 +88,24 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // Create a TCP connection
                         Socket sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
                         try {
-                            (uint conToken, IConnectionFeature[] conFeatures, CelesteNetTCPUDPConnection.Settings settings) teapotRes;
+                            uint conToken;
+                            IConnectionFeature[] conFeatures;
+                            CelesteNetTCPUDPConnection.Settings settings;
                             using (token.Register(() => sock.Close())) {
                                 sock.ReceiveTimeout = sock.SendTimeout = 5000;
                                 sock.Connect(Settings.Host, Settings.Port);
 
                                 // Do the teapot handshake
-                                teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
-                                Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {teapotRes.conToken} conFeatures '{teapotRes.conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}'");
+                                var teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
+                                conToken = teapotRes.Item1;
+                                conFeatures = teapotRes.Item2;
+                                settings = teapotRes.Item3;
+                                Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {conToken} conFeatures '{conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}'");
                                 sock.ReceiveTimeout = sock.SendTimeout = -1;
                             }
 
                             // Create a connection and start the heartbeat timer
-                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, teapotRes.conToken, teapotRes.settings, sock);
+                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, conToken, settings, sock);
                             con.OnDisconnect += _ => {
                                 CelesteNetClientModule.Instance.Context?.Dispose();
                                 Dispose();
@@ -110,9 +115,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 con.UseUDP = false;
 
                             // Initialize the heartbeat timer
-                            heartbeatTimer = new(teapotRes.settings.HeartbeatInterval);
-                            heartbeatTimer.AutoReset = true;
-                            heartbeatTimer.Elapsed += (_, _) => {
+                            HeartbeatTimer = new(settings.HeartbeatInterval);
+                            HeartbeatTimer.AutoReset = true;
+                            HeartbeatTimer.Elapsed += (_, _) => {
                                 string disposeReason = con.DoHeartbeatTick();
                                 if (disposeReason != null) {
                                     Logger.Log(LogLevel.CRI, "main", disposeReason);
@@ -120,10 +125,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                                     Dispose();
                                 }
                             };
-                            heartbeatTimer.Start();
+                            HeartbeatTimer.Start();
 
                             // Do the regular connection handshake
-                            Handshake.DoConnectionHandshake(Con, teapotRes.conFeatures, token);
+                            Handshake.DoConnectionHandshake(Con, conFeatures, token);
                             Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
 
                             Con = con;
@@ -165,7 +170,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Logger.Log(LogLevel.CRI, "main", "Shutdown");
                 IsReady = false;
 
-                heartbeatTimer?.Dispose();
+                HeartbeatTimer?.Dispose();
                 Con?.Dispose();
                 Con = null;
 

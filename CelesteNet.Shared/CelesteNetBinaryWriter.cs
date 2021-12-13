@@ -19,14 +19,14 @@ namespace Celeste.Mod.CelesteNet {
         public OptMap<string>? Strings;
         public OptMap<Type>? SlimMap;
 
-        protected ConcurrentStack<(long pos, int size)> SizeDummyStack;
+        protected ConcurrentStack<Tuple<long, int>> SizeDummyStack;
 
         public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output)
             : base(output, CelesteNetUtils.UTF8NoBOM) {
             Data = ctx;
             Strings = strings;
             SlimMap = slimMap;
-            SizeDummyStack = new ConcurrentStack<(long, int)>();
+            SizeDummyStack = new ConcurrentStack<Tuple<long, int>>();
         }
 
         public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output, bool leaveOpen)
@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet {
             Data = ctx;
             Strings = strings;
             SlimMap = slimMap;
-            SizeDummyStack = new ConcurrentStack<(long, int)>();
+            SizeDummyStack = new ConcurrentStack<Tuple<long, int>>();
         }
 
         public virtual void WriteSizeDummy(int size) {
@@ -50,24 +50,26 @@ namespace Celeste.Mod.CelesteNet {
             else
                 throw new ArgumentException($"Invalid size dummy size {size}");
 
-            SizeDummyStack.Push((pos, size));
+            SizeDummyStack.Push(new Tuple<long, int>(pos, size));
         }
 
         public virtual void UpdateSizeDummy() {
             if (!SizeDummyStack.TryPop(out var dummy))
                 throw new InvalidOperationException("No size dummy on the stack");
+            long dummyPos = dummy.Item1;
+            int dummySize = dummy.Item2;
 
             Flush();
             long end = BaseStream.Position;
-            long length = end - (dummy.pos + dummy.size);
+            long length = end - (dummyPos + dummySize);
 
-            BaseStream.Seek(dummy.pos, SeekOrigin.Begin);
+            BaseStream.Seek(dummyPos, SeekOrigin.Begin);
 
-            if (dummy.size == 1)
+            if (dummySize == 1)
                 Write((byte) length);
-            else if (dummy.size == 2)
+            else if (dummySize == 2)
                 Write((ushort) length);
-            else if (dummy.size == 4)
+            else if (dummySize == 4)
                 Write((uint) length);
 
             Flush();

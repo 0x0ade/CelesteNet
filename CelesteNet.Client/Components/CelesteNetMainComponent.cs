@@ -265,7 +265,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost.UpdatePosition(frame.Position, frame.Scale, frame.Facing, frame.Speed);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
                 ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion);
-                ghost.UpdateDash(frame.Dash); // TODO: Get rid of this, sync particles separately!
+                ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
                 ghost.UpdateDead(frame.Dead && state.Level == session.Level);
                 ghost.UpdateFollowers((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
                 ghost.UpdateHolding((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? null : frame.Holding);
@@ -988,7 +988,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Holding = holding,
 
                     // TODO: Get rid of this, sync particles separately!
-                    Dash = player.StateMachine.State == Player.StDash ? (player.GetWasDashB(), player.DashDir) : ((bool, Vector2)?) null,
+                    DashWasB = player.StateMachine.State == Player.StDash ? player.GetWasDashB() : null,
+                    DashDir  = player.StateMachine.State == Player.StDash ? player.DashDir : null,
 
                     Dead = player.Dead
                 });

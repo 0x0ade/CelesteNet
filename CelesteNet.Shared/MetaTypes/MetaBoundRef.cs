@@ -29,13 +29,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override void Read(CelesteNetBinaryReader reader) {
             TypeBoundTo = reader.ReadNetMappedString();
-            ID = unchecked((uint) reader.Read7BitEncodedInt());
+            ID = reader.Read7BitEncodedUInt();
             IsAlive = reader.ReadBoolean();
         }
 
         public override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteNetMappedString(TypeBoundTo);
-            writer.Write7BitEncodedInt(unchecked((int) ID));
+            writer.Write7BitEncodedUInt(ID);
             writer.Write(IsAlive);
         }
 

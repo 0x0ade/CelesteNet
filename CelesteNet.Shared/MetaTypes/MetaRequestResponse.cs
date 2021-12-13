@@ -24,11 +24,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Read(CelesteNetBinaryReader reader) {
-            ID = unchecked((uint) reader.Read7BitEncodedInt());
+            ID = reader.Read7BitEncodedUInt();
         }
 
         public override void Write(CelesteNetBinaryWriter writer) {
-            writer.Write7BitEncodedInt(unchecked((int) ID));
+            writer.Write7BitEncodedUInt(ID);
         }
 
         public static implicit operator uint(MetaRequestResponse meta)

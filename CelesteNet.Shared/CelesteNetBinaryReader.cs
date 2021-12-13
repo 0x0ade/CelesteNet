@@ -34,6 +34,8 @@ namespace Celeste.Mod.CelesteNet {
 
         public new int Read7BitEncodedInt()
             => base.Read7BitEncodedInt();
+        public uint Read7BitEncodedUInt()
+            => unchecked((uint) Read7BitEncodedInt());
 
         public virtual Vector2 ReadVector2()
             => new(ReadSingle(), ReadSingle());
@@ -114,14 +116,14 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public T? ReadRef<T>() where T : DataType<T> {
-            uint id = unchecked((uint) Read7BitEncodedInt());
+            uint id = Read7BitEncodedUInt();
             if (id == uint.MaxValue)
                 throw new InvalidDataException($"Expected reference to '{Data.DataTypeToID[typeof(T)]}', but didn't get one");
             return Data.GetRef<T>(id);
         }
 
         public T? ReadOptRef<T>() where T : DataType<T>
-            => Data.TryGetRef(unchecked((uint) Read7BitEncodedInt()), out T? value) ? value : null;
+            => Data.TryGetRef(Read7BitEncodedUInt(), out T? value) ? value : null;
 
     }
 }

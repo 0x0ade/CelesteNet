@@ -64,11 +64,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void Read(CelesteNetBinaryReader reader) {
-            reader.Data.TryGetRef(unchecked((uint) reader.Read7BitEncodedInt()), out Player);
+            reader.Data.TryGetRef(reader.Read7BitEncodedUInt(), out Player);
         }
 
         public override void Write(CelesteNetBinaryWriter writer) {
-            writer.Write7BitEncodedInt(unchecked((int) (Player?.ID ?? uint.MaxValue)));
+            writer.Write7BitEncodedUInt(Player?.ID ?? uint.MaxValue);
         }
 
         public static implicit operator DataPlayerInfo?(MetaPlayerBaseType<T> meta)

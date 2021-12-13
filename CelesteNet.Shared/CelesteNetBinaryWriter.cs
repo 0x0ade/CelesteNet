@@ -78,6 +78,8 @@ namespace Celeste.Mod.CelesteNet {
 
         public new void Write7BitEncodedInt(int value)
             => base.Write7BitEncodedInt(value);
+        public void Write7BitEncodedUInt(uint value)
+            => Write7BitEncodedInt(unchecked((int) value));
 
         public virtual void Write(Vector2 value) {
             Write(value.X);
@@ -131,10 +133,10 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void WriteRef<T>(T? data) where T : DataType<T>
-            => Write7BitEncodedInt(unchecked((int) ((data ?? throw new Exception($"Expected {Data.DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(Data) ?? uint.MaxValue)));
+            => Write7BitEncodedUInt((data ?? throw new ArgumentException($"Expected {Data.DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(Data) ?? uint.MaxValue);
 
         public void WriteOptRef<T>(T? data) where T : DataType<T>
-            => Write7BitEncodedInt(unchecked((int) (data?.GetOpt<MetaRef>(Data) ?? uint.MaxValue)));
+            => Write7BitEncodedUInt(data?.GetOpt<MetaRef>(Data) ?? uint.MaxValue);
 
     }
 }

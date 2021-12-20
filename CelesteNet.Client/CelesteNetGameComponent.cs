@@ -10,14 +10,14 @@ using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client {
-    public abstract class CelesteNetGameComponent : DrawableGameComponent {
+    public abstract class CelesteNetGameComponent : DrawableGameComponent, Components.ITickReceiver {
 
         public const int UI_WIDTH = 1920;
         public const int UI_HEIGHT = 1080;
 
         public static bool IsDrawingUI;
 
-        public CelesteNetClientContext Context;
+        public readonly CelesteNetClientContext Context;
         public CelesteNetClient Client => Context?.Client;
         public CelesteNetClientSettings ClientSettings => Context?.Client?.Settings ?? CelesteNetClientModule.Settings;
         public CelesteNetClientSettings Settings => CelesteNetClientModule.Settings;
@@ -49,6 +49,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             if (AutoRemove && Context.Game == null)
                 Dispose();
+        }
+
+        public virtual void Tick() {
         }
 
         protected virtual void Render(GameTime gameTime, bool toBuffer) {

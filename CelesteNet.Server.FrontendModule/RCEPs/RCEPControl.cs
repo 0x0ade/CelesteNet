@@ -140,22 +140,136 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }).ToList());
         }
 
+        private static float NetPlusPoolActvRate;
+        private static object[]? NetPlusThreadStats;
+        private static object[]? NetPlusRoleStats;
+
+        private struct BandwidthRate {
+
+            public float GlobalRate, MinConRate, MaxConRate, AvgConRate;
+
+            public void UpdateRate(CelesteNetServer server, Func<CelesteNetConnection, float?> cb) {
+                GlobalRate = 0;
+                MinConRate = float.MaxValue;
+                MaxConRate = float.MinValue;
+                AvgConRate = 0;
+                int numCons = 0;
+                foreach (CelesteNetConnection con in server.Connections) {
+                    float? r = cb(con);
+                    if (r == null)
+                        continue;
+                    float conRate = r.Value;
+
+                    GlobalRate += conRate;
+                    if (conRate < MinConRate)
+                        MinConRate = conRate;
+                    if (conRate > MaxConRate)
+                        MaxConRate = conRate;
+                    AvgConRate += conRate;
+                    numCons++;
+                }
+                if (numCons > 0)
+                    AvgConRate /= numCons;
+                else
+                    MinConRate = MaxConRate = AvgConRate = 0;
+            }
+
+        }
+
+        private static object StatLock = new object();
+        private static int NumCons, NumTCPCons, NumUDPCons;
+        private static BandwidthRate TCPRecvBpSRate, TCPRecvPpSRate, TCPSendBpSRate, TCPSendPpSRate;
+        private static BandwidthRate UDPRecvBpSRate, UDPRecvPpSRate, UDPSendBpSRate, UDPSendPpSRate;
+
+        public static void UpdateStats(CelesteNetServer server) {
+            lock (StatLock) {
+                // Update connection stats
+                NumCons = 0;
+                NumTCPCons = 0;
+                NumUDPCons = 0;
+                using (server.ConLock.R())
+                    foreach (CelesteNetConnection con in server.Connections) {
+                        NumCons++;
+                        if (con is CelesteNetTCPUDPConnection tcpUdpCon) {
+                            NumTCPCons++;
+                            if (tcpUdpCon.UDPConnectionID >= 0)
+                                NumUDPCons++;
+                        }
+                    }
+
+                // Update bandwith stats
+                using (server.ConLock.R()) {
+                    TCPRecvBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPRecvRate.ByteRate : null);
+                    TCPRecvPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPRecvRate.PacketRate : null);
+                    TCPSendBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPSendRate.ByteRate : null);
+                    TCPSendPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPSendRate.PacketRate : null);
+                    UDPRecvBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPRecvRate.ByteRate : null);
+                    UDPRecvPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPRecvRate.PacketRate : null);
+                    UDPSendBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPSendRate.ByteRate : null);
+                    UDPSendPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.UDPSendRate.PacketRate : null);
+                }
+
+                // Update NetPlus stats
+                using (server.ThreadPool.PoolLock.R())
+                using (server.ThreadPool.RoleLock.R())
+                using (server.ThreadPool.Scheduler.RoleLock.R()) {
+                    NetPlusPoolActvRate = server.ThreadPool.ActivityRate;
+                    NetPlusThreadStats = server.ThreadPool.EnumerateThreads().Select(t => new {
+                        ActivityRate = t.ActivityRate,
+                        Role = t.Role.ToString()
+                    }).ToArray();
+                    NetPlusRoleStats = server.ThreadPool.Scheduler.EnumerateRoles().Select(r => new {
+                        Role = r.ToString(),
+                        ActivityRate = r.ActivityRate,
+                        NumThreads = server.ThreadPool.EnumerateThreads().Count(t => t.Role == r)
+                    }).ToArray();
+                }
+            }
+        }
+
         [RCEndpoint(false, "/status", null, null, "Server Status", "Basic server status information.")]
         public static void Status(Frontend f, HttpRequestEventArgs c) {
             bool auth = f.IsAuthorized(c);
-            f.RespondJSON(c, new {
-                StartupTime = f.Server.StartupTime.ToUnixTime(),
-                GCMemory = GC.GetTotalMemory(false),
-                Modules = f.Server.Modules.Count,
-                f.Server.PlayerCounter,
-                Registered = f.Server.UserData.GetRegisteredCount(),
-                Banned = f.Server.UserData.LoadAll<BanInfo>().GroupBy(ban => ban.UID).Select(g => g.First()).Count(ban => !ban.Reason.IsNullOrEmpty()),
-                Connections = auth ? f.Server.Connections.Count : (int?) null,
-                Sessions = auth ? f.Server.Sessions.Count : (int?) null,
-                PlayersByCon = auth ? f.Server.PlayersByCon.Count : (int?) null,
-                PlayersByID = auth ? f.Server.PlayersByID.Count : (int?) null,
-                PlayerRefs = f.Server.Data.GetRefs<DataPlayerInfo>().Length
-            });
+            lock (StatLock)
+                f.RespondJSON(c, new {
+                    StartupTime = f.Server.StartupTime.ToUnixTime(),
+                    GCMemory = GC.GetTotalMemory(false),
+                    Modules = f.Server.Modules.Count,
+                    TickRate = f.Server.CurrentTickRate,
+
+                    f.Server.PlayerCounter,
+                    Registered = f.Server.UserData.GetRegisteredCount(),
+                    Banned = f.Server.UserData.LoadAll<BanInfo>().GroupBy(ban => ban.UID).Select(g => g.First()).Count(ban => !ban.Reason.IsNullOrEmpty()),
+
+                    Connections = auth ? NumCons : (int?) null,
+                    TCPConnections = auth ? NumTCPCons : (int?) null,
+                    UDPConnections = auth ? NumUDPCons : (int?) null,
+                    Sessions = auth ? f.Server.Sessions.Count : (int?) null,
+                    PlayersByCon = auth ? f.Server.PlayersByCon.Count : (int?) null,
+                    PlayersByID = auth ? f.Server.PlayersByID.Count : (int?) null,
+                    PlayerRefs = f.Server.Data.GetRefs<DataPlayerInfo>().Length,
+
+                    TCPDownlinkBpS = TCPRecvBpSRate, TCPDownlinkPpS = TCPRecvPpSRate,
+                    UDPDownlinkBpS = UDPRecvBpSRate, UDPDownlinkPpS = UDPRecvPpSRate,
+                    TCPUplinkBpS = TCPSendBpSRate, TCPUplinkPpS = TCPSendPpSRate,
+                    UDPUplinkBpS = UDPSendBpSRate, UDPUplinkPpS = UDPSendPpSRate,
+                });
+        }
+
+
+        [RCEndpoint(false, "/netplus", null, null, "NetPlus Status", "Status information about NetPlus")]
+        public static void NetPlus(Frontend f, HttpRequestEventArgs c) {
+            lock (StatLock)
+                f.RespondJSON(c, new {
+                    PoolActivityRate = NetPlusPoolActvRate,
+                    PoolNumThreads = f.Server.ThreadPool.NumThreads,
+                    PoolThreads = NetPlusThreadStats,
+                    PoolRoles = NetPlusRoleStats,
+
+                    SchedulerExecDuration = f.Server.ThreadPool.Scheduler.LastSchedulerExecDuration,
+                    SchedulerNumThreadsReassigned = f.Server.ThreadPool.Scheduler.LastSchedulerExecNumThreadsReassigned,
+                    SchedulerNumThreadsIdled = f.Server.ThreadPool.Scheduler.LastSchedulerExecNumThreadsIdeling
+                });
         }
 
         [RCEndpoint(true, "/userinfos", "?from={first}&count={count}", "?from=0&count=100", "User Infos", "Get some basic information about ALL users.")]
@@ -200,13 +314,23 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void Players(Frontend f, HttpRequestEventArgs c) {
             bool auth = f.IsAuthorized(c);
             f.RespondJSON(c, f.Server.PlayersByID.Values.Select(p => new {
-                p.ID,
+                p.SessionID,
                 UID = auth ? p.UID : null,
                 p.PlayerInfo?.Name,
                 p.PlayerInfo?.FullName,
                 p.PlayerInfo?.DisplayName,
+
                 Connection = auth ? p.Con.ID : null,
-                ConnectionUID = auth ? p.ConUID : null,
+                ConnectionUID = auth ? p.Con.UID : null,
+
+                TCPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.ByteRate : null,
+                TCPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.PacketRate : null,
+                TCPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.ByteRate : null,
+                TCPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.PacketRate : null,
+                UDPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPRecvRate.ByteRate : null,
+                UDPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPRecvRate.PacketRate : null,
+                UDPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendRate.ByteRate : null,
+                UDPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendRate.PacketRate : null,
             }).ToArray());
         }
 
@@ -217,7 +341,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 channels = channels.Where(c => !c.IsPrivate);
             f.RespondJSON(c, channels.Select(c => new {
                 c.ID, c.Name, c.IsPrivate,
-                Players = c.Players.Select(p => p.ID).ToArray()
+                Players = c.Players.Select(p => p.SessionID).ToArray()
             }).ToArray());
         }
 

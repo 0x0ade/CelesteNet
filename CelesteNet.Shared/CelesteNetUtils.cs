@@ -7,8 +7,10 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -23,17 +25,6 @@ namespace Celeste.Mod.CelesteNet {
         public static readonly int ClientRCPort = 38038;
 
         public static readonly Encoding UTF8NoBOM = new UTF8Encoding(false);
-
-        public static readonly string HTTPTeapotConFeatures = "CelesteNet-ConnectionFeatures: ";
-        public static readonly string HTTPTeapotConToken = "CelesteNet-ConnectionToken: ";
-        public static readonly string HTTPTeapot = $"HTTP/1.1 418 I'm a teapot\r\nContent-Length: 0\r\n{HTTPTeapotConFeatures}{{0}}\r\n{HTTPTeapotConToken}{{1}}\r\nConnection: close\r\n\r\n";
-
-        public static readonly char[] ConnectionFeatureSeparators = { ';' };
-        public static readonly string ConnectionFeatureSeparator = ";";
-
-        public static readonly string[] ConnectionFeaturesBuiltIn = {
-            StringMap.ConnectionFeature
-        };
 
         // See https://github.com/dotnet/runtime/blob/144e5145453ac3885ac20bc1f1f2641523c6fcea/src/libraries/System.Private.CoreLib/src/System/String.cs#L488
         public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
@@ -208,6 +199,55 @@ namespace Celeste.Mod.CelesteNet {
                 if (buffer.Length != length)
                     buffer = ms.ToArray();
                 return buffer;
+            }
+        }
+
+        public static void ShutdownSafe(this Socket sock, SocketShutdown shutdown) {
+            if (!sock.Connected)
+                return;
+            try {
+                sock.Shutdown(shutdown);
+            } catch (SocketException se) {
+                // Sometime the first check isn't enough
+                if (se.IsDisconnect())
+                    return;
+                throw;
+            }
+        }
+
+        private const int SOL_SOCKET = 1, SO_REUSEPORT = 15;
+        [DllImport("libc", SetLastError = true)]
+        private static extern int setsockopt(IntPtr socket, int level, int opt, [In, MarshalAs(UnmanagedType.LPArray)] int[] val, int len);
+
+        public static void EnableEndpointReuse(this Socket sock) {
+            // Set reuse address and port options (if available)
+            // We have to set SO_REUSEPORT directly though
+            sock.ExclusiveAddressUse = false;
+            switch (sock.AddressFamily) {
+                case AddressFamily.InterNetwork:
+                    sock.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.ReuseAddress, true);
+                    break;
+                case AddressFamily.InterNetworkV6:
+                    sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.ReuseAddress, true);
+                    break;
+            }
+
+            //All Unix-ish systems should have SO_REUSEPORT
+            if (MonoMod.Utils.PlatformHelper.Is(MonoMod.Utils.Platform.Unix)) {
+                if (setsockopt(sock.Handle, SOL_SOCKET, SO_REUSEPORT, new[] { 1 }, sizeof(int)) < 0)
+                    throw new SystemException($"Could not set SO_REUSEPORT: {Marshal.GetLastWin32Error()}");
+            }
+        }
+
+        public static bool IsDisconnect(this SocketException se) {
+            switch (se.SocketErrorCode) {
+                case SocketError.NotConnected:
+                case SocketError.ConnectionRefused:
+                case SocketError.ConnectionAborted:
+                case SocketError.ConnectionReset:
+                    return true;
+                default:
+                    return false;
             }
         }
 

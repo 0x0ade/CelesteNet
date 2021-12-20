@@ -16,23 +16,20 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public uint ID;
-        public uint UpdateID;
+        public byte? UpdateID;
 
         public MetaOrderedUpdate() {
         }
-        public MetaOrderedUpdate(uint id, uint updateID) {
+        public MetaOrderedUpdate(uint id) {
             ID = id;
-            UpdateID = updateID;
         }
 
-        public override void Read(DataContext ctx, MetaTypeWrap data) {
-            ID = uint.Parse(data["ID"]);
-            UpdateID = uint.Parse(data["UpdateID"]);
+        public override void Read(CelesteNetBinaryReader reader) {
+            ID = reader.Read7BitEncodedUInt();
         }
 
-        public override void Write(DataContext ctx, MetaTypeWrap data) {
-            data["ID"] = ID.ToString();
-            data["UpdateID"] = UpdateID.ToString();
+        public override void Write(CelesteNetBinaryWriter writer) {
+            writer.Write7BitEncodedUInt(ID);
         }
 
     }

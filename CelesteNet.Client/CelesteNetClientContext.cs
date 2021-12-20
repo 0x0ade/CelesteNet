@@ -24,7 +24,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         public Dictionary<Type, CelesteNetGameComponent> Components = new();
         public List<CelesteNetGameComponent> DrawableComponents;
 
-        protected Queue<Action> MainThreadQueue = new();
+        // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
+        protected List<Action> MainThreadQueue = new();
 
         private bool Started = false;
 
@@ -76,11 +77,11 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public static event Action<CelesteNetClientContext> OnStart;
 
-        public void Start() {
+        public void Start(CancellationToken token) {
             if (Client == null)
                 return;
 
-            Client.Start();
+            Client.Start(token);
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Start();
 
@@ -92,9 +93,11 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
-            lock (MainThreadQueue)
-                while (MainThreadQueue.Count > 0)
-                    MainThreadQueue.Dequeue()();
+            lock (MainThreadQueue) {
+                for(int i = 0; i < MainThreadQueue.Count; i++)
+                    MainThreadQueue[i]();
+                MainThreadQueue.Clear();
+            }
 
             if (Started && !(Client?.IsAlive ?? true))
                 Dispose();
@@ -121,7 +124,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
 
             lock (MainThreadQueue)
-                MainThreadQueue.Enqueue(action);
+                MainThreadQueue.Add(action);
 
             if (wait)
                 WaitHandle.WaitAny(new WaitHandle[] { waiter });
@@ -163,5 +166,14 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
+    }
+
+    public class ConnectionErrorException : Exception {
+
+        public readonly string Status;
+
+        public ConnectionErrorException(string msg, string status) : base($"{msg}: {status}") {
+            Status = status;
+        }
     }
 }

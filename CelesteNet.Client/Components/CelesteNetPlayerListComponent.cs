@@ -96,7 +96,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         });
 
                         builder.Clear();
-                        foreach (DataPlayerInfo player in own.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) 
+                        foreach (DataPlayerInfo player in own.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p)))
                             listed.Add(ListPlayerUnderChannel(builder, player));
                         list.Add(new() {
                             Text = builder.ToString().Trim(),

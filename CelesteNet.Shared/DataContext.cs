@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet {
         protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, DataType>> References = new();
         protected readonly ConcurrentDictionary<string, ConcurrentDictionary<uint, ConcurrentDictionary<string, DataType>>> Bound = new();
 
-        protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, uint>> LastOrderedUpdate = new();
+        protected readonly ConcurrentDictionary<Type, ConcurrentDictionary<uint, byte>> LastOrderedUpdate = new();
         private bool IsDisposed;
 
         public DataContext() {
@@ -257,88 +257,159 @@ namespace Celeste.Mod.CelesteNet {
             return () => UnregisterHandler(typeof(T), wrap);
         }
 
-        public MetaTypeWrap[] ReadMeta(CelesteNetBinaryReader reader) {
-            MetaTypeWrap[] metas = new MetaTypeWrap[reader.ReadByte()];
-            for (int i = 0; i < metas.Length; i++)
-                metas[i] = new MetaTypeWrap().Read(reader);
-            return metas;
-        }
-
         public DataType Read(CelesteNetBinaryReader reader) {
-            PositionAwareStream? pas = reader.BaseStream as PositionAwareStream;
-            pas?.ResetPosition();
+            if (!reader.BaseStream.CanSeek)
+                throw new ArgumentException("Base stream isn't seekable");
+
+            DataFlags flags = (DataFlags) reader.ReadUInt16();
+            if ((flags & DataFlags.InteralSlimIndicator) != 0) {
+                if (reader.SlimMap == null)
+                    throw new InvalidDataException("Trying to read a slim packet header without a slim map!");
+
+                int slimID = (int) (flags & ~(DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID));
+                if ((flags & DataFlags.InteralSlimBigID) != 0)
+                    slimID |= reader.Read7BitEncodedInt() << 6;
+
+                Type slimType = reader.SlimMap.Get(slimID);
+                DataType? slimData = Activator.CreateInstance(slimType) as DataType;
+                if (slimData == null)
+                    throw new InvalidDataException($"Cannot create instance of data type {slimType.FullName}");
+
+                try {
+                    slimData.ReadAll(reader);
+                } catch (Exception e) {
+                    throw new Exception($"Error reading DataType '{slimData.GetTypeID(this)}'", e);
+                }
+
+                return slimData;
+            }
+            flags &= ~DataFlags.RESERVED;
 
             string id = reader.ReadNetMappedString();
-            DataFlags flags = (DataFlags) reader.ReadUInt16();
-            bool small = (flags & DataFlags.Small) == DataFlags.Small;
-            bool big = (flags & DataFlags.Big) == DataFlags.Big;
-
             string source = reader.ReadNetMappedString();
-            MetaTypeWrap[] metas = ReadMeta(reader);
+            int length = ((flags & DataFlags.Small) != 0) ? reader.ReadByte() : reader.ReadUInt16();
+            long start = reader.BaseStream.Position;
 
-            uint length = small ? reader.ReadByte() : big ? reader.ReadUInt32() : reader.ReadUInt16();
-            long start = pas?.Position ?? 0;
-
+            DataType? data;
             if (!IDToDataType.TryGetValue(id, out Type? type))
-                return new DataUnparsed() {
+                data = new DataUnparsed() {
                     InnerID = id,
                     InnerSource = source,
                     InnerFlags = flags,
-                    InnerMeta = new(metas),
-                    InnerData = reader.ReadBytes((int) length)
+                    InnerLength = length
                 };
-
-            DataType? data = (DataType?) Activator.CreateInstance(type);
-            if (data == null)
-                throw new Exception($"Cannot create instance of data type {type.FullName}");
+            else {
+                data = Activator.CreateInstance(type) as DataType;
+                if (data == null)
+                    throw new InvalidOperationException($"Cannot create instance of DataType '{type.FullName}'");
+            }
 
             try {
-                data.UnwrapMeta(this, metas);
-                data.Read(reader);
+                data.ReadAll(reader);
             } catch (Exception e) {
-                throw new Exception($"Exception while reading {id} {flags} {source} {length}", e);
+                throw new Exception($"Error reading DataType '{data.GetTypeID(this)}'", e);
             }
 
-            if (pas != null) {
-                long lengthReal = pas.Position - start;
-                if (lengthReal != length)
-                    throw new Exception($"Length mismatch for {id} {flags} {source} {length} - got {lengthReal}");
-            }
+            long lengthReal = reader.BaseStream.Position - start;
+            if (lengthReal != length)
+                throw new InvalidDataException($"Length mismatch for DataType '{id}' {flags} {source} {length} - got {lengthReal}");
+
+            if (type != null && (flags & DataFlags.CoreType) != 0)
+                reader.SlimMap?.CountRead(type);
 
             return data;
         }
 
-        public void WriteMeta(CelesteNetBinaryWriter writer, MetaTypeWrap[] metas) {
-            writer.Write((byte) metas.Length);
-            foreach (MetaTypeWrap meta in metas)
-                meta.Write(writer);
+        public MetaType ReadMeta(CelesteNetBinaryReader reader) {
+            if (!reader.BaseStream.CanSeek)
+                throw new ArgumentException("Base stream isn't seekable");
+
+            string id = reader.ReadNetMappedString();
+            int length = reader.ReadByte();
+            long start = reader.BaseStream.Position;
+
+            if (!IDToMetaType.TryGetValue(id, out Type? type))
+                return new MetaUnparsed() {
+                    InnerID = id,
+                    InnerData = reader.ReadBytes((int) length)
+                };
+
+            MetaType? meta = Activator.CreateInstance(type) as MetaType;
+            if (meta == null)
+                throw new InvalidOperationException($"Cannot create instance of MetaType '{type.FullName}'");
+
+            try {
+                meta.Read(reader);
+            } catch (Exception e) {
+                throw new Exception($"Error reading MetaType '{meta.GetTypeID(this)}'", e);
+            }
+
+            long lengthReal = reader.BaseStream.Position - start;
+            if (lengthReal != length)
+                throw new InvalidDataException($"Length mismatch for MetaType '{id}' {length} - got {lengthReal}");
+
+            return meta;
         }
 
         public int Write(CelesteNetBinaryWriter writer, DataType data) {
+            if (!writer.BaseStream.CanSeek)
+                throw new ArgumentException("Base stream isn't seekable");
             long start = writer.BaseStream.Position;
 
-            if (data is DataInternalBlob blob) {
-                blob.Dump(writer);
+            if (writer.SlimMap != null && writer.TryGetSlimID(data.GetType(), out int slimID)) {
+                if (slimID < (1<<6))
+                    writer.Write((ushort) (slimID | (ushort) DataFlags.InteralSlimIndicator));
+                else {
+                    writer.Write((ushort) (slimID & (1<<6 - 1) | (ushort) (DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID)));
+                    writer.Write7BitEncodedInt(slimID >> 6);
+                }
+
+                try {
+                    data.WriteAll(writer);
+                } catch (Exception e) {
+                    throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
+                }
+
                 return (int) (writer.BaseStream.Position - start);
             }
 
-            string type = data.GetTypeID(this);
-
             DataFlags flags = data.DataFlags;
+            if ((flags & DataFlags.RESERVED) != 0)
+                Logger.Log(LogLevel.WRN, "datactx", $"DataType {data} has reserved flags set: {flags & DataFlags.RESERVED}");
+            flags &= ~DataFlags.RESERVED;
 
-            start = writer.BaseStream.Position;
-            bool small = (flags & DataFlags.Small) == DataFlags.Small;
-            bool big = (flags & DataFlags.Big) == DataFlags.Big;
+            bool small = (flags & DataFlags.Small) != 0;
 
-            writer.WriteNetMappedString(type);
             writer.Write((ushort) flags);
-
+            writer.WriteNetMappedString(data.GetTypeID(this));
             writer.WriteNetMappedString(data.GetSource(this));
-            WriteMeta(writer, data.WrapMeta(this));
 
-            writer.WriteSizeDummy(small ? (byte) 1 : big ? (byte) 4 : (byte) 2);
+            writer.WriteSizeDummy((byte) (small ? 1 : 2));
 
-            data.Write(writer);
+            try {
+                data.WriteAll(writer);
+            } catch (Exception e) {
+                throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
+            }
+
+            writer.UpdateSizeDummy();
+
+            return (int) (writer.BaseStream.Position - start);
+        }
+
+        public int WriteMeta(CelesteNetBinaryWriter writer, MetaType meta) {
+            if (!writer.BaseStream.CanSeek)
+                throw new ArgumentException("Base stream isn't seekable");
+            long start = writer.BaseStream.Position;
+
+            writer.WriteNetMappedString(meta.GetTypeID(this));
+            writer.WriteSizeDummy(1);
+
+            try {
+                meta.Write(writer);
+            } catch (Exception e) {
+                throw new Exception($"Error writing MetaType {meta} [{meta.GetTypeID(this)}]", e);
+            }
 
             writer.UpdateSizeDummy();
 
@@ -378,19 +449,19 @@ namespace Celeste.Mod.CelesteNet {
             if (!data.FilterHandle(this))
                 return;
 
-            if (data.TryGet(this, out MetaOrderedUpdate? update)) {
-                if (!LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, uint>? updateIDs)) {
+            if (data.TryGet(this, out MetaOrderedUpdate? update) && update.UpdateID != null) {
+                if (!LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, byte>? updateIDs)) {
                     updateIDs = new();
                     LastOrderedUpdate[type] = updateIDs;
                 }
 
                 uint id = update.ID;
-                uint updateID = update.UpdateID;
-                if (!updateIDs.TryGetValue(id, out uint updateIDLast)) {
+                byte updateID = update.UpdateID.Value;
+                if (!updateIDs.TryGetValue(id, out byte updateIDLast)) {
                     updateIDLast = 0;
                 }
 
-                if (updateID < updateIDLast)
+                if ((updateID - updateIDLast + 256) % 256 > 128)
                     return;
 
                 updateIDs[id] = updateID;
@@ -602,7 +673,7 @@ namespace Celeste.Mod.CelesteNet {
             => FreeOrder(typeof(T), id);
 
         public void FreeOrder(Type type, uint id) {
-            if (LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, uint>? updateIDs)) {
+            if (LastOrderedUpdate.TryGetValue(type, out ConcurrentDictionary<uint, byte>? updateIDs)) {
                 updateIDs.TryRemove(id, out _);
             }
         }

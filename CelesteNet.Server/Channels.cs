@@ -67,7 +67,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         players = new uint[c.Players.Count];
                         int i = 0;
                         foreach (CelesteNetPlayerSession p in c.Players)
-                            players[i++] = p.ID;
+                            players[i++] = p.SessionID;
                     }
                     channels.Add(new DataChannelList.Channel {
                         Name = c.Name,

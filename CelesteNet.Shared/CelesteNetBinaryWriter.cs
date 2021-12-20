@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,66 +16,61 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly DataContext Data;
 
-        public StringMap? Strings;
+        public OptMap<string>? Strings;
+        public OptMap<Type>? SlimMap;
 
-        protected long SizeDummyIndex;
-        protected byte SizeDummySize;
+        protected ConcurrentStack<Tuple<long, int>> SizeDummyStack;
 
-        public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output)
+        public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output)
             : base(output, CelesteNetUtils.UTF8NoBOM) {
             Data = ctx;
             Strings = strings;
+            SlimMap = slimMap;
+            SizeDummyStack = new ConcurrentStack<Tuple<long, int>>();
         }
 
-        public CelesteNetBinaryWriter(DataContext ctx, StringMap? strings, Stream output, bool leaveOpen)
+        public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output, bool leaveOpen)
             : base(output, CelesteNetUtils.UTF8NoBOM, leaveOpen) {
             Data = ctx;
             Strings = strings;
+            SlimMap = slimMap;
+            SizeDummyStack = new ConcurrentStack<Tuple<long, int>>();
         }
 
-        public virtual void WriteSizeDummy(byte size) {
+        public virtual void WriteSizeDummy(int size) {
             Flush();
-            SizeDummyIndex = BaseStream.Position;
+            long pos = BaseStream.Position;
 
-            if (size == 1) {
-                SizeDummySize = 1;
+            if (size == 1)
                 Write((byte) 0);
-
-            } else if (size == 4) {
-                SizeDummySize = 4;
-                Write((uint) 0);
-
-            } else {
-                SizeDummySize = 2;
+            else if (size == 2)
                 Write((ushort) 0);
-            }
+            else if (size == 4)
+                Write((uint) 0);
+            else
+                throw new ArgumentException($"Invalid size dummy size {size}");
+
+            SizeDummyStack.Push(new Tuple<long, int>(pos, size));
         }
 
         public virtual void UpdateSizeDummy() {
-            if (SizeDummySize == 0)
-                return;
+            if (!SizeDummyStack.TryPop(out var dummy))
+                throw new InvalidOperationException("No size dummy on the stack");
+            long dummyPos = dummy.Item1;
+            int dummySize = dummy.Item2;
 
             Flush();
             long end = BaseStream.Position;
-            long length = end - (SizeDummyIndex + SizeDummySize);
+            long length = end - (dummyPos + dummySize);
 
-            BaseStream.Seek(SizeDummyIndex, SeekOrigin.Begin);
+            BaseStream.Seek(dummyPos, SeekOrigin.Begin);
 
-            if (SizeDummySize == 1) {
-                if (length > byte.MaxValue)
-                    length = byte.MaxValue;
+            if (dummySize == 1)
                 Write((byte) length);
-
-            } else if (SizeDummySize == 4) {
-                if (length > uint.MaxValue)
-                    length = uint.MaxValue;
-                Write((uint) length);
-
-            } else {
-                if (length > ushort.MaxValue)
-                    length = ushort.MaxValue;
+            else if (dummySize == 2)
                 Write((ushort) length);
-            }
+            else if (dummySize == 4)
+                Write((uint) length);
 
             Flush();
             BaseStream.Seek(end, SeekOrigin.Begin);
@@ -82,6 +78,8 @@ namespace Celeste.Mod.CelesteNet {
 
         public new void Write7BitEncodedInt(int value)
             => base.Write7BitEncodedInt(value);
+        public void Write7BitEncodedUInt(uint value)
+            => Write7BitEncodedInt(unchecked((int) value));
 
         public virtual void Write(Vector2 value) {
             Write(value.X);
@@ -129,11 +127,16 @@ namespace Celeste.Mod.CelesteNet {
             Write7BitEncodedInt(id);
         }
 
+        public virtual bool TryGetSlimID(Type type, out int slimID) {
+            slimID = -1;
+            return SlimMap != null && SlimMap.TryMap(type, out slimID);
+        }
+
         public void WriteRef<T>(T? data) where T : DataType<T>
-            => Write((data ?? throw new Exception($"Expected {Data.DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(Data) ?? uint.MaxValue);
+            => Write7BitEncodedUInt((data ?? throw new ArgumentException($"Expected {Data.DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(Data) ?? uint.MaxValue);
 
         public void WriteOptRef<T>(T? data) where T : DataType<T>
-            => Write(data?.GetOpt<MetaRef>(Data) ?? uint.MaxValue);
+            => Write7BitEncodedUInt(data?.GetOpt<MetaRef>(Data) ?? uint.MaxValue);
 
     }
 }

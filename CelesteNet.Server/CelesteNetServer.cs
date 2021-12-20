@@ -2,6 +2,7 @@
 using Mono.Cecil;
 using Mono.Options;
 using MonoMod.RuntimeDetour;
+using MonoMod.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -25,9 +26,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetServerSettings Settings;
 
         public readonly DataContext Data;
-        public readonly TCPUDPServer TCPUDP;
-
-        public string[] ConnectionFeatures = CelesteNetUtils.ConnectionFeaturesBuiltIn;
+        public readonly NetPlusThreadPool ThreadPool;
 
         public UserData UserData;
 
@@ -42,11 +41,16 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly DetourModManager DetourModManager;
 
         public uint PlayerCounter = 0;
+        public readonly TokenGenerator ConTokenGenerator = new TokenGenerator();
         public readonly RWLock ConLock = new();
         public readonly HashSet<CelesteNetConnection> Connections = new();
         public readonly HashSet<CelesteNetPlayerSession> Sessions = new();
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new();
         public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new();
+        private System.Timers.Timer HeartbeatTimer;
+
+        public float CurrentTickRate { get; private set; }
+        private float NextTickRate;
 
         private readonly ManualResetEvent ShutdownEvent = new(false);
 
@@ -127,7 +131,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ModulesFSWatcher.EnableRaisingEvents = true;
 
-            TCPUDP = new(this);
+            ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? Environment.ProcessorCount : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.HeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
+
+            HeartbeatTimer = new(Settings.HeartbeatInterval);
+            HeartbeatTimer.Elapsed += (_, _) => DoHeartbeatTick();
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
@@ -155,7 +162,36 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             Channels.Start();
-            TCPUDP.Start();
+
+            EndPoint serverEP = new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort);
+            EndPoint udpRecvEP = new IPEndPoint(IPAddress.IPv6Any, Settings.UDPReceivePort);
+            EndPoint udpSendEP = new IPEndPoint(IPAddress.IPv6Any, Settings.UDPSendPort);
+
+            CelesteNetTCPUDPConnection.Settings tcpUdpConSettings = new() {
+                UDPReceivePort = Settings.UDPReceivePort,
+                UDPSendPort = Settings.UDPSendPort,
+                MaxPacketSize = Settings.MaxPacketSize,
+                MaxQueueSize = Settings.MaxQueueSize,
+                MergeWindow = Settings.MergeWindow,
+                MaxHeartbeatDelay = Settings.MaxHeartbeatDelay,
+                HeartbeatInterval = Settings.HeartbeatInterval,
+                UDPAliveScoreMax = Settings.UDPAliveScoreMax,
+                UDPDowngradeScoreMin = Settings.UDPDowngradeScoreMin,
+                UDPDowngradeScoreMax = Settings.UDPDowngradeScoreMax,
+                UDPDeathScoreMin = Settings.UDPDeathScoreMin,
+                UDPDeathScoreMax = Settings.UDPDeathScoreMax
+            };
+
+            Logger.Log(LogLevel.INF, "server", $"Starting server on {serverEP}");
+            ThreadPool.Scheduler.AddRole(new HandshakerRole(ThreadPool, this));
+            ThreadPool.Scheduler.AddRole(new TCPReceiverRole(ThreadPool, this, (PlatformHelper.Is(MonoMod.Utils.Platform.Linux) && Settings.TCPRecvUseEPoll) ? new TCPEPollPoller() : new TCPFallbackPoller()));
+            ThreadPool.Scheduler.AddRole(new UDPReceiverRole(ThreadPool, this, udpRecvEP));
+            ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, udpSendEP));
+            ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!, tcpUdpConSettings));
+
+            HeartbeatTimer.Start();
+            CurrentTickRate = NextTickRate = Settings.MaxTickRate;
+            ThreadPool.Scheduler.OnPreScheduling += AdjustTickRate;
 
             Logger.Log(LogLevel.CRI, "main", "Ready");
         }
@@ -172,6 +208,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.CRI, "main", "Shutdown");
             IsAlive = false;
 
+            HeartbeatTimer.Dispose();
+
             ModulesFSWatcher.Dispose();
 
             lock (Modules) {
@@ -181,7 +219,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             Channels.Dispose();
-            TCPUDP.Dispose();
+            ThreadPool.Dispose();
             ConLock.Dispose();
 
             UserData.Dispose();
@@ -231,7 +269,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void HandleConnect(CelesteNetConnection con) {
             Logger.Log(LogLevel.INF, "main", $"New connection: {con}");
-            con.SendKeepAlive = true;
             using (ConLock.W())
                 Connections.Add(con);
             OnConnect?.Invoke(this, con);
@@ -251,15 +288,34 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Logger.Log(LogLevel.VVV, "main", $"Loopend run {con}");
 
                 PlayersByCon.TryGetValue(con, out CelesteNetPlayerSession? session);
-                session?.Dispose();
+                if (session != null) {
+                    using (ConLock.W()) {
+                        Sessions.Remove(session);
+                        PlayersByCon.TryRemove(con, out _);
+                        PlayersByID.TryRemove(session.SessionID, out _);
+                        session?.Dispose();
+                    }
+                }
 
                 OnDisconnect?.Invoke(this, con, session);
             }));
         }
 
         public event Action<CelesteNetPlayerSession>? OnSessionStart;
-        internal void InvokeOnSessionStart(CelesteNetPlayerSession session)
-            => OnSessionStart?.Invoke(session);
+
+        private int nextSesId = 0;
+        public CelesteNetPlayerSession CreateSession(CelesteNetConnection con, string playerUID, string playerName) {
+            CelesteNetPlayerSession ses;
+            using (ConLock.W()) {
+                ses = new CelesteNetPlayerSession(this, con, unchecked ((uint) Interlocked.Increment(ref nextSesId)), playerUID, playerName);
+                Sessions.Add(ses);
+                PlayersByCon[con] = ses;
+                PlayersByID[ses.SessionID] = ses;
+            }
+            ses.Start();
+            OnSessionStart?.Invoke(ses);
+            return ses;
+        }
 
         public void Broadcast(DataType data) {
             DataInternalBlob blob = new(Data, data);
@@ -287,6 +343,60 @@ namespace Celeste.Mod.CelesteNet.Server {
                         }
                     });
                 }
+        }
+
+        private void DoHeartbeatTick() {
+            HashSet<(CelesteNetConnection con, string reason)> disposeCons = new HashSet<(CelesteNetConnection, string)>();
+            using (ConLock.R())
+                foreach (CelesteNetConnection con in new HashSet<CelesteNetConnection>(Connections)) {
+                    try {
+                        switch (con) {
+                            case CelesteNetTCPUDPConnection tcpUdpCon: {
+                                string? disposeReason = tcpUdpCon.DoHeartbeatTick();
+                                if (disposeReason != null)
+                                    disposeCons.Add((tcpUdpCon, disposeReason));
+                            } break;
+                        }
+                    } catch (Exception e) {
+                        disposeCons.Add((con, $"Error in heartbeat tick of connection {con}: {e}"));
+                    }
+                }
+            foreach ((CelesteNetConnection con, string reason) in disposeCons) {
+                Logger.Log(LogLevel.WRN, "main", reason);
+                try {
+                    con.Dispose();
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.WRN, "main", $"Error disposing connection {con}: {e}");
+                }
+            }
+        }
+
+        private void AdjustTickRate() {
+            CurrentTickRate = NextTickRate;
+
+            TCPUDPSenderRole sender = ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!;
+            float actvRate = ThreadPool.ActivityRate, tcpByteRate = sender.TCPByteRate, udpByteRate = sender.UDPByteRate;
+            if (actvRate < Settings.TickRateLowActivityThreshold && tcpByteRate < Settings.TickRateLowTCPUplinkBpSThreshold && udpByteRate < Settings.TickRateLowUDPUplinkBpSThreshold) {
+                if (CurrentTickRate < Settings.MaxTickRate) {
+                    // Increase the tick rate
+                    NextTickRate = Math.Min(Settings.MaxTickRate, CurrentTickRate * 2);
+                    Logger.Log(LogLevel.INF, "main", $"Increased the tick rate {CurrentTickRate} TpS -> {NextTickRate} TpS");
+                    CurrentTickRate = NextTickRate;
+                } else {
+                    return;
+                }
+            } else if (actvRate > Settings.TickRateHighActivityThreshold && tcpByteRate > Settings.TickRateHighTCPUplinkBpSThreshold && udpByteRate > Settings.TickRateHighUDPUplinkBpSThreshold) {
+                // Decrease the tick rate
+                Logger.Log(LogLevel.INF, "main", $"Decreased the tick rate {CurrentTickRate} TpS -> {NextTickRate} TpS");
+                NextTickRate = CurrentTickRate / 2;
+            } else {
+                return;
+            }
+
+            // Broadcast the new tick rate
+            BroadcastAsync(new DataTickRate() {
+                TickRate = NextTickRate
+            });
         }
 
         #region Handlers

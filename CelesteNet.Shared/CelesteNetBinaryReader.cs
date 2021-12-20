@@ -15,22 +15,27 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly DataContext Data;
 
-        public StringMap? Strings;
+        public OptMap<string>? Strings;
+        public OptMap<Type>? SlimMap;
 
-        public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input)
+        public CelesteNetBinaryReader(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream input)
             : base(input, CelesteNetUtils.UTF8NoBOM) {
             Data = ctx;
             Strings = strings;
+            SlimMap = slimMap;
         }
 
-        public CelesteNetBinaryReader(DataContext ctx, StringMap? strings, Stream input, bool leaveOpen)
+        public CelesteNetBinaryReader(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream input, bool leaveOpen)
             : base(input, CelesteNetUtils.UTF8NoBOM, leaveOpen) {
             Data = ctx;
             Strings = strings;
+            SlimMap = slimMap;
         }
 
         public new int Read7BitEncodedInt()
             => base.Read7BitEncodedInt();
+        public uint Read7BitEncodedUInt()
+            => unchecked((uint) Read7BitEncodedInt());
 
         public virtual Vector2 ReadVector2()
             => new(ReadSingle(), ReadSingle());
@@ -110,11 +115,15 @@ namespace Celeste.Mod.CelesteNet {
             return value;
         }
 
-        public T? ReadRef<T>() where T : DataType<T>
-            => Data.GetRef<T>(ReadUInt32());
+        public T? ReadRef<T>() where T : DataType<T> {
+            uint id = Read7BitEncodedUInt();
+            if (id == uint.MaxValue)
+                throw new InvalidDataException($"Expected reference to '{Data.DataTypeToID[typeof(T)]}', but didn't get one");
+            return Data.GetRef<T>(id);
+        }
 
         public T? ReadOptRef<T>() where T : DataType<T>
-            => Data.TryGetRef(ReadUInt32(), out T? value) ? value : null;
+            => Data.TryGetRef(Read7BitEncodedUInt(), out T? value) ? value : null;
 
     }
 }

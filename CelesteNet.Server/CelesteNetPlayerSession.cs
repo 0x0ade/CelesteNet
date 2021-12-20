@@ -19,28 +19,29 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
-        public readonly uint ID;
-        public readonly string ConUID;
-        public string UID;
+        public readonly uint SessionID;
+
+        public readonly string UID, Name;
 
         private readonly RWLock StateLock = new();
         private readonly Dictionary<object, Dictionary<Type, object>> StateContexts = new();
 
-        public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(ID, out DataPlayerInfo? value) ? value : null;
+        public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(SessionID, out DataPlayerInfo? value) ? value : null;
 
         public Channel Channel;
 
-        public DataNetEmoji? AvatarEmoji;
+        public DataInternalBlob[] AvatarFragments = Dummy<DataInternalBlob>.EmptyArray;
 
         private readonly object RequestNextIDLock = new();
         private uint RequestNextID = 0;
 
-        public CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint id) {
+        internal CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint sesId, string uid, string name) {
             Server = server;
             Con = con;
-            ID = id;
+            SessionID = sesId;
 
-            ConUID = UID = $"con-{con.UID}";
+            UID = uid;
+            Name = name;
 
             Channel = server.Channels.Default;
 
@@ -89,68 +90,13 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
-            Logger.Log(LogLevel.INF, "playersession", $"Startup #{ID} {Con}");
-            using (Server.ConLock.W())
-                Server.Sessions.Add(this);
-            Server.PlayersByCon[Con] = this;
-            Server.PlayersByID[ID] = this;
+        internal void Start() {
+            Logger.Log(LogLevel.INF, "playersession", $"Startup #{SessionID} {Con}");
 
-            if (Server.UserData.TryLoad(UID, out BanInfo ban) && !ban.Reason.IsNullOrEmpty()) {
-                Con.Send(new DataDisconnectReason { Text = string.Format(Server.Settings.MessageIPBan, ban.Reason) });
-                Con.Send(new DataInternalDisconnect());
-                return;
-            }
-
-            string name = handshake.Name;
-            if (name.StartsWith("#")) {
-                string uid = Server.UserData.GetUID(name.Substring(1));
-                if (uid.IsNullOrEmpty()) {
-                    Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageInvalidUserKey });
-                    Con.Send(new DataInternalDisconnect());
-                    return;
-                }
-                UID = uid;
-
-                if (!Server.UserData.TryLoad(uid, out BasicUserInfo userinfo)) {
-                    Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageUserInfoMissing });
-                    Con.Send(new DataInternalDisconnect());
-                    return;
-                }
-
-                name = userinfo.Name.Sanitize(IllegalNameChars, true);
-                if (name.Length > Server.Settings.MaxNameLength)
-                    name = name.Substring(0, Server.Settings.MaxNameLength);
-                if (name.IsNullOrEmpty())
-                    name = "Ghost";
-
-                if (Server.UserData.TryLoad(UID, out ban) && !ban.Reason.IsNullOrEmpty()) {
-                    Con.Send(new DataDisconnectReason { Text = string.Format(Server.Settings.MessageBan, name, ban.Reason) });
-                    Con.Send(new DataInternalDisconnect());
-                    return;
-                }
-
-            } else {
-                if (Server.Settings.AuthOnly) {
-                    Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageAuthOnly });
-                    Con.Send(new DataInternalDisconnect());
-                    return;
-                }
-
-                name = name.Sanitize(IllegalNameChars);
-                if (name.Length > Server.Settings.MaxGuestNameLength)
-                    name = name.Substring(0, Server.Settings.MaxGuestNameLength);
-                if (name.IsNullOrEmpty())
-                    name = "Guest";
-            }
-
-            if (name.Length > Server.Settings.MaxNameLength)
-                name = name.Substring(0, Server.Settings.MaxNameLength);
-
-            string nameSpace = name;
-            name = name.Replace(" ", "");
+            // Resolver player name conflicts
+            string nameSpace = Name;
             string fullNameSpace = nameSpace;
-            string fullName = name;
+            string fullName = Name.Replace(" ", "");
 
             using (Server.ConLock.R()) {
                 int i = 1;
@@ -163,40 +109,57 @@ namespace Celeste.Mod.CelesteNet.Server {
                         break;
                     i++;
                     fullNameSpace = $"{nameSpace}#{i}";
-                    fullName = $"{name}#{i}";
+                    fullName = $"{Name}#{i}";
                 }
             }
 
+            // Handle avatars
             string displayName = fullNameSpace;
 
-            using (Stream? avatar = Server.UserData.ReadFile(UID, "avatar.png")) {
-                if (avatar != null) {
-                    AvatarEmoji = new() {
-                        ID = $"celestenet_avatar_{ID}_",
-                        Data = avatar.ToBytes()
-                    };
-                    displayName = $":{AvatarEmoji.ID}: {fullNameSpace}";
-                }
+            using (Stream? avatarStream = Server.UserData.ReadFile(UID, "avatar.png")) {
+                if (avatarStream != null) {
+                    string avatarId = $"celestenet_avatar_{SessionID}_";
+                    displayName = $":{avatarId}: {fullNameSpace}";
+
+                    // Split the avatar into fragments
+                    List<DataNetEmoji> avatarFrags = new List<DataNetEmoji>();
+                    byte[] buf = new byte[Server.Settings.MaxPacketSize / 2];
+                    int fragSize;
+                    while ((fragSize = avatarStream.Read(buf, 0, buf.Length)) > 0) {
+                        byte[] frag = new byte[fragSize];
+                        Buffer.BlockCopy(buf, 0, frag, 0, fragSize);
+                        avatarFrags.Add(new DataNetEmoji() {
+                            ID = avatarId,
+                            Data = frag
+                        });
+                    }
+                    foreach (DataNetEmoji frag in avatarFrags.SkipLast(1))
+                        frag.MoreFragments = true;
+
+                    // Turn avatar fragments into blobs
+                    AvatarFragments = avatarFrags.Select(frag => DataInternalBlob.For(Server.Data, frag)).ToArray();
+                } else
+                    AvatarFragments = Dummy<DataInternalBlob>.EmptyArray;
             }
 
+            // Create the player's PlayerInfo
             DataPlayerInfo playerInfo = new() {
-                ID = ID,
-                Name = name,
+                ID = SessionID,
+                Name = Name,
                 FullName = fullName,
                 DisplayName = displayName
             };
             playerInfo.Meta = playerInfo.GenerateMeta(Server.Data);
             Server.Data.SetRef(playerInfo);
 
-            Logger.Log(LogLevel.INF, "playersession", playerInfo.ToString());
+            Logger.Log(LogLevel.INF, "playersession", $"Session #{SessionID} PlayerInfo: {playerInfo}");
 
-            Con.Send(new DataHandshakeServer {
-                PlayerInfo = playerInfo
-            });
-            Con.Send(AvatarEmoji);
+            // Send packets to players
+            DataInternalBlob blobPlayerInfo = DataInternalBlob.For(Server.Data, playerInfo)!;
 
-            DataInternalBlob? blobPlayerInfo = DataInternalBlob.For(Server.Data, playerInfo);
-            DataInternalBlob? blobAvatarEmoji = DataInternalBlob.For(Server.Data, AvatarEmoji);
+            Con.Send(playerInfo);
+            foreach (DataInternalBlob fragBlob in AvatarFragments)
+                Con.Send(fragBlob);
 
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession other in Server.Sessions) {
@@ -208,10 +171,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                         continue;
 
                     other.Con.Send(blobPlayerInfo);
-                    other.Con.Send(blobAvatarEmoji);
+                    foreach (DataInternalBlob fragBlob in AvatarFragments)
+                        other.Con.Send(fragBlob);
 
                     Con.Send(otherInfo);
-                    Con.Send(other.AvatarEmoji);
+                    foreach (DataInternalBlob fragBlob in other.AvatarFragments)
+                        Con.Send(fragBlob);
 
                     foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
                         if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || other.Channel.ID == 0)
@@ -220,7 +185,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ResendPlayerStates();
 
-            Server.InvokeOnSessionStart(this);
+            Con.Send(new DataReady());
         }
 
         public Action WaitFor<T>(DataFilter<T> cb) where T : DataType<T>
@@ -318,29 +283,24 @@ namespace Celeste.Mod.CelesteNet.Server {
         public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;
 
         public void Dispose() {
-            Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{ID} {Con}");
+            Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{SessionID} {Con}");
 
             DataPlayerInfo? playerInfoLast = PlayerInfo;
 
-            using (Server.ConLock.W())
-                Server.Sessions.Remove(this);
-            Server.PlayersByCon.TryRemove(Con, out _);
-            Server.PlayersByID.TryRemove(ID, out _);
-
             if (playerInfoLast != null)
                 Server.BroadcastAsync(new DataPlayerInfo {
-                    ID = ID
+                    ID = SessionID
                 });
 
             Con.OnSendFilter -= ConSendFilter;
             Server.Data.UnregisterHandlersIn(this);
 
-            Logger.Log(LogLevel.VVV, "playersession", $"Loopend send #{ID} {Con}");
+            Logger.Log(LogLevel.VVV, "playersession", $"Loopend send #{SessionID} {Con}");
             Con.Send(new DataInternalLoopend(() => {
-                Logger.Log(LogLevel.VVV, "playersession", $"Loopend run #{ID} {Con}");
+                Logger.Log(LogLevel.VVV, "playersession", $"Loopend run #{SessionID} {Con}");
 
-                Server.Data.FreeRef<DataPlayerInfo>(ID);
-                Server.Data.FreeOrder<DataPlayerFrame>(ID);
+                Server.Data.FreeRef<DataPlayerInfo>(SessionID);
+                Server.Data.FreeOrder<DataPlayerFrame>(SessionID);
 
                 OnEnd?.Invoke(this, playerInfoLast);
             }));
@@ -402,12 +362,15 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public bool Filter(CelesteNetConnection con, DataPlayerFrame frame) {
-            if (frame.HairCount > Server.Settings.MaxHairLength)
-                frame.HairCount = Server.Settings.MaxHairLength;
-
             if (frame.Followers.Length > Server.Settings.MaxFollowers)
                 Array.Resize(ref frame.Followers, Server.Settings.MaxFollowers);
 
+            return true;
+        }
+
+        public bool Filter(CelesteNetConnection con, DataPlayerGraphics graphics) {
+            if (graphics.HairCount > Server.Settings.MaxHairLength)
+                graphics.HairCount = Server.Settings.MaxHairLength;
             return true;
         }
 

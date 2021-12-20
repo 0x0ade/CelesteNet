@@ -10,13 +10,13 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using WebSocketSharp.Server;
 using Celeste.Mod.Helpers;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat;
+using System.Timers;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : CelesteNetServerModule<FrontendSettings> {
@@ -29,6 +29,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         private HttpServer? HTTPServer;
         private WebSocketServiceHost? WSHost;
+
+        private Timer? StatsTimer;
 
 #if NETCORE
         private readonly FileExtensionContentTypeProvider ContentTypeProvider = new();
@@ -82,12 +84,19 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             HTTPServer.Start();
 
             HTTPServer.WebSocketServices.TryGetServiceHost("/ws", out WSHost);
+
+            StatsTimer = new Timer(Settings.NetPlusStatsUpdateRate);
+            StatsTimer.AutoReset = true;
+            StatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateStats(Server);
+            StatsTimer.Enabled = true;
         }
 
         public override void Dispose() {
             base.Dispose();
 
             Logger.Log(LogLevel.INF, "frontend", "Shutdown");
+
+            StatsTimer?.Dispose();
 
             try {
                 HTTPServer?.Stop();

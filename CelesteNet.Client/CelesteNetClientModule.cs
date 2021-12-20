@@ -35,6 +35,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         private readonly object ClientLock = new();
 
         private Thread _StartThread;
+        private CancellationTokenSource _StartTokenSource;
         public bool IsAlive => Context != null;
 
         public VirtualRenderTarget UIRenderTarget;
@@ -148,6 +149,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Start() {
+            try {
+                _StartTokenSource?.Cancel();
+            } catch (ObjectDisposedException) {}
+            
             if (_StartThread?.IsAlive ?? false)
                 _StartThread.Join();
 
@@ -169,11 +174,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                 try {
                     context.Init(Settings);
                     context.Status.Set("Connecting...");
-                    context.Start();
+                    using (_StartTokenSource = new CancellationTokenSource())
+                        context.Start(_StartTokenSource.Token);
                     if (context.Status.Spin)
                         context.Status.Set("Connected", 1f);
 
-                } catch (ThreadInterruptedException) {
+                } catch (Exception e) when (e is ThreadInterruptedException || e is OperationCanceledException) {
                     Logger.Log(LogLevel.CRI, "clientmod", "Startup interrupted.");
                     _StartThread = null;
                     Stop();
@@ -183,6 +189,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                     _StartThread = null;
                     Stop();
 
+                } catch (ConnectionErrorException e) {
+                    Logger.Log(LogLevel.CRI, "clientmod", $"Connection error:\n{e}");
+                    _StartThread = null;
+                    Stop();
+                    context.Status.Set(e.Status ?? "Connection failed", 3f, false);
+
                 } catch (Exception e) {
                     Logger.Log(LogLevel.CRI, "clientmod", $"Failed connecting:\n{e}");
                     _StartThread = null;
@@ -191,6 +203,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 } finally {
                     _StartThread = null;
+                    _StartTokenSource = null;
                 }
             }) {
                 Name = "CelesteNet Client Start",
@@ -201,6 +214,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void Stop() {
             QueuedTaskHelper.Cancel("CelesteNetAutoReconnect");
+
+            try {
+                _StartTokenSource?.Cancel();
+            } catch (ObjectDisposedException) {}
 
             if (_StartThread?.IsAlive ?? false)
                 _StartThread.Join();

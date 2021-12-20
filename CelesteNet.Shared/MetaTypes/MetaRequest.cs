@@ -23,12 +23,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ID = id;
         }
 
-        public override void Read(DataContext ctx, MetaTypeWrap data) {
-            ID = uint.Parse(data["ID"]);
+        public override void Read(CelesteNetBinaryReader reader) {
+            ID = reader.Read7BitEncodedUInt();
         }
 
-        public override void Write(DataContext ctx, MetaTypeWrap data) {
-            data["ID"] = ID.ToString();
+        public override void Write(CelesteNetBinaryWriter writer) {
+            writer.Write7BitEncodedUInt(ID);
         }
 
         public static implicit operator uint(MetaRequest meta)

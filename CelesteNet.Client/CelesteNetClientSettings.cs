@@ -215,7 +215,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateEmotesEntry(TextMenu menu, bool inGame) {
             TextMenu.Item item;
-            
+
             menu.Add(item = new TextMenu.Button("modoptions_celestenetclient_reload".DialogClean()).Pressed(() => {
                 CelesteNetClientSettings settingsOld = CelesteNetClientModule.Settings;
                 CelesteNetClientModule.Instance.LoadSettings();

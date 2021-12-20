@@ -10,6 +10,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
     // TODO: This is taken mostly as is from GhostNet and can be improved.
     public class GhostEmote : Entity {
 
+        private static readonly char[] IconPathsSeperator = new[] { ' ' };
+
         public static float Size = 256f;
 
         public Entity Tracking;
@@ -207,7 +209,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if ((atlas = GetIconAtlas(ref emote)) == null)
                 return null;
 
-            List<string> iconPaths = new(emote.Split(' '));
+            List<string> iconPaths = new(emote.Split(IconPathsSeperator));
             if (iconPaths.Count > 1 && int.TryParse(iconPaths[0], out int fps)) {
                 iconPaths.RemoveAt(0);
             } else {

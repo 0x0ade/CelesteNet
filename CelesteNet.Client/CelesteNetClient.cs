@@ -20,9 +20,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public readonly DataContext Data;
 
         public CelesteNetConnection Con;
-
-        public string[] ConnectionFeatures = CelesteNetUtils.ConnectionFeaturesBuiltIn;
-        public string[] ServerConnectionFeatures = Dummy<string>.EmptyArray;
+        public readonly IConnectionFeature[] ConFeatures;
 
         private bool _IsAlive;
         public bool IsAlive {
@@ -36,19 +34,13 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public bool IsReady { get; protected set; }
+        private ManualResetEventSlim _ReadyEvent;
 
         public DataPlayerInfo PlayerInfo;
 
-        private readonly ManualResetEvent HandshakeEvent = new(false);
-        private DataType HandshakeClient;
-
         private readonly object StartStopLock = new();
 
-        private const int UDPDeathScoreMin = -1;
-        private const int UDPDeathScoreMax = 5;
-        private int UDPDeathScore;
-        private const int UDPAliveScoreMax = 100;
-        private int UDPAliveScore;
+        private System.Timers.Timer HeartbeatTimer;
 
         public CelesteNetClient()
             : this(new()) {
@@ -59,9 +51,25 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Data = new();
             Data.RegisterHandlersIn(this);
+
+            _ReadyEvent = new(false);
+
+            // Find connection features
+            List<IConnectionFeature> conFeatures = new List<IConnectionFeature>();
+            foreach (Type type in CelesteNetUtils.GetTypes()) {
+                if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
+                    continue;
+
+                IConnectionFeature feature = (IConnectionFeature) Activator.CreateInstance(type);
+                if (feature == null)
+                    throw new Exception($"Cannot create instance of connection feature {type.FullName}");
+                Logger.Log(LogLevel.VVV, "main", $"Found connection feature: {type.FullName}");
+                conFeatures.Add(feature);
+            }
+            ConFeatures = conFeatures.ToArray();
         }
 
-        public void Start() {
+        public void Start(CancellationToken token) {
             if (IsAlive)
                 return;
             IsAlive = true;
@@ -77,31 +85,64 @@ namespace Celeste.Mod.CelesteNet.Client {
                     case ConnectionType.TCP:
                         Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {Settings.Host}:{Settings.Port}");
 
-                        CelesteNetTCPUDPConnection con = new(Data, Settings.Host, Settings.Port, Settings.ConnectionType != ConnectionType.TCP);
-                        con.SendUDP = false;
-                        con.OnDisconnect += _ => Dispose();
-                        con.OnUDPError += OnUDPError;
-                        Con = con;
-                        Logger.Log(LogLevel.INF, "main", $"Local endpoints: {con.TCP.Client.LocalEndPoint} / {con.UDP?.Client.LocalEndPoint?.ToString() ?? "null"}");
+                        // Create a TCP connection
+                        Socket sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                        try {
+                            uint conToken;
+                            IConnectionFeature[] conFeatures;
+                            CelesteNetTCPUDPConnection.Settings settings;
+                            using (token.Register(() => sock.Close())) {
+                                sock.ReceiveTimeout = sock.SendTimeout = 5000;
+                                sock.Connect(Settings.Host, Settings.Port);
 
-                        // Server replies with a dummy HTTP response to filter out dumb port sniffers.
-                        con.ReadTeapot(out ServerConnectionFeatures, out uint token);
+                                // Do the teapot handshake
+                                var teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
+                                conToken = teapotRes.Item1;
+                                conFeatures = teapotRes.Item2;
+                                settings = teapotRes.Item3;
+                                Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {conToken} conFeatures '{conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}'");
+                                sock.ReceiveTimeout = sock.SendTimeout = -1;
+                            }
 
-                        con.SendKeepAlive = true;
+                            // Create a connection and start the heartbeat timer
+                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, conToken, settings, sock);
+                            con.OnDisconnect += _ => {
+                                CelesteNetClientModule.Instance.Context?.Dispose();
+                                Dispose();
+                                CelesteNetClientModule.Instance.Context?.Status?.Set("Server disconnected", 3f);
+                            };
+                            if (Settings.ConnectionType == ConnectionType.TCP)
+                                con.UseUDP = false;
 
-                        foreach (string feature in ServerConnectionFeatures)
-                            InitTCPUDPConnectionFeature(con, feature);
+                            // Initialize the heartbeat timer
+                            HeartbeatTimer = new(settings.HeartbeatInterval);
+                            HeartbeatTimer.AutoReset = true;
+                            HeartbeatTimer.Elapsed += (_, _) => {
+                                string disposeReason = con.DoHeartbeatTick();
+                                if (disposeReason != null) {
+                                    Logger.Log(LogLevel.CRI, "main", disposeReason);
+                                    CelesteNetClientContext ctx = CelesteNetClientModule.Instance.Context;
+                                    Dispose();
+                                }
+                            };
+                            HeartbeatTimer.Start();
 
-                        con.StartReadTCP();
-                        con.StartReadUDP();
+                            // Do the regular connection handshake
+                            Handshake.DoConnectionHandshake(Con, conFeatures, token);
+                            Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
 
-                        HandshakeClient = new DataHandshakeTCPUDPClient() {
-                            Name = Settings.Name,
-                            ConnectionFeatures = ServerConnectionFeatures.Length == 0 ? Dummy<string>.EmptyArray : ConnectionFeatures,
-                            ConnectionToken = token
-                        };
+                            Con = con;
+                        } catch (Exception) {
+                            Con?.Dispose();
+                            try {
+                                sock.ShutdownSafe(SocketShutdown.Both);
+                                sock.Close();
+                            } catch (Exception) {}
+                            sock.Dispose();
+                            Con = null;
+                            throw;
+                        }
 
-                        con.Send(HandshakeClient);
                         break;
 
                     default:
@@ -109,10 +150,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
             }
 
-            Logger.Log(LogLevel.INF, "main", "Waiting for server handshake.");
-            WaitHandle.WaitAny(new WaitHandle[] { HandshakeEvent });
-
             SendFilterList();
+
+            // Wait until the server sent the ready packet
+            _ReadyEvent.Wait(token);
 
             Logger.Log(LogLevel.INF, "main", "Ready");
             IsReady = true;
@@ -129,28 +170,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Logger.Log(LogLevel.CRI, "main", "Shutdown");
                 IsReady = false;
 
-                HandshakeEvent.Set();
-                HandshakeEvent.Dispose();
+                HeartbeatTimer?.Dispose();
                 Con?.Dispose();
                 Con = null;
 
                 Data.Dispose();
+                _ReadyEvent?.Dispose();
             }
         }
-
-
-        public event Action<CelesteNetTCPUDPConnection, string> OnInitTCPUDPConnectionFeature;
-
-        public void InitTCPUDPConnectionFeature(CelesteNetTCPUDPConnection con, string feature) {
-            switch (feature) {
-                case StringMap.ConnectionFeature:
-                    con.SendStringMap = true;
-                    break;
-            }
-
-            OnInitTCPUDPConnectionFeature?.Invoke(con, feature);
-        }
-
 
 
         public void SendFilterList() {
@@ -183,80 +210,15 @@ namespace Celeste.Mod.CelesteNet.Client {
             return data;
         }
 
-        private void OnUDPError(CelesteNetTCPUDPConnection con, Exception e, bool read) {
-            if (!read)
-                return;
-
-            con.SendUDP = false;
-
-            UDPDeathScore++;
-            if (UDPDeathScore < UDPDeathScoreMax) {
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died. Retrying.\nUDP score: {UDPDeathScore} / {UDPAliveScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
-
-            } else {
-                UDPDeathScore = UDPDeathScoreMax;
-                Logger.Log(LogLevel.CRI, "main", $"UDP connection died too often. Switching to TCP only.\nUDP score: {UDPDeathScore} / {UDPAliveScore}\n{this}\n{(e is ObjectDisposedException ? "Disposed" : e is SocketException ? e.Message : e.ToString())}");
-                con.UDP?.Close();
-                con.UDP = null;
-            }
-
-            con.Send(new DataTCPOnlyDowngrade());
-        }
-
-
-        #region Handlers
-
-        public bool Filter(CelesteNetConnection con, DataType data) {
-            if ((data.DataFlags & DataFlags.Update) == DataFlags.Update) {
-                if (con is CelesteNetTCPUDPConnection tcpudp) {
-                    UDPAliveScore++;
-                    if (UDPAliveScore >= UDPAliveScoreMax) {
-                        UDPAliveScore = 0;
-                        UDPDeathScore--;
-                        if (UDPDeathScore < UDPDeathScoreMin)
-                            UDPDeathScore = UDPDeathScoreMin;
-                    }
-                }
-            }
-
-            return true;
-        }
-
-        public void Handle(CelesteNetConnection con, DataHandshakeServer handshake) {
-            Logger.Log(LogLevel.INF, "main", $"Received handshake: {handshake}");
-            if (handshake.Version != CelesteNetUtils.Version) {
-                Dispose();
-                throw new Exception($"Version mismatch - client {CelesteNetUtils.Version} vs server {handshake.Version}");
-            }
-
-            // Needed because while the server knows the client's TCP endpoint, the UDP endpoint is ambiguous.
-            if (con is CelesteNetTCPUDPConnection && HandshakeClient is DataHandshakeTCPUDPClient hsClient) {
-                con.Send(new DataUDPConnectionToken {
-                    Value = hsClient.ConnectionToken
-                });
-            }
-
-            PlayerInfo = handshake.PlayerInfo;
-            Data.Handle(con, handshake.PlayerInfo);
-
-            HandshakeEvent.Set();
-        }
-
-        public void Handle(CelesteNetTCPUDPConnection con, DataTCPOnlyDowngrade downgrade) {
-            if (HandshakeClient is DataHandshakeTCPUDPClient hsClient && UDPDeathScore < UDPDeathScoreMax) {
-                con.StartReadUDP();
-                con.Send(new DataUDPConnectionToken {
-                    Value = hsClient.ConnectionToken
-                });
-            }
-        }
-
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
-            if (PlayerInfo != null && PlayerInfo.ID == info.ID)
+            // The first DataPlayerInfo sent from the server is our own
+            if (PlayerInfo == null || PlayerInfo.ID == info.ID)
                 PlayerInfo = info;
         }
 
-        #endregion
+        public void Handle(CelesteNetConnection con, DataReady ready) {
+            _ReadyEvent.Set();
+        }
 
     }
 }

@@ -25,14 +25,14 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             IsAlive = isAlive;
         }
 
-        public override void Read(DataContext ctx, MetaTypeWrap data) {
-            ID = uint.Parse(data["ID"]);
-            IsAlive = bool.Parse(data["IsAlive"]);
+        public override void Read(CelesteNetBinaryReader reader) {
+            ID = reader.Read7BitEncodedUInt();
+            IsAlive = reader.ReadBoolean();
         }
 
-        public override void Write(DataContext ctx, MetaTypeWrap data) {
-            data["ID"] = ID.ToString();
-            data["IsAlive"] = IsAlive.ToString();
+        public override void Write(CelesteNetBinaryWriter writer) {
+            writer.Write7BitEncodedUInt(ID);
+            writer.Write(IsAlive);
         }
 
         public static implicit operator uint(MetaRef meta)

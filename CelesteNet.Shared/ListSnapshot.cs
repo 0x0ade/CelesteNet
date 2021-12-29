@@ -95,7 +95,7 @@ namespace Celeste.Mod.CelesteNet {
                 return snapshot;
             }
 
-            return new ListSnapshot<T>(this);
+            return new(this);
         }
 
         public void Add(ListSnapshot<T> snapshot) {

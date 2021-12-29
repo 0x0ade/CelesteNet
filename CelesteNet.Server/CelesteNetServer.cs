@@ -41,13 +41,13 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly DetourModManager DetourModManager;
 
         public uint PlayerCounter = 0;
-        public readonly TokenGenerator ConTokenGenerator = new TokenGenerator();
+        public readonly TokenGenerator ConTokenGenerator = new();
         public readonly RWLock ConLock = new();
         public readonly HashSet<CelesteNetConnection> Connections = new();
         public readonly HashSet<CelesteNetPlayerSession> Sessions = new();
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new();
         public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new();
-        private System.Timers.Timer HeartbeatTimer;
+        private readonly System.Timers.Timer HeartbeatTimer;
 
         public float CurrentTickRate { get; private set; }
         private float NextTickRate;
@@ -163,9 +163,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Channels.Start();
 
-            EndPoint serverEP = new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort);
-            EndPoint udpRecvEP = new IPEndPoint(IPAddress.IPv6Any, Settings.UDPReceivePort);
-            EndPoint udpSendEP = new IPEndPoint(IPAddress.IPv6Any, Settings.UDPSendPort);
+            IPEndPoint serverEP = new(IPAddress.IPv6Any, Settings.MainPort);
+            IPEndPoint udpRecvEP = new(IPAddress.IPv6Any, Settings.UDPReceivePort);
+            IPEndPoint udpSendEP = new(IPAddress.IPv6Any, Settings.UDPSendPort);
 
             CelesteNetTCPUDPConnection.Settings tcpUdpConSettings = new() {
                 UDPReceivePort = Settings.UDPReceivePort,
@@ -346,7 +346,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         private void DoHeartbeatTick() {
-            HashSet<(CelesteNetConnection con, string reason)> disposeCons = new HashSet<(CelesteNetConnection, string)>();
+            HashSet<(CelesteNetConnection con, string reason)> disposeCons = new();
             using (ConLock.R())
                 foreach (CelesteNetConnection con in new HashSet<CelesteNetConnection>(Connections)) {
                     try {
@@ -394,7 +394,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             // Broadcast the new tick rate
-            BroadcastAsync(new DataTickRate() {
+            BroadcastAsync(new DataTickRate {
                 TickRate = NextTickRate
             });
         }

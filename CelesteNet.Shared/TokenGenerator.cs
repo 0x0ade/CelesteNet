@@ -18,14 +18,15 @@ namespace Celeste.Mod.CelesteNet {
 
         public const int MaxLFSRSteps = 4;
 
-        private object lfsrLock = new object();
-        private Random lfsrStepRNG;
-        private uint lfsrState, lfsrMask;
+        private readonly object lfsrLock = new();
+        private readonly Random lfsrStepRNG;
+        private uint lfsrState;
+        private readonly uint lfsrMask;
 
-        private uint[] shuffleMasks;
-        private uint xorKey;
+        private readonly uint[] shuffleMasks;
+        private readonly uint xorKey;
 
-        public TokenGenerator() : this(new Random()) {}
+        public TokenGenerator() : this(new()) {}
         public TokenGenerator(Random rng) {
             uint RandomUInt() {
                 return ((uint) rng.Next(1 << 30)) << 2 | ((uint) rng.Next(1 << 2));

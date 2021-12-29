@@ -29,11 +29,11 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        private RWLock _RoleLock;
-        private List<NetPlusThreadRole> Roles;
+        private readonly RWLock _RoleLock = new();
+        private readonly List<NetPlusThreadRole> Roles = new();
 
         private Timer? SchedulerTimer;
-        private object SchedulerLock = new object();
+        private readonly object SchedulerLock = new();
         private long _LastSchedulerExecDuration;
         private int _LastSchedulerExecNumThreadsReassigned, _LastSchedulerExecNumThreadsIdeling;
 
@@ -43,13 +43,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             OverloadThreshold = overloadThreshold;
             StealThreshold = stealThreshold;
 
-            // Initialize Roles
-            _RoleLock = new RWLock();
-            Roles = new List<NetPlusThreadRole>();
-
             if (timerInterval > 0) {
                 // Create scheduler timer
-                SchedulerTimer = new Timer(timerInterval);
+                SchedulerTimer = new(timerInterval);
                 SchedulerTimer.Elapsed += (_, _) => InvokeScheduler();
                 SchedulerTimer.Enabled = true;
             }
@@ -77,18 +73,18 @@ namespace Celeste.Mod.CelesteNet.Server {
                 using (Pool.PoolLock.R())
                 using (Pool.RoleLock.W())
                 using (_RoleLock.R()) {
-                    Stopwatch watch = new Stopwatch();
+                    Stopwatch watch = new();
                     Logger.Log(LogLevel.DBG, "netplus", "Invoking thread pool scheduler...");
 
                     // Collect metadata from Roles and threads
-                    List<(NetPlusThreadRole role, RoleMetadata metadata)> roles = new List<(NetPlusThreadRole, RoleMetadata)>();
-                    Dictionary<NetPlusThreadRole, int> roleIdxs = new Dictionary<NetPlusThreadRole, int>();
+                    List<(NetPlusThreadRole role, RoleMetadata metadata)> roles = new();
+                    Dictionary<NetPlusThreadRole, int> roleIdxs = new();
                     foreach (NetPlusThreadRole role in Roles) {
-                        roles.Add((role, new RoleMetadata(role)));
+                        roles.Add((role, new(role)));
                         roleIdxs.Add(role, Roles.Count-1);
                     }
 
-                    List<(NetPlusThread thread, float actvRate, RoleMetadata? role)> threads = new List<(NetPlusThread, float, RoleMetadata?)>();
+                    List<(NetPlusThread thread, float actvRate, RoleMetadata? role)> threads = new();
                     foreach (NetPlusThread thread in Pool.EnumerateThreads()) {
                         float actvRate = thread.ActivityRate;
                         RoleMetadata? md = null;

@@ -122,19 +122,19 @@ namespace Celeste.Mod.CelesteNet.Server {
                     displayName = $":{avatarId}: {fullNameSpace}";
 
                     // Split the avatar into fragments
-                    List<DataNetEmoji> avatarFrags = new List<DataNetEmoji>();
+                    List<DataNetEmoji> avatarFrags = new();
                     byte[] buf = new byte[Server.Settings.MaxPacketSize / 2];
                     int fragSize;
                     while ((fragSize = avatarStream.Read(buf, 0, buf.Length)) > 0) {
                         byte[] frag = new byte[fragSize];
                         Buffer.BlockCopy(buf, 0, frag, 0, fragSize);
-                        avatarFrags.Add(new DataNetEmoji() {
+                        avatarFrags.Add(new DataNetEmoji {
                             ID = avatarId,
                             Data = frag
                         });
                     }
-                    foreach (DataNetEmoji frag in avatarFrags.SkipLast(1))
-                        frag.MoreFragments = true;
+                    for (int i = 0; i < avatarFrags.Count - 1; i++)
+                        avatarFrags[i].MoreFragments = true;
 
                     // Turn avatar fragments into blobs
                     AvatarFragments = avatarFrags.Select(frag => DataInternalBlob.For(Server.Data, frag)).ToArray();

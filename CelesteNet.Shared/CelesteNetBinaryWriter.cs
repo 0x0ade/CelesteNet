@@ -19,14 +19,13 @@ namespace Celeste.Mod.CelesteNet {
         public OptMap<string>? Strings;
         public OptMap<Type>? SlimMap;
 
-        protected ConcurrentStack<Tuple<long, int>> SizeDummyStack;
+        protected ConcurrentStack<Tuple<long, int>> SizeDummyStack = new();
 
         public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output)
             : base(output, CelesteNetUtils.UTF8NoBOM) {
             Data = ctx;
             Strings = strings;
             SlimMap = slimMap;
-            SizeDummyStack = new ConcurrentStack<Tuple<long, int>>();
         }
 
         public CelesteNetBinaryWriter(DataContext ctx, OptMap<string>? strings, OptMap<Type>? slimMap, Stream output, bool leaveOpen)
@@ -34,7 +33,6 @@ namespace Celeste.Mod.CelesteNet {
             Data = ctx;
             Strings = strings;
             SlimMap = slimMap;
-            SizeDummyStack = new ConcurrentStack<Tuple<long, int>>();
         }
 
         public virtual void WriteSizeDummy(int size) {
@@ -50,11 +48,11 @@ namespace Celeste.Mod.CelesteNet {
             else
                 throw new ArgumentException($"Invalid size dummy size {size}");
 
-            SizeDummyStack.Push(new Tuple<long, int>(pos, size));
+            SizeDummyStack.Push(new(pos, size));
         }
 
         public virtual void UpdateSizeDummy() {
-            if (!SizeDummyStack.TryPop(out var dummy))
+            if (!SizeDummyStack.TryPop(out Tuple<long, int>? dummy))
                 throw new InvalidOperationException("No size dummy on the stack");
             long dummyPos = dummy.Item1;
             int dummySize = dummy.Item2;

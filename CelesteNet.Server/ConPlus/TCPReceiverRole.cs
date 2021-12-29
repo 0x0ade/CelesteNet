@@ -18,6 +18,8 @@ namespace Celeste.Mod.CelesteNet {
 
         private class Worker : RoleWorker {
 
+            public new TCPReceiverRole Role => (TCPReceiverRole) base.Role;
+
             public Worker(TCPReceiverRole role, NetPlusThread thread) : base(role, thread) {}
 
             protected internal override void StartWorker(CancellationToken token) {
@@ -46,9 +48,13 @@ namespace Celeste.Mod.CelesteNet {
                 }
             }
 
-            public new TCPReceiverRole Role => (TCPReceiverRole) base.Role;
-
         }
+
+        public override int MinThreads => 1;
+        public override int MaxThreads => int.MaxValue;
+
+        public CelesteNetServer Server { get; }
+        public IPoller Poller { get; }
 
         public TCPReceiverRole(NetPlusThreadPool pool, CelesteNetServer server, IPoller poller) : base(pool) {
             Server = server;
@@ -61,12 +67,6 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
-
-        public override int MinThreads => 1;
-        public override int MaxThreads => int.MaxValue;
-
-        public CelesteNetServer Server { get; }
-        public IPoller Poller { get; }
 
     }
 }

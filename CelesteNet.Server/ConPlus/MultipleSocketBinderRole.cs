@@ -10,16 +10,22 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             protected RoleWorker(NetPlusThreadRole role, NetPlusThread thread) : base(role, thread) {}
 
+            public new MultipleSocketBinderRole Role => (MultipleSocketBinderRole) base.Role;
+
             protected internal override void StartWorker(CancellationToken token) {
-                using (Socket sock = Role.CreateSocket())
-                    StartWorker(sock, token);
+                using Socket sock = Role.CreateSocket();
+                StartWorker(sock, token);
             }
 
             protected abstract void StartWorker(Socket socket, CancellationToken token);
 
-            public new MultipleSocketBinderRole Role => (MultipleSocketBinderRole) base.Role;
-
         }
+
+        public override int MinThreads => 1;
+        public override int MaxThreads => MonoMod.Utils.PlatformHelper.Is(MonoMod.Utils.Platform.Linux) ? int.MaxValue : 1;
+
+        public ProtocolType Protocol { get; }
+        public EndPoint EndPoint { get; }
 
         protected MultipleSocketBinderRole(NetPlusThreadPool pool, ProtocolType protocol, EndPoint endPoint) : base(pool) {
             Protocol = protocol;
@@ -30,7 +36,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Socket? socket = null;
             try {
                 // Create socket and perform socket options magic
-                socket = new Socket(EndPoint.AddressFamily, Protocol switch {
+                socket = new(EndPoint.AddressFamily, Protocol switch {
                     ProtocolType.Tcp => SocketType.Stream,
                     ProtocolType.Udp => SocketType.Dgram,
                     _ => throw new InvalidOperationException($"Unknown protocol type {Protocol}")
@@ -44,16 +50,10 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 return socket;
             } catch (Exception) {
-                if (socket != null)
-                    socket.Dispose();
+                socket?.Dispose();
                 throw;
             }
         }
 
-        public ProtocolType Protocol { get; }
-        public EndPoint EndPoint { get; }
-
-        public override int MinThreads => 1;
-        public override int MaxThreads => MonoMod.Utils.PlatformHelper.Is(MonoMod.Utils.Platform.Linux) ? int.MaxValue : 1;
     }
 }

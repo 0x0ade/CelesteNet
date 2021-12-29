@@ -185,7 +185,7 @@ namespace Celeste.Mod.CelesteNet {
 
             if (length != 0) {
                 byte[] data = new byte[length];
-                using (ms = new MemoryStream(data, 0, (int) length, true, true)) {
+                using (ms = new(data, 0, (int) length, true, true)) {
                     stream.CopyTo(ms);
                 }
                 return data;

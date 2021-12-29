@@ -335,7 +335,7 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
             if (stream is MemoryStream ms)
                 return ms;
 
-            ms = new MemoryStream();
+            ms = new();
             using (stream)
                 stream.CopyTo(ms);
             ms.Seek(0, SeekOrigin.Begin);

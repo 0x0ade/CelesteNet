@@ -130,7 +130,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (sharer != null && !inGame) {
                 List<EverestModuleMetadata> requested;
                 lock (sharer.Requested)
-                    requested = new List<EverestModuleMetadata>(sharer.Requested);
+                    requested = new(sharer.Requested);
 
                 if (requested.Count != 0) {
                     TextMenu.Item item;
@@ -174,7 +174,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 try {
                     context.Init(Settings);
                     context.Status.Set("Connecting...");
-                    using (_StartTokenSource = new CancellationTokenSource())
+                    using (_StartTokenSource = new())
                         context.Start(_StartTokenSource.Token);
                     if (context.Status.Spin)
                         context.Status.Set("Connected", 1f);

@@ -10,6 +10,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private class Worker : RoleWorker {
 
+            public new UDPReceiverRole Role => (UDPReceiverRole) base.Role;
+
             public Worker(UDPReceiverRole role, NetPlusThread thread) : base(role, thread) { }
 
             protected override void StartWorker(Socket socket, CancellationToken token) {
@@ -44,7 +46,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         // Initialize the connection
                         lock (tokCon.UDPLock) {
                             if (!tokCon.UseUDP) {
-                                tokCon.Send(new DataLowLevelUDPInfo() {
+                                tokCon.Send(new DataLowLevelUDPInfo {
                                     ConnectionID = -1,
                                     MaxDatagramSize = 0
                                 });
@@ -83,17 +85,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                 ExitActiveZone();
             }
 
-            public new UDPReceiverRole Role => (UDPReceiverRole) base.Role;
-
         }
 
-        private ConcurrentDictionary<uint, ConPlusTCPUDPConnection> conTokenMap;
-        private ConcurrentDictionary<EndPoint, ConPlusTCPUDPConnection> endPointMap;
+        private readonly ConcurrentDictionary<uint, ConPlusTCPUDPConnection> conTokenMap = new();
+        private readonly ConcurrentDictionary<EndPoint, ConPlusTCPUDPConnection> endPointMap = new();
 
         public UDPReceiverRole(NetPlusThreadPool pool, CelesteNetServer server, EndPoint endPoint) : base(pool, ProtocolType.Udp, endPoint) {
             Server = server;
-            conTokenMap = new ConcurrentDictionary<uint, ConPlusTCPUDPConnection>();
-            endPointMap = new ConcurrentDictionary<EndPoint, ConPlusTCPUDPConnection>();
         }
 
         public override NetPlusThreadRole.RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);

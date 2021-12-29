@@ -15,7 +15,7 @@ namespace Celeste.Mod.CelesteNet {
     public class BufferedSocketStream : Stream {
 
         private Socket? _Socket = null;
-        private byte[] RecvBuffer, SendBuffer;
+        private readonly byte[] RecvBuffer, SendBuffer;
         private int RecvAvail = 0, RecvBufferOff = 0, SendBufferOff = 0;
 
         public BufferedSocketStream(int bufferSize) {

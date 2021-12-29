@@ -185,6 +185,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (!Active && !isRebinding && Settings.ButtonChat.Button.Pressed) {
                 Active = true;
+
             } else if (Active) {
                 Engine.Commands.Open = false;
 
@@ -215,8 +216,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 } else if (MInput.Keyboard.Pressed(Keys.Down) && RepeatIndex > 0) {
                     RepeatIndex--;
+
                 } else if (MInput.Keyboard.Pressed(Keys.Up) && RepeatIndex < Repeat.Count - 1) {
                     RepeatIndex++;
+
                 } else if (MInput.Keyboard.Check(Keys.Left) && _cursorCanMove && CursorIndex > 0) {
                     if (_ControlHeld) {
                         // skip over space right before the cursor, if there is one
@@ -232,6 +235,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     _TimeSinceCursorMove = 0;
                     _CursorMoveFast = _directionHeldLast;
                     _Time = 0;
+
                 } else if (MInput.Keyboard.Check(Keys.Right) && _cursorCanMove && CursorIndex < Typing.Length) {
                     if (_ControlHeld) {
                         int nextWord = Typing.IndexOf(" ", _CursorIndex);
@@ -242,10 +246,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     _TimeSinceCursorMove = 0;
                     _CursorMoveFast = _directionHeldLast;
                     _Time = 0;
+
                 } else if (MInput.Keyboard.Pressed(Keys.Home)) {
                     CursorIndex = 0;
+
                 } else if (MInput.Keyboard.Pressed(Keys.End)) {
                     CursorIndex = Typing.Length;
+
                 } else if (Input.ESC.Pressed) {
                     Active = false;
                 }
@@ -297,6 +304,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
                 _RepeatIndex = 0;
                 _Time = 0;
+
             } else if (c == (char) 127 && CursorIndex < Typing.Length) {
                 // Delete - remove character after cursor.
                 if (_ControlHeld && Typing[_CursorIndex] != ' ') {
@@ -316,6 +324,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
                 _RepeatIndex = 0;
                 _Time = 0;
+
             } else if (!char.IsControl(c)) {
                 if (CursorIndex == Typing.Length) {
                     // Any other character - append.

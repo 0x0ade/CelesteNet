@@ -271,8 +271,7 @@ namespace Celeste.Mod.CelesteNet {
                     slimID |= reader.Read7BitEncodedInt() << 6;
 
                 Type slimType = reader.SlimMap.Get(slimID);
-                DataType? slimData = Activator.CreateInstance(slimType) as DataType;
-                if (slimData == null)
+                if (Activator.CreateInstance(slimType) is not DataType slimData)
                     throw new InvalidDataException($"Cannot create instance of data type {slimType.FullName}");
 
                 try {
@@ -292,7 +291,7 @@ namespace Celeste.Mod.CelesteNet {
 
             DataType? data;
             if (!IDToDataType.TryGetValue(id, out Type? type))
-                data = new DataUnparsed() {
+                data = new DataUnparsed {
                     InnerID = id,
                     InnerSource = source,
                     InnerFlags = flags,
@@ -331,11 +330,10 @@ namespace Celeste.Mod.CelesteNet {
             if (!IDToMetaType.TryGetValue(id, out Type? type))
                 return new MetaUnparsed() {
                     InnerID = id,
-                    InnerData = reader.ReadBytes((int) length)
+                    InnerData = reader.ReadBytes(length)
                 };
 
-            MetaType? meta = Activator.CreateInstance(type) as MetaType;
-            if (meta == null)
+            if (Activator.CreateInstance(type) is not MetaType meta)
                 throw new InvalidOperationException($"Cannot create instance of MetaType '{type.FullName}'");
 
             try {

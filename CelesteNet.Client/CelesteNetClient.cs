@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public bool IsReady { get; protected set; }
-        private ManualResetEventSlim _ReadyEvent;
+        private readonly ManualResetEventSlim _ReadyEvent;
 
         public DataPlayerInfo PlayerInfo;
 
@@ -55,7 +55,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             _ReadyEvent = new(false);
 
             // Find connection features
-            List<IConnectionFeature> conFeatures = new List<IConnectionFeature>();
+            List<IConnectionFeature> conFeatures = new();
             foreach (Type type in CelesteNetUtils.GetTypes()) {
                 if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
                     continue;
@@ -86,7 +86,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {Settings.Host}:{Settings.Port}");
 
                         // Create a TCP connection
-                        Socket sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                        Socket sock = new(SocketType.Stream, ProtocolType.Tcp);
                         try {
                             uint conToken;
                             IConnectionFeature[] conFeatures;
@@ -96,7 +96,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 sock.Connect(Settings.Host, Settings.Port);
 
                                 // Do the teapot handshake
-                                var teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
+                                Tuple<uint, IConnectionFeature[], CelesteNetTCPUDPConnection.Settings> teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
                                 conToken = teapotRes.Item1;
                                 conFeatures = teapotRes.Item2;
                                 settings = teapotRes.Item3;
@@ -105,7 +105,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             }
 
                             // Create a connection and start the heartbeat timer
-                            CelesteNetClientTCPUDPConnection con = new CelesteNetClientTCPUDPConnection(Data, conToken, settings, sock);
+                            CelesteNetClientTCPUDPConnection con = new(Data, conToken, settings, sock);
                             con.OnDisconnect += _ => {
                                 CelesteNetClientModule.Instance.Context?.Dispose();
                                 Dispose();

@@ -5,6 +5,7 @@
     <Nullable Condition="'$(Nullable)' == ''">enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
+    <IsServer>$(AssemblyName.EndsWith('Server'))</IsServer>
     <IsModule>$(AssemblyName.EndsWith('Module'))</IsModule>
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
     <DefineConstants>INTERNAL_NULLABLE_ATTRIBUTES;$(DefineConstants)</DefineConstants>
@@ -31,6 +32,7 @@
       </PropertyGroup>
       <ItemGroup>
         <Reference Include="Microsoft.CSharp" />
+        <PackageReference Include="System.ValueTuple" Version="4.5.0" Condition="$(IsServer) Or $(IsModule)" />
       </ItemGroup>
     </Otherwise>
   </Choose>

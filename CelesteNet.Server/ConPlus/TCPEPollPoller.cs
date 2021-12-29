@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         [StructLayout(LayoutKind.Sequential)]
         private struct epoll_event {
 
-            public UInt32 events;
+            public uint events;
             public long user;
 
         }
@@ -49,18 +49,14 @@ namespace Celeste.Mod.CelesteNet.Server {
         [DllImport("libc", SetLastError = true)]
         private static extern int epoll_wait(int epfd, [Out, MarshalAs(UnmanagedType.LPArray)] epoll_event[] evt, int maxevts, int timeout);
 
-        private RWLock PollerLock;
-        private int EpollFD, CancelFD;
-        private ConcurrentDictionary<ConPlusTCPUDPConnection, (int fd, int id)> Connections;
+        private readonly RWLock PollerLock = new();
+        private readonly int EpollFD, CancelFD;
+        private readonly ConcurrentDictionary<ConPlusTCPUDPConnection, (int fd, int id)> Connections = new();
 
         private int NextConId;
-        private ConcurrentDictionary<int, ConPlusTCPUDPConnection> ConIds;
+        private readonly ConcurrentDictionary<int, ConPlusTCPUDPConnection> ConIds = new();
 
         public TCPEPollPoller() {
-            PollerLock = new RWLock();
-            Connections = new ConcurrentDictionary<ConPlusTCPUDPConnection, (int, int)>();
-            ConIds = new ConcurrentDictionary<int, ConPlusTCPUDPConnection>();
-
             // Create the EPoll FD
             EpollFD = epoll_create(21); // The documentation says "pass any number, it's unused on modern systems" :)
             if (EpollFD < 0)
@@ -78,7 +74,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             // We don't specifiy EPOLLET (edge triggered) and EPOLLONESHOT
             // (don't poll the FD after it's triggered once until renabled), as
             // we want to wake up all threads
-            epoll_event evt = new epoll_event() {
+            epoll_event evt = new() {
                 events = EPOLLIN,
                 user = int.MaxValue
             };
@@ -131,7 +127,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 //      connection isn't handled by two threads at the same time
                 //      when the connection receives additional data when a
                 //      thread's already handling it
-                epoll_event evt = new epoll_event() {
+                epoll_event evt = new() {
                     events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET | EPOLLONESHOT,
                     user = id
                 };
@@ -143,7 +139,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void RemoveConnection(ConPlusTCPUDPConnection con) {
             using (PollerLock.W()) {
                 // Remove the connection from the ID table
-                if (!Connections.TryRemove(con, out var conData))
+                if (!Connections.TryRemove(con, out (int fd, int id) conData))
                     return;
                 ConIds.TryRemove(conData.id, out _);
 
@@ -167,7 +163,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             // Triggering it causes all threads to cycle out of their poll
             // loops and check their tokens to determine if they should exit.
             epoll_event[] evts = new epoll_event[role.Server.Settings.TCPPollMaxEvents];
-            using (token.Register(() => write(CancelFD, BitConverter.GetBytes((UInt64) 1), 8)))
+            using (token.Register(() => write(CancelFD, BitConverter.GetBytes(1UL), 8)))
             while (!token.IsCancellationRequested) {
                 // Poll the EPoll FD
                 int ret;
@@ -190,14 +186,14 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void ArmConnectionPoll(ConPlusTCPUDPConnection con) {
             using (PollerLock.R()) {
-                if (!Connections.TryGetValue(con, out var conData))
+                if (!Connections.TryGetValue(con, out (int fd, int id) conData))
                     return;
 
                 // Modify all flags to how they were originally. This causes the
                 // EPoll FD to monitor the socket again
                 // Maybe the socket was already closed, in which case it already
                 // got removed from the EPoll FD and epoll_ctl will return EBADF
-                epoll_event evt = new epoll_event() {
+                epoll_event evt = new() {
                     events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET | EPOLLONESHOT,
                     user = conData.id
                 };

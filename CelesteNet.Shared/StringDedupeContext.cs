@@ -153,7 +153,7 @@ namespace Celeste.Mod.CelesteNet {
 
             if (count < MinLength ||
                 count > MaxLength)
-                return new string(chars, 0, count);
+                return new(chars, 0, count);
 
             fixed (char* ptr = chars) {
                 return ToDedupedString(ptr, count);
@@ -166,7 +166,7 @@ namespace Celeste.Mod.CelesteNet {
 
             if (count < MinLength ||
                 count > MaxLength)
-                return new string(chars, 0, count);
+                return new(chars, 0, count);
 
             int hash = GetHash(chars, count);
 
@@ -183,7 +183,7 @@ namespace Celeste.Mod.CelesteNet {
             }
 
             Count(hash);
-            return new string(chars, 0, count);
+            return new(chars, 0, count);
         }
 
     }

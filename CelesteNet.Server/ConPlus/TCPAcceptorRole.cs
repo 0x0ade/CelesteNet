@@ -10,6 +10,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private class Worker : RoleWorker {
 
+            public new TCPAcceptorRole Role => (TCPAcceptorRole) base.Role;
+
             public Worker(TCPAcceptorRole role, NetPlusThread thread) : base(role, thread) {}
 
             protected override void StartWorker(Socket socket, CancellationToken token) {
@@ -48,9 +50,15 @@ namespace Celeste.Mod.CelesteNet.Server {
                 ExitActiveZone();
             }
 
-            public new TCPAcceptorRole Role => (TCPAcceptorRole) base.Role;
-
         }
+
+        public CelesteNetServer Server { get; }
+        public HandshakerRole Handshaker { get; }
+        public TCPReceiverRole TCPReceiver { get; }
+        public UDPReceiverRole UDPReceiver { get; }
+        public TCPUDPSenderRole Sender { get; }
+
+        public CelesteNetTCPUDPConnection.Settings ConnectionSettings { get; }
 
         public TCPAcceptorRole(
             NetPlusThreadPool pool,
@@ -71,14 +79,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override NetPlusThreadRole.RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
-
-        public CelesteNetServer Server { get; }
-        public HandshakerRole Handshaker { get; }
-        public TCPReceiverRole TCPReceiver { get; }
-        public UDPReceiverRole UDPReceiver { get; }
-        public TCPUDPSenderRole Sender { get; }
-
-        public CelesteNetTCPUDPConnection.Settings ConnectionSettings { get; }
 
     }
 }

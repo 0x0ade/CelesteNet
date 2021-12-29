@@ -124,7 +124,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             if ((flags & Flags.Holding) != 0)
                 Holding = new() {
-                    Position = this.Position + new Vector2(reader.Read7BitEncodedInt(), reader.Read7BitEncodedInt()),
+                    Position = Position + new Vector2(reader.Read7BitEncodedInt(), reader.Read7BitEncodedInt()),
                     Scale = new Vector2(reader.ReadSByte() / 16f, reader.ReadSByte() / 16f),
                     Color = reader.ReadColor(),
                     Depth = reader.Read7BitEncodedInt(),
@@ -178,18 +178,18 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write7BitEncodedInt(CurrentAnimationFrame);
 
             writer.Write((byte) HairColors.Length);
-            List<ushort> packedHairCols = new List<ushort>();
+            ushort[] packedHairCols = new ushort[HairColors.Length];
             for (int i = 0; i < HairColors.Length; i++)
-                packedHairCols.Add((ushort) (
+                packedHairCols[i] = (ushort) (
                     (HairColors[i].R >> 3) << 0 |
                     (HairColors[i].G >> 3) << 5 |
                     (HairColors[i].B >> 3) << 10
-                ));
-            for (int i = 0; i < packedHairCols.Count;) {
+                );
+            for (int i = 0; i < packedHairCols.Length;) {
                 int origIdx = i;
                 writer.Write((byte) ((packedHairCols[i] >> 8) & 0xff));
                 writer.Write((byte) ((packedHairCols[i] >> 0) & 0xff));
-                for (i++; i < packedHairCols.Count && packedHairCols[i] == packedHairCols[origIdx]; i++);
+                for (i++; i < packedHairCols.Length && packedHairCols[i] == packedHairCols[origIdx]; i++);
                 if (origIdx+1 < i)
                     writer.Write((byte) ((1<<7) | (i-origIdx-1)));
             }
@@ -245,7 +245,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             }
 
             if (DashDir != null && DashWasB != null)
-                writer.Write((byte) ((DashDir.Value.Angle() / (2*Math.PI) * 256f) % 256));
+                writer.Write((byte) ((DashDir.Value.Angle() / (2 * Math.PI) * 256f) % 256));
         }
 
         [Flags]

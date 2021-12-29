@@ -14,15 +14,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private readonly byte[] PollBuffer = new byte[0];
 
-        private RWLock PollerLock;
-        private HashSet<ConPlusTCPUDPConnection> Cons;
-        private BlockingCollection<ConPlusTCPUDPConnection> ConQueue;
-
-        public TCPFallbackPoller() {
-            PollerLock = new RWLock();
-            Cons = new HashSet<ConPlusTCPUDPConnection>();
-            ConQueue = new BlockingCollection<ConPlusTCPUDPConnection>();
-        }
+        private readonly RWLock PollerLock = new();
+        private readonly HashSet<ConPlusTCPUDPConnection> Cons = new();
+        private readonly BlockingCollection<ConPlusTCPUDPConnection> ConQueue = new();
 
         public void Dispose() {
             using (PollerLock.W()) {

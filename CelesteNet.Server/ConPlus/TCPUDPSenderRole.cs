@@ -23,37 +23,37 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private class Worker : RoleWorker {
 
-            private BufferedSocketStream SockStream;
-            private BinaryWriter SockWriter;
-            private MemoryStream PacketStream;
-            private CelesteNetBinaryWriter PacketWriter;
+            private readonly BufferedSocketStream SockStream;
+            private readonly BinaryWriter SockWriter;
+            private readonly MemoryStream PacketStream;
+            private readonly CelesteNetBinaryWriter PacketWriter;
 
-            private Socket UDPSocket;
-            private byte[] UDPBuffer;
+            private readonly Socket UDPSocket;
+            private readonly byte[] UDPBuffer;
 
-            private RWLock TCPMetricsLock;
+            private readonly RWLock TCPMetricsLock;
             private long LastTCPByteRateUpdate, LastTCPPacketRateUpdate;
             private float _TCPByteRate, _TCPPacketRate;
 
-            private RWLock UDPMetricsLock;
+            private readonly RWLock UDPMetricsLock;
             private long LastUDPByteRateUpdate, LastUDPPacketRateUpdate;
             private float _UDPByteRate, _UDPPacketRate;
 
             public Worker(TCPUDPSenderRole role, NetPlusThread thread) : base(role, thread) {
-                SockStream = new BufferedSocketStream(role.Server.Settings.TCPBufferSize);
-                SockWriter = new BinaryWriter(SockStream);
-                PacketStream = new MemoryStream(role.Server.Settings.MaxPacketSize);
-                PacketWriter = new CelesteNetBinaryWriter(role.Server.Data, null, null, PacketStream);
+                SockStream = new(role.Server.Settings.TCPBufferSize);
+                SockWriter = new(SockStream);
+                PacketStream = new(role.Server.Settings.MaxPacketSize);
+                PacketWriter = new(role.Server.Data, null, null, PacketStream);
 
-                UDPSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+                UDPSocket = new(SocketType.Dgram, ProtocolType.Udp);
                 UDPSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
                 UDPSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, 0);
                 UDPSocket.EnableEndpointReuse();
                 UDPSocket.Bind(role.UDPEndPoint);
                 UDPBuffer = new byte[role.Server.Settings.UDPMaxDatagramSize];
 
-                TCPMetricsLock = new RWLock();
-                UDPMetricsLock = new RWLock();
+                TCPMetricsLock = new();
+                UDPMetricsLock = new();
             }
 
             public override void Dispose() {
@@ -140,7 +140,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     int packLen = (int) PacketStream.Position;
 
                     // Write size and raw packet data into the actual stream
-                    SockWriter.Write((UInt16) packLen);
+                    SockWriter.Write((ushort) packLen);
                     SockStream.Write(PacketStream.GetBuffer(), 0, packLen);
 
                     // Update connection metrics and check if we hit the connection cap
@@ -151,7 +151,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     byteCounter += 2 + packLen;
                     packetCounter++;
 
-                    if (!(packet is DataLowLevelKeepAlive))
+                    if (packet is not DataLowLevelKeepAlive)
                         con.SurpressTCPKeepAlives();
                 }
                 SockStream.Flush();
@@ -217,7 +217,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     byteCounter += packLen;
                     packetCounter++;
 
-                    if (!(packet is DataLowLevelKeepAlive))
+                    if (packet is not DataLowLevelKeepAlive)
                         con.SurpressUDPKeepAlives();
                 }
 
@@ -269,24 +269,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        private BlockingCollection<(QueueType, CelesteNetSendQueue)> QueueQueue;
-
-        public TCPUDPSenderRole(NetPlusThreadPool pool, CelesteNetServer server, EndPoint udpEP) : base(pool) {
-            Server = server;
-            UDPEndPoint = udpEP;
-            QueueQueue = new BlockingCollection<(QueueType, CelesteNetSendQueue)>();
-        }
-
-        public override void Dispose() {
-            QueueQueue.Dispose();
-            base.Dispose();
-        }
-
-        public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
-
-        public void TriggerTCPQueueFlush(CelesteNetSendQueue queue) => QueueQueue.Add((QueueType.TCP, queue));
-        public void TriggerUDPQueueFlush(CelesteNetSendQueue queue) => QueueQueue.Add((QueueType.UDP, queue));
-
         public override int MinThreads => 1;
         public override int MaxThreads => int.MaxValue;
 
@@ -298,6 +280,23 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public float UDPByteRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).UDPByteRate);
         public float UDPPacketRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).UDPPacketRate);
+
+        private readonly BlockingCollection<(QueueType, CelesteNetSendQueue)> QueueQueue = new();
+
+        public TCPUDPSenderRole(NetPlusThreadPool pool, CelesteNetServer server, EndPoint udpEP) : base(pool) {
+            Server = server;
+            UDPEndPoint = udpEP;
+        }
+
+        public override void Dispose() {
+            QueueQueue.Dispose();
+            base.Dispose();
+        }
+
+        public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
+
+        public void TriggerTCPQueueFlush(CelesteNetSendQueue queue) => QueueQueue.Add((QueueType.TCP, queue));
+        public void TriggerUDPQueueFlush(CelesteNetSendQueue queue) => QueueQueue.Add((QueueType.UDP, queue));
 
     }
 }

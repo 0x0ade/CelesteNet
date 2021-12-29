@@ -15,7 +15,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     public abstract class NetPlusThreadRole : IDisposable {
 
         public abstract class RoleWorker : IDisposable {
-            private RWLock ActivityLock;
+            private readonly RWLock ActivityLock;
             internal int ActiveZoneCounter = 0;
             private long LastActivityUpdate = long.MinValue;
             private float LastActivityRate = 0f;
@@ -25,7 +25,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Thread = thread;
 
                 // Init heuristic stuff
-                ActivityLock = new RWLock();
+                ActivityLock = new();
 
                 using (Role.WorkerLock.W())
                     role.Workers.Add(this);
@@ -63,16 +63,18 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
+        public NetPlusThreadPool Pool { get; }
+        public float ActivityRate => EnumerateWorkers().Aggregate(0f, (a, w) => a + w.ActivityRate / Workers.Count);
+
+        public abstract int MinThreads { get; }
+        public abstract int MaxThreads { get; }
+
         private bool Disposed = false;
-        private RWLock WorkerLock;
-        private List<RoleWorker> Workers;
+        private readonly RWLock WorkerLock = new();
+        private readonly List<RoleWorker> Workers = new();
 
         protected NetPlusThreadRole(NetPlusThreadPool pool) {
             Pool = pool;
-
-            // Init workers collection
-            using ((WorkerLock = new RWLock()).W())
-                Workers = new List<RoleWorker>();
         }
 
         public virtual void Dispose() {
@@ -104,12 +106,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public abstract RoleWorker CreateWorker(NetPlusThread thread);
 
-        public NetPlusThreadPool Pool { get; }
-        public float ActivityRate => EnumerateWorkers().Aggregate(0f, (a, w) => a + w.ActivityRate / Workers.Count);
-
-        public abstract int MinThreads { get; }
-        public abstract int MaxThreads { get; }
-
     }
 
     public sealed class IdleThreadRole : NetPlusThreadRole {
@@ -120,12 +116,12 @@ namespace Celeste.Mod.CelesteNet.Server {
             protected internal override void StartWorker(CancellationToken token) => token.WaitHandle.WaitOne();
         }
 
+        public override int MinThreads => 0;
+        public override int MaxThreads => int.MaxValue;
+
         public IdleThreadRole(NetPlusThreadPool pool) : base(pool) {}
 
         public override NetPlusThreadRole.RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
-
-        public override int MinThreads => 0;
-        public override int MaxThreads => int.MaxValue;
 
     }
 }

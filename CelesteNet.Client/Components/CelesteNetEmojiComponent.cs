@@ -39,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             // Add fragment data to the emoji
-            cacheStream.Write(netemoji.Data);
+            cacheStream.Write(netemoji.Data, 0, netemoji.Data.Length);
 
             if (!netemoji.MoreFragments) {
                 Pending.TryRemove(netemoji.ID, out _);

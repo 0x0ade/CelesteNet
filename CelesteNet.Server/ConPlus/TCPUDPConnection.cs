@@ -12,27 +12,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public class RateMetric : IDisposable {
 
             public readonly ConPlusTCPUDPConnection Con;
-            private RWLock RateLock;
+            private readonly RWLock RateLock;
             private long LastByteRateUpdate, LastPacketRateUpdate;
             private float _ByteRate, _PacketRate;
-
-            internal RateMetric(ConPlusTCPUDPConnection con) {
-                Con = con;
-                RateLock = new RWLock();
-                LastByteRateUpdate = LastPacketRateUpdate = 0;
-                _ByteRate = _PacketRate = 0;
-            }
-
-            public void Dispose() {
-                RateLock.Dispose();
-            }
-
-            public void UpdateRate(int byteCount, int packetCount) {
-                using (RateLock.W()) {
-                    Con.Server.ThreadPool.IterateEventHeuristic(ref _ByteRate, ref LastByteRateUpdate, byteCount, true);
-                    Con.Server.ThreadPool.IterateEventHeuristic(ref _PacketRate, ref LastPacketRateUpdate, packetCount, true);
-                }
-            }
 
             public float ByteRate {
                 get {
@@ -48,6 +30,24 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
+            internal RateMetric(ConPlusTCPUDPConnection con) {
+                Con = con;
+                RateLock = new();
+                LastByteRateUpdate = LastPacketRateUpdate = 0;
+                _ByteRate = _PacketRate = 0;
+            }
+
+            public void Dispose() {
+                RateLock.Dispose();
+            }
+
+            public void UpdateRate(int byteCount, int packetCount) {
+                using (RateLock.W()) {
+                    Con.Server.ThreadPool.IterateEventHeuristic(ref _ByteRate, ref LastByteRateUpdate, byteCount, true);
+                    Con.Server.ThreadPool.IterateEventHeuristic(ref _PacketRate, ref LastPacketRateUpdate, packetCount, true);
+                }
+            }
+
         }
 
         public readonly CelesteNetServer Server;
@@ -55,15 +55,19 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly UDPReceiverRole UDPReceiver;
         public readonly TCPUDPSenderRole Sender;
 
-        private RWLock UsageLock;
+        private readonly RWLock UsageLock;
         private int DownlinkCapCounter = 0;
-        private object TCPLock = new object();
-        private byte[] TCPBuffer;
+        private readonly object TCPLock = new();
+        private readonly byte[] TCPBuffer;
         private int TCPBufferOff;
         public int UDPNextConnectionID = 0;
 
         public readonly RateMetric TCPRecvRate, TCPSendRate;
         public readonly RateMetric UDPRecvRate, UDPSendRate;
+
+        public bool TCPSendCapped => TCPSendRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkBpTCap || TCPSendRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkPpTCap;
+        public float TCPSendCapDelay => Math.Max(Server.Settings.HeuristicSampleWindow * Math.Max(1 - Server.Settings.PlayerTCPUplinkBpTCap / TCPSendRate.ByteRate, 1 - Server.Settings.PlayerTCPUplinkPpTCap / TCPSendRate.PacketRate), 0);
+        public bool UDPSendCapped => UDPSendRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPUplinkBpTCap || UDPSendRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPUplinkPpTCap;
 
         public ConPlusTCPUDPConnection(
             CelesteNetServer server,
@@ -78,15 +82,15 @@ namespace Celeste.Mod.CelesteNet.Server {
             TCPReceiver = tcpReceiver;
             UDPReceiver = udpReceiver;
             Sender = sender;
-            UsageLock = new RWLock();
-            TCPRecvRate = new RateMetric(this);
-            TCPSendRate = new RateMetric(this);
-            UDPRecvRate = new RateMetric(this);
-            UDPSendRate = new RateMetric(this);
+            UsageLock = new();
+            TCPRecvRate = new(this);
+            TCPSendRate = new(this);
+            UDPRecvRate = new(this);
+            UDPSendRate = new(this);
 
             // Initialize TCP receiving
             tcpSock.Blocking = false;
-            TCPBuffer = new byte[Math.Max(server.Settings.TCPBufferSize, 2+server.Settings.MaxPacketSize)];
+            TCPBuffer = new byte[Math.Max(server.Settings.TCPBufferSize, 2 + server.Settings.MaxPacketSize)];
             TCPBufferOff = 0;
             tcpReceiver.Poller.AddConnection(this);
 
@@ -188,8 +192,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                                     // Read the packet
                                     DataType packet;
-                                    using (MemoryStream mStream = new MemoryStream(TCPBuffer, 2, packetLen))
-                                    using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream))
+                                    using (MemoryStream mStream = new(TCPBuffer, 2, packetLen))
+                                    using (CelesteNetBinaryReader reader = new(Server.Data, Strings, SlimMap, mStream))
                                         packet = Server.Data.Read(reader);
 
                                     // Handle the packet
@@ -248,8 +252,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     // Let the connection know we received a container
                     ReceivedUDPContainer(buffer[0]);
 
-                    using (MemoryStream mStream = new MemoryStream(buffer, 0, dgSize))
-                    using (CelesteNetBinaryReader reader = new CelesteNetBinaryReader(Server.Data, Strings, SlimMap, mStream)) {
+                    using (MemoryStream mStream = new(buffer, 0, dgSize))
+                    using (CelesteNetBinaryReader reader = new(Server.Data, Strings, SlimMap, mStream)) {
                         // Get the container ID
                         byte containerID = reader.ReadByte();
 
@@ -279,10 +283,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Dispose();
             }
         }
-
-        public bool TCPSendCapped => TCPSendRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkBpTCap || TCPSendRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkPpTCap;
-        public float TCPSendCapDelay => Math.Max(Server.Settings.HeuristicSampleWindow * Math.Max(1 - Server.Settings.PlayerTCPUplinkBpTCap / TCPSendRate.ByteRate, 1 - Server.Settings.PlayerTCPUplinkPpTCap / TCPSendRate.PacketRate), 0);
-        public bool UDPSendCapped => UDPSendRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPUplinkBpTCap || UDPSendRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPUplinkPpTCap;
 
     }
 }

@@ -98,7 +98,7 @@ namespace Celeste.Mod.CelesteNet {
                 LoopbackReceive(end);
                 return;
             }
-            if (!(data is DataInternalBlob))
+            if (data is not DataInternalBlob)
                 data.Meta = data.GenerateMeta(Data);
             if (!data.FilterSend(Data))
                 return;
@@ -166,13 +166,14 @@ namespace Celeste.Mod.CelesteNet {
         public readonly int MaxSize;
         public readonly float MergeWindow;
 
-        private ConcurrentQueue<DataType> _FrontQueue, _BackQueue;
+        private ConcurrentQueue<DataType> _FrontQueue = new();
+        private ConcurrentQueue<DataType> _BackQueue = new();
         public ConcurrentQueue<DataType> FrontQueue => _FrontQueue;
         public ConcurrentQueue<DataType> BackQueue => _BackQueue;
 
-        private Action<CelesteNetSendQueue> QueueFlushCB;
+        private readonly Action<CelesteNetSendQueue> QueueFlushCB;
         private int InMergeWindow;
-        private System.Timers.Timer Timer;
+        private readonly System.Timers.Timer Timer;
         private volatile bool SwapQueues;
 
         public CelesteNetSendQueue(CelesteNetConnection con, string name, int maxSize, float mergeWindow, Action<CelesteNetSendQueue> queueFlusher) {
@@ -181,8 +182,6 @@ namespace Celeste.Mod.CelesteNet {
             MaxSize = maxSize;
             MergeWindow = mergeWindow;
 
-            _FrontQueue = new ConcurrentQueue<DataType>();
-            _BackQueue = new ConcurrentQueue<DataType>();
             QueueFlushCB = queueFlusher;
             InMergeWindow = 0;
             Timer = new(mergeWindow);
@@ -198,26 +197,29 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void Enqueue(DataType data) {
-            if (!Alive) return;
+            if (!Alive)
+                return;
             if (_FrontQueue.Count >= MaxSize) {
                 Logger.Log(LogLevel.WRN, "sendqueue", $"Connection {Con}'s send queue '{Name}' is at maximum size");
                 Con.DisposeSafe();
                 Dispose();
                 return;
             }
-            
+
             _FrontQueue.Enqueue(data);
             Flush();
         }
 
         public void Clear() {
-            _FrontQueue.Clear();
+            // FIXME: This was _FrontQueue.Clear() in the past, but has been replaced with new(). What about clear race condition behavior?
+            _FrontQueue = new();
         }
 
         public void Flush() {
             if (Interlocked.CompareExchange(ref InMergeWindow, 1, 0) == 0) {
                 lock (Timer) {
-                    if (!Alive) return;
+                    if (!Alive)
+                        return;
                     SwapQueues = true;
                     Timer.Interval = MergeWindow;
                     Timer.Start();
@@ -231,7 +233,7 @@ namespace Celeste.Mod.CelesteNet {
 
             lock (Timer) {
                 if (dropUnreliable) {
-                    ConcurrentQueue<DataType> newBackQueue = new ConcurrentQueue<DataType>();
+                    ConcurrentQueue<DataType> newBackQueue = new();
                     foreach (DataType data in BackQueue) {
                         if ((data.DataFlags & DataFlags.Unreliable) == 0)
                             newBackQueue.Enqueue(data);
@@ -250,7 +252,7 @@ namespace Celeste.Mod.CelesteNet {
                 throw new InvalidOperationException($"Not currently flushing queue '{Name}'");
 
             // TODO For whatever reason, MonoKickstart can't clear concurrent queues
-            _BackQueue = new ConcurrentQueue<DataType>();
+            _BackQueue = new();
             InMergeWindow = 0;
             Interlocked.MemoryBarrier();
             if (FrontQueue.Count > 0)

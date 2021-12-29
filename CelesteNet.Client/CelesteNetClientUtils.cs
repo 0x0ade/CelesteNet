@@ -191,13 +191,13 @@ namespace Celeste.Mod.CelesteNet.Client {
             return ref generated(value);
         }
 
-        private static FieldInfo f_StateMachine_begins =
+        private static readonly FieldInfo f_StateMachine_begins =
             typeof(StateMachine).GetField("begins", BindingFlags.Instance | BindingFlags.NonPublic);
-        private static FieldInfo f_StateMachine_updates =
+        private static readonly FieldInfo f_StateMachine_updates =
             typeof(StateMachine).GetField("updates", BindingFlags.Instance | BindingFlags.NonPublic);
-        private static FieldInfo f_StateMachine_ends =
+        private static readonly FieldInfo f_StateMachine_ends =
             typeof(StateMachine).GetField("ends", BindingFlags.Instance | BindingFlags.NonPublic);
-        private static FieldInfo f_StateMachine_coroutines =
+        private static readonly FieldInfo f_StateMachine_coroutines =
             typeof(StateMachine).GetField("coroutines", BindingFlags.Instance | BindingFlags.NonPublic);
         public static int AddState(this StateMachine machine, Func<int> onUpdate, Func<IEnumerator> coroutine = null, Action begin = null, Action end = null) {
             Action[] begins = (Action[]) f_StateMachine_begins.GetValue(machine);

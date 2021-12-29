@@ -59,6 +59,7 @@ Can I have some tea?
             object boxedSettings = default(T);
             foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
                 string headerName = $"CelesteNet-Settings-{field.Name}";
+#pragma warning disable IDE0049 // Simplify Names
                 switch (Type.GetTypeCode(field.FieldType)) {
                     case TypeCode.Int16:  field.SetValue(boxedSettings,  Int16.Parse(headers[headerName])); break;
                     case TypeCode.Int32:  field.SetValue(boxedSettings,  Int32.Parse(headers[headerName])); break;
@@ -69,6 +70,7 @@ Can I have some tea?
                     case TypeCode.Single: field.SetValue(boxedSettings, Single.Parse(headers[headerName])); break;
                     case TypeCode.Double: field.SetValue(boxedSettings, Double.Parse(headers[headerName])); break;
                 }
+#pragma warning restore IDE0049
             }
 
             return new(conToken, conFeatures, (T) boxedSettings);

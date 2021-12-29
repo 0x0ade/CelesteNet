@@ -176,7 +176,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         }
 
-        private static object StatLock = new object();
+        private static readonly object StatLock = new();
         private static int NumCons, NumTCPCons, NumUDPCons;
         private static BandwidthRate TCPRecvBpSRate, TCPRecvPpSRate, TCPSendBpSRate, TCPSendPpSRate;
         private static BandwidthRate UDPRecvBpSRate, UDPRecvPpSRate, UDPSendBpSRate, UDPSendPpSRate;
@@ -215,12 +215,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 using (server.ThreadPool.Scheduler.RoleLock.R()) {
                     NetPlusPoolActvRate = server.ThreadPool.ActivityRate;
                     NetPlusThreadStats = server.ThreadPool.EnumerateThreads().Select(t => new {
-                        ActivityRate = t.ActivityRate,
+                        t.ActivityRate,
                         Role = t.Role.ToString()
                     }).ToArray();
                     NetPlusRoleStats = server.ThreadPool.Scheduler.EnumerateRoles().Select(r => new {
+                        r.ActivityRate,
                         Role = r.ToString(),
-                        ActivityRate = r.ActivityRate,
                         NumThreads = server.ThreadPool.EnumerateThreads().Count(t => t.Role == r)
                     }).ToArray();
                 }

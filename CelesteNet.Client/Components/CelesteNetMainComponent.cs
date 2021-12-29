@@ -866,10 +866,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             SpriteAnimationIDs.Clear();
-            List<string> animations = new List<string>();
+            string[] animations = new string[player.Sprite.Animations.Count];
+            int animI = 0;
             foreach (string animID in player.Sprite.Animations.Keys) {
-                SpriteAnimationIDs.TryAdd(animID, animations.Count);
-                animations.Add(animID);
+                SpriteAnimationIDs.TryAdd(animID, animI);
+                animations[animI] = animID;
+                animI++;
             }
 
             int hairCount = player.Sprite.HairCount;
@@ -888,7 +890,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     SpriteMode = player.Sprite.Mode,
                     SpriteColor = player.Sprite.Color,
                     SpriteRate = player.Sprite.Rate,
-                    SpriteAnimations = animations.ToArray(),
+                    SpriteAnimations = animations,
 
                     HairCount = (byte) hairCount,
                     HairStepPerSegment = player.Hair.StepPerSegment,

@@ -6,9 +6,9 @@ using System.Timers;
 
 namespace Celeste.Mod.CelesteNet.Server {
     /*
-    The role scheduler is invoked at a regular interval, and everytime the Roles
-    change. It's job is it to make sure all Roles are balanced, and to
-    distribute threads among Roles, so that individual threads aren't overloaded
+    The role scheduler is invoked at a regular interval, and everytime the roles
+    change. It's job is it to make sure all roles are balanced, and to
+    distribute threads among roles, so that individual threads aren't overloaded
     and aren't inactive
     */
     public class NetPlusRoleScheduler : IDisposable {

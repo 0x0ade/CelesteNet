@@ -197,8 +197,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 if (!RoleWorkerTokenSrc.IsCancellationRequested)
                                     Logger.Log(LogLevel.WRN, "netplus", $"Thread pool thread {Index} worker {_RoleWorker} exited prematurely!");
                             }
-                        } catch (Exception e) {
-                            if (!(e is OperationCanceledException ce && ce.CancellationToken == RoleWorkerTokenSrc.Token))
+                        } catch (OperationCanceledException ce) {
+                            if (ce.CancellationToken != RoleWorkerTokenSrc.Token)
                                 throw;
                         } finally {
                             _RoleWorker.ActiveZoneCounter = 0;

@@ -109,7 +109,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public async Task DoTCPUDPHandshake(Socket sock, CelesteNetTCPUDPConnection.Settings settings, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) {
             IPEndPoint? remoteEP = sock.RemoteEndPoint as IPEndPoint;
             if (remoteEP == null) {
-                Logger.Log(LogLevel.WRN, "tcpudphs", $"Handshake for connection without remote endpoint???");
+                Logger.Log(LogLevel.WRN, "tcpudphs", $"Handshake for connection without valid remote IP endpoint???");
                 sock.Dispose();
                 return;
             }

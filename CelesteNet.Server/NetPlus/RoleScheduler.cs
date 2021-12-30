@@ -76,12 +76,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                     Stopwatch watch = new();
                     Logger.Log(LogLevel.DBG, "netplus", "Invoking thread pool scheduler...");
 
-                    // Collect metadata from Roles and threads
+                    // Collect metadata from roles and threads
                     List<(NetPlusThreadRole role, RoleMetadata metadata)> roles = new();
                     Dictionary<NetPlusThreadRole, int> roleIdxs = new();
                     foreach (NetPlusThreadRole role in Roles) {
                         roles.Add((role, new(role)));
-                        roleIdxs.Add(role, Roles.Count-1);
+                        roleIdxs.Add(role, roles.Count-1);
                     }
 
                     List<(NetPlusThread thread, float actvRate, RoleMetadata? role)> threads = new();

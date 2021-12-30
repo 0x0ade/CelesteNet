@@ -99,11 +99,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                     foreach ((_, RoleMetadata md) in roles)
                         md.ActvRate /= md.NumThreads;
 
-                    // Sort Roles and threads by their activity rates
+                    // Sort roles and threads by their activity rates
                     roles.Sort((r1, r2) => r1.metadata.ActvRate.CompareTo(r2.metadata.ActvRate));
                     threads.Sort((t1, t2) => t1.actvRate.CompareTo(t2.actvRate));
 
-                    // Iterate over all overloaded Roles or Roles with too little threads, and assign them to underloaded threads
+                    // Iterate over all overloaded roles or roles with too little threads, and assign them to underloaded threads
                     _LastSchedulerExecNumThreadsReassigned = 0;
                     for (int ri = roles.Count - 1; ri >= 0; ri--) {
                         bool needsThread = (roles[ri].metadata.ActvRate >= OverloadThreshold || roles[ri].metadata.NumThreads < roles[ri].role.MinThreads);

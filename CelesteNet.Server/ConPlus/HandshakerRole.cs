@@ -107,7 +107,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
 
         public async Task DoTCPUDPHandshake(Socket sock, CelesteNetTCPUDPConnection.Settings settings, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) {
-            EndPoint? remoteEP = sock.RemoteEndPoint;
+            IPEndPoint? remoteEP = sock.RemoteEndPoint as IPEndPoint;
             if (remoteEP == null) {
                 Logger.Log(LogLevel.WRN, "tcpudphs", $"Handshake for connection without remote endpoint???");
                 sock.Dispose();
@@ -130,7 +130,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         (IConnectionFeature[] conFeatures, string playerUID, string playerName)? teapotRes =
                             await TeapotHandshake(
                                 sock, conToken, settings,
-                                $"fb-tpcudp-{BitConverter.ToString(((IPEndPoint?) sock.RemoteEndPoint)?.Address.MapToIPv6().GetAddressBytes() ?? new byte[0])}"
+                                $"fb-tcpudp-{BitConverter.ToString(remoteEP.Address.GetAddressBytes())}"
                             );
                         if (teapotRes != null)
                             (conFeatures, playerUID, playerName) = teapotRes.Value;

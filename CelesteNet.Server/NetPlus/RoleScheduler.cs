@@ -60,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            // Dispose Roles
+            // Dispose roles
             foreach (NetPlusThreadRole role in Roles)
                 role.Dispose();
             Roles.Clear();

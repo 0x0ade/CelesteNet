@@ -70,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void InvokeScheduler() {
             OnPreScheduling?.Invoke();
             lock (SchedulerLock) {
-                using (Pool.PoolLock.R())
+                using (Pool.PoolLock.W())
                 using (Pool.RoleLock.W())
                 using (_RoleLock.R()) {
                     Stopwatch watch = new();

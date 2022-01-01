@@ -300,7 +300,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public virtual string? DoHeartbeatTick() {
-            if (!IsAlive || SafeDisposeTriggered)
+            if (!IsAlive || SafeDisposed)
                 return null;
 
             if (SafeDisposeTriggered) {

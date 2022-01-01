@@ -39,7 +39,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             UDPSendSocket.Connect(serverAddr, settings.UDPReceivePort);
 
             OnUDPDeath += (_, _) => {
+                Logger.Log(LogLevel.INF, "CelesteNetClientTCPUDPConnection", UseUDP ? "UDP connection died" : "Switching to TCP only");
+#if DEBUG
                 CelesteNetClientModule.Instance?.Context?.Status?.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
+#endif
             };
 
             TCPSendQueue = new();

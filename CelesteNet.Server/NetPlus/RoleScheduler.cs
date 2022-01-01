@@ -6,9 +6,9 @@ using System.Timers;
 
 namespace Celeste.Mod.CelesteNet.Server {
     /*
-    The role scheduler is invoked at a regular interval, and everytime the Roles
-    change. It's job is it to make sure all Roles are balanced, and to
-    distribute threads among Roles, so that individual threads aren't overloaded
+    The role scheduler is invoked at a regular interval, and everytime the roles
+    change. It's job is it to make sure all roles are balanced, and to
+    distribute threads among roles, so that individual threads aren't overloaded
     and aren't inactive
     */
     public class NetPlusRoleScheduler : IDisposable {
@@ -60,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            // Dispose Roles
+            // Dispose roles
             foreach (NetPlusThreadRole role in Roles)
                 role.Dispose();
             Roles.Clear();
@@ -70,18 +70,18 @@ namespace Celeste.Mod.CelesteNet.Server {
         public void InvokeScheduler() {
             OnPreScheduling?.Invoke();
             lock (SchedulerLock) {
-                using (Pool.PoolLock.R())
+                using (Pool.PoolLock.W())
                 using (Pool.RoleLock.W())
                 using (_RoleLock.R()) {
                     Stopwatch watch = new();
                     Logger.Log(LogLevel.DBG, "netplus", "Invoking thread pool scheduler...");
 
-                    // Collect metadata from Roles and threads
+                    // Collect metadata from roles and threads
                     List<(NetPlusThreadRole role, RoleMetadata metadata)> roles = new();
                     Dictionary<NetPlusThreadRole, int> roleIdxs = new();
                     foreach (NetPlusThreadRole role in Roles) {
                         roles.Add((role, new(role)));
-                        roleIdxs.Add(role, Roles.Count-1);
+                        roleIdxs.Add(role, roles.Count-1);
                     }
 
                     List<(NetPlusThread thread, float actvRate, RoleMetadata? role)> threads = new();
@@ -99,11 +99,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                     foreach ((_, RoleMetadata md) in roles)
                         md.ActvRate /= md.NumThreads;
 
-                    // Sort Roles and threads by their activity rates
+                    // Sort roles and threads by their activity rates
                     roles.Sort((r1, r2) => r1.metadata.ActvRate.CompareTo(r2.metadata.ActvRate));
                     threads.Sort((t1, t2) => t1.actvRate.CompareTo(t2.actvRate));
 
-                    // Iterate over all overloaded Roles or Roles with too little threads, and assign them to underloaded threads
+                    // Iterate over all overloaded roles or roles with too little threads, and assign them to underloaded threads
                     _LastSchedulerExecNumThreadsReassigned = 0;
                     for (int ri = roles.Count - 1; ri >= 0; ri--) {
                         bool needsThread = (roles[ri].metadata.ActvRate >= OverloadThreshold || roles[ri].metadata.NumThreads < roles[ri].role.MinThreads);

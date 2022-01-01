@@ -53,7 +53,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public virtual int UDPConnectionID => UseUDP ? _UDPConnectionID : -1;
 
-        public virtual int UDPMaxDatagramSize => UDPMaxDatagramSize;
+        public virtual int UDPMaxDatagramSize => _UDPMaxDatagramSize;
 
         public readonly object HeartbeatLock = new();
         private int TCPLastHeartbeatDelay = 0, UDPLastHeartbeatDelay = 0, TCPSendKeepAlive = 0, UDPSendKeepAlive = 0;

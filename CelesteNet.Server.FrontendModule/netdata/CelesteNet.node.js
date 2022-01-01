@@ -1,5 +1,5 @@
 // @ts-check
- 
+
 /**
 @typedef {{
     GlobalRate: number,
@@ -22,7 +22,7 @@
     // PlayersByCon: number?,
     // PlayersByID: number?,
     PlayerRefs: number,
-    
+
     TCPUplinkBpS: BandwithRate, TCPUplinkPpS: BandwithRate,
     TCPDownlinkBpS: BandwithRate, TCPDownlinkPpS: BandwithRate,
     UDPUplinkBpS: BandwithRate, UDPUplinkPpS: BandwithRate,
@@ -50,27 +50,27 @@
     SchedulerNumThreadsIdled : number,
 }} NetPlusStatus
  */
- 
+
 const { services } = require("netdata");
 var netdata = require("netdata");
- 
+
 if (netdata.options.DEBUG === true)
     netdata.debug(`loaded plugin: ${__filename}`);
- 
+
 let CelesteNet = {
     name: __filename,
     enable_autodetect: true,
     update_every: 1,
     base_priority: 10100,
- 
+
     charts: {},
- 
+
     getChart: function(service, key, template) {
         const id = template.id || `${service.name}.${key}`;
         let chart = CelesteNet.charts[id];
         if (chart)
             return chart;
- 
+
         chart = {
             id,
             name: template.name || "",
@@ -83,7 +83,7 @@ let CelesteNet = {
             update_every: service.update_every,
             dimensions: {},
         };
- 
+
         for (let did in template.dimensions) {
             const dim = template.dimensions[did]
             chart.dimensions[did] = {
@@ -95,14 +95,14 @@ let CelesteNet = {
                 hidden: false,
             };
         }
- 
+
         if (netdata.options.DEBUG === true)
             netdata.debug(`new chart: ${JSON.stringify(chart)}`);
         chart = service.chart(id, chart);
         CelesteNet.charts[id] = chart;
         return chart;
     },
- 
+
     updateChart: function(service, key, template) {
         const chart = CelesteNet.getChart(service, key, template);
         if (netdata.options.DEBUG === true)
@@ -116,7 +116,7 @@ let CelesteNet = {
         }
         service.end();
     },
- 
+
     updateCharts: function(service, templates) {
         let i = 0;
         for (let tid in templates) {
@@ -126,20 +126,20 @@ let CelesteNet = {
                 CelesteNet.updateChart(service, tid, template);
         }
     },
- 
+
     processResponse: function(service, dataRaw) {
         if (!dataRaw)
             return;
- 
-        if (service.type === "status") {
+
+        if (service.type === "celestenet-status") {
             if (netdata.options.DEBUG === true)
                 netdata.debug(`received data for status: ${service.url} = ${dataRaw}`);
- 
+
             /** @type {Status} */
             const data = JSON.parse(dataRaw);
- 
+
             service.commit();
- 
+
             var sCharts = {
                 uptime: {
                     title: "$ uptime",
@@ -151,7 +151,7 @@ let CelesteNet = {
                         },
                     },
                 },
- 
+
                 gcmemory: {
                     title: "$ GC memory",
                     units: "bytes",
@@ -175,7 +175,7 @@ let CelesteNet = {
                         },
                     },
                 },
- 
+
                 counted: {
                     title: "$ player counter",
                     units: "players",
@@ -186,7 +186,7 @@ let CelesteNet = {
                         },
                     },
                 },
- 
+
                 registered: {
                     title: "$ players registered",
                     units: "players",
@@ -197,7 +197,7 @@ let CelesteNet = {
                         },
                     },
                 },
- 
+
                 banned: {
                     title: "$ players banned",
                     units: "players",
@@ -208,7 +208,7 @@ let CelesteNet = {
                         },
                     },
                 },
- 
+
                 online: {
                     title: "$ players online",
                     units: "players",
@@ -271,7 +271,7 @@ let CelesteNet = {
                         avgCon: { value: data.UDPDownlinkPpS.AvgConRate * 1000, divisor: 1000 }
                     }
                 },
-                
+
                 tcpUplinkBpS: {
                     title: "$ TCP BpS uplink",
                     units: "bytes per second",
@@ -324,17 +324,18 @@ let CelesteNet = {
                     }
                 },
             };
-            
+
             CelesteNet.updateCharts(service, sCharts);
-        } else if (service.type === "netplus") {
+
+        } else if (service.type === "celestenet-netplus") {
             if (netdata.options.DEBUG === true)
                 netdata.debug(`received data for netplus: ${service.url} = ${dataRaw}`);
- 
+
             /** @type {NetPlusStatus} */
             const data = JSON.parse(dataRaw);
- 
+
             service.commit();
- 
+
             var nCharts = {
                 poolActivity: {
                     title: "$ Total pool activity rate",
@@ -421,17 +422,17 @@ let CelesteNet = {
             CelesteNet.updateCharts(service, nCharts);
         }
     },
- 
+
     configure: function(config) {
         let added = 0;
- 
+
         if (typeof(config.servers) !== "undefined") {
             for (let server of config.servers) {
                 if (netdata.options.DEBUG === true)
                     netdata.debug(`adding server: ${JSON.stringify(server)}`);
                 netdata.service({
                     name: server.name,
-                    type: "status",
+                    type: "celestenet-status",
                     url: server.url + "/status",
                     request: netdata.requestFromURL(server.url + "/status"),
                     base_priority: this.base_priority + (server.priority || 0),
@@ -440,7 +441,7 @@ let CelesteNet = {
                 }).execute(this.processResponse);
                 netdata.service({
                     name: server.name,
-                    type: "netplus",
+                    type: "celestenet-netplus",
                     url: server.url + "/netplus",
                     request: netdata.requestFromURL(server.url + "/netplus"),
                     base_priority: this.base_priority + (server.priority || 0),
@@ -450,12 +451,12 @@ let CelesteNet = {
                 added++;
             }
         }
- 
+
         if (netdata.options.DEBUG === true)
             netdata.debug(`added servers: ${added}`);
         return added;
     },
- 
+
     update: function(service, callback) {
         if (netdata.options.DEBUG === true)
             netdata.debug(`update`);
@@ -473,5 +474,5 @@ let CelesteNet = {
             netdata.debug(`end.`);
     },
 };
- 
+
 module.exports = CelesteNet;

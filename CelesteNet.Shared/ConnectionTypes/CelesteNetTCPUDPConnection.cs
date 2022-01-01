@@ -161,7 +161,7 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public virtual void DecreaseUDPScore(bool downgradeImmediatly = false, string? reason = null) {
+        public virtual void DecreaseUDPScore(bool downgradeImmediately = false, string? reason = null) {
             lock (UDPLock) {
                 // Must have an initialized connection
                 if (UDPEndpoint == null)
@@ -170,7 +170,7 @@ namespace Celeste.Mod.CelesteNet {
                 // Reset the alive score, half the maximum datagram size, and increment the downgrade score
                 // If it reaches it's maximum, the connection died
                 UDPAliveScore = 0;
-                if (downgradeImmediatly || ++UDPDowngradeScore >= ConnectionSettings.UDPDowngradeScoreMax) {
+                if (downgradeImmediately || ++UDPDowngradeScore >= ConnectionSettings.UDPDowngradeScoreMax) {
                     UDPDowngradeScore = 0;
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Downgrading UDP connection of {this}{((reason != null) ? $": {reason}" : string.Empty)} [{_UDPConnectionID} / {UDPMaxDatagramSize} / {UDPAliveScore} / {UDPDowngradeScore} / {UDPDeathScore}]");
                     if ((_UDPMaxDatagramSize /= 2) >= 1 + ConnectionSettings.MaxPacketSize) {

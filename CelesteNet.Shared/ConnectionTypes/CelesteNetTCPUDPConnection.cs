@@ -21,6 +21,8 @@ namespace Celeste.Mod.CelesteNet {
 
         }
 
+        public static string GetConnectionUID(IPEndPoint remoteEp) => $"con-tcpudp-{BitConverter.ToString(remoteEp.Address.MapToIPv6().GetAddressBytes())}";
+
         private volatile bool SafeDisposed = false, SafeDisposeTriggered = false;
         public override bool IsConnected => IsAlive && !SafeDisposed && _TCPSock.Connected;
         public override string ID { get; }
@@ -61,9 +63,9 @@ namespace Celeste.Mod.CelesteNet {
         public event Action<CelesteNetTCPUDPConnection, EndPoint>? OnUDPDeath;
 
         public CelesteNetTCPUDPConnection(DataContext data, uint token, Settings settings, Socket tcpSock, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
-            IPEndPoint serverEp = (IPEndPoint) tcpSock.RemoteEndPoint!;
-            ID = $"TCP/UDP {serverEp.Address}:{serverEp.Port}";
-            UID = $"con-tcpudp-{BitConverter.ToString(serverEp.Address.GetAddressBytes())}-{serverEp.Port}";
+            IPEndPoint remoteEp = (IPEndPoint) tcpSock.RemoteEndPoint!;
+            ID = $"TCP/UDP {remoteEp.Address}:{remoteEp.Port}";
+            UID = GetConnectionUID(remoteEp);
 
             ConnectionToken = token;
             ConnectionSettings = settings;

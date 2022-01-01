@@ -130,7 +130,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         (IConnectionFeature[] conFeatures, string playerUID, string playerName)? teapotRes =
                             await TeapotHandshake(
                                 sock, conToken, settings,
-                                $"fb-tcpudp-{BitConverter.ToString(remoteEP.Address.MapToIPv6().GetAddressBytes())}"
+                                ConPlusTCPUDPConnection.GetConnectionUID(remoteEP)
                             );
                         if (teapotRes != null)
                             (conFeatures, playerUID, playerName) = teapotRes.Value;
@@ -165,7 +165,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         // Let's mess with web crawlers even more ;)
         // Also: I'm a Teapot
-        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake<T>(Socket sock, uint conToken, T settings, string fbUID) where T : struct {
+        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake<T>(Socket sock, uint conToken, T settings, string conUID) where T : struct {
             using NetworkStream netStream = new(sock, false);
             using BufferedStream bufStream = new(netStream);
             using StreamReader reader = new(bufStream);
@@ -239,7 +239,7 @@ Connection: close
                 return await Send500();
 
             // Authenticate name-key
-            string? errorReason = AuthenticatePlayerNameKey(playerNameKey, fbUID, out string? playerUID, out string? playerName);
+            string? errorReason = AuthenticatePlayerNameKey(playerNameKey, conUID, out string? playerUID, out string? playerName);
             if (playerUID == null)
                 errorReason ??= "No UID";
             if (playerName == null)
@@ -302,7 +302,7 @@ Who wants some tea?"
             });
         }
 
-        public string? AuthenticatePlayerNameKey(string nameKey, string fbUID, out string? playerUID, out string? playerName) {
+        public string? AuthenticatePlayerNameKey(string nameKey, string conUID, out string? playerUID, out string? playerName) {
             // Get the player UID and name from the player name-key
             playerUID = playerName = null;
             if (nameKey.Length > 1 && nameKey[0] == '#') {
@@ -313,7 +313,7 @@ Who wants some tea?"
                     return string.Format(Server.Settings.MessageInvalidKey, nameKey);
             } else if (!Server.Settings.AuthOnly) {
                 playerName = nameKey;
-                playerUID = fbUID;
+                playerUID = $"fb-{conUID}";
             } else
                 return string.Format(Server.Settings.MessageAuthOnly, nameKey);
 
@@ -321,7 +321,7 @@ Who wants some tea?"
             BanInfo? ban = null;
             if (Server.UserData.TryLoad(playerUID, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To))
                 ban = banInfo;
-            if (Server.UserData.TryLoad(fbUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To))
+            if (Server.UserData.TryLoad(conUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To))
                 ban = conBanInfo;
             if (ban != null)
                 return string.Format(Server.Settings.MessageBan, playerUID, playerName, ban.Reason);

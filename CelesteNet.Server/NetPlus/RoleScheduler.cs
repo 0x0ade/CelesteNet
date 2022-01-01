@@ -81,7 +81,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     Dictionary<NetPlusThreadRole, int> roleIdxs = new();
                     foreach (NetPlusThreadRole role in Roles) {
                         roles.Add((role, new(role)));
-                        roleIdxs.Add(role, roles.Count-1);
+                        roleIdxs.Add(role, roles.Count - 1);
                     }
 
                     List<(NetPlusThread thread, float actvRate, RoleMetadata? role)> threads = new();

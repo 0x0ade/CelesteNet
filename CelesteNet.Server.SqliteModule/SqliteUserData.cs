@@ -1028,8 +1028,10 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                 Mode = mode;
                 Connection = UserData.Open(mode);
                 Command = Connection.CreateCommand();
-                if (Mode <= SqliteOpenMode.ReadWrite)
+                if (Mode <= SqliteOpenMode.ReadWrite) {
                     Transaction = Connection.BeginTransaction(true);
+                    Command.Transaction = Transaction;
+                }
                 return Connection;
             }
 

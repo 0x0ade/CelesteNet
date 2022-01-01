@@ -142,6 +142,10 @@ namespace Celeste.Mod.CelesteNet {
                         MaxDatagramSize = maxDatagramSize
                     });
 
+                // Immediatly send a keep alive
+                UDPQueue.Enqueue(new DataLowLevelKeepAlive());
+                Volatile.Write(ref UDPSendKeepAlive, 1);
+
                 Logger.Log(LogLevel.INF, "tcpudpcon", $"Initialized UDP connection of {this} [{conId} / {UDPMaxDatagramSize} / {UDPAliveScore} / {UDPDowngradeScore} / {UDPDeathScore}]");
             }
         }
@@ -169,10 +173,11 @@ namespace Celeste.Mod.CelesteNet {
                 if (UDPEndpoint == null)
                     return;
 
-                // Reset the alive score, half the maximum datagram size, and increment the downgrade score
-                // If it reaches it's maximum, the connection died
+                // Reset the alive score and increment the downgrade score
                 UDPAliveScore = 0;
-                if (downgradeImmediately || ++UDPDowngradeScore >= ConnectionSettings.UDPDowngradeScoreMax) {
+                if (downgradeImmediately || ++UDPDowngradeScore > ConnectionSettings.UDPDowngradeScoreMax) {
+                    // Half the maximum datagram size
+                    // If we can't do that, the connection died
                     UDPDowngradeScore = 0;
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Downgrading UDP connection of {this}{((reason != null) ? $": {reason}" : string.Empty)} [{_UDPConnectionID} / {UDPMaxDatagramSize} / {UDPAliveScore} / {UDPDowngradeScore} / {UDPDeathScore}]");
                     if ((_UDPMaxDatagramSize /= 2) >= 1 + ConnectionSettings.MaxPacketSize) {
@@ -195,6 +200,7 @@ namespace Celeste.Mod.CelesteNet {
             lock (UDPLock) {
                 if (!UseUDP)
                     return;
+                UDPHeartbeat();
 
                 // Handle connection ID
                 // If the packet contains a negative connection ID, disable UDP
@@ -260,7 +266,7 @@ namespace Celeste.Mod.CelesteNet {
             // Increment the death score
             // If it exceeds the maximum, disable UDP
             if (increaseScore && UDPDeathScore < ConnectionSettings.UDPDeathScoreMax) {
-                if (++UDPDeathScore >= ConnectionSettings.UDPDeathScoreMax)
+                if (++UDPDeathScore > ConnectionSettings.UDPDeathScoreMax)
                     Logger.Log(LogLevel.INF, "tcpudpcon", $"Disabling UDP for connection {this} [{_UDPConnectionID} / {UDPMaxDatagramSize} / {UDPAliveScore} / {UDPDowngradeScore} / {UDPDeathScore}]");
             }
 
@@ -329,7 +335,7 @@ namespace Celeste.Mod.CelesteNet {
                     }
 
                     // Check if we need to send a UDP keep-alive
-                    if (UDPEndpoint != null && Interlocked.Exchange(ref UDPSendKeepAlive, 1) > 0)
+                    if (Interlocked.Exchange(ref UDPSendKeepAlive, 1) > 0)
                         UDPQueue.Enqueue(new DataLowLevelKeepAlive());
                 }
             }

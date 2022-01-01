@@ -130,7 +130,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         (IConnectionFeature[] conFeatures, string playerUID, string playerName)? teapotRes =
                             await TeapotHandshake(
                                 sock, conToken, settings,
-                                $"fb-tcpudp-{BitConverter.ToString(remoteEP.Address.GetAddressBytes())}"
+                                $"fb-tcpudp-{BitConverter.ToString(remoteEP.Address.MapToIPv6().GetAddressBytes())}"
                             );
                         if (teapotRes != null)
                             (conFeatures, playerUID, playerName) = teapotRes.Value;

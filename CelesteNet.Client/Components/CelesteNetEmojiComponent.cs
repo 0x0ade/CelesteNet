@@ -35,6 +35,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Directory.CreateDirectory(dir);
 
                 string path = Path.Combine(dir, $"{netemoji.ID}-{netemoji.GetHashCode():X8}.png");
+                if (File.Exists(path))
+                    File.Delete(path);
+
                 Pending.TryAdd(netemoji.ID, cacheStream = File.OpenWrite(path));
             }
 

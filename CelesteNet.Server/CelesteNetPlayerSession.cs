@@ -91,7 +91,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         internal void Start() {
-            Logger.Log(LogLevel.INF, "playersession", $"Startup #{SessionID} {Con}");
+            Logger.Log(LogLevel.INF, "playersession", $"Startup #{SessionID} {Con} (Session UID: {UID}; Connection UID: {Con.UID})");
 
             // Resolver player name conflicts
             string nameSpace = Name;

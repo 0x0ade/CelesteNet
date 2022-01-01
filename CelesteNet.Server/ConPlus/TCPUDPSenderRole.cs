@@ -101,7 +101,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                             } break;
                             case QueueType.UDP: {
                                 Logger.Log(LogLevel.DBG, "udpsend", $"Error flushing connection {con} UDP queue '{queue.Name}': {e}");
-                                con.DecreaseUDPScore();
+                                con.DecreaseUDPScore(reason: "Error flushing queue");
                             } break;
                         }
                     } finally {

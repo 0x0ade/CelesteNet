@@ -79,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         con.HandleUDPDatagram(dgBuffer, dgSize);
                     } catch (Exception e) {
                         Logger.Log(LogLevel.WRN, "udprecv", $"Error while reading from connection {con}: {e}");
-                        con.DecreaseUDPScore();
+                        con.DecreaseUDPScore(reason: "Error while reading from connection");
                     }
                 }
                 ExitActiveZone();

@@ -325,7 +325,7 @@ namespace Celeste.Mod.CelesteNet {
                     // Check if we got a UDP heartbeat in the required timeframe
                     if (Interlocked.Increment(ref UDPLastHeartbeatDelay) > ConnectionSettings.MaxHeartbeatDelay) {
                         Volatile.Write(ref UDPLastHeartbeatDelay, 0);
-                        DecreaseUDPScore(true);
+                        DecreaseUDPScore(true, reason: "No heartbeat in the required timeframe");
                     }
 
                     // Check if we need to send a UDP keep-alive

@@ -214,7 +214,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             return;
 
                         Logger.Log(LogLevel.WRN, "udprecv", $"Error in UDP receiving thread: {e}");
-                        DecreaseUDPScore();
+                        DecreaseUDPScore(reason: "Error in receive thread");
                     }
                 }
 
@@ -314,7 +314,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                     } catch (Exception e) {
                         Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");
-                        DecreaseUDPScore();
+                        DecreaseUDPScore(reason: "Error in sending thread");
                     }
                 }
 

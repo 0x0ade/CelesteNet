@@ -160,7 +160,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     int.TryParse(server.Substring(indexOfPort + 1), out int port))
                     return port;
 
-                return 3802;
+                return 17230;
             }
         }
 

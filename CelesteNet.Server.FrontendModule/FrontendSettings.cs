@@ -14,7 +14,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         // Make sure to update your index.html as well!
         public string CanonicalRoot { get; set; } = "https://celestenet.0x0ade.ga/";
 
-        public int Port { get; set; } = 3800;
+        public int Port { get; set; } = 17232;
         public string Password { get; set; } = "actuallyHosts";
         public string PasswordExec { get; set; } = "replaceThisASAP";
 

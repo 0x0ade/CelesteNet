@@ -294,20 +294,27 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                 return false;
             }
 
-            switch ((DataFormat) reader.GetInt32(0)) {
-                case DataFormat.MessagePack:
-                default: {
-                    using Stream stream = reader.GetStream(1);
-                    value = MessagePackSerializer.Deserialize<T>(stream, MessagePackHelper.Options) ?? new();
-                    return true;
-                }
+            DataFormat format = (DataFormat) reader.GetInt32(0);
+            try {
+                switch (format) {
+                    case DataFormat.MessagePack:
+                    default: {
+                        using Stream stream = reader.GetStream(1);
+                        value = MessagePackSerializer.Deserialize<T>(stream, MessagePackHelper.Options) ?? new();
+                        return true;
+                    }
 
-                case DataFormat.Yaml: {
-                    using Stream stream = reader.GetStream(1);
-                    using StreamReader streamReader = new(stream);
-                    value = YamlHelper.Deserializer.Deserialize<T>(streamReader) ?? new();
-                    return true;
+                    case DataFormat.Yaml: {
+                        using Stream stream = reader.GetStream(1);
+                        using StreamReader streamReader = new(stream);
+                        value = YamlHelper.Deserializer.Deserialize<T>(streamReader) ?? new();
+                        return true;
+                    }
                 }
+            } catch (Exception e) {
+                Logger.Log(LogLevel.ERR, "sqlite", $"Failed loading data UID \"{uid}\" type {typeof(T).FullName} format {format}:\n{e}");
+                value = new();
+                return false;
             }
         }
 
@@ -994,6 +1001,7 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
             public SqliteOpenMode Mode;
             public SqliteConnection? Connection;
             public SqliteCommand? Command;
+            public SqliteTransaction? Transaction;
 
             public int Count;
 
@@ -1008,6 +1016,9 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                     return Connection;
 
                 if (Connection != null) {
+                    Transaction?.Commit();
+                    Transaction?.Dispose();
+                    Transaction = null;
                     Command?.Dispose();
                     Command = null;
                     Connection?.Dispose();
@@ -1017,12 +1028,17 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                 Mode = mode;
                 Connection = UserData.Open(mode);
                 Command = Connection.CreateCommand();
+                if (Mode <= SqliteOpenMode.ReadWrite)
+                    Transaction = Connection.BeginTransaction(true);
                 return Connection;
             }
 
             public override void Dispose() {
                 Count--;
                 if (Count <= 0) {
+                    Transaction?.Commit();
+                    Transaction?.Dispose();
+                    Transaction = null;
                     Command?.Dispose();
                     Command = null;
                     Connection?.Dispose();

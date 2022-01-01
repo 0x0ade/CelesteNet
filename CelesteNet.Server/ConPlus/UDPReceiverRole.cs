@@ -107,7 +107,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             EndPoint? udpEP = con.UDPEndpoint;
             if (udpEP != null)
-                endPointMap.TryRemove(udpEP!, out _);
+                endPointMap.TryRemove(udpEP, out _);
         }
 
         private void UDPDeath(CelesteNetTCPUDPConnection con, EndPoint ep) {

@@ -83,13 +83,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                     FlushTCPQueue(con, queue, token);
                                 } break;
                                 case QueueType.UDP: {
-                                    lock (con.UDPLock) {
-                                        // If there's no established UDP connection, just drop all packets
-                                        if (con.UDPEndpoint == null)
-                                            queue.SignalFlushed();
-                                        else
-                                            FlushUDPQueue(con, queue, token);
-                                    }
+                                    FlushUDPQueue(con, queue, token);
                                 } break;
                             }
                         }
@@ -135,7 +129,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 while (queue.BackQueue.TryDequeue(out DataType? packet)) {
                     // Write the packet onto the temporary packet stream
                     PacketStream.Position = 0;
-                    con.Data.Write(PacketWriter, packet!);
+                    con.Data.Write(PacketWriter, packet);
                     PacketWriter.Flush();
                     int packLen = (int) PacketStream.Position;
 
@@ -172,68 +166,76 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             private void FlushUDPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
-                // TODO This could be optimized with sendmmsg
+                lock (con.UDPLock) {
+                    // TODO This could be optimized with sendmmsg
 
-                // Check if the connection's capped
-                if (con.UDPSendCapped) {
-                    Logger.Log(LogLevel.WRN, "udpsend", $"Connection {con} hit UDP uplink cap: {con.UDPSendRate.ByteRate} BpS {con.UDPSendRate.PacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkPpTCap} cap PpS");
-
-                    // UDP's unreliable, just drop the excess packets
-                    queue.SignalFlushed();
-                    return;
-                }
-
-                PacketWriter.Strings = con.Strings;
-                PacketWriter.SlimMap = con.SlimMap;
-
-                // Write all packets
-                UDPBuffer[0] = con.NextUDPContainerID();
-                int bufOff = 1;
-
-                int byteCounter = 0, packetCounter = 0;
-                foreach (DataType packet in queue.BackQueue) {
-                    // Write the packet onto the temporary packet stream
-                    PacketStream.Position = 0;
-                    con.Data.Write(PacketWriter, packet);
-                    PacketWriter.Flush();
-                    int packLen = (int) PacketStream.Position;
-
-                    // Copy packet data to the container buffer
-                    if (bufOff + packLen > UDPBuffer.Length) {
-                        // Send container & start a new one
-                        UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, con.UDPEndpoint!);
-                        UDPBuffer[0] = con.NextUDPContainerID();
-                        bufOff = 1;
-
-                        // Update connection metrics and check if we hit the connection cap
-                        con.UDPSendRate.UpdateRate(bufOff, 1);
-                        if (con.UDPSendCapped)
-                            break;
+                    // If there's no established UDP connection, just drop all packets
+                    if (con.UDPEndpoint is not EndPoint remoteEP) {
+                        queue.SignalFlushed();
+                        return;
                     }
 
-                    Buffer.BlockCopy(PacketStream.GetBuffer(), 0, UDPBuffer, bufOff, packLen);
-                    bufOff += packLen;
+                    // Check if the connection's capped
+                    if (con.UDPSendCapped) {
+                        Logger.Log(LogLevel.WRN, "udpsend", $"Connection {con} hit UDP uplink cap: {con.UDPSendRate.ByteRate} BpS {con.UDPSendRate.PacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkPpTCap} cap PpS");
 
-                    byteCounter += packLen;
-                    packetCounter++;
+                        // UDP's unreliable, just drop the excess packets
+                        queue.SignalFlushed();
+                        return;
+                    }
 
-                    if (packet is not DataLowLevelKeepAlive)
-                        con.SurpressUDPKeepAlives();
-                }
+                    PacketWriter.Strings = con.Strings;
+                    PacketWriter.SlimMap = con.SlimMap;
 
-                // Send the last container
-                if (bufOff > 1) {
-                    UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, con.UDPEndpoint!);
-                    con.UDPSendRate.UpdateRate(bufOff, 1);
-                }
+                    // Write all packets
+                    UDPBuffer[0] = con.NextUDPContainerID();
+                    int bufOff = 1;
 
-                // Signal the queue that it's flushed
-                queue.SignalFlushed();
+                    int byteCounter = 0, packetCounter = 0;
+                    foreach (DataType packet in queue.BackQueue) {
+                        // Write the packet onto the temporary packet stream
+                        PacketStream.Position = 0;
+                        con.Data.Write(PacketWriter, packet);
+                        PacketWriter.Flush();
+                        int packLen = (int) PacketStream.Position;
 
-                // Iterate metrics
-                using (UDPMetricsLock.W()) {
-                    Role.Pool.IterateEventHeuristic(ref _UDPByteRate, ref LastTCPByteRateUpdate, byteCounter, true);
-                    Role.Pool.IterateEventHeuristic(ref _UDPPacketRate, ref LastTCPPacketRateUpdate, packetCounter, true);
+                        // Copy packet data to the container buffer
+                        if (bufOff + packLen > UDPBuffer.Length) {
+                            // Send container & start a new one
+                            UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
+                            UDPBuffer[0] = con.NextUDPContainerID();
+                            bufOff = 1;
+
+                            // Update connection metrics and check if we hit the connection cap
+                            con.UDPSendRate.UpdateRate(bufOff, 1);
+                            if (con.UDPSendCapped)
+                                break;
+                        }
+
+                        Buffer.BlockCopy(PacketStream.GetBuffer(), 0, UDPBuffer, bufOff, packLen);
+                        bufOff += packLen;
+
+                        byteCounter += packLen;
+                        packetCounter++;
+
+                        if (packet is not DataLowLevelKeepAlive)
+                            con.SurpressUDPKeepAlives();
+                    }
+
+                    // Send the last container
+                    if (bufOff > 1) {
+                        UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
+                        con.UDPSendRate.UpdateRate(bufOff, 1);
+                    }
+
+                    // Signal the queue that it's flushed
+                    queue.SignalFlushed();
+
+                    // Iterate metrics
+                    using (UDPMetricsLock.W()) {
+                        Role.Pool.IterateEventHeuristic(ref _UDPByteRate, ref LastTCPByteRateUpdate, byteCounter, true);
+                        Role.Pool.IterateEventHeuristic(ref _UDPPacketRate, ref LastTCPPacketRateUpdate, packetCounter, true);
+                    }
                 }
             }
 

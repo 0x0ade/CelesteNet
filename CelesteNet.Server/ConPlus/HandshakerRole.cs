@@ -107,8 +107,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
 
         public async Task DoTCPUDPHandshake(Socket sock, CelesteNetTCPUDPConnection.Settings settings, TCPReceiverRole tcpReceiver, UDPReceiverRole udpReceiver, TCPUDPSenderRole sender) {
-            IPEndPoint? remoteEP = sock.RemoteEndPoint as IPEndPoint;
-            if (remoteEP == null) {
+            if (sock.RemoteEndPoint is not IPEndPoint remoteEP) {
                 Logger.Log(LogLevel.WRN, "tcpudphs", $"Handshake for connection without valid remote IP endpoint???");
                 sock.Dispose();
                 return;
@@ -279,7 +278,7 @@ $@"HTTP/1.1 418 I'm a teapot
 Connection: close
 CelesteNet-TeapotVersion: {TeapotVersion}
 CelesteNet-ConnectionToken: {conToken:X}
-CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string) null!, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
+CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string?) null, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
 {settingsBuilder.ToString().Trim()}
 
 Who wants some tea?"

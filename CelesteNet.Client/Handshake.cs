@@ -39,10 +39,10 @@ Can I have some tea?
 
             Dictionary<string, string> headers = new();
             for (string line = reader.ReadLine(); !string.IsNullOrEmpty(line); line = reader.ReadLine()) {
-                string[] lineSegs = (line!).Split(new[] { ':' }, 2).Select(s => s.Trim()).ToArray()!;
-                if (lineSegs.Length < 2)
+                int split = line.IndexOf(':');
+                if (split == -1)
                     throw new InvalidDataException($"Invalid HTTP header: '{line}'");
-                headers[lineSegs[0]] = lineSegs[1];
+                headers[line.Substring(0, split).Trim()] = line.Substring(split + 1).Trim();
             }
 
             string content = "";

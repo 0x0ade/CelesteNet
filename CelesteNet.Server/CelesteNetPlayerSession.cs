@@ -155,7 +155,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "playersession", $"Session #{SessionID} PlayerInfo: {playerInfo}");
 
             // Send packets to players
-            DataInternalBlob blobPlayerInfo = DataInternalBlob.For(Server.Data, playerInfo)!;
+            DataInternalBlob blobPlayerInfo = DataInternalBlob.For(Server.Data, playerInfo);
 
             Con.Send(playerInfo);
             foreach (DataInternalBlob fragBlob in AvatarFragments)

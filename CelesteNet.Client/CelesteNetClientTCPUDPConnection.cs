@@ -15,6 +15,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int UDPBufferSize = 65536;
         public const int UDPEstablishDelay = 2;
         private static readonly byte[] UDPHolePunchMessage = new byte[] { 42 };
+        private readonly byte[] _UDPHandshakeMessage;
 
         private readonly BufferedSocketStream TCPStream;
         private readonly Socket UDPRecvSocket, UDPSendSocket;
@@ -30,12 +31,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             IPAddress serverAddr = ((IPEndPoint) tcpSock.RemoteEndPoint).Address;
 
             UDPRecvSocket = new(SocketType.Dgram, ProtocolType.Udp);
-            UDPRecvSocket.EnableEndpointReuse();
             UDPRecvSocket.Connect(serverAddr, settings.UDPSendPort);
 
             UDPSendSocket = new(SocketType.Dgram, ProtocolType.Udp);
-            UDPSendSocket.EnableEndpointReuse();
-            UDPSendSocket.Bind(UDPRecvSocket.LocalEndPoint);
             UDPSendSocket.Connect(serverAddr, settings.UDPReceivePort);
 
             OnUDPDeath += (_, _) => {
@@ -47,6 +45,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             TCPSendQueue = new();
             UDPSendQueue = new();
+
+            // Create the UDP handshake message
+            _UDPHandshakeMessage = new byte[] { 0xff }.Concat(BitConverter.GetBytes(ConnectionToken)).Concat(BitConverter.GetBytes(((IPEndPoint) UDPRecvSocket.LocalEndPoint).Port)).ToArray();
 
             // Start threads
             TokenSrc = new();
@@ -95,7 +96,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             lock (UDPLock) {
                 if (UseUDP && UDPEndpoint == null) {
-                    // Initialize an unestablished connection and send the token
+                    // Initialize an unestablished connection and send the handshake message
                     InitUDP(UDPSendSocket.RemoteEndPoint, -1, 0);
                     UDPSendQueue.Add(null);
                 }
@@ -277,7 +278,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 // If it succeeeds, we'll receive a UDPInfo packet with our connection parameters
                                 if (p == null) {
                                     UDPRecvSocket?.Send(UDPHolePunchMessage);
-                                    UDPSendSocket.Send(new byte[] { 0xff }.Concat(BitConverter.GetBytes(ConnectionToken)).ToArray());
+                                    UDPSendSocket.Send(_UDPHandshakeMessage);
                                 }
                                 continue;
                             } else if (UDPEndpoint == null || p == null)

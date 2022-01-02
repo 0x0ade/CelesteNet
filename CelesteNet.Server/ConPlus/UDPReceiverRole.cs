@@ -35,13 +35,20 @@ namespace Celeste.Mod.CelesteNet.Server {
                     }
                     EnterActiveZone();
 
-                    if (dgSize == 5 && dgBuffer[0] == 0xff) {
-                        // Get the connection token
+                    // Handle handshake messages
+                    if (dgSize == 9 && dgBuffer[0] == 0xff) {
+                        // Get the connection token and receiver port
                         uint conToken = BitConverter.ToUInt32(dgBuffer, 1);
+                        int recvPort = BitConverter.ToInt32(dgBuffer, 5);
 
                         // Get the connection from the token
                         if (!Role.conTokenMap.TryGetValue(conToken, out ConPlusTCPUDPConnection? tokCon) || tokCon == null)
                             continue;
+
+                        // Determine the endpoint of the receiver
+                        if (dgramSender is not IPEndPoint ipEp)
+                            continue;
+                        IPEndPoint recvEp = new IPEndPoint(ipEp.Address, recvPort);
 
                         // Initialize the connection
                         lock (tokCon.UDPLock) {
@@ -57,12 +64,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 // This makes hijacking possible, but is also
                                 // how a client with changing IP addresses can
                                 // reconnect it's UDP connection :(
-                                Logger.Log(LogLevel.INF, "udprecv", $"Connection {tokCon} UDP endpoint changed: {tokCon.UDPEndpoint} -> {dgramSender}");
+                                Logger.Log(LogLevel.INF, "udprecv", $"Connection {tokCon} UDP endpoint changed: {tokCon.UDPEndpoint} -> {recvEp}");
                                 Role.endPointMap.TryRemove(tokCon.UDPEndpoint, out _);
                             }
 
                             // Initialize and establish the UDP connection
-                            tokCon.InitUDP(dgramSender, tokCon.UDPNextConnectionID++, Role.Server.Settings.UDPMaxDatagramSize);
+                            tokCon.InitUDP(recvEp, tokCon.UDPNextConnectionID++, Role.Server.Settings.UDPMaxDatagramSize);
 
                             // Add the connection to the map
                             Role.endPointMap[dgramSender] = tokCon;

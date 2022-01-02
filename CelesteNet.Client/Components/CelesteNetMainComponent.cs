@@ -225,7 +225,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost = null;
             }
 
-            Level level = Player?.Scene as Level;
+            Level level = Engine.Scene as Level;
             if (ghost == null && !IsGhostOutside(Session, level, graphics.Player, out _))
                 ghost = CreateGhost(level, graphics.Player, graphics);
 
@@ -237,7 +237,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             LastFrames[frame.Player.ID] = frame;
 
             Session session = Session;
-            Level level = Player?.Scene as Level;
+            Level level = Engine.Scene as Level;
             bool outside = IsGhostOutside(session, level, frame.Player, out DataPlayerState state);
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||

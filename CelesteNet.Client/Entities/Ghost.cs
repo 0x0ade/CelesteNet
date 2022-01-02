@@ -175,7 +175,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Update() {
             lock (UpdateQueue) {
                 IsUpdating = true;
-                for(int i = 0; i < UpdateQueue.Count; i++)
+                for (int i = 0; i < UpdateQueue.Count; i++)
                     UpdateQueue[i](this);
                 UpdateQueue.Clear();
                 IsUpdating = false;

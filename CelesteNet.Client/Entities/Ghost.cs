@@ -45,6 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public float GrabCooldown = 0f;
         public const float GrabCooldownMax = CelesteNetMainComponent.GrabCooldownMax;
+        public byte GrabStrength;
         protected DataPlayerGrabPlayer GrabPacket;
 
         // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
@@ -74,6 +75,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.Color = Player.NormalHairColor;
             Add(Leader = new(new(0f, -8f)));
             Holdable = new() {
+                OnPickup = OnPickup,
                 OnCarry = OnCarry,
                 OnRelease = OnRelease
             };
@@ -103,6 +105,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             base.Removed(scene);
 
             NameTag.RemoveSelf();
+        }
+
+        public void OnPickup() {
+            GrabStrength = (byte) Calc.Random.Next(byte.MinValue, byte.MaxValue+1);
         }
 
         public void OnPlayer(Player player) {
@@ -142,7 +148,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 Player = client.PlayerInfo,
                 Grabbing = PlayerInfo,
                 Position = position,
-                Force = null
+                Force = null,
+                GrabStrength = GrabStrength
             };
         }
 
@@ -160,7 +167,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 Player = client.PlayerInfo,
                 Grabbing = PlayerInfo,
                 Position = Position,
-                Force = force
+                Force = force,
+                GrabStrength = 0
             };
         }
 

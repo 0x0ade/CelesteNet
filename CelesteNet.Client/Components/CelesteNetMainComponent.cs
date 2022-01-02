@@ -443,7 +443,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 }
 
-                if (ghost.Holdable.IsHeld || !ghost.Holdable.ShouldHaveGravity)
+                if ((ghost.Holdable.IsHeld || !ghost.Holdable.ShouldHaveGravity) && grab.GrabStrength < ghost.GrabStrength)
                     goto Release;
 
                 if (GrabbedBy != null && grab.Player.ID != GrabbedBy.PlayerInfo.ID)

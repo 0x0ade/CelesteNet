@@ -128,11 +128,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                     while ((fragSize = avatarStream.Read(buf, 0, buf.Length)) > 0) {
                         byte[] frag = new byte[fragSize];
                         Buffer.BlockCopy(buf, 0, frag, 0, fragSize);
-                        if(avatarFrags.Count > 0) avatarFrags[avatarFrags.Count-1].MoreFragments = true;
+                        if (avatarFrags.Count > 0)
+                            avatarFrags[avatarFrags.Count-1].MoreFragments = true;
                         avatarFrags.Add(new DataNetEmoji {
                             ID = avatarId,
                             Data = frag,
-                            FirstFragment = (avatarFrags.Count <= 0),
+                            FirstFragment = avatarFrags.Count <= 0,
                             MoreFragments = false
                         });
                     }

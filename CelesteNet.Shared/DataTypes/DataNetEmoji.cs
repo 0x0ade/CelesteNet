@@ -15,7 +15,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         [Flags]
         public enum Flags {
-            FIRST = 1, MORE = 2
+            FIRST =     0b01,
+            MORE =      0b10
         }
 
         static DataNetEmoji() {
@@ -29,8 +30,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         protected override void Read(CelesteNetBinaryReader reader) {
             ID = reader.ReadNetString();
             Flags flags = (Flags) reader.ReadByte();
-            FirstFragment = ((flags & Flags.FIRST) != 0);
-            MoreFragments = ((flags & Flags.MORE) != 0);
+            FirstFragment = (flags & Flags.FIRST) != 0;
+            MoreFragments = (flags & Flags.MORE) != 0;
             Data = reader.ReadBytes(reader.ReadInt32());
         }
 

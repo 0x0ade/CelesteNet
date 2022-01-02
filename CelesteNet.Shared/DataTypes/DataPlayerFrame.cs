@@ -178,6 +178,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write7BitEncodedInt((int) Position.Y);
             writer.Write((sbyte) Calc.Clamp((int) (Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
             writer.Write((sbyte) Calc.Clamp((int) (Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
+            writer.Write(PackColor(Color));
             writer.Write((short) Calc.Clamp((int) Speed.X, short.MinValue, short.MaxValue));
             writer.Write((short) Calc.Clamp((int) Speed.Y, short.MinValue, short.MaxValue));
 

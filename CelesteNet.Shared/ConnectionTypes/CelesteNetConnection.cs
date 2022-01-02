@@ -189,11 +189,13 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void Dispose() {
+            if(!_Alive)
+                return;
             using (Lock.W()) {
                 _Alive = false;
                 Timer.Dispose();
-                Lock.Dispose();
             }
+            Lock.Dispose();
         }
 
         public void Enqueue(DataType data) {
@@ -208,8 +210,8 @@ namespace Celeste.Mod.CelesteNet {
                 }
 
                 _FrontQueue.Enqueue(data);
-                Flush();
             }
+            Flush();
         }
 
         public void Flush() {

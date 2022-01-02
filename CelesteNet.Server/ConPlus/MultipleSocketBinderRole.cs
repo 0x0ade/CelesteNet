@@ -32,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             EndPoint = endPoint;
         }
 
-        private Socket CreateSocket() {
+        protected virtual Socket CreateSocket() {
             Socket? socket = null;
             try {
                 // Create socket and perform socket options magic

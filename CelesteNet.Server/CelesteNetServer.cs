@@ -164,12 +164,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Channels.Start();
 
             IPEndPoint serverEP = new(IPAddress.IPv6Any, Settings.MainPort);
-            IPEndPoint udpRecvEP = new(IPAddress.IPv6Any, Settings.UDPReceivePort);
-            IPEndPoint udpSendEP = new(IPAddress.IPv6Any, Settings.UDPSendPort);
-
             CelesteNetTCPUDPConnection.Settings tcpUdpConSettings = new() {
-                UDPReceivePort = Settings.UDPReceivePort,
-                UDPSendPort = Settings.UDPSendPort,
                 MaxPacketSize = Settings.MaxPacketSize,
                 MaxQueueSize = Settings.MaxQueueSize,
                 MergeWindow = Settings.MergeWindow,
@@ -184,9 +179,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Logger.Log(LogLevel.INF, "server", $"Starting server on {serverEP}");
             ThreadPool.Scheduler.AddRole(new HandshakerRole(ThreadPool, this));
+            ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, serverEP));
             ThreadPool.Scheduler.AddRole(new TCPReceiverRole(ThreadPool, this, (PlatformHelper.Is(MonoMod.Utils.Platform.Linux) && Settings.TCPRecvUseEPoll) ? new TCPEPollPoller() : new TCPFallbackPoller()));
-            ThreadPool.Scheduler.AddRole(new UDPReceiverRole(ThreadPool, this, udpRecvEP));
-            ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, udpSendEP));
+            ThreadPool.Scheduler.AddRole(new UDPReceiverRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()?.UDPSocket));
             ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!, tcpUdpConSettings));
 
             HeartbeatTimer.Start();

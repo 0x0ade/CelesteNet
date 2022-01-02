@@ -27,8 +27,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             private readonly BinaryWriter SockWriter;
             private readonly MemoryStream PacketStream;
             private readonly CelesteNetBinaryWriter PacketWriter;
-
-            private readonly Socket UDPSocket;
             private readonly byte[] UDPBuffer;
 
             private readonly RWLock TCPMetricsLock;
@@ -44,12 +42,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 SockWriter = new(SockStream);
                 PacketStream = new(role.Server.Settings.MaxPacketSize);
                 PacketWriter = new(role.Server.Data, null, null, PacketStream);
-
-                UDPSocket = new(SocketType.Dgram, ProtocolType.Udp);
-                UDPSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
-                UDPSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, 0);
-                UDPSocket.EnableEndpointReuse();
-                UDPSocket.Bind(role.UDPEndPoint);
                 UDPBuffer = new byte[role.Server.Settings.UDPMaxDatagramSize];
 
                 TCPMetricsLock = new();
@@ -64,7 +56,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 SockWriter.Dispose();
                 PacketStream.Dispose();
                 PacketWriter.Dispose();
-                UDPSocket.Dispose();
             }
 
             protected internal override void StartWorker(CancellationToken token) {
@@ -100,7 +91,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 con.DisposeSafe();
                             } break;
                             case QueueType.UDP: {
-                                Logger.Log(LogLevel.DBG, "udpsend", $"Error flushing connection {con} UDP queue '{queue.Name}': {e}");
+                                Logger.Log(LogLevel.WRN, "udpsend", $"Error flushing connection {con} UDP queue '{queue.Name}': {e}");
                                 con.DecreaseUDPScore(reason: "Error flushing queue");
                             } break;
                         }
@@ -202,7 +193,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         // Copy packet data to the container buffer
                         if (bufOff + packLen > UDPBuffer.Length) {
                             // Send container & start a new one
-                            UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
+                            Role.UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
                             UDPBuffer[0] = con.NextUDPContainerID();
                             bufOff = 1;
 
@@ -224,7 +215,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Send the last container
                     if (bufOff > 1) {
-                        UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
+                        Role.UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
                         con.UDPSendRate.UpdateRate(bufOff, 1);
                     }
 
@@ -275,7 +266,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public override int MaxThreads => int.MaxValue;
 
         public CelesteNetServer Server { get; }
-        public EndPoint UDPEndPoint { get; }
+        public Socket UDPSocket { get; }
 
         public float TCPByteRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).TCPByteRate);
         public float TCPPacketRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).TCPPacketRate);
@@ -287,10 +278,14 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public TCPUDPSenderRole(NetPlusThreadPool pool, CelesteNetServer server, EndPoint udpEP) : base(pool) {
             Server = server;
-            UDPEndPoint = udpEP;
+            UDPSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+            UDPSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+            UDPSocket.EnableEndpointReuse();
+            UDPSocket.Bind(udpEP);
         }
 
         public override void Dispose() {
+            UDPSocket.Dispose();
             QueueQueue.Dispose();
             base.Dispose();
         }

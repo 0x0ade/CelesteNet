@@ -39,8 +39,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float NetPlusSchedulerStealThreshold { get; set; } = 0.7f;
 
         public int MainPort { get; set; } = 17230;
-        public int UDPReceivePort { get; set; } = 17229;
-        public int UDPSendPort { get; set; } = 17228;
 
         public int MaxTickRate { get; set; } = 60;
         public float TickRateLowActivityThreshold { get; set; } = 0.3f;

@@ -36,19 +36,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                     EnterActiveZone();
 
                     // Handle handshake messages
-                    if (dgSize == 9 && dgBuffer[0] == 0xff) {
-                        // Get the connection token and receiver port
+                    if (dgSize == 5 && dgBuffer[0] == 0xff) {
+                        // Get the connection toke
                         uint conToken = BitConverter.ToUInt32(dgBuffer, 1);
-                        int recvPort = BitConverter.ToInt32(dgBuffer, 5);
 
                         // Get the connection from the token
                         if (!Role.conTokenMap.TryGetValue(conToken, out ConPlusTCPUDPConnection? tokCon) || tokCon == null)
                             continue;
-
-                        // Determine the endpoint of the receiver
-                        if (dgramSender is not IPEndPoint ipEp)
-                            continue;
-                        IPEndPoint recvEp = new IPEndPoint(ipEp.Address, recvPort);
 
                         // Initialize the connection
                         lock (tokCon.UDPLock) {
@@ -64,12 +58,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 // This makes hijacking possible, but is also
                                 // how a client with changing IP addresses can
                                 // reconnect it's UDP connection :(
-                                Logger.Log(LogLevel.INF, "udprecv", $"Connection {tokCon} UDP endpoint changed: {tokCon.UDPEndpoint} -> {recvEp}");
-                                Role.endPointMap.TryRemove(tokCon.UDPEndpoint, out _);
+                                Logger.Log(LogLevel.INF, "udprecv", $"Connection {tokCon} UDP send endpoint changed: {tokCon.UDPEndpoint} -> {dgramSender}");
                             }
 
                             // Initialize and establish the UDP connection
-                            tokCon.InitUDP(recvEp, tokCon.UDPNextConnectionID++, Role.Server.Settings.UDPMaxDatagramSize);
+                            tokCon.InitUDP(dgramSender, tokCon.UDPNextConnectionID++, Role.Server.Settings.UDPMaxDatagramSize);
 
                             // Add the connection to the map
                             Role.endPointMap[dgramSender] = tokCon;
@@ -96,12 +89,19 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private readonly ConcurrentDictionary<uint, ConPlusTCPUDPConnection> conTokenMap = new();
         private readonly ConcurrentDictionary<EndPoint, ConPlusTCPUDPConnection> endPointMap = new();
+        private Socket? initialSock;
 
-        public UDPReceiverRole(NetPlusThreadPool pool, CelesteNetServer server, EndPoint endPoint) : base(pool, ProtocolType.Udp, endPoint) {
+        public UDPReceiverRole(NetPlusThreadPool pool, CelesteNetServer server, EndPoint endPoint, Socket? initialSock = null) : base(pool, ProtocolType.Udp, endPoint) {
             Server = server;
+            this.initialSock = initialSock;
         }
 
         public override NetPlusThreadRole.RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
+
+        protected override Socket CreateSocket() {
+            Socket? sock = Interlocked.Exchange(ref initialSock, null);
+            return sock ?? base.CreateSocket();
+        }
 
         public void AddConnection(ConPlusTCPUDPConnection con) {
             conTokenMap.TryAdd(con.ConnectionToken, con);

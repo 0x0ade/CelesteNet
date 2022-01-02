@@ -10,7 +10,6 @@ namespace Celeste.Mod.CelesteNet {
 
         public struct Settings {
 
-            public int UDPReceivePort, UDPSendPort;
             public int MaxPacketSize, MaxQueueSize;
             public float MergeWindow;
             public int MaxHeartbeatDelay;
@@ -47,7 +46,7 @@ namespace Celeste.Mod.CelesteNet {
         private byte UDPRecvLastContainerID = 0, UDPSendNextContainerID = 0;
 
         public virtual bool UseUDP {
-            get => IsConnected && !(ConnectionSettings.UDPReceivePort <= 0 || ConnectionSettings.UDPSendPort <= 0) && UDPDeathScore < ConnectionSettings.UDPDeathScoreMax;
+            get => IsConnected && ConnectionSettings.UDPDeathScoreMax >= 0 && UDPDeathScore < ConnectionSettings.UDPDeathScoreMax;
             set => UDPDeathScore = value ? 0 : ConnectionSettings.UDPDeathScoreMax;
         }
 

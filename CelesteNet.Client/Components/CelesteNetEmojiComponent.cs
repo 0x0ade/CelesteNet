@@ -28,7 +28,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataNetEmoji netemoji) {
-            if (!Pending.TryGetValue(netemoji.ID, out FileStream cacheStream)) {
+            FileStream cacheStream;
+            if (netemoji.FirstFragment) {
                 // Create a new cache stream for the emoji
                 string dir = Path.Combine(Path.GetTempPath(), "CelesteNetClientEmojiCache");
                 if (!Directory.Exists(dir))
@@ -39,6 +40,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     File.Delete(path);
 
                 Pending.TryAdd(netemoji.ID, cacheStream = File.OpenWrite(path));
+            } else if (!Pending.TryGetValue(netemoji.ID, out cacheStream)) {
+                throw new InvalidDataException($"Missing first fragment of emoji '{netemoji.ID}'!");
             }
 
             // Add fragment data to the emoji

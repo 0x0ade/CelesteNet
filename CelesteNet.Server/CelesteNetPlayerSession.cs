@@ -128,13 +128,14 @@ namespace Celeste.Mod.CelesteNet.Server {
                     while ((fragSize = avatarStream.Read(buf, 0, buf.Length)) > 0) {
                         byte[] frag = new byte[fragSize];
                         Buffer.BlockCopy(buf, 0, frag, 0, fragSize);
+                        if(avatarFrags.Count > 0) avatarFrags[avatarFrags.Count-1].MoreFragments = true;
                         avatarFrags.Add(new DataNetEmoji {
                             ID = avatarId,
-                            Data = frag
+                            Data = frag,
+                            FirstFragment = (avatarFrags.Count <= 0),
+                            MoreFragments = false
                         });
                     }
-                    for (int i = 0; i < avatarFrags.Count - 1; i++)
-                        avatarFrags[i].MoreFragments = true;
 
                     // Turn avatar fragments into blobs
                     AvatarFragments = avatarFrags.Select(frag => DataInternalBlob.For(Server.Data, frag)).ToArray();

@@ -152,7 +152,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public virtual void DisposeSafe() => Dispose();
 
-        public override string ToString() => $"{GetType()}({ID})";
+        public override string ToString() => $"{GetType()}({ID} [{UID}])";
 
     }
 

@@ -189,7 +189,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void Dispose() {
-            if(!_Alive)
+            if (!_Alive)
                 return;
             using (Lock.W()) {
                 _Alive = false;
@@ -215,7 +215,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void Flush() {
-            if(!Alive || InMergeWindow)
+            if (!Alive || InMergeWindow)
                 return;
             using (Lock.W()) {
                 if (!Alive || InMergeWindow)
@@ -230,7 +230,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public void Clear() {
             using (Lock.W()) {
-                if(!Alive)
+                if (!Alive)
                     return;
                 _FrontQueue = new();
             }

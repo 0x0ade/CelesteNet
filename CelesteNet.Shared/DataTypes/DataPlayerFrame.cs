@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         // Too many too quickly to make tasking worth it.
-        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.CoreType | DataFlags.Small | DataFlags.NoStandardMeta;
+        public override DataFlags DataFlags => DataFlags.Unreliable | DataFlags.CoreType | DataFlags.NoStandardMeta;
 
         public DataPlayerInfo? Player;
 

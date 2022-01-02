@@ -23,7 +23,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public int Depth;
         public PlayerSpriteMode SpriteMode;
-        public Color SpriteColor;
         public float SpriteRate;
         public string[] SpriteAnimations = Dummy<string>.EmptyArray;
 
@@ -52,7 +51,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         protected override void Read(CelesteNetBinaryReader reader) {
             Depth = reader.ReadInt32();
             SpriteMode = (PlayerSpriteMode) reader.Read7BitEncodedInt();
-            SpriteColor = reader.ReadColor();
             SpriteRate = reader.ReadSingle();
             SpriteAnimations = new string[reader.Read7BitEncodedInt()];
             for (int i = 0; i < SpriteAnimations.Length; i++)
@@ -74,7 +72,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         protected override void Write(CelesteNetBinaryWriter writer) {
             writer.Write(Depth);
             writer.Write7BitEncodedInt((int) SpriteMode);
-            writer.Write(SpriteColor);
             writer.Write(SpriteRate);
             writer.Write7BitEncodedInt(SpriteAnimations.Length);
             for (int i = 0; i < SpriteAnimations.Length; i++)

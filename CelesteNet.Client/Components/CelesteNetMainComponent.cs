@@ -262,7 +262,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 ghost.NameTag.Name = frame.Player.DisplayName;
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
-                ghost.UpdatePosition(frame.Position, frame.Scale, frame.Facing, frame.Speed);
+                ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, frame.Facing, frame.Speed);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
                 ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion);
                 ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
@@ -888,7 +888,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     Depth = player.Depth,
                     SpriteMode = player.Sprite.Mode,
-                    SpriteColor = player.Sprite.Color,
                     SpriteRate = player.Sprite.Rate,
                     SpriteAnimations = animations,
 
@@ -976,6 +975,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     Position = player.Position,
                     Scale = player.Sprite.Scale,
+                    Color = player.Sprite.Color,
                     Facing = player.Facing,
                     Speed = player.Speed,
 

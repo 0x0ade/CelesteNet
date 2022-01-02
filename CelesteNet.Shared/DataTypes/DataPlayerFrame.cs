@@ -24,6 +24,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public Vector2 Position;
         public Vector2 Scale;
+        public Color Color;
         public Facings Facing;
         public Vector2 Speed;
 
@@ -62,12 +63,20 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void ReadAll(CelesteNetBinaryReader reader) {
+            Color UnpackColor(ushort packedCol) => new() {
+                R = (byte) (((packedCol >> 0) & 0b11111) << 3),
+                G = (byte) (((packedCol >> 5) & 0b11111) << 3),
+                B = (byte) (((packedCol >> 10) & 0b11111) << 3),
+                A = 255
+            };
+
             Player = reader.ReadRef<DataPlayerInfo>();
 
             Flags flags = (Flags) reader.ReadByte();
 
             Position = new(reader.Read7BitEncodedInt(), reader.Read7BitEncodedInt());
             Scale = new(reader.ReadSByte() / 16f, reader.ReadSByte() / 16f);
+            Color = UnpackColor(reader.ReadUInt16());
             Facing = ((flags & Flags.FacingLeft) != 0) ? Facings.Left : Facings.Right;
             Speed = new(reader.ReadInt16(), reader.ReadInt16());
 
@@ -86,16 +95,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     for (int j = 0; i < HairColors.Length && j < repCount; j++)
                         HairColors[i++] = lastHairCol;
                 } else {
-                    // Read the second color byte and combine them
-                    int packedCol = (firstColByte << 8) | reader.ReadByte();
-
-                    // Unpack the color (each component is 5 bits)
-                    lastHairCol.R = (byte) (((packedCol >> 0) & 0b11111) << 3);
-                    lastHairCol.G = (byte) (((packedCol >> 5) & 0b11111) << 3);
-                    lastHairCol.B = (byte) (((packedCol >> 10) & 0b11111) << 3);
-                    lastHairCol.A = 255;
-
-                    HairColors[i++] = lastHairCol;
+                    // Read the second color byte and unpack it
+                    HairColors[i++] = lastHairCol = UnpackColor((ushort) ((firstColByte << 8) | reader.ReadByte()));
                 }
             }
 
@@ -149,6 +150,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override void WriteAll(CelesteNetBinaryWriter writer) {
+            ushort PackColor(Color col) => (ushort) (
+                (col.R >> 3) << 0 |
+                (col.G >> 3) << 5 |
+                (col.B >> 3) << 10
+            );
+
             FixupMeta(writer.Data);
             writer.WriteRef(Player);
 
@@ -178,18 +185,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write7BitEncodedInt(CurrentAnimationFrame);
 
             writer.Write((byte) HairColors.Length);
-            ushort[] packedHairCols = new ushort[HairColors.Length];
-            for (int i = 0; i < HairColors.Length; i++)
-                packedHairCols[i] = (ushort) (
-                    (HairColors[i].R >> 3) << 0 |
-                    (HairColors[i].G >> 3) << 5 |
-                    (HairColors[i].B >> 3) << 10
-                );
-            for (int i = 0; i < packedHairCols.Length;) {
+            for (int i = 0; i < HairColors.Length;) {
                 int origIdx = i;
-                writer.Write((byte) ((packedHairCols[i] >> 8) & 0xff));
-                writer.Write((byte) ((packedHairCols[i] >> 0) & 0xff));
-                for (i++; i < packedHairCols.Length && packedHairCols[i] == packedHairCols[origIdx]; i++);
+                ushort packedCol = PackColor(HairColors[i]);
+                writer.Write((byte) ((packedCol >> 8) & 0xff));
+                writer.Write((byte) ((packedCol >> 0) & 0xff));
+                for (i++; i < HairColors.Length && HairColors[i] == HairColors[origIdx]; i++);
                 if (origIdx+1 < i)
                     writer.Write((byte) ((1<<7) | (i-origIdx-1)));
             }

@@ -289,7 +289,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             PlayerGraphics = graphics;
 
             Depth = graphics.Depth + 1;
-            Sprite.Color = graphics.SpriteColor * Alpha;
             Sprite.Rate = graphics.SpriteRate;
 
             Sprite.HairCount = graphics.HairCount;
@@ -319,11 +318,12 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             }
         }
 
-        public void UpdatePosition(Vector2 pos, Vector2 scale, Facings facing, Vector2 speed) {
+        public void UpdateGeneric(Vector2 pos, Vector2 scale, Color color, Facings facing, Vector2 speed) {
             if (Holdable.Holder == null)
                 Position = pos;
             Sprite.Scale = scale;
             Sprite.Scale.X *= (float) facing;
+            Sprite.Color = color * Alpha;
             Hair.Facing = facing;
             Speed = speed;
         }

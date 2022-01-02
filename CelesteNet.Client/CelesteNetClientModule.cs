@@ -172,6 +172,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             _StartThread = new(() => {
                 CelesteNetClientContext context = Context;
                 try {
+                    // This shouldn't ever happen but it has happened once.
+                    if (context == null)
+                        return;
+
                     context.Init(Settings);
                     context.Status.Set("Connecting...");
                     using (_StartTokenSource = new())

@@ -102,7 +102,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 conFeatures = teapotRes.Item2;
                                 settings = teapotRes.Item3;
                                 Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {conToken} conFeatures '{conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}'");
-                                sock.ReceiveTimeout = sock.SendTimeout = -1;
+                                sock.ReceiveTimeout = sock.SendTimeout = (int) (settings.HeartbeatInterval * settings.MaxHeartbeatDelay);
                             }
 
                             // Create a connection and start the heartbeat timer

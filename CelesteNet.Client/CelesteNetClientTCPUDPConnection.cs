@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             OnUDPDeath += (_, _) => {
                 Logger.Log(LogLevel.INF, "CelesteNetClientTCPUDPConnection", UseUDP ? "UDP connection died" : "Switching to TCP only");
-                if (Logger.Level >= LogLevel.DBG)
+                if (Logger.Level <= LogLevel.DBG)
                     CelesteNetClientModule.Instance?.Context?.Status?.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
             };
 

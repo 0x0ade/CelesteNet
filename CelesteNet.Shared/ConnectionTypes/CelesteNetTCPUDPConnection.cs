@@ -36,7 +36,7 @@ namespace Celeste.Mod.CelesteNet {
 
         private readonly Socket _TCPSock;
         private EndPoint? _UDPEndpoint;
-        protected readonly CelesteNetSendQueue TCPQueue, UDPQueue;
+        public readonly CelesteNetSendQueue TCPQueue, UDPQueue;
 
         public const int UDPPacketDropThreshold = 8;
         public readonly object UDPLock = new();

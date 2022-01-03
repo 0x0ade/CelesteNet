@@ -17,51 +17,31 @@ namespace Celeste.Mod.CelesteNet.Server {
     */
     public class TCPUDPSenderRole : NetPlusThreadRole {
 
-        private enum QueueType {
-            TCP, UDP
+        private enum SendAction {
+            FLUSH_TCP_QUEUE, FLUSH_TCP_BUFFER, FLUSH_UDP_QUEUE
         }
 
         private class Worker : RoleWorker {
 
-            private readonly BufferedSocketStream SockStream;
-            private readonly BinaryWriter SockWriter;
             private readonly MemoryStream PacketStream;
             private readonly CelesteNetBinaryWriter PacketWriter;
             private readonly byte[] UDPBuffer;
 
-            private readonly RWLock TCPMetricsLock;
-            private long LastTCPByteRateUpdate, LastTCPPacketRateUpdate;
-            private float _TCPByteRate, _TCPPacketRate;
-
-            private readonly RWLock UDPMetricsLock;
-            private long LastUDPByteRateUpdate, LastUDPPacketRateUpdate;
-            private float _UDPByteRate, _UDPPacketRate;
-
             public Worker(TCPUDPSenderRole role, NetPlusThread thread) : base(role, thread) {
-                SockStream = new(role.Server.Settings.TCPBufferSize);
-                SockWriter = new(SockStream);
                 PacketStream = new(role.Server.Settings.MaxPacketSize);
                 PacketWriter = new(role.Server.Data, null, null, PacketStream);
                 UDPBuffer = new byte[role.Server.Settings.UDPMaxDatagramSize];
-
-                TCPMetricsLock = new();
-                UDPMetricsLock = new();
             }
 
             public override void Dispose() {
                 base.Dispose();
-                TCPMetricsLock.Dispose();
-                UDPMetricsLock.Dispose();
-                SockStream.Dispose();
-                SockWriter.Dispose();
                 PacketStream.Dispose();
                 PacketWriter.Dispose();
             }
 
             protected internal override void StartWorker(CancellationToken token) {
                 // Handle queues from the queue
-                foreach ((QueueType queueType, CelesteNetSendQueue queue) in Role.QueueQueue.GetConsumingEnumerable(token)) {
-                    ConPlusTCPUDPConnection con = (ConPlusTCPUDPConnection) queue.Con;
+                foreach ((SendAction act, ConPlusTCPUDPConnection con) in Role.QueueQueue.GetConsumingEnumerable(token)) {
                     EnterActiveZone();
                     try {
                         using (con.Utilize(out bool alive)) {
@@ -69,29 +49,33 @@ namespace Celeste.Mod.CelesteNet.Server {
                             if (!alive || !con.IsConnected)
                                 continue;
 
-                            switch (queueType) {
-                                case QueueType.TCP: {
-                                    FlushTCPQueue(con, queue, token);
+                            switch (act) {
+                                case SendAction.FLUSH_TCP_QUEUE: {
+                                    con.FlushTCPSendQueue();
                                 } break;
-                                case QueueType.UDP: {
-                                    FlushUDPQueue(con, queue, token);
+                                case SendAction.FLUSH_TCP_BUFFER: {
+                                    con.FlushTCPSendBuffer();
+                                } break;
+                                case SendAction.FLUSH_UDP_QUEUE: {
+                                    FlushUDPSendQueue(con, token);
                                 } break;
                             }
                         }
                     } catch (Exception e) {
-                        switch (queueType) {
-                            case QueueType.TCP: {
+                        switch (act) {
+                            case SendAction.FLUSH_TCP_QUEUE:
+                            case SendAction.FLUSH_TCP_BUFFER: {
                                 if (e is SocketException se && se.IsDisconnect()) {
                                     Logger.Log(LogLevel.INF, "tcpsend", $"Remote of connection {con} closed the connection");
                                     con.DisposeSafe();
                                     continue;
                                 }
 
-                                Logger.Log(LogLevel.WRN, "tcpsend", $"Error flushing connection {con} TCP queue '{queue.Name}': {e}");
+                                Logger.Log(LogLevel.WRN, "tcpsend", $"Error flushing connection {con} TCP data: {e}");
                                 con.DisposeSafe();
                             } break;
-                            case QueueType.UDP: {
-                                Logger.Log(LogLevel.WRN, "udpsend", $"Error flushing connection {con} UDP queue '{queue.Name}': {e}");
+                            case SendAction.FLUSH_UDP_QUEUE: {
+                                Logger.Log(LogLevel.WRN, "udpsend", $"Error flushing connection {con} UDP data: {e}");
                                 con.DecreaseUDPScore(reason: "Error flushing queue");
                             } break;
                         }
@@ -101,83 +85,14 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            private void FlushTCPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
-                // Check if the connection's capped
-                if (con.TCPSendCapped) {
-                    Logger.Log(LogLevel.WRN, "tcpsend", $"Connection {con} hit TCP uplink cap: {con.TCPSendRate.ByteRate} BpS {con.TCPSendRate.PacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerTCPUplinkPpTCap} cap PpS");
-
-                    // Requeue the queue to be flushed later
-                    queue.DelayFlush(con.TCPSendCapDelay, true);
-                    return;
-                }
-
-                // Check if the socket is ready
-                if (!con.TCPSocket.Poll(0, SelectMode.SelectWrite)) {
-                    // Requeue the queue to be flushed later
-                    queue.DelayFlush(Role.Server.Settings.TCPSockSendTimeout, true);
-                    return;
-                }
-
-                int byteCounter = 0, packetCounter = 0;
-                try {
-                    SockStream.Socket = con.TCPSocket;
-                    PacketWriter.Strings = con.Strings;
-                    PacketWriter.CoreTypeMap = con.CoreTypeMap;
-
-                    // Write all packets
-                    while (queue.BackQueue.TryDequeue(out DataType? packet)) {
-                        // Write the packet onto the temporary packet stream
-                        PacketStream.Position = 0;
-                        con.Data.Write(PacketWriter, packet);
-                        PacketWriter.Flush();
-                        int packLen = (int) PacketStream.Position;
-
-                        // Write size and raw packet data into the actual stream
-                        SockWriter.Write((ushort) packLen);
-                        SockWriter.Flush();
-                        SockStream.Write(PacketStream.GetBuffer(), 0, packLen);
-
-                        // Update connection metrics and check if we hit the connection cap
-                        con.TCPSendRate.UpdateRate(2 + packLen, 1);
-                        if (con.TCPSendCapped)
-                            break;
-
-                        byteCounter += 2 + packLen;
-                        packetCounter++;
-
-                        if (packet is not DataLowLevelKeepAlive)
-                            con.SurpressTCPKeepAlives();
-                    }
-                    SockStream.Flush();
-                    SockStream.Socket = null;
-
-                    // Signal the queue that it's flushed if we didn't hit a cap
-                    // Else requeue it to be flushed again later
-                    if (queue.BackQueue.Count <= 0)
-                        queue.SignalFlushed();
-                    else
-                        queue.DelayFlush(con.TCPSendCapDelay, true);
-                } finally {
-                    SockStream.Socket = null;
-                    PacketWriter.Strings = null;
-                    PacketWriter.CoreTypeMap = null;
-                }
-
-                // Iterate metrics
-                using (TCPMetricsLock.W()) {
-                    Role.Pool.IterateEventHeuristic(ref _TCPByteRate, ref LastTCPByteRateUpdate, byteCounter, true);
-                    Role.Pool.IterateEventHeuristic(ref _TCPPacketRate, ref LastTCPPacketRateUpdate, packetCounter, true);
-                }
-            }
-
-            private void FlushUDPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
+            private void FlushUDPSendQueue(ConPlusTCPUDPConnection con, CancellationToken token) {
                 int byteCounter = 0, packetCounter = 0;
                 lock (con.UDPLock) {
                     // TODO This could be optimized with sendmmsg
 
                     // If there's no established UDP connection, just drop all packets
                     if (con.UDPEndpoint is not EndPoint remoteEP) {
-                        queue.SignalFlushed();
+                        con.UDPQueue.SignalFlushed();
                         return;
                     }
 
@@ -186,7 +101,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         Logger.Log(LogLevel.WRN, "udpsend", $"Connection {con} hit UDP uplink cap: {con.UDPSendRate.ByteRate} BpS {con.UDPSendRate.PacketRate} PpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkBpTCap} cap BpS {con.Server.CurrentTickRate * con.Server.Settings.PlayerUDPUplinkPpTCap} cap PpS");
 
                         // UDP's unreliable, just drop the excess packets
-                        queue.SignalFlushed();
+                        con.UDPQueue.SignalFlushed();
                         return;
                     }
 
@@ -198,7 +113,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         UDPBuffer[0] = con.NextUDPContainerID();
                         int bufOff = 1;
 
-                        foreach (DataType packet in queue.BackQueue) {
+                        foreach (DataType packet in con.UDPQueue.BackQueue) {
                             // Write the packet onto the temporary packet stream
                             PacketStream.Position = 0;
                             con.Data.Write(PacketWriter, packet);
@@ -235,7 +150,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         }
 
                         // Signal the queue that it's flushed
-                        queue.SignalFlushed();
+                        con.UDPQueue.SignalFlushed();
                     } finally {
                         PacketWriter.Strings = null;
                         PacketWriter.CoreTypeMap = null;
@@ -243,43 +158,20 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
 
                 // Iterate metrics
-                using (UDPMetricsLock.W()) {
-                    Role.Pool.IterateEventHeuristic(ref _UDPByteRate, ref LastTCPByteRateUpdate, byteCounter, true);
-                    Role.Pool.IterateEventHeuristic(ref _UDPPacketRate, ref LastTCPPacketRateUpdate, packetCounter, true);
-                }
+                Role.UpdateUDPStats(byteCounter, packetCounter);
             }
 
             public new TCPUDPSenderRole Role => (TCPUDPSenderRole) base.Role;
 
-            public float TCPByteRate {
-                get {
-                    using (TCPMetricsLock.R())
-                        return Role.Pool.IterateEventHeuristic(ref _TCPByteRate, ref LastTCPByteRateUpdate);
-                }
-            }
-
-            public float TCPPacketRate {
-                get {
-                    using (TCPMetricsLock.R())
-                        return Role.Pool.IterateEventHeuristic(ref _TCPPacketRate, ref LastTCPPacketRateUpdate);
-                }
-            }
-
-            public float UDPByteRate {
-                get {
-                    using (UDPMetricsLock.R())
-                        return Role.Pool.IterateEventHeuristic(ref _UDPByteRate, ref LastUDPByteRateUpdate);
-                }
-            }
-
-            public float UDPPacketRate {
-                get {
-                    using (UDPMetricsLock.R())
-                        return Role.Pool.IterateEventHeuristic(ref _UDPPacketRate, ref LastUDPPacketRateUpdate);
-                }
-            }
-
         }
+
+        private readonly RWLock TCPMetricsLock;
+        private long LastTCPByteRateUpdate, LastTCPPacketRateUpdate;
+        private float _TCPByteRate, _TCPPacketRate;
+
+        private readonly RWLock UDPMetricsLock;
+        private long LastUDPByteRateUpdate, LastUDPPacketRateUpdate;
+        private float _UDPByteRate, _UDPPacketRate;
 
         public override int MinThreads => 1;
         public override int MaxThreads => int.MaxValue;
@@ -287,16 +179,40 @@ namespace Celeste.Mod.CelesteNet.Server {
         public CelesteNetServer Server { get; }
         public Socket UDPSocket { get; }
 
-        public float TCPByteRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).TCPByteRate);
-        public float TCPPacketRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).TCPPacketRate);
+        public float TCPByteRate {
+            get {
+                using (TCPMetricsLock.R())
+                    return Pool.IterateEventHeuristic(ref _TCPByteRate, ref LastTCPByteRateUpdate);
+            }
+        }
 
-        public float UDPByteRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).UDPByteRate);
-        public float UDPPacketRate => EnumerateWorkers().Aggregate(0f, (r, w) => r + ((Worker) w).UDPPacketRate);
+        public float TCPPacketRate {
+            get {
+                using (TCPMetricsLock.R())
+                    return Pool.IterateEventHeuristic(ref _TCPPacketRate, ref LastTCPPacketRateUpdate);
+            }
+        }
 
-        private readonly BlockingCollection<(QueueType, CelesteNetSendQueue)> QueueQueue = new();
+        public float UDPByteRate {
+            get {
+                using (UDPMetricsLock.R())
+                    return Pool.IterateEventHeuristic(ref _UDPByteRate, ref LastUDPByteRateUpdate);
+            }
+        }
+
+        public float UDPPacketRate {
+            get {
+                using (UDPMetricsLock.R())
+                    return Pool.IterateEventHeuristic(ref _UDPPacketRate, ref LastUDPPacketRateUpdate);
+            }
+        }
+
+        private readonly BlockingCollection<(SendAction, ConPlusTCPUDPConnection)> QueueQueue = new();
 
         public TCPUDPSenderRole(NetPlusThreadPool pool, CelesteNetServer server, EndPoint udpEP) : base(pool) {
             Server = server;
+            TCPMetricsLock = new();
+            UDPMetricsLock = new();
             UDPSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
             UDPSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
             UDPSocket.EnableEndpointReuse();
@@ -306,13 +222,30 @@ namespace Celeste.Mod.CelesteNet.Server {
         public override void Dispose() {
             UDPSocket.Dispose();
             QueueQueue.Dispose();
+            TCPMetricsLock.Dispose();
+            UDPMetricsLock.Dispose();
             base.Dispose();
         }
 
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
 
-        public void TriggerTCPQueueFlush(CelesteNetSendQueue queue) => QueueQueue.Add((QueueType.TCP, queue));
-        public void TriggerUDPQueueFlush(CelesteNetSendQueue queue) => QueueQueue.Add((QueueType.UDP, queue));
+        public void TriggerTCPQueueFlush(ConPlusTCPUDPConnection con) => QueueQueue.Add((SendAction.FLUSH_TCP_QUEUE, con));
+        public void TriggerTCPBufferFlush(ConPlusTCPUDPConnection con) => QueueQueue.Add((SendAction.FLUSH_TCP_BUFFER, con));
+        public void TriggerUDPQueueFlush(ConPlusTCPUDPConnection con) => QueueQueue.Add((SendAction.FLUSH_UDP_QUEUE, con));
+
+        internal void UpdateTCPStats(int numBytes, int numPackets) {
+            using (TCPMetricsLock.W()) {
+                Pool.IterateEventHeuristic(ref _TCPByteRate, ref LastTCPByteRateUpdate, numBytes, true);
+                Pool.IterateEventHeuristic(ref _TCPPacketRate, ref LastTCPPacketRateUpdate, numPackets, true);
+            }
+        }
+
+        internal void UpdateUDPStats(int numBytes, int numPackets) {
+            using (UDPMetricsLock.W()) {
+                Pool.IterateEventHeuristic(ref _UDPByteRate, ref LastUDPByteRateUpdate, numBytes, true);
+                Pool.IterateEventHeuristic(ref _UDPPacketRate, ref LastUDPPacketRateUpdate, numPackets, true);
+            }
+        }
 
     }
 }

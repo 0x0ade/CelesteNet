@@ -35,8 +35,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     EnterActiveZone();
 
                     // Setup the new socket
-                    newCon.SendTimeout = Role.Server.Settings.TCPSockSendTimeout;
-                    newCon.SendBufferSize = Role.Server.Settings.TCPSockSendBufferSize;
+                    newCon.ReceiveBufferSize = Role.Server.Settings.TCPRecvBufferSize;
+                    newCon.SendTimeout = 0;
 
                     // Start the connection handshake
                     EndPoint remoteEP = newCon.RemoteEndPoint!;

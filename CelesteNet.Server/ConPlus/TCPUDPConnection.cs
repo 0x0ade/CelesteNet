@@ -58,8 +58,12 @@ namespace Celeste.Mod.CelesteNet.Server {
         private readonly RWLock UsageLock;
         private int DownlinkCapCounter = 0;
         private readonly object TCPLock = new();
-        private readonly byte[] TCPBuffer;
-        private int TCPBufferOff;
+        private readonly byte[] TCPRecvBuffer, TCPSendBuffer;
+        private readonly MemoryStream TCPSendBufferStream; 
+        private readonly CelesteNetBinaryWriter TCPSendPacketWriter;
+        private volatile bool TCPTriggerSendBufferFlush;
+        private volatile float TCPSendQueueDelay;
+        private int TCPRecvBufferOff, TCPSendBufferOff, TCPSendBufferNumBytes, TCPSendBufferNumPackets, TCPSendBufferRetries;
         public int UDPNextConnectionID = 0;
 
         public readonly RateMetric TCPRecvRate, TCPSendRate;
@@ -89,9 +93,15 @@ namespace Celeste.Mod.CelesteNet.Server {
             UDPSendRate = new(this);
 
             // Initialize TCP receiving
-            TCPBuffer = new byte[Math.Max(server.Settings.TCPBufferSize, 2 + server.Settings.MaxPacketSize)];
-            TCPBufferOff = 0;
+            TCPRecvBuffer = new byte[Math.Max(server.Settings.TCPRecvBufferSize, 2 + server.Settings.MaxPacketSize)];
+            TCPRecvBufferOff = 0;
             tcpReceiver.Poller.AddConnection(this);
+
+            // Initialize TCP sending
+            TCPSendBuffer = new byte[(2 + server.Settings.MaxPacketSize) * server.Settings.MaxQueueSize];
+            TCPSendBufferStream = new(TCPSendBuffer);
+            TCPSendPacketWriter = new(server.Data, Strings, CoreTypeMap, TCPSendBufferStream);
+            TCPSendBufferOff = TCPSendBufferNumBytes = TCPSendBufferNumPackets = 0;
 
             // Initialize UDP receiving
             udpReceiver.AddConnection(this);
@@ -106,6 +116,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             UDPReceiver.RemoveConnection(this);
             using (UsageLock.W()) {
                 base.Dispose(disposing);
+                TCPSendPacketWriter.Dispose();
+                TCPSendBufferStream.Dispose();
                 TCPRecvRate.Dispose();
                 TCPSendRate.Dispose();
                 UDPRecvRate.Dispose();
@@ -119,8 +131,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.SafeDisposeQueue.Add(this);
         }
 
-        protected override void FlushTCPQueue() => Sender.TriggerTCPQueueFlush(TCPQueue);
-        protected override void FlushUDPQueue() => Sender.TriggerUDPQueueFlush(UDPQueue);
+        protected override void FlushTCPQueue() => Sender.TriggerTCPQueueFlush(this);
+        protected override void FlushUDPQueue() => Sender.TriggerUDPQueueFlush(this);
 
         public IDisposable? Utilize(out bool alive) {
             if (!IsAlive) {
@@ -146,9 +158,20 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (disposeReason != null)
                 return disposeReason;
 
-            // Decrement the amount of times we hit the downlink cap
-            if (Volatile.Read(ref DownlinkCapCounter) > 0)
-                Interlocked.Decrement(ref DownlinkCapCounter);
+            using (Utilize(out bool alive)) {
+                if (!alive || !IsConnected)
+                    return null;
+
+                // Decrement the amount of times we hit the downlink cap
+                if (Volatile.Read(ref DownlinkCapCounter) > 0)
+                    Interlocked.Decrement(ref DownlinkCapCounter);
+
+                // Potentially trigger a send buffer flush
+                if (TCPTriggerSendBufferFlush) {
+                    TCPTriggerSendBufferFlush = false;
+                    Sender.TriggerTCPBufferFlush(this);
+                }
+            }
 
             return null;
         }
@@ -161,13 +184,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     do {
                         // Receive data into the buffer
-                        int numRead = TCPSocket.Receive(TCPBuffer, TCPBufferOff, TCPBuffer.Length - TCPBufferOff, SocketFlags.None);
+                        int numRead = TCPSocket.Receive(TCPRecvBuffer, TCPRecvBufferOff, TCPRecvBuffer.Length - TCPRecvBufferOff, SocketFlags.None);
                         if (numRead <= 0) {
                             // The remote closed the connection
                             Logger.Log(LogLevel.INF, "tcpudpcon", $"Remote of connection {this} closed the connection");
                             goto closeConnection;
                         }
-                        TCPBufferOff += numRead;
+                        TCPRecvBufferOff += numRead;
 
                         // Let the connection know we got a heartbeat
                         TCPHeartbeat();
@@ -181,16 +204,16 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                         while (true) {
                             // Check if we have read the first two length bytes
-                            if (2 <= TCPBufferOff) {
+                            if (2 <= TCPRecvBufferOff) {
                                 // Get the packet length
-                                int packetLen = BitConverter.ToUInt16(TCPBuffer, 0);
+                                int packetLen = BitConverter.ToUInt16(TCPRecvBuffer, 0);
                                 if (packetLen < 0 || packetLen > Server.Settings.MaxPacketSize) {
                                     Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} sent packet over the size limit: {packetLen} > {Server.Settings.MaxPacketSize}");
                                     goto closeConnection;
                                 }
 
                                 // Did we receive the entire packet already?
-                                if (2 + packetLen <= TCPBufferOff) {
+                                if (2 + packetLen <= TCPRecvBufferOff) {
                                     // Update metrics and check if we hit the cap
                                     TCPRecvRate.UpdateRate(0, 1);
                                     if (TCPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap) {
@@ -200,7 +223,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                                     // Read the packet
                                     DataType packet;
-                                    using (MemoryStream mStream = new(TCPBuffer, 2, packetLen))
+                                    using (MemoryStream mStream = new(TCPRecvBuffer, 2, packetLen))
                                     using (CelesteNetBinaryReader reader = new(Server.Data, Strings, CoreTypeMap, mStream))
                                         packet = Server.Data.Read(reader);
 
@@ -222,8 +245,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                                     }
 
                                     // Remove the packet data from the buffer
-                                    TCPBufferOff -= 2 + packetLen;
-                                    Buffer.BlockCopy(TCPBuffer, 2 + packetLen, TCPBuffer, 0, TCPBufferOff);
+                                    TCPRecvBufferOff -= 2 + packetLen;
+                                    Buffer.BlockCopy(TCPRecvBuffer, 2 + packetLen, TCPRecvBuffer, 0, TCPRecvBufferOff);
                                     continue;
                                 }
                             }
@@ -238,6 +261,96 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return;
                 closeConnection:
                 Dispose();
+            }
+        }
+
+        public void FlushTCPSendQueue() {
+            using (Utilize(out bool alive)) {
+                if (!alive || !IsConnected || TCPQueue.FrontQueue.Count <= 0)
+                    return;
+
+                if (TCPSendBufferNumBytes > 0 || TCPSendBufferNumPackets > 0)
+                    throw new InvalidOperationException("Can't flush the TCP queue when the send buffer wasn't flushed!");
+
+                // Check if the connection's capped
+                if (TCPSendCapped) {
+                    Logger.Log(LogLevel.WRN, "tcpsend", $"Connection {this} hit TCP uplink cap: {TCPSendRate.ByteRate} BpS {TCPSendRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkBpTCap} cap BpS {Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkPpTCap} cap PpS");
+
+                    // Requeue the queue to be flushed later
+                    TCPQueue.DelayFlush(TCPSendCapDelay, true);
+                    return;
+                }
+
+                // Write packets to the buffer
+                TCPSendBufferOff = 0;
+                while (TCPQueue.BackQueue.TryDequeue(out DataType? packet)) {
+                    // Write the packet
+                    long origPos = TCPSendBufferStream.Position;
+                    TCPSendBufferStream.Position = origPos + 2;
+                    Data.Write(TCPSendPacketWriter, packet);
+                    TCPSendPacketWriter.Flush();
+                    ushort packLen = (ushort) (TCPSendBufferStream.Position - origPos - 2);
+
+                    // Write size prefix
+                    TCPSendBufferStream.Position = origPos;
+                    TCPSendPacketWriter.Write(packLen);
+                    TCPSendPacketWriter.Flush();
+                    TCPSendBufferStream.Position = origPos + 2 + packLen;
+
+                    // Update connection metrics and check if we hit the connection cap
+                    TCPSendRate.UpdateRate(2 + packLen, 1);
+                    if (TCPSendCapped)
+                        break;
+
+                    TCPSendBufferNumBytes += 2 + packLen;
+                    TCPSendBufferNumPackets++;
+
+                    if (packet is not DataLowLevelKeepAlive)
+                        SurpressTCPKeepAlives();
+                }
+
+                // Set the queue delay
+                if (TCPQueue.BackQueue.Count <= 0)
+                    TCPSendQueueDelay = -1f;
+                else
+                    TCPSendQueueDelay = TCPSendCapDelay;
+
+                // Initial send buffer flush
+                FlushTCPSendBuffer();
+            }
+        }
+
+        public void FlushTCPSendBuffer() {
+            using (Utilize(out bool alive)) {
+                if (!alive || !IsConnected)
+                    return;
+
+                try {
+                    // Try to flush the buffer
+                    while(TCPSendBufferOff < TCPSendBufferNumBytes)
+                        TCPSendBufferOff += TCPSocket.Send(TCPSendBuffer, TCPSendBufferOff, TCPSendBufferNumBytes - TCPSendBufferOff, SocketFlags.None);
+                    Sender.UpdateTCPStats(TCPSendBufferNumBytes, TCPSendBufferNumPackets);
+
+                    // Signal the queue that it's flushed if we didn't hit a cap
+                    // Else requeue it to be flushed again later
+                    if (TCPSendQueueDelay < 0)
+                        TCPQueue.SignalFlushed();
+                    else
+                        TCPQueue.DelayFlush(TCPSendQueueDelay, true);
+
+                    TCPSendBufferOff = TCPSendBufferNumBytes = TCPSendBufferNumPackets = 0;
+                    return;
+                } catch (SocketException e) {
+                    if(e.SocketErrorCode == SocketError.TryAgain || e.SocketErrorCode == SocketError.WouldBlock) {
+                        if (++TCPSendBufferRetries < Server.Settings.TCPSendMaxRetries) {
+                            Logger.Log(LogLevel.WRN, "tcpudpcon", $"Couldn't flush connection {this} TCP buffer!");
+                            TCPTriggerSendBufferFlush = true;
+                        } else
+                            throw;
+                        return;
+                    }
+                    throw;
+                }
             }
         }
 

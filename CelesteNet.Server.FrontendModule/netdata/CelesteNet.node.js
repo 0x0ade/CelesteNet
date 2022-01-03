@@ -285,9 +285,9 @@ let CelesteNet = {
                     }
                 },
 
-                udpUplinkBpS: {
+                tcpUplinkPpS: {
                     title: "$ TCP PpS uplink",
-                    units: "bytes per second",
+                    units: "packets per second",
                     family: "bandwith",
                     type: netdata.chartTypes.area,
                     dimensions: {
@@ -298,9 +298,9 @@ let CelesteNet = {
                     }
                 },
 
-                tcpUplinkPpS: {
-                    title: "$ UDP TpS uplink",
-                    units: "packets per second",
+                udpUplinkBpS: {
+                    title: "$ UDP BpS uplink",
+                    units: "bytes per second",
                     family: "bandwith",
                     type: netdata.chartTypes.area,
                     dimensions: {

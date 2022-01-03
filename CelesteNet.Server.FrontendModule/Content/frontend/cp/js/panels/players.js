@@ -52,8 +52,8 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
           rd$(el)`<span>
             <code>TCP ↓:${` ${p.TCPDownlinkBpS.toFixed(3)} BpS | ${p.TCPDownlinkPpS.toFixed(3)} PpS`}</code><br>
             <code>UDP ↓:${` ${p.UDPDownlinkBpS.toFixed(3)} BpS | ${p.UDPDownlinkPpS.toFixed(3)} PpS`}</code><br>
-            <code>TCP ↑:${` ${p.TCPUplinkBpS.toFixed(3)} BpS | ${p.TCPUplinkBpS.toFixed(3)} PpS`}</code><br>
-            <code>UDP ↑:${` ${p.UDPUplinkBpS.toFixed(3)} BpS | ${p.UDPUplinkBpS.toFixed(3)} PpS`}</code>
+            <code>TCP ↑:${` ${p.TCPUplinkBpS.toFixed(3)} BpS | ${p.TCPUplinkPpS.toFixed(3)} PpS`}</code><br>
+            <code>UDP ↑:${` ${p.UDPUplinkBpS.toFixed(3)} BpS | ${p.UDPUplinkPpS.toFixed(3)} PpS`}</code>
           </span>`}
         </span>`
       )(el);

@@ -83,7 +83,7 @@ namespace Celeste.Mod.CelesteNet {
                             _Socket.Send(SendBuffer, SendBufferOff, SocketFlags.None);
                             break;
                         } catch (SocketException se) {
-                            if (se.SocketErrorCode == SocketError.TryAgain && _Socket.Poll(-1, SelectMode.SelectWrite))
+                            if ((se.SocketErrorCode == SocketError.TryAgain || se.SocketErrorCode == SocketError.WouldBlock) && _Socket.Poll(-1, SelectMode.SelectWrite))
                                 continue;
                             throw;
                         }

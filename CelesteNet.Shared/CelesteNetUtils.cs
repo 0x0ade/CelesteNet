@@ -206,6 +206,12 @@ namespace Celeste.Mod.CelesteNet {
             if (!sock.Connected)
                 return;
             try {
+                switch (shutdown) {
+                    case SocketShutdown.Receive:
+                    case SocketShutdown.Both:
+                        sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 0);
+                        break;
+                }
                 sock.Shutdown(shutdown);
             } catch (SocketException se) {
                 // Sometime the first check isn't enough

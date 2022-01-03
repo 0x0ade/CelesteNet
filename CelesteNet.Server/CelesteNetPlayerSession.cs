@@ -289,7 +289,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;
 
         public void Dispose() {
-            if(Interlocked.Exchange(ref _Alive, 0) <= 0)
+            if (Interlocked.Exchange(ref _Alive, 0) <= 0)
                 return;
 
             Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{SessionID} {Con}");

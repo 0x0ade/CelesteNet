@@ -247,6 +247,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public static bool IsDisconnect(this SocketException se) {
             switch (se.SocketErrorCode) {
+                case SocketError.Shutdown:
                 case SocketError.NotConnected:
                 case SocketError.ConnectionRefused:
                 case SocketError.ConnectionAborted:

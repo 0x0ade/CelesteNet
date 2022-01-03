@@ -11,17 +11,17 @@ const mdc = window["mdc"]; // mdc
 
 /**
 @typedef {{
-  SessionID: number,
+  ID: number,
   UID: string,
   Name: string,
   FullName: string,
   DisplayName: string,
   Connection: string,
   ConnectionUID: string,
-  TCPDownlinkBpS: number, TCPDownlinkPpS: number,
-  UDPDownlinkBpS: number, UDPDownlinkPpS: number,
-  TCPUplinkBpS: number, TCPUplinkPpS: number,
-  UDPUplinkBpS: number, UDPUplinkPpS: number
+  TCPDownlinkBpS: number?, TCPDownlinkPpS: number?,
+  UDPDownlinkBpS: number?, UDPDownlinkPpS: number?,
+  TCPUplinkBpS: number?, TCPUplinkPpS: number?,
+  UDPUplinkBpS: number?, UDPUplinkPpS: number?
 }} PlayerData
  */
 
@@ -44,19 +44,22 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
     this.list = this.data.map(p => el => {
       el = mdcrd.list.item(el => rd$(el)`
         <span>
-        <b>${p.FullName}</b> <i>(#${p.SessionID})</i><br>
+        <b>${p.FullName}</b> <i>(#${p.ID})</i><br>
         ${p.Name}<br>
         ${p.DisplayName !== p.FullName ? p.UID : this.frontend.censor(p.UID)}<br>
         ${this.frontend.censor(p.Connection)}<br>
-        <code>TCP ↓:${` ${p.TCPDownlinkBpS.toFixed(3)} BpS | ${p.TCPDownlinkPpS.toFixed(3)} PpS`}</code><br>
-        <code>UDP ↓:${` ${p.UDPDownlinkBpS.toFixed(3)} BpS | ${p.UDPDownlinkPpS.toFixed(3)} PpS`}</code><br>
-        <code>TCP ↑:${` ${p.TCPUplinkBpS.toFixed(3)} BpS | ${p.TCPUplinkBpS.toFixed(3)} PpS`}</code><br>
-        <code>UDP ↑:${` ${p.UDPUplinkBpS.toFixed(3)} BpS | ${p.UDPUplinkBpS.toFixed(3)} PpS`}</code>
+        ${el => !p.TCPDownlinkBpS ? rd$(el)`<span></span>` :
+          rd$(el)`<span>
+            <code>TCP ↓:${` ${p.TCPDownlinkBpS.toFixed(3)} BpS | ${p.TCPDownlinkPpS.toFixed(3)} PpS`}</code><br>
+            <code>UDP ↓:${` ${p.UDPDownlinkBpS.toFixed(3)} BpS | ${p.UDPDownlinkPpS.toFixed(3)} PpS`}</code><br>
+            <code>TCP ↑:${` ${p.TCPUplinkBpS.toFixed(3)} BpS | ${p.TCPUplinkBpS.toFixed(3)} PpS`}</code><br>
+            <code>UDP ↑:${` ${p.UDPUplinkBpS.toFixed(3)} BpS | ${p.UDPUplinkBpS.toFixed(3)} PpS`}</code>
+          </span>`}
         </span>`
       )(el);
 
       this.frontend.dom.setContext(el,
-        [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.SessionID) ],
+        [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.ID) ],
         [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ]
       );
 

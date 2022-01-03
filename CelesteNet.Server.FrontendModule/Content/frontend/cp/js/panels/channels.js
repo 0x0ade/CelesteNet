@@ -43,7 +43,7 @@ export class FrontendChannelsPanel extends FrontendBasicPanel {
           el = rd$(el)`<ul></ul>`;
           let list = new RDOMListHelper(el);
           for (let pid of c.Players) {
-            const player = FrontendPlayersPanel["instance"].data.find(p => p.SessionID == pid);
+            const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == pid);
             let name = player && player.FullName;
             // TODO: Rerender el on missing player only once! Otherwise render -> refresh -> render -> refresh...
             if (!name) {

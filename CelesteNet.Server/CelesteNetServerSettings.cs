@@ -58,6 +58,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int TCPPollMaxEvents { get; set; } = 16;
         public int TCPBufferSize { get; set; } = 16384;
         public int TCPSockSendBufferSize { get; set; } = 65536;
+        public int TCPSockSendTimeout { get; set; } = 150;
         public int UDPMaxDatagramSize { get; set; } = 16384;
 
         public int UDPAliveScoreMax { get; set; } = 70;

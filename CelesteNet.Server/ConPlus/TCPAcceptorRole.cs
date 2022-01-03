@@ -21,11 +21,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                 socket.Listen(MaxWorkerBacklog);
                 token.Register(() => socket.Close());
                 while (!token.IsCancellationRequested) {
-                    Socket newConn;
+                    Socket newCon;
 
                     ExitActiveZone();
                     try {
-                        newConn = socket.Accept();
+                        newCon = socket.Accept();
                     } catch (SocketException) {
                         // There's no better way to do this, as far as I know...
                         if (token.IsCancellationRequested)
@@ -35,13 +35,14 @@ namespace Celeste.Mod.CelesteNet.Server {
                     EnterActiveZone();
 
                     // Setup the new socket
-                    newConn.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, Role.Server.Settings.TCPSockSendBufferSize);
+                    newCon.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, Role.Server.Settings.TCPSockSendBufferSize);
+                    newCon.SendTimeout = Role.Server.Settings.TCPSockSendTimeout;
 
                     // Start the connection handshake
-                    EndPoint remoteEP = newConn.RemoteEndPoint!;
+                    EndPoint remoteEP = newCon.RemoteEndPoint!;
                     Logger.Log(LogLevel.VVV, "tcpaccept", $"Incoming connection from {remoteEP} <-> {Role.EndPoint}");
                     Role.Handshaker.Factory.StartNew(() => {
-                        Role.Handshaker.DoTCPUDPHandshake(newConn, Role.ConnectionSettings, Role.TCPReceiver, Role.UDPReceiver, Role.Sender).ContinueWith(t => {
+                        Role.Handshaker.DoTCPUDPHandshake(newCon, Role.ConnectionSettings, Role.TCPReceiver, Role.UDPReceiver, Role.Sender).ContinueWith(t => {
                             if (t.IsFaulted)
                                 Logger.Log(LogLevel.WRN, "tcpaccept", $"Handshake failed for connection {remoteEP}: {t.Exception}");
                         });

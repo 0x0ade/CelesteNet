@@ -20,7 +20,7 @@ namespace Celeste.Mod.CelesteNet {
 
         }
 
-        public static string GetConnectionUID(IPEndPoint remoteEp) => $"con-tcpudp-{BitConverter.ToString(remoteEp.Address.MapToIPv6().GetAddressBytes())}";
+        public static string GetConnectionUID(IPEndPoint remoteEp) => $"con-tcpudp-{remoteEp.Address.MapToIPv6().ToString().Replace(':', '-')}";
 
         private volatile bool SafeDisposed = false, SafeDisposeTriggered = false;
         public override bool IsConnected => IsAlive && !SafeDisposed && _TCPSock.Connected;

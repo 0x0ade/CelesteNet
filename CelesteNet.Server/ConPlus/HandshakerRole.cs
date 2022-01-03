@@ -164,7 +164,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         // Let's mess with web crawlers even more ;)
         // Also: I'm a Teapot
-        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake<T>(Socket sock, uint conToken, T settings, string conUID) where T : struct {
+        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName)?> TeapotHandshake<T>(Socket sock, uint conToken, T settings, string conUID) where T : class {
             using NetworkStream netStream = new(sock, false);
             using BufferedStream bufStream = new(netStream);
             using StreamReader reader = new(bufStream);

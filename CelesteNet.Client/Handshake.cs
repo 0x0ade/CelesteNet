@@ -13,7 +13,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int TeapotVersion = 1;
 
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
-        public static Tuple<uint, IConnectionFeature[], T> DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey) where T : struct {
+        public static Tuple<uint, IConnectionFeature[], T> DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey) where T : class {
             // Find connection features
             // We don't buffer, as we could read actual packet data
             using NetworkStream netStream = new(sock, false);
@@ -56,7 +56,7 @@ Can I have some tea?
             uint conToken = uint.Parse(headers["CelesteNet-ConnectionToken"], NumberStyles.HexNumber);
             IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[] { ',' }).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray();
 
-            object boxedSettings = default(T);
+            object boxedSettings = Activator.CreateInstance<T>();
             foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
                 string headerName = $"CelesteNet-Settings-{field.Name}";
 #pragma warning disable IDE0049 // Simplify Names

@@ -1,10 +1,10 @@
 using System;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataLowLevelSlimMap : DataType<DataLowLevelSlimMap> {
+    public class DataLowLevelCoreTypeMap : DataType<DataLowLevelCoreTypeMap> {
 
-        static DataLowLevelSlimMap() {
-            DataID = "slimMap";
+        static DataLowLevelCoreTypeMap() {
+            DataID = "coreTypeMap";
         }
 
         public override DataFlags DataFlags => DataFlags.Small;

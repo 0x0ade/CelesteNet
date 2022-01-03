@@ -27,7 +27,7 @@ namespace Celeste.Mod.CelesteNet {
         public override string ID { get; }
         public override string UID { get; }
         public readonly OptMap<string> Strings = new("StringMap");
-        public readonly OptMap<Type> SlimMap = new("SlimMap");
+        public readonly OptMap<Type> CoreTypeMap = new("CoreTypeMap");
 
         public readonly uint ConnectionToken;
         public readonly Settings ConnectionSettings;
@@ -114,8 +114,8 @@ namespace Celeste.Mod.CelesteNet {
                     ID = promo.Item2
                 });
 
-            foreach (Tuple<Type, int>? promo in SlimMap.PromoteRead())
-                Send(new DataLowLevelSlimMap {
+            foreach (Tuple<Type, int>? promo in CoreTypeMap.PromoteRead())
+                Send(new DataLowLevelCoreTypeMap {
                     PacketType = promo.Item1,
                     ID = promo.Item2
                 });

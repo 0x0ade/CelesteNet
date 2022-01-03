@@ -115,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 try {
                     SockStream.Socket = con.TCPSocket;
                     PacketWriter.Strings = con.Strings;
-                    PacketWriter.SlimMap = con.SlimMap;
+                    PacketWriter.CoreTypeMap = con.CoreTypeMap;
 
                     // Write all packets
                     while (queue.BackQueue.TryDequeue(out DataType? packet)) {
@@ -153,7 +153,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 } finally {
                     SockStream.Socket = null;
                     PacketWriter.Strings = null;
-                    PacketWriter.SlimMap = null;
+                    PacketWriter.CoreTypeMap = null;
                 }
 
                 // Iterate metrics
@@ -185,7 +185,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     try {
                         PacketWriter.Strings = con.Strings;
-                        PacketWriter.SlimMap = con.SlimMap;
+                        PacketWriter.CoreTypeMap = con.CoreTypeMap;
 
                         // Write all packets
                         UDPBuffer[0] = con.NextUDPContainerID();
@@ -231,7 +231,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         queue.SignalFlushed();
                     } finally {
                         PacketWriter.Strings = null;
-                        PacketWriter.SlimMap = null;
+                        PacketWriter.CoreTypeMap = null;
                     }
                 }
 

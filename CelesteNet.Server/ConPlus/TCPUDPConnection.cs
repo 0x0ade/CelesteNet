@@ -193,7 +193,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                     // Read the packet
                                     DataType packet;
                                     using (MemoryStream mStream = new(TCPBuffer, 2, packetLen))
-                                    using (CelesteNetBinaryReader reader = new(Server.Data, Strings, SlimMap, mStream))
+                                    using (CelesteNetBinaryReader reader = new(Server.Data, Strings, CoreTypeMap, mStream))
                                         packet = Server.Data.Read(reader);
 
                                     // Handle the packet
@@ -204,9 +204,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                                         case DataLowLevelStringMap strMap: {
                                             Strings.RegisterWrite(strMap.String, strMap.ID);
                                         } break;
-                                        case DataLowLevelSlimMap slimMap: {
-                                            if (slimMap.PacketType != null)
-                                                SlimMap.RegisterWrite(slimMap.PacketType, slimMap.ID);
+                                        case DataLowLevelCoreTypeMap coreTypeMap: {
+                                            if (coreTypeMap.PacketType != null)
+                                                CoreTypeMap.RegisterWrite(coreTypeMap.PacketType, coreTypeMap.ID);
                                         } break;
                                         default: {
                                             Receive(packet);
@@ -253,7 +253,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     ReceivedUDPContainer(buffer[0]);
 
                     using (MemoryStream mStream = new(buffer, 0, dgSize))
-                    using (CelesteNetBinaryReader reader = new(Server.Data, Strings, SlimMap, mStream)) {
+                    using (CelesteNetBinaryReader reader = new(Server.Data, Strings, CoreTypeMap, mStream)) {
                         // Get the container ID
                         byte containerID = reader.ReadByte();
 

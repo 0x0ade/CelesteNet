@@ -115,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     // Read the packet
                     DataType packet;
                     using (MemoryStream packetStream = new(packetBuffer, 0, packetSize))
-                    using (CelesteNetBinaryReader packetReader = new(Data, Strings, SlimMap, packetStream))
+                    using (CelesteNetBinaryReader packetReader = new(Data, Strings, CoreTypeMap, packetStream))
                         packet = Data.Read(packetReader);
 
                     // Handle the packet
@@ -128,9 +128,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                             Strings.RegisterWrite(strMap.String, strMap.ID);
                             break;
                         }
-                        case DataLowLevelSlimMap slimMap: {
-                            if (slimMap.PacketType != null)
-                                SlimMap.RegisterWrite(slimMap.PacketType, slimMap.ID);
+                        case DataLowLevelCoreTypeMap coreTypeMap: {
+                            if (coreTypeMap.PacketType != null)
+                                CoreTypeMap.RegisterWrite(coreTypeMap.PacketType, coreTypeMap.ID);
                             break;
                         }
                         default: {
@@ -181,7 +181,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         ReceivedUDPContainer(buffer[0]);
 
                         using (MemoryStream mStream = new(buffer, 0, dgSize))
-                        using (CelesteNetBinaryReader reader = new(Data, Strings, SlimMap, mStream)) {
+                        using (CelesteNetBinaryReader reader = new(Data, Strings, CoreTypeMap, mStream)) {
                             // Get the container ID
                             byte containerID = reader.ReadByte();
 
@@ -222,7 +222,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             try {
                 using BinaryWriter tcpWriter = new(TCPStream, Encoding.UTF8, true);
                 using MemoryStream mStream = new(ConnectionSettings.MaxPacketSize);
-                using CelesteNetBinaryWriter bufWriter = new(Data, Strings, SlimMap, mStream);
+                using CelesteNetBinaryWriter bufWriter = new(Data, Strings, CoreTypeMap, mStream);
                 foreach (DataType p in TCPSendQueue.GetConsumingEnumerable(TokenSrc.Token)) {
                     // Try to send as many packets as possible
                     for (DataType packet = p; packet != null; packet = TCPSendQueue.TryTake(out packet) ? packet : null) {
@@ -253,7 +253,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             try {
                 byte[] dgBuffer = new byte[UDPBufferSize];
                 using MemoryStream mStream = new(ConnectionSettings.MaxPacketSize);
-                using CelesteNetBinaryWriter bufWriter = new(Data, Strings, SlimMap, mStream);
+                using CelesteNetBinaryWriter bufWriter = new(Data, Strings, CoreTypeMap, mStream);
                 foreach (DataType p in UDPSendQueue.GetConsumingEnumerable(TokenSrc.Token)) {
                     try {
                         lock (UDPLock) {

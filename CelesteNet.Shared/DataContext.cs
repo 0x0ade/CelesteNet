@@ -263,14 +263,14 @@ namespace Celeste.Mod.CelesteNet {
 
             DataFlags flags = (DataFlags) reader.ReadUInt16();
             if ((flags & DataFlags.InteralSlimIndicator) != 0) {
-                if (reader.SlimMap == null)
+                if (reader.CoreTypeMap == null)
                     throw new InvalidDataException("Trying to read a slim packet header without a slim map!");
 
                 int slimID = (int) (flags & ~(DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID));
                 if ((flags & DataFlags.InteralSlimBigID) != 0)
                     slimID |= reader.Read7BitEncodedInt() << 6;
 
-                Type slimType = reader.SlimMap.Get(slimID);
+                Type slimType = reader.CoreTypeMap.Get(slimID);
                 if (Activator.CreateInstance(slimType) is not DataType slimData)
                     throw new InvalidDataException($"Cannot create instance of data type {slimType.FullName}");
 
@@ -314,7 +314,7 @@ namespace Celeste.Mod.CelesteNet {
                 throw new InvalidDataException($"Length mismatch for DataType '{id}' {flags} {source} {length} - got {lengthReal}");
 
             if (type != null && (flags & DataFlags.CoreType) != 0)
-                reader.SlimMap?.CountRead(type);
+                reader.CoreTypeMap?.CountRead(type);
 
             return data;
         }

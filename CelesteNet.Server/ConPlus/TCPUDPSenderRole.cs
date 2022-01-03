@@ -111,6 +111,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                     return;
                 }
 
+                // Check if the socket is ready
+                if (!con.TCPSocket.Poll(0, SelectMode.SelectWrite)) {
+                    // Requeue the queue to be flushed later
+                    queue.DelayFlush(Role.Server.Settings.TCPSockSendTimeout, true);
+                    return;
+                }
+
                 int byteCounter = 0, packetCounter = 0;
                 try {
                     SockStream.Socket = con.TCPSocket;

@@ -29,7 +29,6 @@ namespace Celeste.Mod.CelesteNet.Client {
             Client = client;
 
             // Initialize networking
-            tcpSock.Blocking = false;
             TCPStream = new(TCPBufferSize) { Socket = tcpSock };
             UDPSocket = new(SocketType.Dgram, ProtocolType.Udp);
             UDPSocket.Connect(tcpSock.RemoteEndPoint);

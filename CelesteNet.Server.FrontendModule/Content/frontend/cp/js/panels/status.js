@@ -17,6 +17,7 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
     super(frontend);
     this.header = "Status";
     this.ep = "/status";
+    this.netPlusEp = "/netplus";
 
     this.data = {
       Alive: false,
@@ -27,10 +28,18 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
       Registered: 0,
       Banned: 0,
       Connections: 0,
+      TCPConnections: 0,
+      UDPConnections: 0,
       Sessions: 0,
       PlayersByCon: 0,
       PlayersByID: 0,
       PlayerRefs: 0,
+
+      PoolActivityRate: 0,
+      PoolNumThreads: 0,
+      SchedulerExecDuration: 0,
+      SchedulerNumThreadsReassigned: 0,
+      SchedulerNumThreadsIdled: 0
     };
 
     /** @type {[string | ((el: HTMLElement) => HTMLElement), () => void][] | [string | ((el: HTMLElement) => HTMLElement)][]} */
@@ -65,6 +74,9 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
     try {
       data = await fetch(this.ep)
         .then(r => r.json());
+      Object.assign(data, await fetch(this.netPlusEp)
+        .then(r => r.json())
+      );
       data.Alive = true;
     } catch (e) {
       console.error(e);

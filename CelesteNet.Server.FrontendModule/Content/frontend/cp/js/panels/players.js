@@ -17,7 +17,11 @@ const mdc = window["mdc"]; // mdc
   FullName: string,
   DisplayName: string,
   Connection: string,
-  ConnectionUID: string
+  ConnectionUID: string,
+  TCPDownlinkBpS: string, TCPDownlinkPpS: string,
+  UDPDownlinkBpS: string, UDPDownlinkPpS: string,
+  TCPUplinkBpS: string, TCPUplinkPpS: string,
+  UDPUplinkBpS: string, UDPUplinkPpS: string
 }} PlayerData
  */
 

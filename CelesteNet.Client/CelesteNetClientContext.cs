@@ -99,6 +99,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 MainThreadQueue.Clear();
             }
 
+            if (Client != null && Client.SafeDisposeTriggered && Client.Con.IsAlive)
+                Client.Con.Dispose();
+
             if (Started && !(Client?.IsAlive ?? true))
                 Dispose();
         }

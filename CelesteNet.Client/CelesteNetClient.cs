@@ -21,6 +21,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetConnection Con;
         public readonly IConnectionFeature[] ConFeatures;
+        public volatile bool SafeDisposeTriggered = false;
 
         private bool _IsAlive;
         public bool IsAlive {
@@ -105,7 +106,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             }
 
                             // Create a connection and start the heartbeat timer
-                            CelesteNetClientTCPUDPConnection con = new(Data, conToken, settings, sock);
+                            CelesteNetClientTCPUDPConnection con = new(this, conToken, settings, sock);
                             con.OnDisconnect += _ => {
                                 CelesteNetClientModule.Instance.Context?.Dispose();
                                 Dispose();
@@ -178,7 +179,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                 _ReadyEvent?.Dispose();
             }
         }
-
 
         public void SendFilterList() {
             Logger.Log(LogLevel.INF, "main", "Sending filter list");

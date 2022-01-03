@@ -44,6 +44,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly TokenGenerator ConTokenGenerator = new();
         public readonly RWLock ConLock = new();
         public readonly HashSet<CelesteNetConnection> Connections = new();
+        public readonly BlockingCollection<CelesteNetConnection> SafeDisposeQueue = new();
         public readonly HashSet<CelesteNetPlayerSession> Sessions = new();
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new();
         public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new();
@@ -52,7 +53,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float CurrentTickRate { get; private set; }
         private float NextTickRate;
 
-        private readonly ManualResetEvent ShutdownEvent = new(false);
+        private readonly CancellationTokenSource ShutdownTokenSrc = new();
 
         private bool _IsAlive;
         public bool IsAlive {
@@ -60,12 +61,12 @@ namespace Celeste.Mod.CelesteNet.Server {
             set {
                 if (_IsAlive == value)
                     return;
+                if (value && ShutdownTokenSrc.IsCancellationRequested)
+                    throw new InvalidOperationException("Can't revive the server!");
 
                 _IsAlive = value;
-                if (value)
-                    ShutdownEvent.Reset();
-                else
-                    ShutdownEvent.Set();
+                if (!_IsAlive)
+                    ShutdownTokenSrc.Cancel();
             }
         }
 
@@ -192,8 +193,14 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Wait() {
-            WaitHandle.WaitAny(new WaitHandle[] { ShutdownEvent });
-            ShutdownEvent.Dispose();
+            foreach (CelesteNetConnection con in SafeDisposeQueue.GetConsumingEnumerable(ShutdownTokenSrc.Token)) {
+                if (con.IsAlive) {
+                    Logger.Log("main", $"Safe dispose triggered for connection {con}");
+                    con.Dispose();
+                }
+            }
+            ShutdownTokenSrc.Dispose();
+            SafeDisposeQueue.Dispose();
         }
 
         public void Dispose() {

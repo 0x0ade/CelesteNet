@@ -16,6 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int UDPBufferSize = 65536;
         public const int UDPEstablishDelay = 2;
 
+        public readonly CelesteNetClient Client;
         private readonly BufferedSocketStream TCPStream;
         private readonly Socket UDPSocket;
         private readonly BlockingCollection<DataType> TCPSendQueue, UDPSendQueue;
@@ -24,7 +25,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         private readonly CancellationTokenSource TokenSrc;
         private readonly Thread TCPRecvThread, UDPRecvThread, TCPSendThread, UDPSendThread;
 
-        public CelesteNetClientTCPUDPConnection(DataContext data, uint token, Settings settings, Socket tcpSock) : base(data, token, settings, tcpSock, FlushTCPQueue, FlushUDPQueue) {
+        public CelesteNetClientTCPUDPConnection(CelesteNetClient client, uint token, Settings settings, Socket tcpSock) : base(client.Data, token, settings, tcpSock) {
+            Client = client;
+
             // Initialize networking
             tcpSock.Blocking = false;
             TCPStream = new(TCPBufferSize) { Socket = tcpSock };
@@ -79,6 +82,23 @@ namespace Celeste.Mod.CelesteNet.Client {
             UDPSocket.Dispose();
             TCPSendQueue.Dispose();
             UDPSendQueue.Dispose();
+        }
+
+        public override void DisposeSafe() {
+            if(!IsAlive || SafeDisposeTriggered) return;
+            Client.SafeDisposeTriggered = SafeDisposeTriggered = true;
+        }
+
+        protected override void FlushTCPQueue() {
+            foreach (DataType packet in TCPQueue.BackQueue)
+                TCPSendQueue.Add(packet);
+            TCPQueue.SignalFlushed();
+        }
+
+        protected override void FlushUDPQueue() {
+            foreach (DataType packet in UDPQueue.BackQueue)
+                UDPSendQueue.Add(packet);
+            UDPQueue.SignalFlushed();
         }
 
         public override string DoHeartbeatTick() {
@@ -311,20 +331,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");
                 DisposeSafe();
             }
-        }
-
-        private static void FlushTCPQueue(CelesteNetSendQueue queue) {
-            CelesteNetClientTCPUDPConnection con = (CelesteNetClientTCPUDPConnection) queue.Con;
-            foreach (DataType packet in queue.BackQueue)
-                con.TCPSendQueue.Add(packet);
-            queue.SignalFlushed();
-        }
-
-        private static void FlushUDPQueue(CelesteNetSendQueue queue) {
-            CelesteNetClientTCPUDPConnection con = (CelesteNetClientTCPUDPConnection) queue.Con;
-            foreach (DataType packet in queue.BackQueue)
-                con.UDPSendQueue.Add(packet);
-            queue.SignalFlushed();
         }
 
     }

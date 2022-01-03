@@ -77,7 +77,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             TCPReceiverRole tcpReceiver,
             UDPReceiverRole udpReceiver,
             TCPUDPSenderRole sender
-        ) : base(server.Data, token, settings, tcpSock, sender.TriggerTCPQueueFlush, sender.TriggerUDPQueueFlush) {
+        ) : base(server.Data, token, settings, tcpSock) {
             Server = server;
             TCPReceiver = tcpReceiver;
             UDPReceiver = udpReceiver;
@@ -113,6 +113,15 @@ namespace Celeste.Mod.CelesteNet.Server {
                 UDPSendRate.Dispose();
             }
         }
+
+        public override void DisposeSafe() {
+            if(!IsAlive || SafeDisposeTriggered) return;
+            SafeDisposeTriggered = true;
+            Server.SafeDisposeQueue.Add(this);
+        }
+
+        protected override void FlushTCPQueue() => Sender.TriggerTCPQueueFlush(TCPQueue);
+        protected override void FlushUDPQueue() => Sender.TriggerUDPQueueFlush(UDPQueue);
 
         public IDisposable? Utilize(out bool alive) {
             if (!IsAlive) {

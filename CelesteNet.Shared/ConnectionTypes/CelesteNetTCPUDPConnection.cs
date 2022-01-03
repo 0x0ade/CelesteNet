@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Threading;
 
 namespace Celeste.Mod.CelesteNet {
-    public class CelesteNetTCPUDPConnection : CelesteNetConnection {
+    public abstract class CelesteNetTCPUDPConnection : CelesteNetConnection {
 
         public struct Settings {
 
@@ -22,8 +22,8 @@ namespace Celeste.Mod.CelesteNet {
 
         public static string GetConnectionUID(IPEndPoint remoteEp) => $"con-tcpudp-{remoteEp.Address.MapToIPv6().ToString().Replace(':', '-')}";
 
-        private volatile bool SafeDisposed = false, SafeDisposeTriggered = false;
-        public override bool IsConnected => IsAlive && !SafeDisposed && _TCPSock.Connected;
+        protected volatile bool SafeDisposeTriggered = false;
+        public override bool IsConnected => IsAlive && !SafeDisposeTriggered && _TCPSock.Connected;
         public override string ID { get; }
         public override string UID { get; }
         public readonly OptMap<string> Strings = new("StringMap");
@@ -36,7 +36,7 @@ namespace Celeste.Mod.CelesteNet {
 
         private readonly Socket _TCPSock;
         private EndPoint? _UDPEndpoint;
-        private readonly CelesteNetSendQueue TCPQueue, UDPQueue;
+        protected readonly CelesteNetSendQueue TCPQueue, UDPQueue;
 
         public const int UDPPacketDropThreshold = 8;
         public readonly object UDPLock = new();
@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public event Action<CelesteNetTCPUDPConnection, EndPoint>? OnUDPDeath;
 
-        public CelesteNetTCPUDPConnection(DataContext data, uint token, Settings settings, Socket tcpSock, Action<CelesteNetSendQueue> tcpQueueFlusher, Action<CelesteNetSendQueue> udpQueueFlusher) : base(data) {
+        public CelesteNetTCPUDPConnection(DataContext data, uint token, Settings settings, Socket tcpSock) : base(data) {
             IPEndPoint remoteEp = (IPEndPoint) tcpSock.RemoteEndPoint!;
             ID = $"TCP/UDP {remoteEp.Address}:{remoteEp.Port}";
             UID = GetConnectionUID(remoteEp);
@@ -73,8 +73,8 @@ namespace Celeste.Mod.CelesteNet {
             _TCPSock = tcpSock;
             _UDPEndpoint = null;
             _UDPMaxDatagramSize = 0;
-            TCPQueue = new(this, "TCP Queue", settings.MaxQueueSize, settings.MergeWindow, tcpQueueFlusher);
-            UDPQueue = new(this, "UDP Queue", settings.MaxQueueSize, settings.MergeWindow, udpQueueFlusher);
+            TCPQueue = new(this, "TCP Queue", settings.MaxQueueSize, settings.MergeWindow, _ => FlushTCPQueue());
+            UDPQueue = new(this, "UDP Queue", settings.MaxQueueSize, settings.MergeWindow, _ => FlushUDPQueue());
         }
 
         protected override void Dispose(bool disposing) {
@@ -101,11 +101,12 @@ namespace Celeste.Mod.CelesteNet {
             _TCPSock.Dispose();
         }
 
-        public override void DisposeSafe() {
-            SafeDisposeTriggered = true;
-        }
+        public override void DisposeSafe() => throw new NotImplementedException();
 
         protected override CelesteNetSendQueue? GetQueue(DataType data) => (UseUDP && UDPEndpoint != null && UDPConnectionID >= 0 && (data.DataFlags & DataFlags.Unreliable) != 0) ? UDPQueue : TCPQueue;
+
+        protected abstract void FlushTCPQueue();
+        protected abstract void FlushUDPQueue();
 
         public virtual void PromoteOptimizations() {
             foreach (Tuple<string, int>? promo in Strings.PromoteRead())
@@ -307,13 +308,8 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public virtual string? DoHeartbeatTick() {
-            if (!IsAlive || SafeDisposed)
+            if (!IsConnected)
                 return null;
-
-            if (SafeDisposeTriggered) {
-                SafeDisposed = true;
-                return $"Safe dispose triggered for connection {this}";
-            }
 
             lock (HeartbeatLock) {
                 // Check if we got a TCP heartbeat in the required timeframe

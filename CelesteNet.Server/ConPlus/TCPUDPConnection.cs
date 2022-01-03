@@ -266,7 +266,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void FlushTCPSendQueue() {
             using (Utilize(out bool alive)) {
-                if (!alive || !IsConnected || TCPQueue.FrontQueue.Count <= 0)
+                if (!alive || !IsConnected || TCPQueue.BackQueue.Count <= 0)
                     return;
 
                 if (TCPSendBufferNumBytes > 0 || TCPSendBufferNumPackets > 0)
@@ -283,6 +283,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 // Write packets to the buffer
                 TCPSendBufferOff = 0;
+                TCPSendBufferStream.Position = 0;
                 while (TCPQueue.BackQueue.TryDequeue(out DataType? packet)) {
                     // Write the packet
                     long origPos = TCPSendBufferStream.Position;

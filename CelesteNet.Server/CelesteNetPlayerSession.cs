@@ -293,7 +293,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return;
 
             Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{SessionID} {Con}");
-            Interlocked.Decrement(ref Server.PlayerCounter);
 
             DataPlayerInfo? playerInfoLast = PlayerInfo;
 

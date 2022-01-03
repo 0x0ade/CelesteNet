@@ -32,6 +32,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             .GetField("area", BindingFlags.NonPublic | BindingFlags.Static);
 
         private Player Player;
+        private Entity PlayerBody;
         private TrailManager TrailManager;
         private Session Session;
         private AreaKey? MapEditorArea;
@@ -80,6 +81,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Everest.Events.Level.OnExit += OnExitLevel;
                     On.Celeste.Level.LoadNewPlayer += OnLoadNewPlayer;
                     On.Celeste.Player.Added += OnPlayerAdded;
+                    On.Celeste.Player.Die += OnPlayerDie;
                     On.Celeste.Player.ResetSprite += OnPlayerResetSprite;
                     On.Celeste.Player.Play += OnPlayerPlayAudio;
                     On.Celeste.PlayerSprite.ctor += OnPlayerSpriteCtor;
@@ -123,6 +125,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Cleanup() {
             Player = null;
+            PlayerBody = null;
             Session = null;
             WasIdle = false;
             WasInteractive = false;
@@ -225,7 +228,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost = null;
             }
 
-            Level level = Engine.Scene as Level;
+            Level level = PlayerBody?.Scene as Level;
             if (ghost == null && !IsGhostOutside(Session, level, graphics.Player, out _))
                 ghost = CreateGhost(level, graphics.Player, graphics);
 
@@ -237,7 +240,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             LastFrames[frame.Player.ID] = frame;
 
             Session session = Session;
-            Level level = Engine.Scene as Level;
+            Level level = PlayerBody?.Scene as Level;
             bool outside = IsGhostOutside(session, level, frame.Player, out DataPlayerState state);
 
             if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
@@ -615,6 +618,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (ready && Engine.Scene is MapEditor) {
                     Player = null;
+                    PlayerBody = null;
                     Session = null;
                     WasIdle = false;
                     WasInteractive = false;
@@ -628,6 +632,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (Player != null && MapEditorArea == null) {
                     Player = null;
+                    PlayerBody = null;
                     Session = null;
                     WasIdle = false;
                     WasInteractive = false;
@@ -669,6 +674,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Player == null || Player.Scene != level) {
                 Player = level.Tracker.GetEntity<Player>();
                 if (Player != null) {
+                    PlayerBody = Player;
                     Session = level.Session;
                     WasIdle = false;
                     WasInteractive = false;
@@ -746,6 +752,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             Player = level.Tracker.GetEntity<Player>();
+            PlayerBody = Player;
 
             SendState();
         }
@@ -776,12 +783,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             WasIdle = false;
             WasInteractive = false;
             Player = self;
+            PlayerBody = self;
 
             SendState();
             SendGraphics();
 
             foreach (DataPlayerFrame frame in LastFrames.Values.ToArray())
                 Handle(null, frame);
+        }
+
+        private PlayerDeadBody OnPlayerDie(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats) {
+            PlayerDeadBody body = orig(self, direction, evenIfInvincible, registerDeathInStats);
+            PlayerBody = body ?? (Entity) self;
+            return body;
         }
 
         private void OnPlayerResetSprite(On.Celeste.Player.orig_ResetSprite orig, Player self, PlayerSpriteMode mode) {

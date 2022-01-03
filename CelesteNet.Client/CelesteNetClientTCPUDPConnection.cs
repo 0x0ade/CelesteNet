@@ -84,7 +84,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public override void DisposeSafe() {
-            if(!IsAlive || SafeDisposeTriggered) return;
+            if (!IsAlive || SafeDisposeTriggered)
+                return;
             Client.SafeDisposeTriggered = SafeDisposeTriggered = true;
         }
 

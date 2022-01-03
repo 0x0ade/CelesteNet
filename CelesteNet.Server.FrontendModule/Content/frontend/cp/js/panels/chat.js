@@ -142,7 +142,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
         ];
 
         if (data.PlayerID && data.PlayerID !== this.frontend.MAX_INT) {
-          const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == data.PlayerID);
+          const player = FrontendPlayersPanel["instance"].data.find(p => p.SessionID == data.PlayerID);
           // TODO: Rerender el on missing player only once! Otherwise render -> refresh -> render -> refresh...
           if (!player)
             FrontendPlayersPanel["instance"].refresh();

@@ -11,7 +11,7 @@ const mdc = window["mdc"]; // mdc
 
 /**
 @typedef {{
-  ID: number,
+  SessionID: number,
   UID: string,
   Name: string,
   FullName: string,
@@ -44,7 +44,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
     this.list = this.data.map(p => el => {
       el = mdcrd.list.item(el => rd$(el)`
         <span>
-        <b>${p.FullName}</b> <i>(#${p.ID})</i><br>
+        <b>${p.FullName}</b> <i>(#${p.SessionID})</i><br>
         ${p.Name}<br>
         ${p.DisplayName !== p.FullName ? p.UID : this.frontend.censor(p.UID)}<br>
         ${this.frontend.censor(p.Connection)}<br>
@@ -56,7 +56,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
       )(el);
 
       this.frontend.dom.setContext(el,
-        [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.ID) ],
+        [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.SessionID) ],
         [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ]
       );
 

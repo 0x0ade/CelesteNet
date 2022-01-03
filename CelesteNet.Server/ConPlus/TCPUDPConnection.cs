@@ -59,7 +59,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         private int DownlinkCapCounter = 0;
         private readonly object TCPLock = new();
         private readonly byte[] TCPRecvBuffer, TCPSendBuffer;
-        private readonly MemoryStream TCPSendBufferStream; 
+        private readonly MemoryStream TCPSendBufferStream;
         private readonly CelesteNetBinaryWriter TCPSendPacketWriter;
         private volatile bool TCPTriggerSendBufferFlush;
         private volatile float TCPSendQueueDelay;
@@ -126,7 +126,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override void DisposeSafe() {
-            if(!IsAlive || SafeDisposeTriggered) return;
+            if (!IsAlive || SafeDisposeTriggered)
+                return;
             SafeDisposeTriggered = true;
             Server.SafeDisposeQueue.Add(this);
         }
@@ -328,7 +329,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 try {
                     // Try to flush the buffer
-                    while(TCPSendBufferOff < TCPSendBufferNumBytes)
+                    while (TCPSendBufferOff < TCPSendBufferNumBytes)
                         TCPSendBufferOff += TCPSocket.Send(TCPSendBuffer, TCPSendBufferOff, TCPSendBufferNumBytes - TCPSendBufferOff, SocketFlags.None);
                     Sender.UpdateTCPStats(TCPSendBufferNumBytes, TCPSendBufferNumPackets);
 
@@ -341,8 +342,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     TCPSendBufferOff = TCPSendBufferNumBytes = TCPSendBufferNumPackets = 0;
                     return;
+
                 } catch (SocketException e) {
-                    if(e.SocketErrorCode == SocketError.TryAgain || e.SocketErrorCode == SocketError.WouldBlock) {
+                    if (e.SocketErrorCode == SocketError.TryAgain || e.SocketErrorCode == SocketError.WouldBlock) {
                         if (++TCPSendBufferRetries < Server.Settings.TCPSendMaxRetries) {
                             Logger.Log(LogLevel.WRN, "tcpudpcon", $"Couldn't flush connection {this} TCP buffer!");
                             TCPTriggerSendBufferFlush = true;

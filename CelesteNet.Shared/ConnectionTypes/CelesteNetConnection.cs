@@ -159,7 +159,7 @@ namespace Celeste.Mod.CelesteNet {
     public class CelesteNetSendQueue : IDisposable {
 
         private volatile bool _Alive = true;
-        public bool Alive => _Alive;
+        public bool Alive => _Alive && Con.IsConnected;
 
         public readonly CelesteNetConnection Con;
         public readonly string Name;
@@ -205,7 +205,6 @@ namespace Celeste.Mod.CelesteNet {
                 if (_FrontQueue.Count >= MaxSize) {
                     Logger.Log(LogLevel.WRN, "sendqueue", $"Connection {Con}'s send queue '{Name}' is at maximum size");
                     Con.DisposeSafe();
-                    Dispose();
                     return;
                 }
 

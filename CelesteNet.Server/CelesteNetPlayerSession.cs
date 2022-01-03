@@ -129,7 +129,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         byte[] frag = new byte[fragSize];
                         Buffer.BlockCopy(buf, 0, frag, 0, fragSize);
                         if (avatarFrags.Count > 0)
-                            avatarFrags[avatarFrags.Count-1].MoreFragments = true;
+                            avatarFrags[avatarFrags.Count - 1].MoreFragments = true;
                         avatarFrags.Add(new DataNetEmoji {
                             ID = avatarId,
                             Data = frag,

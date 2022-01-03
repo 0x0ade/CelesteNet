@@ -126,6 +126,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Write size and raw packet data into the actual stream
                     SockWriter.Write((ushort) packLen);
+                    SockWriter.Flush();
                     SockStream.Write(PacketStream.GetBuffer(), 0, packLen);
 
                     // Update connection metrics and check if we hit the connection cap

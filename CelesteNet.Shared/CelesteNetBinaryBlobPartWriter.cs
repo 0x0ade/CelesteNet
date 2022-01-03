@@ -59,5 +59,10 @@ namespace Celeste.Mod.CelesteNet {
             Blob.PartNext().String = text ?? "";
         }
 
+        public override bool TryGetSlimID(Type type, out int slimID) {
+            slimID = -1;
+            return false;
+        }
+
     }
 }

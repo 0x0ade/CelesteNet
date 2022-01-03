@@ -354,7 +354,7 @@ namespace Celeste.Mod.CelesteNet {
                 throw new ArgumentException("Base stream isn't seekable");
             long start = writer.BaseStream.Position;
 
-            if (writer.SlimMap != null && writer.TryGetSlimID(data.GetType(), out int slimID)) {
+            if (writer.TryGetSlimID(data.GetType(), out int slimID)) {
                 if (slimID < (1<<6))
                     writer.Write((ushort) (slimID | (ushort) DataFlags.InteralSlimIndicator));
                 else {

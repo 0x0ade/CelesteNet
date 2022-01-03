@@ -8,7 +8,7 @@ using System.Threading;
 namespace Celeste.Mod.CelesteNet {
     public abstract class CelesteNetTCPUDPConnection : CelesteNetConnection {
 
-        public struct Settings {
+        public class Settings {
 
             public int MaxPacketSize, MaxQueueSize;
             public float MergeWindow;

@@ -108,7 +108,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnPickup() {
-            GrabStrength = (byte) Calc.Random.Next(byte.MinValue, byte.MaxValue + 1);
+            GrabStrength = (byte) Calc.Random.Next(0, DataPlayerGrabPlayer.MaxGrabStrength + 1);
         }
 
         public void OnPlayer(Player player) {

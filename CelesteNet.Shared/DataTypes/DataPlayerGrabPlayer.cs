@@ -13,6 +13,8 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataPlayerGrabPlayer : DataType<DataPlayerGrabPlayer> {
 
+        public const byte MaxGrabStrength = 1 << 7 - 1;
+
         static DataPlayerGrabPlayer() {
             DataID = "playerGrabPlayer";
         }
@@ -61,7 +63,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.WriteOptRef(Grabbing);
             writer.Write(Position);
 
-            writer.Write(unchecked((byte) ((Force.HasValue ? 0b1 : 0) | (GrabStrength << 1))));
+            byte forceStrength = unchecked((byte) (GrabStrength << 1));
+            if (Force.HasValue)
+                forceStrength |= 0b1;
+            writer.Write(forceStrength);
             if (Force.HasValue)
                 writer.Write(Force.Value);
         }

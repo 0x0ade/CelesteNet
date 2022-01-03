@@ -18,10 +18,10 @@ const mdc = window["mdc"]; // mdc
   DisplayName: string,
   Connection: string,
   ConnectionUID: string,
-  TCPDownlinkBpS: string, TCPDownlinkPpS: string,
-  UDPDownlinkBpS: string, UDPDownlinkPpS: string,
-  TCPUplinkBpS: string, TCPUplinkPpS: string,
-  UDPUplinkBpS: string, UDPUplinkPpS: string
+  TCPDownlinkBpS: number, TCPDownlinkPpS: number,
+  UDPDownlinkBpS: number, UDPDownlinkPpS: number,
+  TCPUplinkBpS: number, TCPUplinkPpS: number,
+  UDPUplinkBpS: number, UDPUplinkPpS: number
 }} PlayerData
  */
 
@@ -47,11 +47,11 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
         <b>${p.FullName}</b> <i>(#${p.ID})</i><br>
         ${p.Name}<br>
         ${p.DisplayName !== p.FullName ? p.UID : this.frontend.censor(p.UID)}<br>
-        ${this.frontend.censor(p.Connection)}
-        TCP ↓: ${p.TCPDownlinkBpS}BpS ${p.TCPDownlinkPpS}PpS
-        UDP ↓: ${p.UDPDownlinkBpS}BpS ${p.UDPDownlinkPpS}PpS
-        TCP ↑: ${p.TCPUplinkBpS}BpS ${p.TCPUplinkBpS}PpS
-        UDP ↑: ${p.UDPUplinkBpS}BpS ${p.UDPUplinkBpS}PpS
+        ${this.frontend.censor(p.Connection)}<br>
+        <code>TCP ↓:${` ${p.TCPDownlinkBpS.toFixed(3)} BpS | ${p.TCPDownlinkPpS.toFixed(3)} PpS`}</code><br>
+        <code>UDP ↓:${` ${p.UDPDownlinkBpS.toFixed(3)} BpS | ${p.UDPDownlinkPpS.toFixed(3)} PpS`}</code><br>
+        <code>TCP ↑:${` ${p.TCPUplinkBpS.toFixed(3)} BpS | ${p.TCPUplinkBpS.toFixed(3)} PpS`}</code><br>
+        <code>UDP ↑:${` ${p.UDPUplinkBpS.toFixed(3)} BpS | ${p.UDPUplinkBpS.toFixed(3)} PpS`}</code>
         </span>`
       )(el);
 

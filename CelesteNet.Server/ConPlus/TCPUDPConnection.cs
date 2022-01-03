@@ -260,7 +260,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 return;
                 closeConnection:
-                Dispose();
+                DisposeSafe();
             }
         }
 

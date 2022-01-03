@@ -295,8 +295,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                         Sessions.Remove(session);
                         PlayersByCon.TryRemove(con, out _);
                         PlayersByID.TryRemove(session.SessionID, out _);
-                        session?.Dispose();
                     }
+                    session?.Dispose();
                 }
 
                 OnDisconnect?.Invoke(this, con, session);

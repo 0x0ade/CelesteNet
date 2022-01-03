@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     public class TCPUDPSenderRole : NetPlusThreadRole {
 
         private enum SendAction {
-            FLUSH_TCP_QUEUE, FLUSH_TCP_BUFFER, FLUSH_UDP_QUEUE
+            FlushTCPQueue, FlushTCPBuffer, FlushUDPQueue
         }
 
         private class Worker : RoleWorker {
@@ -50,21 +50,21 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 continue;
 
                             switch (act) {
-                                case SendAction.FLUSH_TCP_QUEUE: {
+                                case SendAction.FlushTCPQueue: {
                                     con.FlushTCPSendQueue();
                                 } break;
-                                case SendAction.FLUSH_TCP_BUFFER: {
+                                case SendAction.FlushTCPBuffer: {
                                     con.FlushTCPSendBuffer();
                                 } break;
-                                case SendAction.FLUSH_UDP_QUEUE: {
+                                case SendAction.FlushUDPQueue: {
                                     FlushUDPSendQueue(con, token);
                                 } break;
                             }
                         }
                     } catch (Exception e) {
                         switch (act) {
-                            case SendAction.FLUSH_TCP_QUEUE:
-                            case SendAction.FLUSH_TCP_BUFFER: {
+                            case SendAction.FlushTCPQueue:
+                            case SendAction.FlushTCPBuffer: {
                                 if (e is SocketException se && se.IsDisconnect()) {
                                     Logger.Log(LogLevel.INF, "tcpsend", $"Remote of connection {con} closed the connection");
                                     con.DisposeSafe();
@@ -74,7 +74,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 Logger.Log(LogLevel.WRN, "tcpsend", $"Error flushing connection {con} TCP data: {e}");
                                 con.DisposeSafe();
                             } break;
-                            case SendAction.FLUSH_UDP_QUEUE: {
+                            case SendAction.FlushUDPQueue: {
                                 Logger.Log(LogLevel.WRN, "udpsend", $"Error flushing connection {con} UDP data: {e}");
                                 con.DecreaseUDPScore(reason: "Error flushing queue");
                             } break;
@@ -229,9 +229,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
 
-        public void TriggerTCPQueueFlush(ConPlusTCPUDPConnection con) => QueueQueue.Add((SendAction.FLUSH_TCP_QUEUE, con));
-        public void TriggerTCPBufferFlush(ConPlusTCPUDPConnection con) => QueueQueue.Add((SendAction.FLUSH_TCP_BUFFER, con));
-        public void TriggerUDPQueueFlush(ConPlusTCPUDPConnection con) => QueueQueue.Add((SendAction.FLUSH_UDP_QUEUE, con));
+        public void TriggerTCPQueueFlush(ConPlusTCPUDPConnection con) => QueueQueue.Add((SendAction.FlushTCPQueue, con));
+        public void TriggerTCPBufferFlush(ConPlusTCPUDPConnection con) => QueueQueue.Add((SendAction.FlushTCPBuffer, con));
+        public void TriggerUDPQueueFlush(ConPlusTCPUDPConnection con) => QueueQueue.Add((SendAction.FlushUDPQueue, con));
 
         internal void UpdateTCPStats(int numBytes, int numPackets) {
             using (TCPMetricsLock.W()) {

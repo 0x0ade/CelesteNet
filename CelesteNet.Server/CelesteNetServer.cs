@@ -40,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly DetourModManager DetourModManager;
 
-        public uint PlayerCounter = 0;
+        public int PlayerCounter = 0;
         public readonly TokenGenerator ConTokenGenerator = new();
         public readonly RWLock ConLock = new();
         public readonly HashSet<CelesteNetConnection> Connections = new();

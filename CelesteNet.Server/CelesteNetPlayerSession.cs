@@ -21,6 +21,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetConnection Con;
         public readonly uint SessionID;
 
+        private int _Alive;
+        public bool Alive => Volatile.Read(ref _Alive) > 0;
         public readonly string UID, Name;
 
         private readonly RWLock StateLock = new();
@@ -40,11 +42,13 @@ namespace Celeste.Mod.CelesteNet.Server {
             Con = con;
             SessionID = sesId;
 
+            _Alive = 1;
             UID = uid;
             Name = name;
 
             Channel = server.Channels.Default;
 
+            Interlocked.Increment(ref Server.PlayerCounter);
             Con.OnSendFilter += ConSendFilter;
             Server.Data.RegisterHandlersIn(this);
         }
@@ -285,7 +289,11 @@ namespace Celeste.Mod.CelesteNet.Server {
         public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;
 
         public void Dispose() {
+            if(Interlocked.Exchange(ref _Alive, 0) <= 0)
+                return;
+
             Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{SessionID} {Con}");
+            Interlocked.Decrement(ref Server.PlayerCounter);
 
             DataPlayerInfo? playerInfoLast = PlayerInfo;
 

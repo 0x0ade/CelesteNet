@@ -48,6 +48,10 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
         ${p.Name}<br>
         ${p.DisplayName !== p.FullName ? p.UID : this.frontend.censor(p.UID)}<br>
         ${this.frontend.censor(p.Connection)}
+        TCP ↓: ${p.TCPDownlinkBpS}BpS ${p.TCPDownlinkPpS}PpS
+        UDP ↓: ${p.UDPDownlinkBpS}BpS ${p.UDPDownlinkPpS}PpS
+        TCP ↑: ${p.TCPUplinkBpS}BpS ${p.TCPUplinkBpS}PpS
+        UDP ↑: ${p.UDPUplinkBpS}BpS ${p.UDPUplinkBpS}PpS
         </span>`
       )(el);
 

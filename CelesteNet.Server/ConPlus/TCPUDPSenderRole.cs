@@ -111,44 +111,50 @@ namespace Celeste.Mod.CelesteNet.Server {
                     return;
                 }
 
-                SockStream.Socket = con.TCPSocket;
-                PacketWriter.Strings = con.Strings;
-                PacketWriter.SlimMap = con.SlimMap;
-
-                // Write all packets
                 int byteCounter = 0, packetCounter = 0;
-                while (queue.BackQueue.TryDequeue(out DataType? packet)) {
-                    // Write the packet onto the temporary packet stream
-                    PacketStream.Position = 0;
-                    con.Data.Write(PacketWriter, packet);
-                    PacketWriter.Flush();
-                    int packLen = (int) PacketStream.Position;
+                try {
+                    SockStream.Socket = con.TCPSocket;
+                    PacketWriter.Strings = con.Strings;
+                    PacketWriter.SlimMap = con.SlimMap;
 
-                    // Write size and raw packet data into the actual stream
-                    SockWriter.Write((ushort) packLen);
-                    SockWriter.Flush();
-                    SockStream.Write(PacketStream.GetBuffer(), 0, packLen);
+                    // Write all packets
+                    while (queue.BackQueue.TryDequeue(out DataType? packet)) {
+                        // Write the packet onto the temporary packet stream
+                        PacketStream.Position = 0;
+                        con.Data.Write(PacketWriter, packet);
+                        PacketWriter.Flush();
+                        int packLen = (int) PacketStream.Position;
 
-                    // Update connection metrics and check if we hit the connection cap
-                    con.TCPSendRate.UpdateRate(2 + packLen, 1);
-                    if (con.TCPSendCapped)
-                        break;
+                        // Write size and raw packet data into the actual stream
+                        SockWriter.Write((ushort) packLen);
+                        SockWriter.Flush();
+                        SockStream.Write(PacketStream.GetBuffer(), 0, packLen);
 
-                    byteCounter += 2 + packLen;
-                    packetCounter++;
+                        // Update connection metrics and check if we hit the connection cap
+                        con.TCPSendRate.UpdateRate(2 + packLen, 1);
+                        if (con.TCPSendCapped)
+                            break;
 
-                    if (packet is not DataLowLevelKeepAlive)
-                        con.SurpressTCPKeepAlives();
+                        byteCounter += 2 + packLen;
+                        packetCounter++;
+
+                        if (packet is not DataLowLevelKeepAlive)
+                            con.SurpressTCPKeepAlives();
+                    }
+                    SockStream.Flush();
+                    SockStream.Socket = null;
+
+                    // Signal the queue that it's flushed if we didn't hit a cap
+                    // Else requeue it to be flushed again later
+                    if (queue.BackQueue.Count <= 0)
+                        queue.SignalFlushed();
+                    else
+                        queue.DelayFlush(con.TCPSendCapDelay, true);
+                } finally {
+                    SockStream.Socket = null;
+                    PacketWriter.Strings = null;
+                    PacketWriter.SlimMap = null;
                 }
-                SockStream.Flush();
-                SockStream.Socket = null;
-
-                // Signal the queue that it's flushed if we didn't hit a cap
-                // Else requeue it to be flushed again later
-                if (queue.BackQueue.Count <= 0)
-                    queue.SignalFlushed();
-                else
-                    queue.DelayFlush(con.TCPSendCapDelay, true);
 
                 // Iterate metrics
                 using (TCPMetricsLock.W()) {
@@ -158,6 +164,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             private void FlushUDPQueue(ConPlusTCPUDPConnection con, CelesteNetSendQueue queue, CancellationToken token) {
+                int byteCounter = 0, packetCounter = 0;
                 lock (con.UDPLock) {
                     // TODO This could be optimized with sendmmsg
 
@@ -176,58 +183,62 @@ namespace Celeste.Mod.CelesteNet.Server {
                         return;
                     }
 
-                    PacketWriter.Strings = con.Strings;
-                    PacketWriter.SlimMap = con.SlimMap;
+                    try {
+                        PacketWriter.Strings = con.Strings;
+                        PacketWriter.SlimMap = con.SlimMap;
 
-                    // Write all packets
-                    UDPBuffer[0] = con.NextUDPContainerID();
-                    int bufOff = 1;
+                        // Write all packets
+                        UDPBuffer[0] = con.NextUDPContainerID();
+                        int bufOff = 1;
 
-                    int byteCounter = 0, packetCounter = 0;
-                    foreach (DataType packet in queue.BackQueue) {
-                        // Write the packet onto the temporary packet stream
-                        PacketStream.Position = 0;
-                        con.Data.Write(PacketWriter, packet);
-                        PacketWriter.Flush();
-                        int packLen = (int) PacketStream.Position;
+                        foreach (DataType packet in queue.BackQueue) {
+                            // Write the packet onto the temporary packet stream
+                            PacketStream.Position = 0;
+                            con.Data.Write(PacketWriter, packet);
+                            PacketWriter.Flush();
+                            int packLen = (int) PacketStream.Position;
 
-                        // Copy packet data to the container buffer
-                        if (bufOff + packLen > UDPBuffer.Length) {
-                            // Send container & start a new one
-                            Role.UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
-                            UDPBuffer[0] = con.NextUDPContainerID();
-                            bufOff = 1;
+                            // Copy packet data to the container buffer
+                            if (bufOff + packLen > UDPBuffer.Length) {
+                                // Send container & start a new one
+                                Role.UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
+                                UDPBuffer[0] = con.NextUDPContainerID();
+                                bufOff = 1;
 
-                            // Update connection metrics and check if we hit the connection cap
-                            con.UDPSendRate.UpdateRate(bufOff, 1);
-                            if (con.UDPSendCapped)
-                                break;
+                                // Update connection metrics and check if we hit the connection cap
+                                con.UDPSendRate.UpdateRate(bufOff, 1);
+                                if (con.UDPSendCapped)
+                                    break;
+                            }
+
+                            Buffer.BlockCopy(PacketStream.GetBuffer(), 0, UDPBuffer, bufOff, packLen);
+                            bufOff += packLen;
+
+                            byteCounter += packLen;
+                            packetCounter++;
+
+                            if (packet is not DataLowLevelKeepAlive)
+                                con.SurpressUDPKeepAlives();
                         }
 
-                        Buffer.BlockCopy(PacketStream.GetBuffer(), 0, UDPBuffer, bufOff, packLen);
-                        bufOff += packLen;
+                        // Send the last container
+                        if (bufOff > 1) {
+                            Role.UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
+                            con.UDPSendRate.UpdateRate(bufOff, 1);
+                        }
 
-                        byteCounter += packLen;
-                        packetCounter++;
-
-                        if (packet is not DataLowLevelKeepAlive)
-                            con.SurpressUDPKeepAlives();
+                        // Signal the queue that it's flushed
+                        queue.SignalFlushed();
+                    } finally {
+                        PacketWriter.Strings = null;
+                        PacketWriter.SlimMap = null;
                     }
+                }
 
-                    // Send the last container
-                    if (bufOff > 1) {
-                        Role.UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
-                        con.UDPSendRate.UpdateRate(bufOff, 1);
-                    }
-
-                    // Signal the queue that it's flushed
-                    queue.SignalFlushed();
-
-                    // Iterate metrics
-                    using (UDPMetricsLock.W()) {
-                        Role.Pool.IterateEventHeuristic(ref _UDPByteRate, ref LastTCPByteRateUpdate, byteCounter, true);
-                        Role.Pool.IterateEventHeuristic(ref _UDPPacketRate, ref LastTCPPacketRateUpdate, packetCounter, true);
-                    }
+                // Iterate metrics
+                using (UDPMetricsLock.W()) {
+                    Role.Pool.IterateEventHeuristic(ref _UDPByteRate, ref LastTCPByteRateUpdate, byteCounter, true);
+                    Role.Pool.IterateEventHeuristic(ref _UDPPacketRate, ref LastTCPPacketRateUpdate, packetCounter, true);
                 }
             }
 

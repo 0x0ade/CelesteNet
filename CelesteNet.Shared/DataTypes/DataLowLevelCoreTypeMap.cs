@@ -4,7 +4,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataLowLevelCoreTypeMap : DataType<DataLowLevelCoreTypeMap> {
 
         static DataLowLevelCoreTypeMap() {
-            DataID = "coreTypeMap";
+            // TODO Change this to "coreTypeMap" in the next protocol-breaking version
+            DataID = "slimMap";
         }
 
         public override DataFlags DataFlags => DataFlags.Small;

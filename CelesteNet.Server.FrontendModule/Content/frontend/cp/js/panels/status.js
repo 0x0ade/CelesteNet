@@ -24,6 +24,7 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
       StartupTime: 0,
       GCMemory: 0,
       Modules: 0,
+      TickRate: 0,
       PlayerCounter: 0,
       Registered: 0,
       Banned: 0,

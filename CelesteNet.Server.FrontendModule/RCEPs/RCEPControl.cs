@@ -260,6 +260,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
+            if (!f.IsAuthorizedExec(c)) {
+                if (moduleID == f.Wrapper.ID || f.Settings.ExecOnlySettings.Contains(moduleID)) {
+                    f.Respond(c, "Unauthorized!");
+                    return;
+                }
+            }
+
             CelesteNetServerModuleSettings? settings;
             if (moduleID == "CelesteNet.Server") {
                 settings = f.Server.Settings;

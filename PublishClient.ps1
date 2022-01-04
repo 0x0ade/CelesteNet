@@ -1,4 +1,5 @@
-﻿Remove-Item -Recurse -Path PubClient
+﻿dotnet build CelesteNet.Client -c Release
+Remove-Item -Recurse -Path PubClient
 Remove-Item -Path CelesteNet.Client.zip
 New-Item -ItemType directory -Path PubClient
 Copy-Item -Path everest.pubclient.yaml -Destination PubClient/everest.yaml

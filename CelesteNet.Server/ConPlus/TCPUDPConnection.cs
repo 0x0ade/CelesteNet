@@ -157,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override string? DoHeartbeatTick() {
             string? disposeReason = base.DoHeartbeatTick();
-            if (disposeReason != null)
+            if (disposeReason != null || !IsConnected)
                 return disposeReason;
 
             // Decrement the amount of times we hit the downlink cap

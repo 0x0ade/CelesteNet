@@ -104,7 +104,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override string DoHeartbeatTick() {
             string disposeReason = base.DoHeartbeatTick();
-            if (disposeReason != null)
+            if (disposeReason != null || !IsConnected)
                 return disposeReason;
 
             lock (UDPLock) {

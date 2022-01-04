@@ -30,5 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public string DiscordOAuthClientID { get; set; } = "";
         public string DiscordOAuthClientSecret { get; set; } = "";
 
+        public HashSet<string> ExecOnlySettings { get; set; } = new();
+
     }
 }

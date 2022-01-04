@@ -159,19 +159,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (disposeReason != null)
                 return disposeReason;
 
-            using (Utilize(out bool alive)) {
-                if (!alive || !IsConnected)
-                    return null;
+            // Decrement the amount of times we hit the downlink cap
+            if (Volatile.Read(ref DownlinkCapCounter) > 0)
+                Interlocked.Decrement(ref DownlinkCapCounter);
 
-                // Decrement the amount of times we hit the downlink cap
-                if (Volatile.Read(ref DownlinkCapCounter) > 0)
-                    Interlocked.Decrement(ref DownlinkCapCounter);
-
-                // Potentially trigger a send buffer flush
-                if (TCPTriggerSendBufferFlush) {
-                    TCPTriggerSendBufferFlush = false;
-                    Sender.TriggerTCPBufferFlush(this);
-                }
+            // Potentially trigger a send buffer flush
+            if (TCPTriggerSendBufferFlush) {
+                TCPTriggerSendBufferFlush = false;
+                Sender.TriggerTCPBufferFlush(this);
             }
 
             return null;

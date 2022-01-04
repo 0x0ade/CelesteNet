@@ -93,6 +93,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             UDPSendRate = new(this);
 
             // Initialize TCP receiving
+            tcpSock.Blocking = false;
             TCPRecvBuffer = new byte[Math.Max(server.Settings.TCPRecvBufferSize, 2 + server.Settings.MaxPacketSize)];
             TCPRecvBufferOff = 0;
             tcpReceiver.Poller.AddConnection(this);

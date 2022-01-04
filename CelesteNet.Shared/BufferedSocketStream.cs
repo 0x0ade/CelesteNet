@@ -31,6 +31,7 @@ namespace Celeste.Mod.CelesteNet {
                 int numRead = 0;
                 while (numRead < count) {
                     if (RecvAvail <= 0 || RecvBufferOff >= RecvBuffer.Length) {
+                        _Socket.Poll(-1, SelectMode.SelectRead);
                         RecvAvail = _Socket.Receive(RecvBuffer, RecvBuffer.Length, SocketFlags.None);
                         RecvBufferOff = 0;
                         if (RecvAvail <= 0)
@@ -76,8 +77,18 @@ namespace Celeste.Mod.CelesteNet {
 
         public override void Flush() {
             lock (SendBuffer) {
-                if (SendBufferOff != 0 && _Socket != null)
-                    _Socket.Send(SendBuffer, SendBufferOff, SocketFlags.None);
+                if (SendBufferOff != 0 && _Socket != null) {
+                    while (true) {
+                        try {
+                            _Socket.Send(SendBuffer, SendBufferOff, SocketFlags.None);
+                            break;
+                        } catch (SocketException se) {
+                            if ((se.SocketErrorCode == SocketError.TryAgain || se.SocketErrorCode == SocketError.WouldBlock) && _Socket.Poll(-1, SelectMode.SelectWrite | SelectMode.SelectError))
+                                continue;
+                            throw;
+                        }
+                    }
+                }
                 SendBufferOff = 0;
             }
         }
@@ -85,6 +96,8 @@ namespace Celeste.Mod.CelesteNet {
         public Socket? Socket {
             get => _Socket;
             set {
+                if (value?.Blocking ?? false)
+                    throw new ArgumentException("Only non-blocking sockets are supported");
                 lock (RecvBuffer)
                 lock (SendBuffer)
                     RecvBufferOff = RecvAvail = SendBufferOff = 0;

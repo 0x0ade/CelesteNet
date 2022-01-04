@@ -268,7 +268,7 @@ namespace Celeste.Mod.CelesteNet {
 
                 int slimID = (int) (flags & ~(DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID));
                 if ((flags & DataFlags.InteralSlimBigID) != 0)
-                    slimID |= reader.Read7BitEncodedInt() << 14;
+                    slimID |= (reader.Read7BitEncodedInt() << 14);
 
                 Type slimType = reader.CoreTypeMap.Get(slimID);
                 if (Activator.CreateInstance(slimType) is not DataType slimData)

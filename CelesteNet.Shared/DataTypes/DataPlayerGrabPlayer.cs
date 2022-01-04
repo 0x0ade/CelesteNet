@@ -67,8 +67,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             if (Force.HasValue)
                 forceStrength |= 0b1;
             writer.Write(forceStrength);
-            if (Force.HasValue)
-                writer.Write(Force.Value);
+            if ((forceStrength & 0b1) != 0)
+                writer.Write(Force!.Value);
         }
 
     }

@@ -131,7 +131,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public void WriteRef<T>(T? data) where T : DataType<T>
-            => Write7BitEncodedUInt((data ?? throw new ArgumentException($"Expected {Data.DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(Data) ?? uint.MaxValue);
+            => Write7BitEncodedUInt(data?.Get<MetaRef>(Data) ?? throw new ArgumentException($"Expected {Data.DataTypeToID[typeof(T)]} MetaRef to write, got null"));
 
         public void WriteOptRef<T>(T? data) where T : DataType<T>
             => Write7BitEncodedUInt(data?.GetOpt<MetaRef>(Data) ?? uint.MaxValue);

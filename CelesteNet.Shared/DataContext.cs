@@ -58,8 +58,12 @@ namespace Celeste.Mod.CelesteNet {
 
         public void RescanDataTypes(Type[] types) {
             foreach (Type type in types) {
-                if (type.IsAbstract)
+                try {
+                    if (!(typeof(DataType).IsAssignableFrom(type) || typeof(MetaType).IsAssignableFrom(type)) || type.IsAbstract)
+                        continue;
+                } catch(Exception) {
                     continue;
+                }
 
                 if (typeof(DataType).IsAssignableFrom(type)) {
                     RuntimeHelpers.RunClassConstructor(type.TypeHandle);

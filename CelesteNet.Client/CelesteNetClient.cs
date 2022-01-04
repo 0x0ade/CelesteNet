@@ -58,8 +58,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             // Find connection features
             List<IConnectionFeature> conFeatures = new();
             foreach (Type type in CelesteNetUtils.GetTypes()) {
-                if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
+                try {
+                    if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
+                        continue;
+                } catch(Exception) {
                     continue;
+                }
 
                 IConnectionFeature feature = (IConnectionFeature) Activator.CreateInstance(type);
                 if (feature == null)

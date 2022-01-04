@@ -261,10 +261,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public bool IsAuthorized(HttpRequestEventArgs c)
             => c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionKeys.Contains(session);
 
-#if NETCORE
         public bool IsAuthorizedExec(HttpRequestEventArgs c)
             => c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionExecKeys.Contains(session);
-#endif
 
         public void BroadcastRawString(bool authOnly, string data) {
             if (WSHost == null)

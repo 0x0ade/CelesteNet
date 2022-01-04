@@ -476,24 +476,6 @@ namespace Celeste.Mod.CelesteNet {
                     handler(con, data);
         }
 
-
-        [Obsolete("Use CelesteNetBinaryReader instead.")]
-        public T? ReadRef<T>(BinaryReader reader) where T : DataType<T>
-            => GetRef<T>(reader.ReadUInt32());
-
-        [Obsolete("Use CelesteNetBinaryReader instead.")]
-        public T? ReadOptRef<T>(BinaryReader reader) where T : DataType<T>
-            => TryGetRef(reader.ReadUInt32(), out T? value) ? value : null;
-
-        [Obsolete("Use CelesteNetBinaryWriter instead.")]
-        public void WriteRef<T>(BinaryWriter writer, T? data) where T : DataType<T>
-            => writer.Write((data ?? throw new Exception($"Expected {DataTypeToID[typeof(T)]} to write, got null")).Get<MetaRef>(this) ?? uint.MaxValue);
-
-        [Obsolete("Use CelesteNetBinaryWriter instead.")]
-        public void WriteOptRef<T>(BinaryWriter writer, T? data) where T : DataType<T>
-            => writer.Write(data?.GetOpt<MetaRef>(this) ?? uint.MaxValue);
-
-
         public T? GetRef<T>(uint id) where T : DataType<T>
             => (T?) GetRef(DataTypeToID[typeof(T)], id);
 

@@ -268,7 +268,7 @@ namespace Celeste.Mod.CelesteNet {
 
                 int slimID = (int) (flags & ~(DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID));
                 if ((flags & DataFlags.InteralSlimBigID) != 0)
-                    slimID |= reader.Read7BitEncodedInt() << 6;
+                    slimID |= reader.Read7BitEncodedInt() << 14;
 
                 Type slimType = reader.CoreTypeMap.Get(slimID);
                 if (Activator.CreateInstance(slimType) is not DataType slimData)
@@ -355,11 +355,11 @@ namespace Celeste.Mod.CelesteNet {
             long start = writer.BaseStream.Position;
 
             if (writer.TryGetSlimID(data.GetType(), out int slimID)) {
-                if (slimID < (1<<6))
+                if (slimID < (1<<14))
                     writer.Write((ushort) (slimID | (ushort) DataFlags.InteralSlimIndicator));
                 else {
-                    writer.Write((ushort) (slimID & (1<<6 - 1) | (ushort) (DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID)));
-                    writer.Write7BitEncodedInt(slimID >> 6);
+                    writer.Write((ushort) ((ushort) (slimID & ((1<<14) - 1)) | (ushort) (DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID)));
+                    writer.Write7BitEncodedInt(slimID >> 14);
                 }
 
                 try {

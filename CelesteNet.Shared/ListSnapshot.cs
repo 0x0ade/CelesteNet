@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.ObjectFactories;
@@ -111,9 +112,8 @@ namespace Celeste.Mod.CelesteNet {
 
     public static class ListSnapshotStaticPool<T> {
 
-        [ThreadStatic]
-        private static ListSnapshotPool<T>? _Pool;
-        public static ListSnapshotPool<T> Pool => _Pool ??= new();
+        private static ThreadLocal<ListSnapshotPool<T>> _Pool = new(() => new());
+        public static ListSnapshotPool<T> Pool => _Pool.Value;
 
     }
 

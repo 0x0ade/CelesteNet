@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.ObjectFactories;
@@ -190,9 +191,8 @@ namespace Celeste.Mod.CelesteNet {
 
     public static unsafe class StringDedupeStaticContext {
 
-        [ThreadStatic]
-        private static StringDedupeContext? _Ctx;
-        public static StringDedupeContext Ctx => _Ctx ??= new();
+        private static ThreadLocal<StringDedupeContext> _Ctx = new(() => new());
+        public static StringDedupeContext Ctx => _Ctx.Value;
 
         public static string Dedupe(this string value)
             => Ctx.Dedupe(value);

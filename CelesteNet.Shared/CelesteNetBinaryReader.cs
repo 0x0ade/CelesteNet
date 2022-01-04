@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.ObjectFactories;
@@ -51,11 +52,10 @@ namespace Celeste.Mod.CelesteNet {
         public virtual DateTime ReadDateTime()
             => DateTime.FromBinary(ReadInt64());
 
-        [ThreadStatic]
-        private static char[]? charsShared;
+        private static ThreadLocal<char[]> charsShared = new();
         private unsafe void ReadNetStringCore(char c, out char[] chars, out int i) {
             const int buffer = 8;
-            chars = charsShared ?? new char[128];
+            chars = charsShared.Value ?? new char[128];
             int length = chars.Length;
             i = 0;
             goto Read;
@@ -79,7 +79,7 @@ namespace Celeste.Mod.CelesteNet {
                 i -= buffer;
             }
 
-            charsShared = chars;
+            charsShared.Value = chars;
         }
 
         public virtual string ReadNetString() {

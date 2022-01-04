@@ -36,7 +36,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Setup the new socket
                     newCon.ReceiveBufferSize = Role.Server.Settings.TCPRecvBufferSize;
-                    newCon.SendTimeout = 0;
+                    newCon.SendBufferSize = Role.Server.Settings.MaxQueueSize * (2 + Role.Server.Settings.MaxPacketSize);
 
                     // Start the connection handshake
                     EndPoint remoteEP = newCon.RemoteEndPoint!;

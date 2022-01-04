@@ -11,7 +11,6 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet {
@@ -75,17 +74,18 @@ namespace Celeste.Mod.CelesteNet {
             throw new Exception($"Invalid requested type: {t.FullName}");
         }
 
-        private static ThreadLocal<char[]> sanitizedShared = new();
+        [ThreadStatic]
+        private static char[]? sanitizedShared;
         public static unsafe string Sanitize(this string? value, HashSet<char>? illegal = null, bool space = false) {
             const int buffer = 64;
 
             if (value.IsNullOrEmpty())
                 return "";
 
-            char[] sanitizedArray = sanitizedShared.Value ?? new char[value.Length + buffer];
+            char[] sanitizedArray = sanitizedShared ?? new char[value.Length + buffer];
             if (sanitizedArray.Length < value.Length)
                 sanitizedArray = new char[value.Length + buffer];
-            sanitizedShared.Value = sanitizedArray;
+            sanitizedShared = sanitizedArray;
 
             fixed (char* sanitized = sanitizedArray)
             fixed (char* raw = value) {

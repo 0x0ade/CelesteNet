@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             protected override void StartWorker(Socket socket, CancellationToken token) {
                 // Receive packets as long as the token isn't canceled
-                // TODO We can optimize this with recvmmsg
+                // FIXME Definetly optimize this with recvmmsg (35%+ time wasted in socket calls)
                 byte[] dgBuffer = new byte[Role.Server.Settings.UDPMaxDatagramSize];
                 int dgSize;
 
@@ -34,6 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         throw;
                     }
                     EnterActiveZone();
+                    ConPlusTCPUDPConnection? con;
 
                     // Handle handshake messages
                     if (dgSize == 5 && dgBuffer[0] == 0xff) {
@@ -41,37 +42,39 @@ namespace Celeste.Mod.CelesteNet.Server {
                         uint conToken = BitConverter.ToUInt32(dgBuffer, 1);
 
                         // Get the connection from the token
-                        if (!Role.conTokenMap.TryGetValue(conToken, out ConPlusTCPUDPConnection? tokCon) || tokCon == null)
+                        if (!Role.conTokenMap.TryGetValue(conToken, out (ConPlusTCPUDPConnection con, EndPoint? udpEP) tokData))
                             continue;
+                        con = tokData.con;
 
                         // Initialize the connection
-                        lock (tokCon.UDPLock) {
-                            if (!tokCon.UseUDP) {
-                                tokCon.Send(new DataLowLevelUDPInfo {
+                        lock (con.UDPLock) {
+                            if (!con.UseUDP) {
+                                con.Send(new DataLowLevelUDPInfo {
                                     ConnectionID = -1,
                                     MaxDatagramSize = 0
                                 });
                                 continue;
                             }
 
-                            if (tokCon.UDPEndpoint != null) {
+                            if (tokData.udpEP != null) {
                                 // This makes hijacking possible, but is also
                                 // how a client with changing IP addresses can
                                 // reconnect it's UDP connection :(
-                                Logger.Log(LogLevel.INF, "udprecv", $"Connection {tokCon} UDP send endpoint changed: {tokCon.UDPEndpoint} -> {dgramSender}");
+                                Logger.Log(LogLevel.INF, "udprecv", $"Connection {con} UDP send endpoint changed: {tokData.udpEP} -> {dgramSender}");
                             }
 
                             // Initialize and establish the UDP connection
-                            tokCon.InitUDP(dgramSender, tokCon.UDPNextConnectionID++, Role.Server.Settings.UDPMaxDatagramSize);
+                            con.InitUDP(dgramSender, con.UDPNextConnectionID++, Role.Server.Settings.UDPMaxDatagramSize);
 
-                            // Add the connection to the map
-                            Role.endPointMap[dgramSender] = tokCon;
+                            // Update the connection in the maps
+                            Role.conTokenMap[conToken] = (con, dgramSender);
+                            Role.endPointMap[dgramSender] = con;
                         }
                         continue;
                     }
 
                     // Get the associated connection
-                    if (!Role.endPointMap.TryGetValue(dgramSender, out ConPlusTCPUDPConnection? con) || con == null)
+                    if (!Role.endPointMap.TryGetValue(dgramSender, out con) || con == null)
                         continue;
 
                     try {
@@ -87,7 +90,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         }
 
-        private readonly ConcurrentDictionary<uint, ConPlusTCPUDPConnection> conTokenMap = new();
+        private readonly ConcurrentDictionary<uint, (ConPlusTCPUDPConnection con, EndPoint? udpEP)> conTokenMap = new();
         private readonly ConcurrentDictionary<EndPoint, ConPlusTCPUDPConnection> endPointMap = new();
         private Socket? initialSock;
 
@@ -104,21 +107,20 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void AddConnection(ConPlusTCPUDPConnection con) {
-            conTokenMap.TryAdd(con.ConnectionToken, con);
+            conTokenMap.TryAdd(con.ConnectionToken, (con, null));
             con.OnUDPDeath += UDPDeath;
         }
 
         public void RemoveConnection(ConPlusTCPUDPConnection con) {
             con.OnUDPDeath -= UDPDeath;
-            conTokenMap.TryRemove(con.ConnectionToken, out _);
-
-            EndPoint? udpEP = con.UDPEndpoint;
-            if (udpEP != null)
-                endPointMap.TryRemove(udpEP, out _);
+            if (conTokenMap.TryRemove(con.ConnectionToken, out var conData) && conData.udpEP != null)
+                endPointMap.TryRemove(conData.udpEP, out _);
         }
 
         private void UDPDeath(CelesteNetTCPUDPConnection con, EndPoint ep) {
             endPointMap.TryRemove(ep, out _);
+            if (conTokenMap.TryGetValue(con.ConnectionToken, out var conData) && conData.udpEP != null)
+                endPointMap.TryRemove(conData.udpEP, out _);
         }
 
         public CelesteNetServer Server { get; }

@@ -75,7 +75,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 con.DisposeSafe();
                             } break;
                             case SendAction.FlushUDPQueue: {
-                                Logger.Log(LogLevel.WRN, "udpsend", $"Error flushing connection {con} UDP data: {e}");
+                                Logger.Log(LogLevel.WRN, "udpsend", $"Error flushing connection {con} UDP queue: {e}");
+                                con.UDPQueue.SignalFlushed();
                                 con.DecreaseUDPScore(reason: "Error flushing queue");
                             } break;
                         }
@@ -173,7 +174,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         private long LastUDPByteRateUpdate, LastUDPPacketRateUpdate;
         private float _UDPByteRate, _UDPPacketRate;
 
-        public override int MinThreads => 1;
+        public override int MinThreads => 2;
         public override int MaxThreads => int.MaxValue;
 
         public CelesteNetServer Server { get; }

@@ -279,6 +279,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
 
                 // Write packets to the buffer
+                TCPTriggerSendBufferFlush = false;
                 TCPSendBufferOff = 0;
                 TCPSendBufferStream.Position = 0;
                 while (TCPQueue.BackQueue.TryDequeue(out DataType? packet)) {

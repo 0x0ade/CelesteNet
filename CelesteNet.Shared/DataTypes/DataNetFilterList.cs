@@ -37,7 +37,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             for (int i = 0; i < List.Length; i++)
                 List[i] = reader.ReadNetString();
 
-            Set = new(List);
+            Set = new(List, StringComparer.OrdinalIgnoreCase);
         }
 
         protected override void Write(CelesteNetBinaryWriter writer) {
@@ -47,10 +47,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public bool Contains(string mod) {
-            if (Set != null)
-                return Set.Contains(mod);
+            if (Set != null) {
+                lock (Set)
+                    return Set.Contains(mod);
+            }
+
             foreach (string other in List)
-                if (other == mod)
+                if (other.Equals(mod, StringComparison.OrdinalIgnoreCase))
                     return true;
             return false;
         }

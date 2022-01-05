@@ -155,10 +155,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
             }
 
-            SendFilterList();
-
             // Wait until the server sent the ready packet
             _ReadyEvent.Wait(token);
+            SendFilterList();
 
             Logger.Log(LogLevel.INF, "main", "Ready");
             IsReady = true;

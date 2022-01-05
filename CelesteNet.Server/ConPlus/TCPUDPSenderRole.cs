@@ -174,7 +174,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         private long LastUDPByteRateUpdate, LastUDPPacketRateUpdate;
         private float _UDPByteRate, _UDPPacketRate;
 
-        public override int MinThreads => 2;
+        public override int MinThreads => 1;
         public override int MaxThreads => int.MaxValue;
 
         public CelesteNetServer Server { get; }

@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet {
                 try {
                     if (!(typeof(DataType).IsAssignableFrom(type) || typeof(MetaType).IsAssignableFrom(type)) || type.IsAbstract)
                         continue;
-                } catch(Exception) {
+                } catch (Exception) {
                     continue;
                 }
 

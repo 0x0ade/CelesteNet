@@ -155,7 +155,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Server.HandleConnect(con = new(Server, conToken, settings, sock, tcpReceiver, udpReceiver, sender));
                 await DoConnectionHandshake(con, conFeatures);
                 Server.CreateSession(con, playerUID, playerName);
-            } catch(Exception) {
+            } catch (Exception) {
                 con?.Dispose();
                 sock.Dispose();
                 throw;

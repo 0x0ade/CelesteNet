@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 try {
                     if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
                         continue;
-                } catch(Exception) {
+                } catch (Exception) {
                     continue;
                 }
 

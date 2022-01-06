@@ -4,11 +4,14 @@ using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public sealed class PacketDumper {
+
         public enum TransportType {
             None, TCP, UDP
         }
 
-        private int nextDumpIdx = 0;
+        public CelesteNetServer Server { get; }
+
+        private int _NextDumpIdx = 0;
 
         public PacketDumper(CelesteNetServer server) {
             Server = server;
@@ -16,11 +19,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Directory.CreateDirectory(Server.Settings.PacketDumperDirectory);
         }
 
-        public void DumpPacket(CelesteNetConnection con, TransportType transport, string descr, ReadOnlySpan<byte> rawData) {
+        public void DumpPacket(CelesteNetConnection con, TransportType transport, string descr, byte[] rawData, int offs, int len) {
             if (Server.Settings.PacketDumperMaxDumps <= 0)
-                return;            
+                return;
 
-            int dumpIdx = Interlocked.Increment(ref nextDumpIdx);
+            int dumpIdx = Interlocked.Increment(ref _NextDumpIdx);
 
             // Delete old dumps
             if (dumpIdx >= Server.Settings.PacketDumperMaxDumps) {
@@ -38,9 +41,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     Description = descr
                 });
             using (FileStream stream = File.Open($"{Server.Settings.PacketDumperDirectory}/{dumpIdx}.bin", FileMode.Create))
-                stream.Write(rawData);
+                stream.Write(rawData, offs, len);
         }
 
-        public CelesteNetServer Server { get; }
     }
 }

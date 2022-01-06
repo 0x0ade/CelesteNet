@@ -134,6 +134,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost?.RemoveSelf();
             Ghosts.Clear();
 
+            if (IsGrabbed && Player.StateMachine.State == Player.StFrozen)
+                Player.StateMachine.State = Player.StNormal;
+
             if (PlayerNameTag != null)
                 PlayerNameTag.Name = "";
 

@@ -195,6 +195,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         // Update metrics and check if we hit the cap
                         TCPRecvRate.UpdateRate(numRead, 0);
                         if (TCPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap && Interlocked.Increment(ref DownlinkCapCounter) >= DownlinkCapCounterMax) {
+                            Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.TCP, "Downlink byte cap hit", TCPRecvBuffer[0..TCPRecvBufferOff]);
                             Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink byte cap: {TCPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap} cap BpS");
                             goto closeConnection;
                         }
@@ -205,6 +206,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 // Get the packet length
                                 int packetLen = BitConverter.ToUInt16(TCPRecvBuffer, 0);
                                 if (packetLen < 0 || packetLen > Server.Settings.MaxPacketSize) {
+                                    Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.TCP, "Packet over size limit", TCPRecvBuffer[0..TCPRecvBufferOff]);
                                     Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} sent packet over the size limit: {packetLen} > {Server.Settings.MaxPacketSize}");
                                     goto closeConnection;
                                 }
@@ -213,7 +215,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 if (2 + packetLen <= TCPRecvBufferOff) {
                                     // Update metrics and check if we hit the cap
                                     TCPRecvRate.UpdateRate(0, 1);
-                                    if (TCPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap) {
+                                    if (TCPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap && Interlocked.Increment(ref DownlinkCapCounter) >= DownlinkCapCounterMax) {
+                                        Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.TCP, "Downlink packet cap hit", TCPRecvBuffer[0..TCPRecvBufferOff]);
                                         Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink packet cap: {TCPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap} cap PpS");
                                         goto closeConnection;
                                     }
@@ -366,6 +369,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     // Update metrics
                     UDPRecvRate.UpdateRate(dgSize, 0);
                     if (UDPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap && Interlocked.Increment(ref DownlinkCapCounter) >= DownlinkCapCounterMax) {
+                        Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.UDP, "Downlink byte cap hit", buffer[0..dgSize]);
                         Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink byte cap: {UDPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap} cap BpS");
                         goto closeConnection;
                     }
@@ -385,6 +389,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                             // Update metrics
                             UDPRecvRate.UpdateRate(0, 1);
                             if (UDPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap) {
+                                Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.UDP, "Downlink packet cap hit", buffer[0..dgSize]);
                                 Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink packet cap: {UDPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap} cap PpS");
                                 goto closeConnection;
                             }

@@ -54,6 +54,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         public int MaxHeartbeatDelay { get; set; } = 20;
         public float HeartbeatInterval { get; set; } = 250f;
 
+        public string PacketDumperDirectory { get; set; } = "packetDump";
+        public int PacketDumperMaxDumps { get; set; } = 64;
+
         public bool TCPRecvUseEPoll { get; set; } = true;
         public int TCPPollMaxEvents { get; set; } = 16;
         public int TCPRecvBufferSize { get; set; } = 16384;

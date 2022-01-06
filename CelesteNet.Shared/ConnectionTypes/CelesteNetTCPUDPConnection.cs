@@ -38,7 +38,7 @@ namespace Celeste.Mod.CelesteNet {
         private EndPoint? _UDPEndpoint;
         public readonly CelesteNetSendQueue TCPQueue, UDPQueue;
 
-        public const int UDPPacketDropThreshold = 8;
+        public const int UDPPacketDropThreshold = 64;
         public readonly object UDPLock = new();
         private volatile int _UDPConnectionID, UDPLastConnectionID = -1;
         private volatile int _UDPMaxDatagramSize;

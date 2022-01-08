@@ -133,7 +133,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                             );
                         if (teapotRes != null)
                             (conFeatures, playerUID, playerName) = teapotRes.Value;
-                    } catch (Exception) {
+                    } catch {
                         if (tokenSrc.IsCancellationRequested) {
                             Logger.Log(LogLevel.VVV, "tcpudphs", $"Handshake for connection {remoteEP} timed out, maybe an old client?");
                             sock.Dispose();
@@ -162,7 +162,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         return;
                     Server.CreateSession(con, playerUID, playerName);
                 }
-            } catch (Exception) {
+            } catch {
                 con?.Dispose();
                 sock.Dispose();
                 throw;

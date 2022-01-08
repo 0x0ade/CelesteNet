@@ -100,7 +100,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             try {
                 HTTPServer?.Stop();
-            } catch (Exception) {
+            } catch {
             }
             HTTPServer = null;
 

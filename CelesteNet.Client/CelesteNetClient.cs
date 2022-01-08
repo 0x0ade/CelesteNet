@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 try {
                     if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
                         continue;
-                } catch (Exception) {
+                } catch {
                     continue;
                 }
 
@@ -196,7 +196,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 string disposeReason = con.DoHeartbeatTick();
                                 if (disposeReason != null) {
                                     Logger.Log(LogLevel.CRI, "main", disposeReason);
-                                    CelesteNetClientContext ctx = CelesteNetClientModule.Instance.Context;
                                     Dispose();
                                 }
                             };

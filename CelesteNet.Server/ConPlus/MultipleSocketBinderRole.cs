@@ -50,7 +50,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 socket.Bind(EndPoint);
 
                 return socket;
-            } catch (Exception) {
+            } catch {
                 socket?.Dispose();
                 throw;
             }

@@ -42,6 +42,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             public NetEmojiAsset(NetEmojiContent content, string id) : base(content) {
                 ID = id;
+                Type = typeof(Texture2D);
+                Format = "png";
+                PathVirtual = $"emoji/{ID}";
             }
 
             public void Dispose() {
@@ -66,15 +69,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 memStream.Write(data.Data, 0, data.Data.Length);
 
                 // Check if there are more fragments
-                if (!data.MoreFragments) {
+                if (!data.MoreFragments)
                     nextSeq = -1;
-
-                    // Register the emoji
-                    MTexture tex = new MTexture(VirtualContent.CreateTexture(this)); 
-                    Source.Registered.Add(ID);
-                    Emoji.Register(ID, tex);
-                    Emoji.Fill(CelesteNetClientFont.Font);
-                }
             }
 
             protected override void Open(out Stream stream, out bool isSection) {
@@ -108,9 +104,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 // Handle the fragment
                 asset.HandleFragment(netemoji);
 
-                // If the emoji isn't pending anymore, remove it from the set
-                if (!asset.Pending)
+                // Check if the emoji isn't pending anymore
+                if (!asset.Pending) {
                     Pending.Remove(netemoji.ID);
+
+                    // Register the emoji
+                    MTexture tex = new MTexture(VirtualContent.CreateTexture(asset)); 
+                    Content.Registered.Add(asset.ID);
+                    Emoji.Register(asset.ID, tex);
+                    Emoji.Fill(CelesteNetClientFont.Font);
+                }
             }
         }
 

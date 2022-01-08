@@ -92,6 +92,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public bool AuthOnly { get; set; } = false;
 
+        public string MessageDiscontinue { get; set; } = "";
         public string MessageTeapotVersionMismatch { get; set; } = "Teapot version mismatch";
         public string MessageAuthOnly { get; set; } = "Server supports only authenticated clients";
         public string MessageInvalidKey { get; set; } = "Invalid key";

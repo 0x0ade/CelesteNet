@@ -95,6 +95,12 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         internal void Start() {
+            if (!string.IsNullOrEmpty(Server.Settings.MessageDiscontinue)) {
+                Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageDiscontinue });
+                Con.Send(new DataInternalDisconnect());
+                return;
+            }
+
             Logger.Log(LogLevel.INF, "playersession", $"Startup #{SessionID} {Con} (Session UID: {UID}; Connection UID: {Con.UID})");
 
             // Resolver player name conflicts

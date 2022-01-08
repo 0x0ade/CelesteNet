@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public class NetEmojiAsset : ModAsset, IDisposable {
 
             private int NextSeq = 0;
-            private readonly MemoryStream Stream = new();
+            private readonly MemoryStream Buffer = new();
 
             public new NetEmojiContent Source => (NetEmojiContent) base.Source;
             public readonly string ID;
@@ -49,7 +49,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             public void Dispose() {
-                Stream.Dispose();
+                Buffer.Dispose();
                 if (!Pending) {
                     Emoji.Register(ID, GFX.Misc["whiteCube"]);
                     Emoji.Fill(CelesteNetClientFont.Font);
@@ -67,7 +67,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 NextSeq = (NextSeq + 1) % DataNetEmoji.MaxSequenceNumber;
 
                 // Add fragment data to the emoji
-                Stream.Write(data.Data, 0, data.Data.Length);
+                Buffer.Write(data.Data, 0, data.Data.Length);
 
                 // Check if there are more fragments
                 if (!data.MoreFragments)
@@ -80,7 +80,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     throw new InvalidOperationException($"NetEmoji '{ID}' is pending!");
 
                 // Don't duplicate the memory
-                stream = new MemoryStream(Stream.GetBuffer());
+                stream = new MemoryStream(Buffer.GetBuffer());
                 isSection = false;
             }
 
@@ -110,10 +110,23 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Pending.Remove(netemoji.ID);
 
                     // Register the emoji
-                    MTexture tex = new(VirtualContent.CreateTexture(asset));
-                    Content.Registered.Add(asset.ID);
-                    Emoji.Register(asset.ID, tex);
-                    Emoji.Fill(CelesteNetClientFont.Font);
+                    try {
+                        MainThreadHelper.Do(() => {
+                            VirtualTexture vtex;
+                            try {
+                                vtex = VirtualContent.CreateTexture(asset);
+                            } catch (Exception e) {
+                                Logger.Log(LogLevel.ERR, "emoji", $"Failed to load emoji: {netemoji.ID} - {e}");
+                                return;
+                            }
+                            MTexture tex = new(vtex);
+                            Content.Registered.Add(asset.ID);
+                            Emoji.Register(asset.ID, tex);
+                            Emoji.Fill(CelesteNetClientFont.Font);
+                        });
+                    } catch (ObjectDisposedException) {
+                        // Main thread died and queue closed, whoops.
+                    }
                 }
             }
         }

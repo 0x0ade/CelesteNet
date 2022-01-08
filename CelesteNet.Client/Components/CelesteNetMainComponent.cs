@@ -102,23 +102,27 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
-            MainThreadHelper.Do(() => {
-                On.Monocle.Scene.SetActualDepth -= OnSetActualDepth;
-                On.Celeste.Level.LoadLevel -= OnLoadLevel;
-                Everest.Events.Level.OnExit -= OnExitLevel;
-                On.Celeste.Level.LoadNewPlayer -= OnLoadNewPlayer;
-                On.Celeste.Player.Added -= OnPlayerAdded;
-                On.Celeste.Player.ResetSprite -= OnPlayerResetSprite;
-                On.Celeste.Player.Play -= OnPlayerPlayAudio;
-                On.Celeste.PlayerSprite.ctor -= OnPlayerSpriteCtor;
-                On.Celeste.PlayerHair.GetHairColor -= OnGetHairColor;
-                On.Celeste.PlayerHair.GetHairScale -= OnGetHairScale;
-                On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
-                On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
+            try {
+                MainThreadHelper.Do(() => {
+                    On.Monocle.Scene.SetActualDepth -= OnSetActualDepth;
+                    On.Celeste.Level.LoadLevel -= OnLoadLevel;
+                    Everest.Events.Level.OnExit -= OnExitLevel;
+                    On.Celeste.Level.LoadNewPlayer -= OnLoadNewPlayer;
+                    On.Celeste.Player.Added -= OnPlayerAdded;
+                    On.Celeste.Player.ResetSprite -= OnPlayerResetSprite;
+                    On.Celeste.Player.Play -= OnPlayerPlayAudio;
+                    On.Celeste.PlayerSprite.ctor -= OnPlayerSpriteCtor;
+                    On.Celeste.PlayerHair.GetHairColor -= OnGetHairColor;
+                    On.Celeste.PlayerHair.GetHairScale -= OnGetHairScale;
+                    On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
+                    On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
 
-                ILHookTransitionRoutine?.Dispose();
-                ILHookTransitionRoutine = null;
-            });
+                    ILHookTransitionRoutine?.Dispose();
+                    ILHookTransitionRoutine = null;
+                });
+            } catch (ObjectDisposedException) {
+                // It might already be too late to tell the main thread to do anything.
+            }
 
             Cleanup();
         }

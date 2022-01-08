@@ -183,6 +183,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
                     return;
 
+                if (e is ThreadAbortException)
+                    return;
+
                 if ((e is IOException || e is SocketException) && TokenSrc.IsCancellationRequested)
                     return;
 
@@ -239,6 +242,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
                     return;
 
+                if (e is ThreadAbortException)
+                    return;
+
                 if (e is SocketException && TokenSrc.IsCancellationRequested)
                     return;
 
@@ -271,6 +277,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
+                    return;
+
+                if (e is ThreadAbortException)
                     return;
 
                 Logger.Log(LogLevel.WRN, "tcpsend", $"Error in TCP sending thread: {e}");
@@ -335,6 +344,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
+                    return;
+
+                if (e is ThreadAbortException)
                     return;
 
                 Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");

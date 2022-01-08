@@ -16,9 +16,81 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetEmojiComponent : CelesteNetGameComponent {
 
-        public ConcurrentDictionary<string, FileStream> Pending = new();
-        public HashSet<string> Registered = new();
-        public HashSet<string> RegisteredFiles = new();
+        public class NetEmojiContent : ModContent {
+
+            protected override void Dispose(bool disposing) {
+                foreach (ModAsset asset in this.List) {
+                    if (asset is NetEmojiAsset netemoji)
+                        netemoji.Dispose();
+                }
+                base.Dispose(disposing);
+            }
+
+            public HashSet<string> Registered = new();
+            protected override void Crawl() {}
+
+        }
+
+        public class NetEmojiAsset : ModAsset, IDisposable {
+
+            private int nextSeq = 0;
+            private MemoryStream memStream = new();
+
+            public new NetEmojiContent Source => (NetEmojiContent) base.Source;
+            public readonly string ID;
+            public bool Pending => nextSeq >= 0;
+
+            public NetEmojiAsset(NetEmojiContent content, string id) : base(content) {
+                ID = id;
+            }
+
+            public void Dispose() {
+                memStream.Dispose();
+                if (!Pending) {
+                    Emoji.Register(ID, GFX.Misc["whiteCube"]);
+                    Emoji.Fill(CelesteNetClientFont.Font);
+                }
+            }
+
+            public void HandleFragment(DataNetEmoji data) {
+                // The emoji must be pending
+                if (!Pending)
+                    throw new InvalidOperationException($"NetEmoji '{ID}' isn't pending!");
+
+                // Check and increase the sequence number
+                if (data.SequenceNumber != nextSeq)
+                    throw new InvalidOperationException($"Unexpected NetEmoji '{ID}' sequence number: expected {nextSeq}, got {data.SequenceNumber}!");
+                nextSeq = (nextSeq + 1) % DataNetEmoji.MaxSequenceNumber;
+
+                // Add fragment data to the emoji
+                memStream.Write(data.Data, 0, data.Data.Length);
+
+                // Check if there are more fragments
+                if (!data.MoreFragments) {
+                    nextSeq = -1;
+
+                    // Register the emoji
+                    MTexture tex = new MTexture(VirtualContent.CreateTexture(this)); 
+                    Source.Registered.Add(ID);
+                    Emoji.Register(ID, tex);
+                    Emoji.Fill(CelesteNetClientFont.Font);
+                }
+            }
+
+            protected override void Open(out Stream stream, out bool isSection) {
+                // The emoji mustn't be pending
+                if (Pending)
+                    throw new InvalidOperationException($"NetEmoji '{ID}' is pending!");
+
+                // Don't duplicate the memory
+                stream = new MemoryStream(memStream.GetBuffer());
+                isSection = false;
+            }
+
+        }
+
+        public NetEmojiContent Content = new();
+        private Dictionary<string, NetEmojiAsset> Pending = new();
 
         public CelesteNetEmojiComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -28,71 +100,24 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataNetEmoji netemoji) {
-            FileStream cacheStream;
-            if (netemoji.FirstFragment) {
-                // Create a new cache stream for the emoji
-                string dir = Path.Combine(Path.GetTempPath(), "CelesteNetClientEmojiCache");
-                if (!Directory.Exists(dir))
-                    Directory.CreateDirectory(dir);
+            lock (Pending) {
+                // Get the emoji asset
+                if (!Pending.TryGetValue(netemoji.ID, out NetEmojiAsset asset))
+                    Pending.Add(netemoji.ID, asset = new(Content, netemoji.ID));
 
-                string path = Path.Combine(dir, $"{netemoji.ID}-{netemoji.GetHashCode():X8}.png");
-                if (File.Exists(path))
-                    File.Delete(path);
+                // Handle the fragment
+                asset.HandleFragment(netemoji);
 
-                Pending.TryAdd(netemoji.ID, cacheStream = File.OpenWrite(path));
-            } else if (!Pending.TryGetValue(netemoji.ID, out cacheStream)) {
-                throw new InvalidDataException($"Missing first fragment of emoji '{netemoji.ID}'!");
-            }
-
-            // Add fragment data to the emoji
-            cacheStream.Write(netemoji.Data, 0, netemoji.Data.Length);
-
-            if (!netemoji.MoreFragments) {
-                Pending.TryRemove(netemoji.ID, out _);
-                string path = cacheStream.Name;
-                cacheStream.Close();
-
-                // Register the emoji
-                RunOnMainThread(() => {
-                    Logger.Log(LogLevel.VVV, "netemoji", $"Registering {netemoji.ID}");
-
-                    bool registered = false;
-
-                    try {
-                        VirtualTexture vt = VirtualContent.CreateTexture(path);
-                        MTexture mt = new(vt);
-                        if (vt.Texture_Safe == null) // Needed to trigger lazy loading.
-                            throw new Exception($"Couldn't load emoji {netemoji.ID}");
-
-                        Registered.Add(netemoji.ID);
-                        RegisteredFiles.Add(path);
-                        Emoji.Register(netemoji.ID, mt);
-                        Emoji.Fill(CelesteNetClientFont.Font);
-                        registered = true;
-
-                    } finally {
-                        if (!registered)
-                            File.Delete(path);
-                    }
-                });
+                // If the emoji isn't pending anymore, remove it from the set
+                if (!asset.Pending)
+                    Pending.Remove(netemoji.ID);
             }
         }
 
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
-            foreach (Stream s in Pending.Values)
-                s.Dispose();
-            Pending.Clear();
-
-            foreach (string id in Registered)
-                Emoji.Register(id, GFX.Misc["whiteCube"]);
-
-            Emoji.Fill(CelesteNetClientFont.Font);
-
-            foreach (string path in RegisteredFiles)
-                if (File.Exists(path))
-                    File.Delete(path);
+            Content.Dispose();
         }
 
     }

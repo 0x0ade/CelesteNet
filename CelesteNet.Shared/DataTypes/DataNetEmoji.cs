@@ -28,16 +28,16 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             ID = reader.ReadNetString();
             byte header = reader.ReadByte();
             SequenceNumber = header >> 2;
-            MoreFragments = (header & 0b1) != 0;
+            MoreFragments = (header & 0b10) != 0;
             Data = reader.ReadBytes(reader.ReadInt32());
         }
 
         protected override void Write(CelesteNetBinaryWriter writer) {
             byte header = 0;
-            if (MoreFragments)
-                header |= 0b01;
             if (SequenceNumber == 0)
                 // Backwards compat with old clients. This means that emojis can be a maximum of 64kb before things break
+                header |= 0b01;
+            if (MoreFragments)
                 header |= 0b10;
             header |= (byte) ((SequenceNumber % MaxSequenceNumber) << 2);
 

@@ -91,61 +91,76 @@ namespace Celeste.Mod.CelesteNet.Client {
                         Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {Settings.Host}:{Settings.Port}");
 
                         // Create a TCP connection
+                        // The socket connection code is roughly based off of the TCPClient reference source.
+                        // Let's avoid dual mode sockets as there seem to be bugs with them on Mono.
+                        List<Socket> sockAll = new();
+                        if (Socket.OSSupportsIPv6)
+                            sockAll.Add(new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp));
+                        if (Socket.OSSupportsIPv4)
+                            sockAll.Add(new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp));
                         Socket sock = null;
                         try {
                             uint conToken;
                             IConnectionFeature[] conFeatures;
                             CelesteNetTCPUDPConnection.Settings settings;
                             using (token.Register(() => {
-                                if (sock != null) {
+                                foreach (Socket sockTry in sockAll) {
                                     try {
-                                        sock.Close();
+                                        sockTry.Close();
                                     } catch {
                                     }
-                                    sock.Dispose();
+                                    sockTry.Dispose();
                                 }
                             })) {
-                                // This is roughly based off of the TCPClient reference source.
-                                // Let's avoid dual mode sockets as there seem to be bugs with them on Mono.
                                 Exception sockEx = null;
+                                IPAddress[] addresses = Dns.GetHostAddresses(Settings.Host);
+                                Tuple<uint, IConnectionFeature[], CelesteNetTCPUDPConnection.Settings> teapotRes = null;
 
-                                foreach (IPAddress address in Dns.GetHostAddresses(Settings.Host)) {
-                                    switch (address.AddressFamily) {
-                                        case AddressFamily.InterNetwork:
-                                            if (!Socket.OSSupportsIPv4)
-                                                continue;
-                                            break;
-                                        case AddressFamily.InterNetworkV6:
-                                            if (!Socket.OSSupportsIPv6)
-                                                continue;
-                                            break;
-                                        default:
+                                // Try IPv6 first if possible, then try IPv4.
+                                foreach (Socket sockTry in sockAll) {
+                                    foreach (IPAddress address in addresses) {
+                                        if (sockTry.AddressFamily != address.AddressFamily)
                                             continue;
-                                    }
-                                    try {
-                                        sock = new(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                                        sock.ReceiveTimeout = sock.SendTimeout = 5000;
-                                        sock.Connect(address, Settings.Port);
-                                        break;
-                                    } catch (Exception e) {
-                                        if (sock != null) {
-                                            try {
-                                                sock.Close();
-                                            } catch {
-                                            }
-                                            sock.Dispose();
+                                        try {
+                                            sock = sockTry;
+                                            sock.ReceiveTimeout = sock.SendTimeout = 2000;
+                                            sock.Connect(address, Settings.Port);
+                                            // Do the teapot handshake here, as a successful "connection" doesn't mean that the server can handle IPv6.
+                                            teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
+                                            break;
+                                        } catch (Exception e) {
+                                            sock = null;
+                                            teapotRes = null;
+                                            sockEx = e;
+                                            continue;
                                         }
-                                        sock = null;
-                                        sockEx = e;
-                                        continue;
                                     }
                                 }
 
-                                if (sock == null)
-                                    throw new Exception($"Failed to connect to {Settings.Host}:{Settings.Port}, didn't find any connectable address", sockEx);
+                                // Cleanup all non-used sockets.
+                                foreach (Socket sockTry in sockAll) {
+                                    if (sockTry == sock)
+                                        continue;
+                                    try {
+                                        sockTry.Close();
+                                    } catch {
+                                    }
+                                    sockTry.Dispose();
+                                }
 
-                                // Do the teapot handshake
-                                Tuple<uint, IConnectionFeature[], CelesteNetTCPUDPConnection.Settings> teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
+                                if (sock == null || teapotRes == null) {
+                                    if (sockEx == null) {
+                                        throw new Exception($"Failed to connect to {Settings.Host}:{Settings.Port}, didn't find any connectable address, no exception (was any address even tried?)");
+                                    }
+                                    if (sockEx is SocketException sockExSock) {
+                                        if (sockExSock.SocketErrorCode == SocketError.WouldBlock || sockExSock.SocketErrorCode == SocketError.TimedOut) {
+                                            throw new Exception($"Failed to connect to {Settings.Host}:{Settings.Port}, didn't find any connectable address, last tried address timed out");
+                                        }
+                                    }
+                                    throw new Exception($"Failed to connect to {Settings.Host}:{Settings.Port}, didn't find any connectable address", sockEx);
+                                }
+
+                                // Process the teapot handshake
                                 conToken = teapotRes.Item1;
                                 conFeatures = teapotRes.Item2;
                                 settings = teapotRes.Item3;
@@ -183,13 +198,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                             Con = con;
                         } catch {
                             Con?.Dispose();
-                            if (sock != null) {
+                            foreach (Socket sockTry in sockAll) {
                                 try {
-                                    sock.ShutdownSafe(SocketShutdown.Both);
-                                    sock.Close();
+                                    sockTry.Close();
                                 } catch {
                                 }
-                                sock.Dispose();
+                                sockTry.Dispose();
                             }
                             Con = null;
                             throw;

@@ -43,7 +43,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     ProtocolType.Udp => SocketType.Dgram,
                     _ => throw new InvalidOperationException($"Unknown protocol type {Protocol}")
                 }, Protocol);
-                socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, IPv6Only);
+                if (EndPoint.AddressFamily == AddressFamily.InterNetworkV6)
+                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, IPv6Only);
                 if (MaxThreads > 1)
                     socket.EnableEndpointReuse();
 

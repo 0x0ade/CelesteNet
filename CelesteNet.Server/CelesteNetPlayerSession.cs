@@ -90,6 +90,12 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Start<T>(DataHandshakeClient<T> handshake) where T : DataHandshakeClient<T> {
+            if (!string.IsNullOrEmpty(Server.Settings.MessageDiscontinue)) {
+                Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageDiscontinue });
+                Con.Send(new DataInternalDisconnect());
+                return;
+            }
+
             Logger.Log(LogLevel.INF, "playersession", $"Startup #{ID} {Con}");
             using (Server.ConLock.W())
                 Server.Sessions.Add(this);

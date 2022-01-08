@@ -48,6 +48,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public bool AuthOnly { get; set; } = false;
 
+        public string MessageDiscontinue { get; set; } = "";
         public string MessageIPBan { get; set; } = "IP banned: {0}";
         public string MessageBan { get; set; } = "{0} banned: {1}";
         public string MessageInvalidUserKey { get; set; } = "Invalid user key";

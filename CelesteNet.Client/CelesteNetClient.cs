@@ -91,14 +91,58 @@ namespace Celeste.Mod.CelesteNet.Client {
                         Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {Settings.Host}:{Settings.Port}");
 
                         // Create a TCP connection
-                        Socket sock = new(SocketType.Stream, ProtocolType.Tcp);
+                        Socket sock = null;
                         try {
                             uint conToken;
                             IConnectionFeature[] conFeatures;
                             CelesteNetTCPUDPConnection.Settings settings;
-                            using (token.Register(() => sock.Close())) {
-                                sock.ReceiveTimeout = sock.SendTimeout = 5000;
-                                sock.Connect(Settings.Host, Settings.Port);
+                            using (token.Register(() => {
+                                if (sock != null) {
+                                    try {
+                                        sock.Close();
+                                    } catch {
+                                    }
+                                    sock.Dispose();
+                                }
+                            })) {
+                                // This is roughly based off of the TCPClient reference source.
+                                // Let's avoid dual mode sockets as there seem to be bugs with them on Mono.
+                                Exception sockEx = null;
+
+                                foreach (IPAddress address in Dns.GetHostAddresses(Settings.Host)) {
+                                    switch (address.AddressFamily) {
+                                        case AddressFamily.InterNetwork:
+                                            if (!Socket.OSSupportsIPv4)
+                                                continue;
+                                            break;
+                                        case AddressFamily.InterNetworkV6:
+                                            if (!Socket.OSSupportsIPv6)
+                                                continue;
+                                            break;
+                                        default:
+                                            continue;
+                                    }
+                                    try {
+                                        sock = new(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                                        sock.ReceiveTimeout = sock.SendTimeout = 5000;
+                                        sock.Connect(address, Settings.Port);
+                                        break;
+                                    } catch (Exception e) {
+                                        if (sock != null) {
+                                            try {
+                                                sock.Close();
+                                            } catch {
+                                            }
+                                            sock.Dispose();
+                                        }
+                                        sock = null;
+                                        sockEx = e;
+                                        continue;
+                                    }
+                                }
+
+                                if (sock == null)
+                                    throw new Exception($"Failed to connect to {Settings.Host}:{Settings.Port}, didn't find any connectable address", sockEx);
 
                                 // Do the teapot handshake
                                 Tuple<uint, IConnectionFeature[], CelesteNetTCPUDPConnection.Settings> teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
@@ -137,13 +181,16 @@ namespace Celeste.Mod.CelesteNet.Client {
                             Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
 
                             Con = con;
-                        } catch (Exception) {
+                        } catch {
                             Con?.Dispose();
-                            try {
-                                sock.ShutdownSafe(SocketShutdown.Both);
-                                sock.Close();
-                            } catch (Exception) {}
-                            sock.Dispose();
+                            if (sock != null) {
+                                try {
+                                    sock.ShutdownSafe(SocketShutdown.Both);
+                                    sock.Close();
+                                } catch {
+                                }
+                                sock.Dispose();
+                            }
                             Con = null;
                             throw;
                         }

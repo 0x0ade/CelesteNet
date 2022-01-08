@@ -25,18 +25,24 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public byte[] Data = Dummy<byte>.EmptyArray;
 
         protected override void Read(CelesteNetBinaryReader reader) {
-            // This bitmagic encoding is needed to support old versions
-            // Because this causes the sequence number 0 to be read as Flags.FIRST
             ID = reader.ReadNetString();
             byte header = reader.ReadByte();
-            SequenceNumber = unchecked((byte) ((header >> 1) - 1)) % MaxSequenceNumber;
+            SequenceNumber = header >> 2;
             MoreFragments = (header & 0b1) != 0;
             Data = reader.ReadBytes(reader.ReadInt32());
         }
 
         protected override void Write(CelesteNetBinaryWriter writer) {
+            byte header = 0;
+            if (MoreFragments)
+                header |= 0b01;
+            if (SequenceNumber == 0)
+                // Backwards compat with old clients. This means that emojis can be a maximum of 64kb before things break
+                header |= 0b10;
+            header |= (byte) ((SequenceNumber % MaxSequenceNumber) << 2);
+
             writer.WriteNetString(ID);
-            writer.Write((byte) ((((SequenceNumber % MaxSequenceNumber) + 1) << 1) | (MoreFragments ? 0b1 : 0b0)));
+            writer.Write(header);
             writer.Write(Data.Length);
             writer.Write(Data);
         }

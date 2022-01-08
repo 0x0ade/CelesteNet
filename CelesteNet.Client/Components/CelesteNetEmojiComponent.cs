@@ -117,7 +117,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             Emoji.Register(asset.ID, tex);
                             Emoji.Fill(CelesteNetClientFont.Font);
                         });
-                    } catch {
+                    } catch (ObjectDisposedException) {
                         // Main thread died and queue closed, whoops.
                     }
                 }

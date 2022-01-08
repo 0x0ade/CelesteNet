@@ -39,11 +39,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             Wheel?.RemoveSelf();
 
-            MainThreadHelper.Do(() => {
-                On.Celeste.HeartGem.Collect -= OnHeartGemCollect;
-                On.Celeste.HeartGem.EndCutscene -= OnHeartGemEndCutscene;
-                On.Celeste.Player.Die -= OnPlayerDie;
-            });
+            try {
+                MainThreadHelper.Do(() => {
+                    On.Celeste.HeartGem.Collect -= OnHeartGemCollect;
+                    On.Celeste.HeartGem.EndCutscene -= OnHeartGemEndCutscene;
+                    On.Celeste.Player.Die -= OnPlayerDie;
+                });
+            } catch (ObjectDisposedException) {
+                // It might already be too late to tell the main thread to do anything.
+            }
         }
 
         public void Send(string text) {

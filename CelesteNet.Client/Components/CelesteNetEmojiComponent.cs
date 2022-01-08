@@ -110,10 +110,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Pending.Remove(netemoji.ID);
 
                     // Register the emoji
-                    MTexture tex = new(VirtualContent.CreateTexture(asset));
-                    Content.Registered.Add(asset.ID);
-                    Emoji.Register(asset.ID, tex);
-                    Emoji.Fill(CelesteNetClientFont.Font);
+                    try {
+                        MainThreadHelper.Do(() => {
+                            MTexture tex = new(VirtualContent.CreateTexture(asset));
+                            Content.Registered.Add(asset.ID);
+                            Emoji.Register(asset.ID, tex);
+                            Emoji.Fill(CelesteNetClientFont.Font);
+                        });
+                    } catch {
+                        // Main thread died and queue closed, whoops.
+                    }
                 }
             }
         }

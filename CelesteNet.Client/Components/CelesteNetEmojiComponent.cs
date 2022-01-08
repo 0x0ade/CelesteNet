@@ -112,7 +112,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     // Register the emoji
                     try {
                         MainThreadHelper.Do(() => {
-                            MTexture tex = new(VirtualContent.CreateTexture(asset));
+                            VirtualTexture vtex;
+                            try {
+                                vtex = VirtualContent.CreateTexture(asset);
+                            } catch (Exception e) {
+                                Logger.Log(LogLevel.ERR, "emoji", $"Failed to load emoji: {netemoji.ID} - {e}");
+                                return;
+                            }
+                            MTexture tex = new(vtex);
                             Content.Registered.Add(asset.ID);
                             Emoji.Register(asset.ID, tex);
                             Emoji.Fill(CelesteNetClientFont.Font);

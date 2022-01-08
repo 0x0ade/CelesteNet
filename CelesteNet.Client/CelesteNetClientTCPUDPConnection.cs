@@ -120,7 +120,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void TCPRecvThreadFunc() {
             try {
-                byte[] packetBuffer = new byte[2+ConnectionSettings.MaxPacketSize];
+                byte[] packetBuffer = new byte[2 + ConnectionSettings.MaxPacketSize];
                 void ReadCount(int off, int numBytes) {
                     while (numBytes > 0) {
                         int count = TCPStream.Read(packetBuffer, off, numBytes);

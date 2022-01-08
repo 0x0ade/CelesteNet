@@ -28,7 +28,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public EndPoint EndPoint { get; }
         public bool IPv6Only { get; }
 
-        protected MultipleSocketBinderRole(NetPlusThreadPool pool, ProtocolType protocol, EndPoint endPoint, bool ipv6Only=false) : base(pool) {
+        protected MultipleSocketBinderRole(NetPlusThreadPool pool, ProtocolType protocol, EndPoint endPoint, bool ipv6Only = false) : base(pool) {
             Protocol = protocol;
             EndPoint = endPoint;
             IPv6Only = ipv6Only;

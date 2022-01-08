@@ -73,7 +73,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        public float IterateSteadyHeuristic(ref float lastVal, ref long lastUpdate, float curVal, bool update=false) {
+        public float IterateSteadyHeuristic(ref float lastVal, ref long lastUpdate, float curVal, bool update = false) {
             long curMs = RuntimeWatch.ElapsedMilliseconds;
             long cutoffMs = curMs - HeuristicSampleWindow;
             float newVal = (lastUpdate < cutoffMs) ? curVal : ((lastVal * (lastUpdate - cutoffMs) + curVal * (curMs - lastUpdate)) / HeuristicSampleWindow);
@@ -84,7 +84,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             return newVal;
         }
 
-        public float IterateEventHeuristic(ref float lastVal, ref long lastUpdate, int numEvents=0, bool update=false) {
+        public float IterateEventHeuristic(ref float lastVal, ref long lastUpdate, int numEvents = 0, bool update = false) {
             long curMs = RuntimeWatch.ElapsedMilliseconds;
             long cutoffMs = curMs - HeuristicSampleWindow;
             float newVal = (((lastUpdate < cutoffMs) ? 0 : (lastVal * (lastUpdate - cutoffMs) / 1000f)) + numEvents) / HeuristicSampleWindow * 1000f;

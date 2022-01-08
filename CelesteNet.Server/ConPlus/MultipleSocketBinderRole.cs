@@ -26,10 +26,12 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public ProtocolType Protocol { get; }
         public EndPoint EndPoint { get; }
+        public bool IPv6Only { get; }
 
-        protected MultipleSocketBinderRole(NetPlusThreadPool pool, ProtocolType protocol, EndPoint endPoint) : base(pool) {
+        protected MultipleSocketBinderRole(NetPlusThreadPool pool, ProtocolType protocol, EndPoint endPoint, bool ipv6Only=false) : base(pool) {
             Protocol = protocol;
             EndPoint = endPoint;
+            IPv6Only = ipv6Only;
         }
 
         protected virtual Socket CreateSocket() {
@@ -41,7 +43,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     ProtocolType.Udp => SocketType.Dgram,
                     _ => throw new InvalidOperationException($"Unknown protocol type {Protocol}")
                 }, Protocol);
-                socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+                socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, IPv6Only);
                 if (MaxThreads > 1)
                     socket.EnableEndpointReuse();
 

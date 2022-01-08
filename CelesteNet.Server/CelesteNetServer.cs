@@ -167,7 +167,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Channels.Start();
 
-            IPEndPoint serverEP = new(IPAddress.IPv6Any, Settings.MainPort);
             CelesteNetTCPUDPConnection.Settings tcpUdpConSettings = new() {
                 MaxPacketSize = Settings.MaxPacketSize,
                 MaxQueueSize = Settings.MaxQueueSize,
@@ -181,12 +180,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                 UDPDeathScoreMax = Settings.UDPDeathScoreMax
             };
 
-            Logger.Log(LogLevel.INF, "server", $"Starting server on {serverEP}");
+            Logger.Log(LogLevel.INF, "server", $"Starting server on port {Settings.MainPort}");
             ThreadPool.Scheduler.AddRole(new HandshakerRole(ThreadPool, this));
-            ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, serverEP));
+            ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort)));
             ThreadPool.Scheduler.AddRole(new TCPReceiverRole(ThreadPool, this, (PlatformHelper.Is(MonoMod.Utils.Platform.Linux) && Settings.TCPRecvUseEPoll) ? new TCPEPollPoller() : new TCPFallbackPoller()));
-            ThreadPool.Scheduler.AddRole(new UDPReceiverRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()?.UDPSocket));
-            ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!, tcpUdpConSettings));
+            ThreadPool.Scheduler.AddRole(new UDPReceiverRole(ThreadPool, this, new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort), ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()?.UDPSocket));
+            ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, new IPEndPoint(IPAddress.Any, Settings.MainPort), ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!, tcpUdpConSettings));
+            ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, new IPEndPoint(IPAddress.IPv6Any, Settings.MainPort), ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!, tcpUdpConSettings));
 
             HeartbeatTimer.Start();
             CurrentTickRate = NextTickRate = Settings.MaxTickRate;

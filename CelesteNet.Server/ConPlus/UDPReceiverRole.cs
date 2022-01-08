@@ -81,6 +81,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         // Handle the UDP datagram
                         con.HandleUDPDatagram(dgBuffer, dgSize);
                     } catch (Exception e) {
+                        Role.Server.PacketDumper.DumpPacket(con, PacketDumper.TransportType.UDP, $"Exception while reading: {e}", dgBuffer, 0, dgSize);
                         Logger.Log(LogLevel.WRN, "udprecv", $"Error while reading from connection {con}: {e}");
                         con.DecreaseUDPScore(reason: "Error while reading from connection");
                     }

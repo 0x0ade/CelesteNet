@@ -120,22 +120,30 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void TCPRecvThreadFunc() {
             try {
-                byte[] packetBuffer = new byte[ConnectionSettings.MaxPacketSize];
-                using BinaryReader tcpReader = new(TCPStream, Encoding.UTF8, true);
+                byte[] packetBuffer = new byte[2+ConnectionSettings.MaxPacketSize];
+                void ReadCount(int off, int numBytes) {
+                    while (numBytes > 0) {
+                        int count = TCPStream.Read(packetBuffer, off, numBytes);
+                        if (count <= 0)
+                            throw new EndOfStreamException();
+                        off += count;
+                        numBytes -= count;
+                    }
+                }
                 while (!TokenSrc.IsCancellationRequested) {
                     // Read the packet
-                    ushort packetSize = tcpReader.ReadUInt16();
+                    ReadCount(0, 2);
+                    ushort packetSize = BitConverter.ToUInt16(packetBuffer, 0);
                     if (packetSize > ConnectionSettings.MaxPacketSize)
                         throw new InvalidDataException("Peer sent packet over maximum size");
-                    if (tcpReader.Read(packetBuffer, 0, packetSize) < packetSize)
-                        throw new EndOfStreamException();
+                    ReadCount(2, packetSize);
 
                     // Let the connection now we got a TCP heartbeat
                     TCPHeartbeat();
 
                     // Read the packet
                     DataType packet;
-                    using (MemoryStream packetStream = new(packetBuffer, 0, packetSize))
+                    using (MemoryStream packetStream = new(packetBuffer, 2, packetSize))
                     using (CelesteNetBinaryReader packetReader = new(Data, Strings, CoreTypeMap, packetStream))
                         packet = Data.Read(packetReader);
 

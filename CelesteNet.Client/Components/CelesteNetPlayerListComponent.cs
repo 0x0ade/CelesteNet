@@ -20,6 +20,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public readonly Color ColorChannelHeaderOwn = Calc.HexToColor("FFFF77");
         public readonly Color ColorChannelHeaderPrivate = Calc.HexToColor("DDDD88") * 0.6f;
 
+        public readonly Color[] ColorChapters = new Color[] {
+            Calc.HexToColor("FF0000"),
+            Calc.HexToColor("FF1111"),
+            Calc.HexToColor("FF2222"),
+            Calc.HexToColor("FF3333"),
+            Calc.HexToColor("FF4444"),
+            Calc.HexToColor("FF5555"),
+            Calc.HexToColor("FF6666"),
+            Calc.HexToColor("FF7777"),
+            Calc.HexToColor("FF8888"),
+            Calc.HexToColor("FF9999"),
+        };
+
         public bool Active;
 
         private List<Blob> List = new();
@@ -32,6 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public enum ListMode {
             Channels,
             Classic,
+            CompactChannels
         }
 
         public CelesteNetPlayerListComponent(CelesteNetClientContext context, Game game)
@@ -49,12 +63,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             List<Blob> list = new() {
                 new Blob {
-                    Text = $"{all.Length} player{(all.Length == 1 ? "" : "s")}",
+                    DisplayName = $"{all.Length} player{(all.Length == 1 ? "" : "s")}",
                     Color = ColorCountHeader
                 }
             };
-
-            StringBuilder builder = new();
 
 
             switch (Mode) {
@@ -63,45 +75,45 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         if (string.IsNullOrWhiteSpace(player.DisplayName))
                             continue;
 
-                        builder.Append(player.DisplayName);
+                        Blob blob = new();
+
+                        // TODO: Figure out proper way to get Avatar by itself?
+                        // Player only has Name/FullName/DisplayName... with Avatar in the latter :(
+                        blob.DisplayName = player.DisplayName;
 
                         DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
                         if (channel != null && !string.IsNullOrEmpty(channel.Name)) {
-                            builder
-                                .Append(" #")
-                                .Append(channel.Name);
+                            blob.DisplayName += $" #{channel.Name}";
                         }
 
                         if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                            AppendState(builder, state);
+                            GetState(blob, state);
 
-                        builder.AppendLine();
+                        list.Add(blob);
                     }
 
-                    list.Add(new() {
-                        Text = builder.ToString().Trim(),
-                        ScaleFactor = 1f
-                    });
                     break;
 
                 case ListMode.Channels:
+                case ListMode.CompactChannels:
                     HashSet<DataPlayerInfo> listed = new();
 
                     DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
                     if (own != null) {
                         list.Add(new() {
-                            Text = own.Name,
+                            DisplayName = own.Name,
                             Color = ColorChannelHeaderOwn
                         });
 
-                        builder.Clear();
-                        foreach (DataPlayerInfo player in own.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p)))
-                            listed.Add(ListPlayerUnderChannel(builder, player));
-                        list.Add(new() {
-                            Text = builder.ToString().Trim(),
-                            ScaleFactor = 0.5f
-                        });
+                        foreach (DataPlayerInfo player in own.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
+                            Blob blob = new() { ScaleFactor = 0.5f };
+                            listed.Add(ListPlayerUnderChannel(blob, player));
+
+                            if (Mode == ListMode.CompactChannels)
+                                blob.Location = "";
+                            list.Add(blob);
+                        }
                     }
 
                     foreach (DataChannelList.Channel channel in Channels.List) {
@@ -109,22 +121,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             continue;
 
                         list.Add(new() {
-                            Text = channel.Name,
+                            DisplayName = channel.Name,
                             Color = ColorChannelHeader
                         });
 
-                        builder.Clear();
-                        foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p)))
-                            listed.Add(ListPlayerUnderChannel(builder, player));
-                        list.Add(new() {
-                            Text = builder.ToString().Trim(),
-                            ScaleFactor = 1f
-                        });
+                        foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
+                            Blob blob = new();
+                            listed.Add(ListPlayerUnderChannel(blob, player));
+
+                            if (Mode == ListMode.CompactChannels)
+                                blob.Location = "";
+                            list.Add(blob);
+                        }
                     }
 
                     bool wrotePrivate = false;
 
-                    builder.Clear();
                     foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
                         if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
                             continue;
@@ -132,20 +144,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         if (!wrotePrivate) {
                             wrotePrivate = true;
                             list.Add(new() {
-                                Text = "!<private>",
+                                DisplayName = "!<private>",
                                 Color = ColorChannelHeaderPrivate
                             });
                         }
 
-                        builder.AppendLine(player.DisplayName);
-                    }
-
-                    if (wrotePrivate) {
                         list.Add(new() {
-                            Text = builder.ToString().Trim(),
-                            ScaleFactor = 1f
+                            DisplayName = player.DisplayName
                         });
                     }
+
                     break;
             }
 
@@ -168,35 +176,43 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return null;
         }
 
-        private DataPlayerInfo ListPlayerUnderChannel(StringBuilder builder, DataPlayerInfo player) {
+        private DataPlayerInfo ListPlayerUnderChannel(Blob blob, DataPlayerInfo player) {
             if (player != null) {
-                builder
-                    .Append(player.DisplayName);
+                blob.DisplayName = player.DisplayName;
 
                 if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                    AppendState(builder, state);
+                    GetState(blob, state);
 
-                builder.AppendLine();
                 return player;
 
             } else {
-                builder.AppendLine("?");
+                blob.DisplayName = "?";
                 return null;
             }
         }
 
-        private void AppendState(StringBuilder builder, DataPlayerState state) {
-            if (!string.IsNullOrWhiteSpace(state.SID))
+        private void GetState(Blob blob, DataPlayerState state) {
+            StringBuilder builder = new StringBuilder();
+
+            if (!string.IsNullOrWhiteSpace(state.SID)) {
+                string chapter = AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID;
+
+                if (!Emoji.TryGet(chapter.ToLowerInvariant().Replace(' ', '_'), out char chaptericon))
+                    chaptericon = '\0';
+
+                blob.LocationIcon = chaptericon.ToString();
+
                 builder
-                    .Append(" @ ")
-                    .Append(AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID)
+                    .Append(chapter)
                     .Append(" ")
                     .Append((char) ('A' + (int) state.Mode))
                     .Append(" ")
                     .Append(state.Level);
+            }
 
-            if (state.Idle)
-                builder.Append(" :celestenet_idle:");
+            blob.Idle = state.Idle;
+
+            blob.Location = builder.ToString();
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
@@ -277,19 +293,54 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Context.RenderHelper.Rect(25f * scale, y - 25f * scale, sizeAll.X + 50f * scale, sizeAll.Y + 40f * scale, Color.Black * 0.8f);
 
             foreach (Blob blob in list) {
+                string display = string.Join(" ",
+                    new List<string>() {
+                        blob.DisplayIcon,
+                        blob.DisplayName,
+                        blob.IdleIcon
+                    }.Where(item => !string.IsNullOrEmpty(item)));
+
                 CelesteNetClientFont.Draw(
-                    blob.Text,
+                    display,
                     new(50f * scale, y + blob.DynY),
                     Vector2.Zero,
                     new(blob.DynScale, blob.DynScale),
                     blob.Color
                 );
+
+                if (!string.IsNullOrEmpty(blob.Location) || !string.IsNullOrEmpty(blob.LocationIcon)) {
+                    CelesteNetClientFont.Draw(
+                        blob.Location + " " + blob.LocationIcon,
+                        new(50f * scale + sizeAll.X, y + blob.DynY),
+                        Vector2.UnitX,
+                        new(blob.DynScale, blob.DynScale),
+                        blob.Color
+                    );
+                }
             }
 
         }
 
         public class Blob {
-            public string Text = "";
+            public string Text {
+                get {
+                    return string.Join(" ", 
+                        new List<string>() { 
+                            DisplayIcon, 
+                            DisplayName, 
+                            IdleIcon, 
+                            Location, 
+                            LocationIcon 
+                        }.Where(item => !string.IsNullOrEmpty(item)));
+                }
+            }
+
+            public string DisplayName = "";
+            public string DisplayIcon = "";
+            public string Location = "";
+            public string LocationIcon = "";
+            public string IdleIcon => Idle ? ":celestenet_idle:" : "";
+            public bool Idle;
             public Color Color = Color.White;
             public float ScaleFactor = 0f;
             public float DynY;

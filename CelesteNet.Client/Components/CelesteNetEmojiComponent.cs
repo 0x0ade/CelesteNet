@@ -20,11 +20,61 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public HashSet<string> Registered = new();
         public HashSet<string> RegisteredFiles = new();
 
+        protected readonly string[] DefaultEmoji = 
+        { 
+            "strawberry=i:collectables/strawberry", 
+            "heart=i:collectables/heartgem/0/spin", 
+            "feather=i:feather/feather", 
+            "forsaken_city=i:areas/city",
+            "old_site=i:areas/oldsite",
+            "celestial_resort=i:areas/resort",
+            "golden_ridge=i:areas/cliffside",
+            "mirror_temple=i:areas/temple",
+            "reflection=i:areas/reflection", 
+            "the_summit=i:areas/Summit",
+            "core=i:areas/core",
+            "farewell=i:areas/farewell",
+            "intro=i:areas/intro"
+        };
+        protected List<MTexture> DefaultEmojiIcons = new();
+
         public CelesteNetEmojiComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;
             Visible = false;
+        }
+
+        public override void Init() {
+            base.Init();
+
+            RunOnMainThread(() => {
+                foreach (string emoji in DefaultEmoji) {
+
+                    string[] emoji_parts = emoji.Split('=');
+
+                    string emoji_name = emoji_parts.Length > 0 ? emoji_parts[0] : emoji;
+                    string emoji_icon = emoji_parts.Length > 1 ? emoji_parts[1] : emoji;
+
+                    Logger.Log(LogLevel.VVV, "netemoji", $"Registering {emoji_icon} as {emoji_name}");
+
+                    MTexture icon = GhostEmote.GetIcon(emoji_icon, 0.0f);
+
+                    if (icon != null && icon.Texture?.Texture_Safe != null) {
+                        icon = new(icon.Parent, icon.ClipRect);
+                        icon.ScaleFix = 64.0f/icon.ClipRect.Height;
+
+                        DefaultEmojiIcons.Add(icon);
+
+                        Emoji.Register(emoji_name, icon);
+                    }
+
+                    if (!Emoji.TryGet(emoji_name, out char _)) {
+                        Logger.Log(LogLevel.VVV, "netemoji", $"Could not get {emoji_name} emoji.");
+                    }
+                }
+                Emoji.Fill(CelesteNetClientFont.Font);
+            });
         }
 
         public void Handle(CelesteNetConnection con, DataNetEmoji netemoji) {

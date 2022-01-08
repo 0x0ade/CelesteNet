@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override int MinThreads => 1;
-        public override int MaxThreads => MonoMod.Utils.PlatformHelper.Is(MonoMod.Utils.Platform.Linux) ? int.MaxValue : 1;
+        public override int MaxThreads => int.MaxValue;
 
         public ProtocolType Protocol { get; }
         public EndPoint EndPoint { get; }
@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (EndPoint.AddressFamily == AddressFamily.InterNetworkV6)
                     socket.DualMode = true;
                 if (MaxThreads > 1)
-                    socket.EnableEndpointReuse();
+                    socket.ExclusiveAddressUse = false;
 
                 // Bind the socket
                 socket.Bind(EndPoint);

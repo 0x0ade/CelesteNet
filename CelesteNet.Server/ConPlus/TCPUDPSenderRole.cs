@@ -216,7 +216,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             UDPMetricsLock = new();
             UDPSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
             UDPSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
-            UDPSocket.EnableEndpointReuse();
+            UDPSocket.ExclusiveAddressUse = false;
             UDPSocket.Bind(udpEP);
         }
 

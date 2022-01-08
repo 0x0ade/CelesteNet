@@ -116,6 +116,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 IPAddress[] addresses = Dns.GetHostAddresses(Settings.Host);
                                 Tuple<uint, IConnectionFeature[], CelesteNetTCPUDPConnection.Settings> teapotRes = null;
 
+                                foreach (Socket sockTry in sockAll)
+                                    Logger.Log(LogLevel.DBG, "main", $"... with socket type {sockTry.AddressFamily}");
+
+                                foreach (IPAddress address in addresses)
+                                    Logger.Log(LogLevel.DBG, "main", $"... to address {address} ({address.AddressFamily})");
+
                                 // Try IPv6 first if possible, then try IPv4.
                                 foreach (Socket sockTry in sockAll) {
                                     foreach (IPAddress address in addresses) {
@@ -127,14 +133,19 @@ namespace Celeste.Mod.CelesteNet.Client {
                                             sock.Connect(address, Settings.Port);
                                             // Do the teapot handshake here, as a successful "connection" doesn't mean that the server can handle IPv6.
                                             teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
+                                            Logger.Log(LogLevel.INF, "main", $"Connecting to {address} ({address.AddressFamily}) succeeded");
                                             break;
                                         } catch (Exception e) {
+                                            Logger.Log(LogLevel.INF, "main", $"Connecting to {address} ({address.AddressFamily}) failed: {e.GetType()}: {e.Message}");
+                                            sock?.ShutdownSafe(SocketShutdown.Both);
                                             sock = null;
                                             teapotRes = null;
                                             sockEx = e;
                                             continue;
                                         }
                                     }
+                                    if (sock != null)
+                                        break;
                                 }
 
                                 // Cleanup all non-used sockets.

@@ -70,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             UDPReceiverRole udpReceiver,
             TCPUDPSenderRole sender,
             CelesteNetTCPUDPConnection.Settings conSettings
-        ) : base(pool, ProtocolType.Tcp, endPoint, true) {
+        ) : base(pool, ProtocolType.Tcp, endPoint) {
             Server = server;
             Handshaker = handshaker;
             TCPReceiver = tcpReceiver;

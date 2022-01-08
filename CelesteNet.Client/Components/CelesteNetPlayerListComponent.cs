@@ -126,7 +126,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         });
 
                         foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
-                            Blob blob = new();
+                            Blob blob = new() { ScaleFactor = 1f };
                             listed.Add(ListPlayerUnderChannel(blob, player));
 
                             if (Mode == ListMode.CompactChannels)
@@ -150,7 +150,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         }
 
                         list.Add(new() {
-                            DisplayName = player.DisplayName
+                            DisplayName = player.DisplayName,
+                            ScaleFactor = 1f
                         });
                     }
 

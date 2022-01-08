@@ -56,17 +56,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     string emoji_name = emoji_parts.Length > 0 ? emoji_parts[0] : emoji;
                     string emoji_icon = emoji_parts.Length > 1 ? emoji_parts[1] : emoji;
 
-                    Logger.Log(LogLevel.VVV, "netemoji", $"Registering {emoji_icon} as {emoji_name}");
+                    Logger.Log(LogLevel.VVV, "netemoji", $"Registering {emoji_icon} as {emoji_name} at size 64");
 
                     MTexture icon = GhostEmote.GetIcon(emoji_icon, 0.0f);
 
                     if (icon != null && icon.Texture?.Texture_Safe != null) {
                         icon = new(icon.Parent, icon.ClipRect);
-                        icon.ScaleFix = 64.0f/icon.ClipRect.Height;
 
                         DefaultEmojiIcons.Add(icon);
 
-                        Emoji.Register(emoji_name, icon);
+                        Emoji.Register(emoji_name, icon, 64);
                     }
 
                     if (!Emoji.TryGet(emoji_name, out char _)) {

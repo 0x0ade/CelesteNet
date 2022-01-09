@@ -310,16 +310,17 @@ namespace Celeste.Mod.CelesteNet.Server {
                     TCPSendPacketWriter.Flush();
                     TCPSendBufferStream.Position = origPos + 2 + packLen;
 
-                    // Update connection metrics and check if we hit the connection cap
-                    TCPSendRate.UpdateRate(2 + packLen, 1);
-                    if (TCPSendCapped)
-                        break;
-
+                    // Update metadata
                     TCPSendBufferNumBytes += 2 + packLen;
                     TCPSendBufferNumPackets++;
 
                     if (packet is not DataLowLevelKeepAlive)
                         SurpressTCPKeepAlives();
+
+                    // Update connection metrics and check if we hit the connection cap
+                    TCPSendRate.UpdateRate(2 + packLen, 1);
+                    if (TCPSendCapped)
+                        break;
                 }
 
                 // Set the queue delay

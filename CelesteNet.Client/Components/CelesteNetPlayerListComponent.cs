@@ -69,12 +69,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
 
             List<Blob> list = new() {
-                new Blob {
+                new() {
                     Name = $"{all.Length} player{(all.Length == 1 ? "" : "s")}",
                     Color = ColorCountHeader
                 }
             };
 
+            DataChannelList.Channel ownChannel = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
             switch (ListMode) {
                 case ListModes.Classic:
@@ -82,13 +83,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         if (string.IsNullOrWhiteSpace(player.DisplayName))
                             continue;
 
-                        BlobPlayer blob = new();
+                        BlobPlayer blob = new() {
+                            Name = player.DisplayName
+                        };
 
-                        blob.Name = player.DisplayName;
-
-                        DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
-                        if (channel != null && !string.IsNullOrEmpty(channel.Name)) {
-                            blob.Name += $" #{channel.Name}";
+                        if (ownChannel != null && !string.IsNullOrEmpty(ownChannel.Name)) {
+                            blob.Name += $" #{ownChannel.Name}";
                         }
 
                         if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
@@ -102,15 +102,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case ListModes.Channels:
                     HashSet<DataPlayerInfo> listed = new();
 
-                    DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
-
-                    if (own != null) {
+                    if (ownChannel != null) {
                         list.Add(new() {
-                            Name = own.Name,
+                            Name = ownChannel.Name,
                             Color = ColorChannelHeaderOwn
                         });
 
-                        foreach (DataPlayerInfo player in own.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
+                        foreach (DataPlayerInfo player in ownChannel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
                             BlobPlayer blob = new() { ScaleFactor = 0.5f };
                             listed.Add(ListPlayerUnderChannel(blob, player));
                             list.Add(blob);
@@ -118,7 +116,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     }
 
                     foreach (DataChannelList.Channel channel in Channels.List) {
-                        if (channel == own)
+                        if (channel == ownChannel)
                             continue;
 
                         list.Add(new() {
@@ -222,12 +220,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 AreaData area = AreaDataExt.Get(state.SID);
                 string chapter = area?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID;
 
+                blob.Location.Color = DefaultLevelColor;
                 if (area?.LevelSet == "Celeste") {
-                    blob.Location.Color = DefaultLevelColor;
                     blob.Location.TitleColor = Color.Lerp(area?.CassseteNoteColor ?? Color.White, DefaultLevelColor, 0.5f);
                     blob.Location.AccentColor = Color.Lerp(area?.TitleAccentColor ?? Color.White, DefaultLevelColor, 0.5f);
                 } else {
-                    blob.Location.Color = DefaultLevelColor;
                     blob.Location.TitleColor = Color.Lerp(area?.TitleAccentColor ?? Color.White, DefaultLevelColor, 0.5f);
                     blob.Location.AccentColor = Color.Lerp(area?.TitleBaseColor ?? Color.White, DefaultLevelColor, 0.5f);
                 }
@@ -240,7 +237,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (blob.Location.IsRandomizer || area == null) {
                     blob.Location.Icon = "";
-
                 } else {
                     blob.Location.Icon = area?.Icon ?? "";
 

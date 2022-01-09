@@ -19,19 +19,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public readonly Color ColorChannelHeader = Calc.HexToColor("DDDD88");
         public readonly Color ColorChannelHeaderOwn = Calc.HexToColor("FFFF77");
         public readonly Color ColorChannelHeaderPrivate = Calc.HexToColor("DDDD88") * 0.6f;
-
-        public readonly Color[] ColorChapters = new Color[] {
-            Calc.HexToColor("FF0000"),
-            Calc.HexToColor("FF1111"),
-            Calc.HexToColor("FF2222"),
-            Calc.HexToColor("FF3333"),
-            Calc.HexToColor("FF4444"),
-            Calc.HexToColor("FF5555"),
-            Calc.HexToColor("FF6666"),
-            Calc.HexToColor("FF7777"),
-            Calc.HexToColor("FF8888"),
-            Calc.HexToColor("FF9999"),
-        };
+        public static readonly Color DefaultLevelColor = Color.LightGray;
 
         public bool Active;
 
@@ -63,7 +51,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             List<Blob> list = new() {
                 new Blob {
-                    DisplayName = $"{all.Length} player{(all.Length == 1 ? "" : "s")}",
+                    Name = $"{all.Length} player{(all.Length == 1 ? "" : "s")}",
                     Color = ColorCountHeader
                 }
             };
@@ -75,15 +63,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         if (string.IsNullOrWhiteSpace(player.DisplayName))
                             continue;
 
-                        Blob blob = new();
+                        BlobPlayer blob = new();
 
                         // TODO: Figure out proper way to get Avatar by itself?
                         // Player only has Name/FullName/DisplayName... with Avatar in the latter :(
-                        blob.DisplayName = player.DisplayName;
+                        blob.Name = player.DisplayName;
 
                         DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
                         if (channel != null && !string.IsNullOrEmpty(channel.Name)) {
-                            blob.DisplayName += $" #{channel.Name}";
+                            blob.Name += $" #{channel.Name}";
                         }
 
                         if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
@@ -102,16 +90,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     if (own != null) {
                         list.Add(new() {
-                            DisplayName = own.Name,
+                            Name = own.Name,
                             Color = ColorChannelHeaderOwn
                         });
 
                         foreach (DataPlayerInfo player in own.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
-                            Blob blob = new() { ScaleFactor = 0.5f };
+                            BlobPlayer blob = new() { ScaleFactor = 0.5f };
                             listed.Add(ListPlayerUnderChannel(blob, player));
 
-                            if (Mode == ListMode.CompactChannels)
-                                blob.Location = "";
+                            if (Mode == ListMode.CompactChannels) {
+                                blob.Location.Name = "";
+                                blob.Location.Side = "";
+                                blob.Location.Level = "";
+                            }
                             list.Add(blob);
                         }
                     }
@@ -121,16 +112,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             continue;
 
                         list.Add(new() {
-                            DisplayName = channel.Name,
+                            Name = channel.Name,
                             Color = ColorChannelHeader
                         });
 
                         foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
-                            Blob blob = new() { ScaleFactor = 1f };
+                            BlobPlayer blob = new() { ScaleFactor = 1f };
                             listed.Add(ListPlayerUnderChannel(blob, player));
 
-                            if (Mode == ListMode.CompactChannels)
-                                blob.Location = "";
+                            if (Mode == ListMode.CompactChannels) {
+                                blob.Location.Name = "";
+                                blob.Location.Side = "";
+                                blob.Location.Level = "";
+                            }
                             list.Add(blob);
                         }
                     }
@@ -144,13 +138,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         if (!wrotePrivate) {
                             wrotePrivate = true;
                             list.Add(new() {
-                                DisplayName = "!<private>",
+                                Name = "!<private>",
                                 Color = ColorChannelHeaderPrivate
                             });
                         }
 
                         list.Add(new() {
-                            DisplayName = player.DisplayName,
+                            Name = player.DisplayName,
                             ScaleFactor = 1f
                         });
                     }
@@ -177,9 +171,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return null;
         }
 
-        private DataPlayerInfo ListPlayerUnderChannel(Blob blob, DataPlayerInfo player) {
+        private DataPlayerInfo ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo player) {
             if (player != null) {
-                blob.DisplayName = player.DisplayName;
+                blob.Name = player.DisplayName;
 
                 if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
                     GetState(blob, state);
@@ -187,33 +181,33 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return player;
 
             } else {
-                blob.DisplayName = "?";
+                blob.Name = "?";
                 return null;
             }
         }
 
-        private void GetState(Blob blob, DataPlayerState state) {
-            StringBuilder builder = new StringBuilder();
+        private void GetState(BlobPlayer blob, DataPlayerState state) {
 
             if (!string.IsNullOrWhiteSpace(state.SID)) {
-                string chapter = AreaDataExt.Get(state.SID)?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID;
+                AreaData area = AreaDataExt.Get(state.SID);
+                string chapter = area?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID;
+                char chaptericon = '\0';
 
-                if (!Emoji.TryGet(chapter.ToLowerInvariant().Replace(' ', '_'), out char chaptericon))
-                    chaptericon = '\0';
+                if (area?.LevelSet == "Celeste") {
+                    Emoji.TryGet(chapter.ToLowerInvariant().Replace(' ', '_'), out chaptericon);
+                    blob.Location.Color = DefaultLevelColor;
+                    blob.Location.TitleColor = Color.Lerp(area.CassseteNoteColor, DefaultLevelColor, 0.5f);
+                    blob.Location.AccentColor = Color.Lerp(area.TitleAccentColor, DefaultLevelColor, 0.5f);
+                }
 
-                blob.LocationIcon = chaptericon.ToString();
+                blob.Location.Icon = chaptericon.ToString();
 
-                builder
-                    .Append(chapter)
-                    .Append(" ")
-                    .Append((char) ('A' + (int) state.Mode))
-                    .Append(" ")
-                    .Append(state.Level);
+                blob.Location.Name = chapter;
+                blob.Location.Side = ((char)('A' + (int) state.Mode)).ToString();
+                blob.Location.Level = state.Level;
             }
 
             blob.Idle = state.Idle;
-
-            blob.Location = builder.ToString();
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
@@ -280,7 +274,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             foreach (Blob blob in list) {
                 blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
                 blob.DynY = sizeAll.Y;
-                Vector2 size = CelesteNetClientFont.Measure(blob.Text) * blob.DynScale;
+                Vector2 size = CelesteNetClientFont.Measure((blob as BlobPlayer)?.Text ?? blob.Text) * blob.DynScale;
+                // insert extra space for the idle icon on non-idle players too.
+                if(blob is BlobPlayer p && !p.Idle)
+                    size.X += CelesteNetClientFont.Measure(BlobPlayer.IdleIconCode + " ").X * blob.DynScale;
                 sizeAll.X = Math.Max(sizeAll.X, size.X);
                 sizeAll.Y += size.Y + 10f * scale;
 
@@ -294,26 +291,62 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Context.RenderHelper.Rect(25f * scale, y - 25f * scale, sizeAll.X + 50f * scale, sizeAll.Y + 40f * scale, Color.Black * 0.8f);
 
             foreach (Blob blob in list) {
-                string display = string.Join(" ",
-                    new List<string>() {
-                        blob.DisplayIcon,
-                        blob.DisplayName,
-                        blob.IdleIcon
-                    }.Where(item => !string.IsNullOrEmpty(item)));
+                Vector2 blobDynScale = new(blob.DynScale, blob.DynScale);
 
-                CelesteNetClientFont.Draw(
-                    display,
-                    new(50f * scale, y + blob.DynY),
-                    Vector2.Zero,
-                    new(blob.DynScale, blob.DynScale),
-                    blob.Color
-                );
+                if (blob is BlobPlayer player) {
 
-                if (!string.IsNullOrEmpty(blob.Location) || !string.IsNullOrEmpty(blob.LocationIcon)) {
+                    string playerinfo = string.Join(" ",
+                        new List<string>() {
+                        player.Icon,
+                        player.Name,
+                        player.IdleIcon
+                        }.Where(item => !string.IsNullOrEmpty(item)));
+
                     CelesteNetClientFont.Draw(
-                        blob.Location + " " + blob.LocationIcon,
-                        new(50f * scale + sizeAll.X, y + blob.DynY),
-                        Vector2.UnitX,
+                        playerinfo,
+                        new(50f * scale, y + blob.DynY),
+                        Vector2.Zero,
+                        blobDynScale,
+                        player.Color
+                    );
+
+
+                    if (!string.IsNullOrEmpty(player.Location.Name) || !string.IsNullOrEmpty(player.Location.Icon)) {
+                        // Organizing the different parts with their respective colors
+                        List<Tuple<string, Color>> location = new() 
+                        {
+                            new(player.Location.Level, player.Location.Color),
+                            new(":",        Color.Lerp(player.Location.Color, Color.Black, 0.5f)),
+                            new(player.Location.Name,  player.Location.TitleColor),
+                            new(player.Location.Side,  player.Location.AccentColor),
+                            new(player.Location.Icon,  player.Location.Color)
+                        };
+                        // Rendering Location bits right-to-left, hence the Reverse and the justify = Vector2.UnitX
+                        location.Reverse();
+
+                        float x = sizeAll.X;
+                        foreach (Tuple<string, Color> t in location) {
+                            CelesteNetClientFont.Draw(
+                                t.Item1,
+                                new(50f * scale + x, y + player.DynY),
+                                Vector2.UnitX,
+                                blobDynScale,
+                                t.Item2
+                            );
+                            x -= CelesteNetClientFont.Measure(t.Item1 + " ").X * player.DynScale;
+                        }
+                    }
+                } else {
+                    string blobinfo = string.Join(" ",
+                        new List<string>() {
+                                            blob.Icon,
+                                            blob.Name
+                        }.Where(item => !string.IsNullOrEmpty(item)));
+
+                    CelesteNetClientFont.Draw(
+                        blobinfo,
+                        new(50f * scale, y + blob.DynY),
+                        Vector2.Zero,
                         new(blob.DynScale, blob.DynScale),
                         blob.Color
                     );
@@ -327,25 +360,56 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 get {
                     return string.Join(" ", 
                         new List<string>() { 
-                            DisplayIcon, 
-                            DisplayName, 
-                            IdleIcon, 
-                            Location, 
-                            LocationIcon 
+                            Icon, 
+                            Name
                         }.Where(item => !string.IsNullOrEmpty(item)));
                 }
             }
 
-            public string DisplayName = "";
-            public string DisplayIcon = "";
-            public string Location = "";
-            public string LocationIcon = "";
-            public string IdleIcon => Idle ? ":celestenet_idle:" : "";
-            public bool Idle;
+            public string Name = "";
+            public string Icon = "";
             public Color Color = Color.White;
             public float ScaleFactor = 0f;
             public float DynY;
             public float DynScale;
+        }
+
+        public class BlobPlayer : Blob {
+            public new string Text {
+                get {
+                    return string.Join(" ",
+                        new List<string>() {
+                            Icon,
+                            Name,
+                            IdleIcon,
+                            Location.Text
+                        }.Where(item => !string.IsNullOrEmpty(item)));
+                }
+            }
+            public BlobLocation Location = new();
+            public static readonly string IdleIconCode = ":celestenet_idle:";
+            public string IdleIcon => Idle ? IdleIconCode : "";
+            public bool Idle;
+
+        }
+
+            public class BlobLocation : Blob {
+            public new string Text {
+                get {
+                    return string.Join(" ",
+                        new List<string>() {
+                            Name,
+                            Side,
+                            Level,
+                            Icon
+                        }.Where(item => !string.IsNullOrEmpty(item)));
+                }
+            }
+            public string Side = "";
+            public string Level = "";
+            public new Color Color = DefaultLevelColor;
+            public Color TitleColor = DefaultLevelColor;
+            public Color AccentColor = DefaultLevelColor;
         }
 
     }

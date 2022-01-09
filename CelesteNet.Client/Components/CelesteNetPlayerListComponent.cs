@@ -160,7 +160,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return "9";
 
             if (Client.Data.TryGetBoundRef(player, out DataPlayerState state) && !string.IsNullOrEmpty(state?.SID))
-                return $"0 {(state.SID != null ? "0" + state.SID : "9")} {player.FullName}";
+                return $"0 {"0" + state.SID + (int) state.Mode} {player.FullName}";
 
             return $"8 {player.FullName}";
         }
@@ -204,12 +204,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 blob.Location.Icon = area?.Icon ?? "";
 
-                string[] areaPath = state.SID.Split('/');
-                if (areaPath.Length >= 3) {
-                    AreaData lobby = AreaDataExt.Get(areaPath[0] + "/0-Lobbies/" + areaPath[1]);
-                    if (lobby?.Icon != null)
-                        blob.Location.Icon = lobby.Icon;
+                string lobbySID = area?.GetMeta()?.Parent;
+                AreaData lobby = string.IsNullOrEmpty(lobbySID) ? null : AreaDataExt.Get(lobbySID);
+                if (lobby == null) {
+                    // fallback on string hacks
+                    string[] areaPath = state.SID.Split('/');
+                    if (areaPath.Length >= 3) {
+                        lobby = AreaDataExt.Get(areaPath[0] + "/0-Lobbies/" + areaPath[1]);
+                    }
                 }
+
+                if (lobby?.Icon != null)
+                    blob.Location.Icon = lobby.Icon;
 
                 blob.Location.Name = chapter;
                 blob.Location.Side = ((char)('A' + (int) state.Mode)).ToString();
@@ -371,7 +377,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         // Rendering Location bits right-to-left, hence the Reverse and the justify = Vector2.UnitX
                         location.Reverse();
 
-                        float x = sizeAll.X - 64f * blobDynScale.X;
+                        float x = sizeAll.X - (GFX.Gui.Has(player.Location.Icon) ? 64f : 0f) * blobDynScale.X;
                         foreach (Tuple<string, Color> t in location) {
                             CelesteNetClientFont.Draw(
                                 t.Item1,

@@ -13,6 +13,8 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetPlayerListComponent : CelesteNetGameComponent {
 
+        public static event Action<BlobPlayer, DataPlayerState> OnGetState;
+
         public float Scale => Settings.UIScale;
 
         public readonly Color ColorCountHeader = Calc.HexToColor("FFFF77");
@@ -20,6 +22,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public readonly Color ColorChannelHeaderOwn = Calc.HexToColor("FFFF77");
         public readonly Color ColorChannelHeaderPrivate = Calc.HexToColor("DDDD88") * 0.6f;
         public static readonly Color DefaultLevelColor = Color.LightGray;
+
+        private static readonly char[] RandomizerEndTrimChars = "_0123456789".ToCharArray();
 
         public bool Active;
 
@@ -241,15 +245,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     blob.Location.Icon = area?.Icon ?? "";
 
                     string lobbySID = area?.GetMeta()?.Parent;
-                    AreaData lobby = string.IsNullOrEmpty(lobbySID) ? null : AreaDataExt.Get(lobbySID);
-                    if (lobby == null) {
-                        // fallback on string hacks
-                        string[] areaPath = state.SID.Split('/');
-                        if (areaPath.Length >= 3) {
-                            lobby = AreaDataExt.Get(areaPath[0] + "/0-Lobbies/" + areaPath[1]);
-                        }
-                    }
-
+                    AreaData lobby = string.IsNullOrEmpty(lobbySID) ? null : AreaData.Get(lobbySID);
                     if (lobby?.Icon != null)
                         blob.Location.Icon = lobby.Icon;
                 }
@@ -258,6 +254,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             blob.Idle = state.Idle;
+
+            // Allow mods to override f.e. the displayed location name or icon very easily.
+            OnGetState?.Invoke(blob, state);
         }
 
         private void ShortenRandomizerLocation(ref BlobLocation location) {
@@ -266,26 +265,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
              * Celeste/1-ForsakenCity/A/b-02/31 randomizer/Mirror Temple_0_1234567 A
              */
 
-            if (!location.Name.StartsWith("randomizer/") || !Settings.PlayerListShortenRandomizer)
+            if (!location.IsRandomizer || !Settings.PlayerListShortenRandomizer)
                 return;
 
             // shorten the randomizer/ part down
             location.Name = "rnd/" + location.Name.Substring("randomizer/".Length);
 
             // yoink out all the funny numbers like _0_1234567 at the end
-            location.Name = location.Name.TrimEnd("_0123456789".ToCharArray());
+            location.Name = location.Name.TrimEnd(RandomizerEndTrimChars);
 
-            if (location.Level.StartsWith("Celeste/"))
-                location.Level = location.Level.Substring("Celeste/".Length);
-
-            location.Level = location.Level.Replace("SpringCollab2020", "sc2020");
-            location.Level = location.Level.Replace("0-Gyms", "Gym");
-            location.Level = location.Level.Replace("0-Prologue", "Prolg");
-            location.Level = location.Level.Replace("1-Beginner", "Beg");
-            location.Level = location.Level.Replace("2-Intermediate", "Int");
-            location.Level = location.Level.Replace("3-Advanced", "Adv");
-            location.Level = location.Level.Replace("4-Expert", "Exp");
-            location.Level = location.Level.Replace("5-Grandmaster", "GM");
+            // Only display the last two parts of the currently played level.
+            int split = location.Level.LastIndexOf('/');
+            if ((split - 1) >= 0)
+                split = location.Level.LastIndexOf('/', split - 1);
+            if (split >= 0)
+                location.Level = location.Level.Substring(split + 1);
 
             // Side seems to always be 0 = A so clear that
             location.Side = "";

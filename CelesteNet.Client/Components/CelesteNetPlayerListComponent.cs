@@ -328,7 +328,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     if(!p.Idle)
                        size.X += CelesteNetClientFont.Measure(BlobPlayer.IdleIconCode + " ").X * blob.DynScale;
                     // Adjust for Randomizer locations getting shrunk
-                    size.X += (CelesteNetClientFont.Measure(p.Location.Text + " ").X + (GFX.Gui.Has(p.Location.Icon) ? 64f : 0f)) * blob.DynScale * p.Location.DynScale;
+                    size.X += (CelesteNetClientFont.Measure(p.Location.Text + " ").X + p.Location.IconSize.X) * blob.DynScale * p.Location.DynScale;
                 }
                 sizeAll.X = Math.Max(sizeAll.X, size.X);
                 sizeAll.Y += size.Y + 10f * scale;
@@ -377,7 +377,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         // Rendering Location bits right-to-left, hence the Reverse and the justify = Vector2.UnitX
                         location.Reverse();
 
-                        float x = sizeAll.X - (GFX.Gui.Has(player.Location.Icon) ? 64f : 0f) * blobDynScale.X;
+                        float x = sizeAll.X - player.Location.IconSize.X * blobDynScale.X;
                         foreach (Tuple<string, Color> t in location) {
                             CelesteNetClientFont.Draw(
                                 t.Item1,
@@ -389,16 +389,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             x -= CelesteNetClientFont.Measure(t.Item1 + " ").X * blobDynScale.X;
                         }
 
-                        MTexture icon = GFX.Gui.Has(player.Location.Icon) ? GFX.Gui.GetAtlasSubtexturesAt(player.Location.Icon, 0) : null;
-
-                        if (icon != null) {
-                            icon.Draw(
-                                new(50f * scale + sizeAll.X - 64f * blobDynScale.X, y + player.DynY),
-                                Vector2.Zero,
-                                Color.White,
-                                Math.Min(64f / icon.ClipRect.Width, 64f / icon.ClipRect.Height) * blobDynScale
-                            );
-                        }
+                        player.Location.GuiIcon?.Draw(
+                            new(50f * scale + sizeAll.X - player.Location.IconSize.X * blobDynScale.X, y + player.DynY),
+                            Vector2.Zero,
+                            Color.White,
+                            player.Location.IconScale * blobDynScale
+                        );
                     }
                 } else {
                     string blobinfo = string.Join(" ",
@@ -432,6 +428,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             public string Name = "";
             public string Icon = "";
+            public MTexture GuiIcon => GFX.Gui.Has(Icon) ? GFX.Gui.GetAtlasSubtexturesAt(Icon, 0) : null;
+            public Vector2 IconSize => new(GuiIcon != null ? 64f : 0f);
+            public Vector2 IconOrigSize => GuiIcon != null ? new Vector2(GuiIcon.Width, GuiIcon.Height) : new();
+            public float IconScale => GuiIcon != null ? Math.Min(IconSize.X / GuiIcon.Width, IconSize.Y / GuiIcon.Height) : 1f;
             public Color Color = Color.White;
             public float ScaleFactor = 0f;
             public float DynY;

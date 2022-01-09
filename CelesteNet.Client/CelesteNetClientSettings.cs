@@ -80,6 +80,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public SyncMode Entities { get; set; } = SyncMode.ON;
 
         public CelesteNetPlayerListComponent.ListMode PlayerListMode { get; set; }
+        [SettingIgnore]
         public bool PlayerListShortenRandomizer { get; set; } = true;
 
         public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }

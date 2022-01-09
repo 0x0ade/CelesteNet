@@ -449,7 +449,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public MTexture GuiIconCached;
             public bool GuiIconShown;
 
-            public float IconSize => GuiIconShown ? 64f : 0f;
+            public float IconSize => GuiIconCached != null ? 64f : 0f;
             public Vector2 IconOrigSize => GuiIconCached != null ? new Vector2(GuiIconCached.Width, GuiIconCached.Height) : new();
             public float IconScale => GuiIconCached != null ? Math.Min(IconSize / GuiIconCached.Width, IconSize / GuiIconCached.Height) : 1f;
 

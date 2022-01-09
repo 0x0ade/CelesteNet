@@ -12,12 +12,11 @@ using System.Threading;
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientTCPUDPConnection : CelesteNetTCPUDPConnection {
 
-        public const int TCPBufferSize = 65536;
         public const int UDPBufferSize = 65536;
         public const int UDPEstablishDelay = 2;
 
         public readonly CelesteNetClient Client;
-        private readonly BufferedSocketStream TCPStream;
+        private readonly Stream TCPNetStream, TCPStream;
         private readonly Socket UDPSocket;
         private readonly BlockingCollection<DataType> TCPSendQueue, UDPSendQueue;
         private readonly byte[] UDPHandshakeMessage;
@@ -29,8 +28,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Client = client;
 
             // Initialize networking
-            tcpSock.Blocking = false;
-            TCPStream = new(TCPBufferSize) { Socket = tcpSock };
+            TCPStream = new BufferedStream(TCPNetStream = new NetworkStream(tcpSock));
             UDPSocket = new(SocketType.Dgram, ProtocolType.Udp);
             UDPSocket.Connect(tcpSock.RemoteEndPoint);
 
@@ -79,6 +77,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             // Dispose stuff
             TokenSrc.Dispose();
             TCPStream.Dispose();
+            TCPNetStream.Dispose();
             UDPSocket.Dispose();
             TCPSendQueue.Dispose();
             UDPSendQueue.Dispose();

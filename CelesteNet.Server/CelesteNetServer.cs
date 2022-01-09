@@ -316,8 +316,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Sessions.Add(ses);
                 PlayersByCon[con] = ses;
                 PlayersByID[ses.SessionID] = ses;
+                ses.Start();
             }
-            ses.Start();
             OnSessionStart?.Invoke(ses);
             return ses;
         }

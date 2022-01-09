@@ -79,18 +79,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
-            MainThreadHelper.Do(() => {
-                IL.Celeste.Level.Render -= ILRenderLevel;
-                IL.Monocle.Engine.RenderCore -= ILRenderCore;
+            try {
+                MainThreadHelper.Do(() => {
+                    IL.Celeste.Level.Render -= ILRenderLevel;
+                    IL.Monocle.Engine.RenderCore -= ILRenderCore;
 
-                FakeRT?.Dispose();
-                BlurRT?.Dispose();
-                BlurRT = null;
-                BlurXRT?.Dispose();
-                BlurYRT?.Dispose();
-                BlurLowRT?.Dispose();
-                FakeRT = null;
-            });
+                    FakeRT?.Dispose();
+                    BlurRT?.Dispose();
+                    BlurRT = null;
+                    BlurXRT?.Dispose();
+                    BlurYRT?.Dispose();
+                    BlurLowRT?.Dispose();
+                    FakeRT = null;
+                });
+            } catch (ObjectDisposedException) {
+                // It might already be too late to tell the main thread to do anything.
+            }
         }
 
         private RenderTarget2D GetFakeRT(RenderTarget2D realRT) {

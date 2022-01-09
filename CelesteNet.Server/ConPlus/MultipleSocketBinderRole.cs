@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public override int MinThreads => 1;
-        public override int MaxThreads => MonoMod.Utils.PlatformHelper.Is(MonoMod.Utils.Platform.Linux) ? int.MaxValue : 1;
+        public override int MaxThreads => int.MaxValue;
 
         public ProtocolType Protocol { get; }
         public EndPoint EndPoint { get; }
@@ -41,15 +41,16 @@ namespace Celeste.Mod.CelesteNet.Server {
                     ProtocolType.Udp => SocketType.Dgram,
                     _ => throw new InvalidOperationException($"Unknown protocol type {Protocol}")
                 }, Protocol);
-                socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+                if (EndPoint.AddressFamily == AddressFamily.InterNetworkV6)
+                    socket.DualMode = true;
                 if (MaxThreads > 1)
-                    socket.EnableEndpointReuse();
+                    socket.ExclusiveAddressUse = false;
 
                 // Bind the socket
                 socket.Bind(EndPoint);
 
                 return socket;
-            } catch (Exception) {
+            } catch {
                 socket?.Dispose();
                 throw;
             }

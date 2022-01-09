@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             UDPSocket.Connect(tcpSock.RemoteEndPoint);
 
             OnUDPDeath += (_, _) => {
-                Logger.Log(LogLevel.INF, "CelesteNetClientTCPUDPConnection", UseUDP ? "UDP connection died" : "Switching to TCP only");
+                Logger.Log(LogLevel.INF, "tcpudpcon", UseUDP ? "UDP connection died" : "Switching to TCP only");
                 if (Logger.Level <= LogLevel.DBG)
                     CelesteNetClientModule.Instance?.Context?.Status?.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
             };
@@ -120,22 +120,30 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void TCPRecvThreadFunc() {
             try {
-                byte[] packetBuffer = new byte[ConnectionSettings.MaxPacketSize];
-                using BinaryReader tcpReader = new(TCPStream, Encoding.UTF8, true);
+                byte[] packetBuffer = new byte[2 + ConnectionSettings.MaxPacketSize];
+                void ReadCount(int off, int numBytes) {
+                    while (numBytes > 0) {
+                        int count = TCPStream.Read(packetBuffer, off, numBytes);
+                        if (count <= 0)
+                            throw new EndOfStreamException();
+                        off += count;
+                        numBytes -= count;
+                    }
+                }
                 while (!TokenSrc.IsCancellationRequested) {
                     // Read the packet
-                    ushort packetSize = tcpReader.ReadUInt16();
+                    ReadCount(0, 2);
+                    ushort packetSize = BitConverter.ToUInt16(packetBuffer, 0);
                     if (packetSize > ConnectionSettings.MaxPacketSize)
                         throw new InvalidDataException("Peer sent packet over maximum size");
-                    if (tcpReader.Read(packetBuffer, 0, packetSize) < packetSize)
-                        throw new EndOfStreamException();
+                    ReadCount(2, packetSize);
 
                     // Let the connection now we got a TCP heartbeat
                     TCPHeartbeat();
 
                     // Read the packet
                     DataType packet;
-                    using (MemoryStream packetStream = new(packetBuffer, 0, packetSize))
+                    using (MemoryStream packetStream = new(packetBuffer, 2, packetSize))
                     using (CelesteNetBinaryReader packetReader = new(Data, Strings, CoreTypeMap, packetStream))
                         packet = Data.Read(packetReader);
 
@@ -173,6 +181,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
+                    return;
+
+                if (e is ThreadAbortException)
                     return;
 
                 if ((e is IOException || e is SocketException) && TokenSrc.IsCancellationRequested)
@@ -231,6 +242,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
                     return;
 
+                if (e is ThreadAbortException)
+                    return;
+
                 if (e is SocketException && TokenSrc.IsCancellationRequested)
                     return;
 
@@ -263,6 +277,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
+                    return;
+
+                if (e is ThreadAbortException)
                     return;
 
                 Logger.Log(LogLevel.WRN, "tcpsend", $"Error in TCP sending thread: {e}");
@@ -327,6 +344,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             } catch (Exception e) {
                 if (e is OperationCanceledException oe && oe.CancellationToken == TokenSrc.Token)
+                    return;
+
+                if (e is ThreadAbortException)
                     return;
 
                 Logger.Log(LogLevel.WRN, "udpsend", $"Error in UDP sending thread: {e}");

@@ -95,6 +95,12 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         internal void Start() {
+            if (!string.IsNullOrEmpty(Server.Settings.MessageDiscontinue)) {
+                Con.Send(new DataDisconnectReason { Text = Server.Settings.MessageDiscontinue });
+                Con.Send(new DataInternalDisconnect());
+                return;
+            }
+
             Logger.Log(LogLevel.INF, "playersession", $"Startup #{SessionID} {Con} (Session UID: {UID}; Connection UID: {Con.UID})");
 
             // Resolver player name conflicts
@@ -128,7 +134,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     // Split the avatar into fragments
                     List<DataNetEmoji> avatarFrags = new();
                     byte[] buf = new byte[Server.Settings.MaxPacketSize / 2];
-                    int fragSize;
+                    int fragSize, seqNum = 0;
                     while ((fragSize = avatarStream.Read(buf, 0, buf.Length)) > 0) {
                         byte[] frag = new byte[fragSize];
                         Buffer.BlockCopy(buf, 0, frag, 0, fragSize);
@@ -137,7 +143,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         avatarFrags.Add(new DataNetEmoji {
                             ID = avatarId,
                             Data = frag,
-                            FirstFragment = avatarFrags.Count <= 0,
+                            SequenceNumber = seqNum++,
                             MoreFragments = false
                         });
                     }

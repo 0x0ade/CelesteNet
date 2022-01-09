@@ -27,6 +27,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly DataContext Data;
         public readonly NetPlusThreadPool ThreadPool;
+        public readonly PacketDumper PacketDumper;
 
         public UserData UserData;
 
@@ -103,6 +104,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Data = new();
             Data.RegisterHandlersIn(this);
+
+            PacketDumper = new(this);
 
             Channels = new(this);
 

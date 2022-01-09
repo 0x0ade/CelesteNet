@@ -14,6 +14,18 @@ namespace Celeste.Mod.CelesteNet {
     */
     public class BufferedSocketStream : Stream {
 
+        public Socket? Socket {
+            get => _Socket;
+            set {
+                if (value?.Blocking ?? false)
+                    throw new ArgumentException("Only non-blocking sockets are supported");
+                lock (RecvBuffer)
+                lock (SendBuffer)
+                    RecvBufferOff = RecvAvail = SendBufferOff = 0;
+                _Socket = value;
+            }
+        }
+
         private Socket? _Socket = null;
         private readonly byte[] RecvBuffer, SendBuffer;
         private int RecvAvail = 0, RecvBufferOff = 0, SendBufferOff = 0;
@@ -38,7 +50,7 @@ namespace Celeste.Mod.CelesteNet {
                             break;
                     }
 
-                    int n = Math.Min(RecvAvail, count-numRead);
+                    int n = Math.Min(RecvAvail, count - numRead);
                     Buffer.BlockCopy(RecvBuffer, RecvBufferOff, buffer, offset, n);
                     RecvBufferOff += n;
                     RecvAvail -= n;
@@ -90,18 +102,6 @@ namespace Celeste.Mod.CelesteNet {
                     }
                 }
                 SendBufferOff = 0;
-            }
-        }
-
-        public Socket? Socket {
-            get => _Socket;
-            set {
-                if (value?.Blocking ?? false)
-                    throw new ArgumentException("Only non-blocking sockets are supported");
-                lock (RecvBuffer)
-                lock (SendBuffer)
-                    RecvBufferOff = RecvAvail = SendBufferOff = 0;
-                _Socket = value;
             }
         }
 

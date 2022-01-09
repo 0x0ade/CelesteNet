@@ -41,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 SpriteID = spriteID;
                 try {
                     Sprite = GFX.SpriteBank.Create(spriteID);
-                } catch (Exception) {
+                } catch {
                     Sprite = GFX.SpriteBank.Create("flutterBird");
                 }
                 SpriteMeta = Sprite.GetMeta();

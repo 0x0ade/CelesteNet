@@ -81,6 +81,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         // Handle the UDP datagram
                         con.HandleUDPDatagram(dgBuffer, dgSize);
                     } catch (Exception e) {
+                        Role.Server.PacketDumper.DumpPacket(con, PacketDumper.TransportType.UDP, $"Exception while reading: {e}", dgBuffer, 0, dgSize);
                         Logger.Log(LogLevel.WRN, "udprecv", $"Error while reading from connection {con}: {e}");
                         con.DecreaseUDPScore(reason: "Error while reading from connection");
                     }
@@ -113,13 +114,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void RemoveConnection(ConPlusTCPUDPConnection con) {
             con.OnUDPDeath -= UDPDeath;
-            if (conTokenMap.TryRemove(con.ConnectionToken, out var conData) && conData.udpEP != null)
+            if (conTokenMap.TryRemove(con.ConnectionToken, out (ConPlusTCPUDPConnection con, EndPoint? udpEP) conData) && conData.udpEP != null)
                 endPointMap.TryRemove(conData.udpEP, out _);
         }
 
         private void UDPDeath(CelesteNetTCPUDPConnection con, EndPoint ep) {
             endPointMap.TryRemove(ep, out _);
-            if (conTokenMap.TryGetValue(con.ConnectionToken, out var conData) && conData.udpEP != null)
+            if (conTokenMap.TryGetValue(con.ConnectionToken, out (ConPlusTCPUDPConnection con, EndPoint? udpEP) conData) && conData.udpEP != null)
                 endPointMap.TryRemove(conData.udpEP, out _);
         }
 

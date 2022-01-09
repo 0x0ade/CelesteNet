@@ -204,10 +204,16 @@ namespace Celeste.Mod.CelesteNet {
             if (!sock.Connected)
                 return;
             try {
+                // On Unix, we're supposed to shut down the socket and / or signal the recving thread.
+                // On Windows, we might need to set the recv timeout to 0 to properly cancel pending recvs.
                 switch (shutdown) {
                     case SocketShutdown.Receive:
                     case SocketShutdown.Both:
-                        sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 0);
+                        try {
+                            sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 0);
+                        } catch {
+                            // Not all platforms like this.
+                        }
                         break;
                 }
                 sock.Shutdown(shutdown);

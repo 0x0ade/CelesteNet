@@ -47,10 +47,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
-            MainThreadHelper.Do(() => {
-                On.Celeste.Editor.MapEditor.ctor -= OnMapEditorCtor;
-                On.Celeste.Editor.MapEditor.Render -= OnMapEditorRender;
-            });
+            try {
+                MainThreadHelper.Do(() => {
+                    On.Celeste.Editor.MapEditor.ctor -= OnMapEditorCtor;
+                    On.Celeste.Editor.MapEditor.Render -= OnMapEditorRender;
+                });
+            } catch (ObjectDisposedException) {
+                // It might already be too late to tell the main thread to do anything.
+            }
 
             Cleanup();
         }

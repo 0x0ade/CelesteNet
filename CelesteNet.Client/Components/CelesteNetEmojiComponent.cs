@@ -16,9 +16,78 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetEmojiComponent : CelesteNetGameComponent {
 
-        public ConcurrentDictionary<string, FileStream> Pending = new();
-        public HashSet<string> Registered = new();
-        public HashSet<string> RegisteredFiles = new();
+        public class NetEmojiContent : ModContent {
+
+            public HashSet<string> Registered = new();
+
+            protected override void Dispose(bool disposing) {
+                foreach (ModAsset asset in List) {
+                    if (asset is NetEmojiAsset netemoji)
+                        netemoji.Dispose();
+                }
+                base.Dispose(disposing);
+            }
+
+            protected override void Crawl() {}
+
+        }
+
+        public class NetEmojiAsset : ModAsset, IDisposable {
+
+            private int NextSeq = 0;
+            private readonly MemoryStream Buffer = new();
+
+            public new NetEmojiContent Source => (NetEmojiContent) base.Source;
+            public readonly string ID;
+            public bool Pending => NextSeq >= 0;
+
+            public NetEmojiAsset(NetEmojiContent content, string id) : base(content) {
+                ID = id;
+                Type = typeof(Texture2D);
+                Format = "png";
+                PathVirtual = $"emoji/{ID}";
+            }
+
+            public void Dispose() {
+                Buffer.Dispose();
+                if (!Pending) {
+                    Emoji.Register(ID, GFX.Misc["whiteCube"]);
+                    Emoji.Fill(CelesteNetClientFont.Font);
+                }
+            }
+
+            public void HandleFragment(DataNetEmoji data) {
+                // The emoji must be pending
+                if (!Pending)
+                    throw new InvalidOperationException($"NetEmoji '{ID}' isn't pending!");
+
+                // Check and increase the sequence number
+                if (data.SequenceNumber != NextSeq)
+                    throw new InvalidOperationException($"Unexpected NetEmoji '{ID}' sequence number: expected {NextSeq}, got {data.SequenceNumber}!");
+                NextSeq = (NextSeq + 1) % DataNetEmoji.MaxSequenceNumber;
+
+                // Add fragment data to the emoji
+                Buffer.Write(data.Data, 0, data.Data.Length);
+
+                // Check if there are more fragments
+                if (!data.MoreFragments)
+                    NextSeq = -1;
+            }
+
+            protected override void Open(out Stream stream, out bool isSection) {
+                // The emoji mustn't be pending
+                if (Pending)
+                    throw new InvalidOperationException($"NetEmoji '{ID}' is pending!");
+
+                // Don't duplicate the memory
+                stream = new MemoryStream(Buffer.GetBuffer());
+                isSection = false;
+            }
+
+        }
+
+        public NetEmojiContent Content = new();
+        private readonly Dictionary<string, NetEmojiAsset> Pending = new();
 
         public CelesteNetEmojiComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -27,120 +96,45 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Visible = false;
         }
 
-        public override void Init() {
-            base.Init();
-
-            RunOnMainThread(() => {
-                RegisterEmote("strawberry", GFX.Gui, "collectables/strawberry",      fillFont: false);
-                RegisterEmote("heart",      GFX.Gui, "collectables/heartgem/0/spin", fillFont: false);
-                RegisterEmote("feather",      GFX.Gui, "feather/feather", fillFont: false);
-
-                // chapter icons
-                RegisterEmote("prologue",         GFX.Gui, "areas/intro",      fillFont: false);
-                RegisterEmote("forsaken_city",    GFX.Gui, "areas/city",       fillFont: false);
-                RegisterEmote("old_site",         GFX.Gui, "areas/oldsite",    fillFont: false);
-                RegisterEmote("celestial_resort", GFX.Gui, "areas/resort",     fillFont: false);
-                RegisterEmote("golden_ridge",     GFX.Gui, "areas/cliffside",  fillFont: false);
-                RegisterEmote("mirror_temple",    GFX.Gui, "areas/temple",     fillFont: false);
-                RegisterEmote("reflection",       GFX.Gui, "areas/reflection", fillFont: false);
-                RegisterEmote("the_summit",       GFX.Gui, "areas/Summit",     fillFont: false);
-                RegisterEmote("epilogue",         GFX.Gui, "areas/intro",      fillFont: false);
-                RegisterEmote("core",             GFX.Gui, "areas/core",       fillFont: false);
-                RegisterEmote("farewell",         GFX.Gui, "areas/farewell",   fillFont: false);
-
-                Emoji.Fill(CelesteNetClientFont.Font);
-            });
-        }
-
-        public void RegisterEmote(string name, Atlas atlas, string path, int index = 0, int w = 64, int h = 64, bool fillFont = true) {
-            MTexture icon = atlas.GetAtlasSubtexturesAt(path, index);
-
-            if (icon != null && icon.Texture?.Texture_Safe != null) {
-                icon = new(icon.Parent, icon.ClipRect);
-
-                Emoji.Register(name, icon, w, h);
-            }
-
-            if (!Emoji.TryGet(name, out char _)) {
-                Logger.Log(LogLevel.VVV, "netemoji", $"Could not register {name} emoji.");
-                return;
-            }
-
-            Registered.Add(name);
-
-            if (fillFont)
-                Emoji.Fill(CelesteNetClientFont.Font);
-
-        }
-
         public void Handle(CelesteNetConnection con, DataNetEmoji netemoji) {
-            FileStream cacheStream;
-            if (netemoji.FirstFragment) {
-                // Create a new cache stream for the emoji
-                string dir = Path.Combine(Path.GetTempPath(), "CelesteNetClientEmojiCache");
-                if (!Directory.Exists(dir))
-                    Directory.CreateDirectory(dir);
+            lock (Pending) {
+                // Get the emoji asset
+                if (!Pending.TryGetValue(netemoji.ID, out NetEmojiAsset asset))
+                    Pending.Add(netemoji.ID, asset = new(Content, netemoji.ID));
 
-                string path = Path.Combine(dir, $"{netemoji.ID}-{netemoji.GetHashCode():X8}.png");
-                if (File.Exists(path))
-                    File.Delete(path);
+                // Handle the fragment
+                asset.HandleFragment(netemoji);
 
-                Pending.TryAdd(netemoji.ID, cacheStream = File.OpenWrite(path));
-            } else if (!Pending.TryGetValue(netemoji.ID, out cacheStream)) {
-                throw new InvalidDataException($"Missing first fragment of emoji '{netemoji.ID}'!");
-            }
+                // Check if the emoji isn't pending anymore
+                if (!asset.Pending) {
+                    Pending.Remove(netemoji.ID);
 
-            // Add fragment data to the emoji
-            cacheStream.Write(netemoji.Data, 0, netemoji.Data.Length);
-
-            if (!netemoji.MoreFragments) {
-                Pending.TryRemove(netemoji.ID, out _);
-                string path = cacheStream.Name;
-                cacheStream.Close();
-
-                // Register the emoji
-                RunOnMainThread(() => {
-                    Logger.Log(LogLevel.VVV, "netemoji", $"Registering {netemoji.ID}");
-
-                    bool registered = false;
-
+                    // Register the emoji
                     try {
-                        VirtualTexture vt = VirtualContent.CreateTexture(path);
-                        MTexture mt = new(vt);
-                        if (vt.Texture_Safe == null) // Needed to trigger lazy loading.
-                            throw new Exception($"Couldn't load emoji {netemoji.ID}");
-
-                        Registered.Add(netemoji.ID);
-                        RegisteredFiles.Add(path);
-                        Emoji.Register(netemoji.ID, mt);
-                        Emoji.Fill(CelesteNetClientFont.Font);
-                        registered = true;
-
-                    } catch (InvalidOperationException e) {
-                        Logger.Log(LogLevel.WRN, "netemoji", $"Registering {netemoji.ID} failed due to {e.GetType().Name}: {e.Message}");
-                    } finally {
-                        if (!registered)
-                            File.Delete(path);
+                        MainThreadHelper.Do(() => {
+                            VirtualTexture vtex;
+                            try {
+                                vtex = VirtualContent.CreateTexture(asset);
+                            } catch (Exception e) {
+                                Logger.Log(LogLevel.ERR, "emoji", $"Failed to load emoji: {netemoji.ID} - {e}");
+                                return;
+                            }
+                            MTexture tex = new(vtex);
+                            Content.Registered.Add(asset.ID);
+                            Emoji.Register(asset.ID, tex);
+                            Emoji.Fill(CelesteNetClientFont.Font);
+                        });
+                    } catch (ObjectDisposedException) {
+                        // Main thread died and queue closed, whoops.
                     }
-                });
+                }
             }
         }
 
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
-            foreach (Stream s in Pending.Values)
-                s.Dispose();
-            Pending.Clear();
-
-            foreach (string id in Registered)
-                Emoji.Register(id, GFX.Misc["whiteCube"]);
-
-            Emoji.Fill(CelesteNetClientFont.Font);
-
-            foreach (string path in RegisteredFiles)
-                if (File.Exists(path))
-                    File.Delete(path);
+            Content.Dispose();
         }
 
     }

@@ -99,7 +99,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 MainThreadQueue.Clear();
             }
 
-            if (Client != null && Client.SafeDisposeTriggered && Client.Con.IsAlive)
+            if (Client?.Con != null && Client.SafeDisposeTriggered && Client.Con.IsAlive)
                 Client.Con.Dispose();
 
             if (Started && !(Client?.IsAlive ?? true))
@@ -162,7 +162,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (Status.Spin) {
                     Status.Set("Disconnected", 3f, false);
                     if (reconnect) {
-                        QueuedTaskHelper.Do("CelesteNetAutoReconnect", 1D, () => CelesteNetClientModule.Settings.Connected = true);
+                        // Try queueing onto the main thread first, which then queues onto the queued task helper, as...
+                        try {
+                            MainThreadHelper.Do(() => QueuedTaskHelper.Do("CelesteNetAutoReconnect", 1D, () => CelesteNetClientModule.Settings.Connected = true));
+                        } catch (ObjectDisposedException) {
+                            // ... there's a chance that the game is exiting right now, at which point the main thread queue has shut down.
+                        }
                     }
                 }
                 Status.AutoDispose = true;

@@ -24,6 +24,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public bool Active;
 
         private List<Blob> List = new();
+        private Vector2 SizeAll;
 
         public DataChannelList Channels;
 
@@ -33,19 +34,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public LocationModes LocationMode => Settings.ShowPlayerListLocations;
         private LocationModes LastLocationMode;
 
-        private Vector2? SizeSpace;
-        private Vector2? SizeIdleIcon;
+        private float? SpaceWidth;
+        private float? LocationSeparatorWidth;
+        private float? IdleIconWidth;
 
         public enum ListModes {
             Channels,
-            Classic
+            Classic,
         }
 
+        [Flags]
         public enum LocationModes {
-            OFF,
-            Icons,
-            Text,
-            ON
+            OFF     = 0b00,
+            Icons   = 0b01,
+            Text    = 0b10,
+            ON      = 0b11,
         }
 
         public CelesteNetPlayerListComponent(CelesteNetClientContext context, Game game)
@@ -85,7 +88,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         }
 
                         if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                            GetState(ref blob, state);
+                            GetState(blob, state);
 
                         list.Add(blob);
                     }
@@ -105,7 +108,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                         foreach (DataPlayerInfo player in own.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
                             BlobPlayer blob = new() { ScaleFactor = 0.5f };
-                            listed.Add(ListPlayerUnderChannel(ref blob, player));
+                            listed.Add(ListPlayerUnderChannel(blob, player));
                             list.Add(blob);
                         }
                     }
@@ -121,7 +124,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                         foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
                             BlobPlayer blob = new() { ScaleFactor = 1f };
-                            listed.Add(ListPlayerUnderChannel(ref blob, player));
+                            listed.Add(ListPlayerUnderChannel(blob, player));
                             list.Add(blob);
                         }
                     }
@@ -149,39 +152,34 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     break;
             }
 
+            PrepareRenderLayout(out float scale, out _, out _, out float spaceWidth, out float locationSeparatorWidth, out float idleIconWidth);
 
-            switch (LocationMode) {
-                case LocationModes.OFF:
-                    foreach (Blob blob in list) {
-                        if (blob is BlobPlayer p) {
-                            p.Location.Name = "";
-                            p.Location.Icon = "";
-                        }
-                    }
-                    break;
+            foreach (Blob blob in list)
+                blob.Generate(LocationMode);
 
-                case LocationModes.Icons:
-                    foreach (Blob blob in list) {
-                        if (blob is BlobPlayer p) {
-                            p.Location.Name = "";
-                        }
-                    }
-                    break;
+            int textScaleTry = 0;
+            float textScale = scale;
+            RetryLineScale:
 
-                case LocationModes.Text:
-                    foreach (Blob blob in list) {
-                        if (blob is BlobPlayer p) {
-                            p.Location.Icon = "";
-                        }
-                    }
-                    break;
+            Vector2 sizeAll = Vector2.Zero;
 
-                case LocationModes.ON:
-                default:
-                    break;
+            foreach (Blob blob in list) {
+                blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
+                blob.DynY = sizeAll.Y;
+
+                Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
+                sizeAll.X = Math.Max(sizeAll.X, size.X);
+                sizeAll.Y += size.Y + 10f * scale;
+
+                if (((sizeAll.X + 100f * scale) > UI_WIDTH * 0.7f || (sizeAll.Y + 90f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 5) {
+                    textScaleTry++;
+                    textScale -= scale * 0.1f;
+                    goto RetryLineScale;
+                }
             }
 
             List = list;
+            SizeAll = sizeAll;
         }
 
         private string GetOrderKey(DataPlayerInfo player) {
@@ -200,12 +198,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return null;
         }
 
-        private DataPlayerInfo ListPlayerUnderChannel(ref BlobPlayer blob, DataPlayerInfo player) {
+        private DataPlayerInfo ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo player) {
             if (player != null) {
                 blob.Name = player.DisplayName;
 
                 if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                    GetState(ref blob, state);
+                    GetState(blob, state);
 
                 return player;
 
@@ -215,7 +213,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
-        private void GetState(ref BlobPlayer blob, DataPlayerState state) {
+        private void GetState(BlobPlayer blob, DataPlayerState state) {
             if (!string.IsNullOrWhiteSpace(state.SID)) {
                 AreaData area = AreaDataExt.Get(state.SID);
                 string chapter = area?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID;
@@ -325,10 +323,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 base.Draw(gameTime);
         }
 
-        protected override void Render(GameTime gameTime, bool toBuffer) {
-            float scale = Scale;
-
-            float y = 50f * scale;
+        protected void PrepareRenderLayout(out float scale, out float y, out Vector2 sizeAll, out float spaceWidth, out float locationSeparatorWidth, out float idleIconWidth) {
+            scale = Scale;
+            y = 50f * scale;
+            sizeAll = SizeAll;
+            spaceWidth = SpaceWidth ??= CelesteNetClientFont.Measure(" ").X;
+            locationSeparatorWidth = LocationSeparatorWidth ??= CelesteNetClientFont.Measure(BlobLocation.LocationSeparator).X;
+            idleIconWidth = IdleIconWidth ??= CelesteNetClientFont.Measure(BlobPlayer.IdleIconCode).X + spaceWidth;
 
             SpeedrunTimerDisplay timer = Engine.Scene?.Entities.FindFirst<SpeedrunTimerDisplay>();
             if (timer != null) {
@@ -347,39 +348,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         break;
                 }
             }
+        }
 
-            List<Blob> list = List;
-
-            foreach (Blob blob in list)
-                blob.GenerateText();
-
-            int textScaleTry = 0;
-            float textScale = scale;
-            RetryLineScale:
-
-            Vector2 sizeAll = Vector2.Zero;
-            Vector2 sizeSpace = SizeSpace ??= CelesteNetClientFont.Measure(" ");
-            Vector2 sizeIdleIcon = SizeIdleIcon ??= CelesteNetClientFont.Measure(BlobPlayer.IdleIconCode);
-
-            foreach (Blob blob in list) {
-                blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
-                blob.DynY = sizeAll.Y;
-
-                Vector2 size = blob.Measure(ref sizeSpace, ref sizeIdleIcon);
-                sizeAll.X = Math.Max(sizeAll.X, size.X);
-                sizeAll.Y += size.Y + 10f * scale;
-
-                if (((sizeAll.X + 100f * scale) > UI_WIDTH * 0.7f || (sizeAll.Y + 90f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 5) {
-                    textScaleTry++;
-                    textScale -= scale * 0.1f;
-                    goto RetryLineScale;
-                }
-            }
+        protected override void Render(GameTime gameTime, bool toBuffer) {
+            PrepareRenderLayout(out float scale, out float y, out Vector2 sizeAll, out float spaceWidth, out float locationSeparatorWidth, out _);
 
             Context.RenderHelper.Rect(25f * scale, y - 25f * scale, sizeAll.X + 50f * scale, sizeAll.Y + 40f * scale, Color.Black * 0.8f);
 
-            foreach (Blob blob in list)
-                blob.Render(y, scale, ref sizeAll, ref sizeSpace);
+            foreach (Blob blob in List)
+                blob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth);
 
         }
 
@@ -395,26 +372,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public float DynY;
             public float DynScale;
 
-            public virtual void GenerateText() {
+            public virtual void Generate(LocationModes locationMode) {
                 if (GetType() == typeof(Blob)) {
                     TextCached = Name;
                     return;
                 }
 
                 StringBuilder sb = new();
-                GenerateText(sb);
+                Generate(sb, locationMode);
                 TextCached = sb.ToString();
             }
 
-            protected virtual void GenerateText(StringBuilder sb) {
+            protected virtual void Generate(StringBuilder sb, LocationModes locationMode) {
                 sb.Append(Name);
             }
 
-            public virtual Vector2 Measure(ref Vector2 sizeSpace, ref Vector2 sizeIdleIcon) {
+            public virtual Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
                 return CelesteNetClientFont.Measure(TextCached) * DynScale;
             }
 
-            public virtual void Render(float y, float scale, ref Vector2 sizeAll, ref Vector2 sizeSpace) {
+            public virtual void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
                 CelesteNetClientFont.Draw(
                     TextCached,
                     new(50f * scale, y + DynY),
@@ -428,55 +405,61 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public class BlobPlayer : Blob {
 
-            public const string IdleIconCode = " :celestenet_idle:";
+            public const string IdleIconCode = ":celestenet_idle:";
 
             public BlobLocation Location = new();
 
             public bool Idle;
 
-            protected override void GenerateText(StringBuilder sb) {
+            protected override void Generate(StringBuilder sb, LocationModes locationMode) {
                 sb.Append(Name);
                 if (Idle)
-                    sb.Append(IdleIconCode);
+                    sb.Append(" ").Append(IdleIconCode);
 
                 // If the player blob was forced to regenerate its text, forward that to the location blob too.
-                Location.GenerateText();
+                Location.Generate(locationMode);
             }
 
-            public override Vector2 Measure(ref Vector2 sizeSpace, ref Vector2 sizeIdleIcon) {
+            public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
                 Location.DynY = DynY;
                 Location.DynScale = DynScale;
 
-                Vector2 size = base.Measure(ref sizeSpace, ref sizeIdleIcon);
+                Vector2 size = base.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
 
                 // insert extra space for the idle icon on non-idle players too.
                 if (!Idle)
-                    size.X += sizeIdleIcon.X * DynScale;
+                    size.X += idleIconWidth * DynScale;
 
-                // Adjust for Randomizer locations getting shrunk
-                size.X += Location.Measure(ref sizeSpace, ref sizeIdleIcon).X;
+                size.X += Location.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth).X;
 
                 return size;
             }
 
-            public override void Render(float y, float scale, ref Vector2 sizeAll, ref Vector2 sizeSpace) {
-                base.Render(y, scale, ref sizeAll, ref sizeSpace);
-                Location.Render(y, scale, ref sizeAll, ref sizeSpace);
+            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
+                base.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth);
+                Location.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth);
             }
 
         }
 
         public class BlobLocation : Blob {
 
+            public const string LocationSeparator = ":";
 
             public MTexture GuiIconCached;
-            public Vector2 IconSize => new(GuiIconCached != null ? 64f : 0f);
-            public Vector2 IconOrigSize => GuiIconCached != null ? new Vector2(GuiIconCached.Width, GuiIconCached.Height) : new();
-            public float IconScale => GuiIconCached != null ? Math.Min(IconSize.X / GuiIconCached.Width, IconSize.Y / GuiIconCached.Height) : 1f;
+            public bool GuiIconShown;
 
+            public float IconSize => GuiIconShown ? 64f : 0f;
+            public Vector2 IconOrigSize => GuiIconCached != null ? new Vector2(GuiIconCached.Width, GuiIconCached.Height) : new();
+            public float IconScale => GuiIconCached != null ? Math.Min(IconSize / GuiIconCached.Width, IconSize / GuiIconCached.Height) : 1f;
+
+            private float NameWidthScaled;
             public string Side = "";
+            private float SideWidthScaled;
             public string Level = "";
+            private float LevelWidthScaled;
             public string Icon = "";
+
             public bool IsRandomizer;
 
             public Color TitleColor = DefaultLevelColor;
@@ -486,25 +469,32 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Color = DefaultLevelColor;
             }
 
-            protected override void GenerateText(StringBuilder sb) {
-                GuiIconCached = (GFX.Gui.Has(Icon) ? GFX.Gui.GetAtlasSubtexturesAt(Icon, 0) : null);
-
-                if (!string.IsNullOrEmpty(Name)) {
-                    sb.Append(Name);
-
-                    if (!string.IsNullOrEmpty(Side))
-                        sb.Append(" ").Append(Side);
-
-                    if (!string.IsNullOrEmpty(Level))
-                        sb.Append(" : ").Append(Level);
+            public override void Generate(LocationModes locationMode) {
+                if ((locationMode & LocationModes.Icons) == 0) {
+                    GuiIconShown = false;
+                    GuiIconCached = null;
+                } else {
+                    GuiIconShown = true;
+                    GuiIconCached = GFX.Gui.Has(Icon) ? GFX.Gui[Icon] : null;
                 }
+
+                if ((locationMode & LocationModes.Text) == 0)
+                    Name = "";
             }
 
-            public override Vector2 Measure(ref Vector2 sizeSpace, ref Vector2 sizeIdleIcon) {
-                return base.Measure(ref sizeSpace, ref sizeIdleIcon) + new Vector2(sizeSpace.X + IconSize.X, 0) * DynScale;
+            public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
+                if (string.IsNullOrEmpty(Name))
+                    return new(IconSize * DynScale);
+
+                float space = spaceWidth * DynScale;
+                Vector2 size = CelesteNetClientFont.Measure(Name) * DynScale;
+                NameWidthScaled = size.X;
+                SideWidthScaled = CelesteNetClientFont.Measure(Side).X * DynScale;
+                LevelWidthScaled = CelesteNetClientFont.Measure(Level).X * DynScale;
+                return new(LevelWidthScaled + space + locationSeparatorWidth + space + NameWidthScaled + space + SideWidthScaled + space + IconSize * DynScale);
             }
 
-            private void DrawTextPart(string text, Color color, float y, float scale, ref float x, ref Vector2 sizeSpace) {
+            private void DrawTextPart(string text, float textWidthScaled, Color color, float y, float scale, ref float x) {
                 CelesteNetClientFont.Draw(
                     text,
                     new(50f * scale + x, y + DynY),
@@ -512,26 +502,32 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     new(DynScale),
                     color
                 );
-                x -= (CelesteNetClientFont.Measure(text).X + sizeSpace.X) * DynScale;
+                x -= textWidthScaled;
             }
 
-            public override void Render(float y, float scale, ref Vector2 sizeAll, ref Vector2 sizeSpace) {
-                Vector2 blobScale = new(DynScale);
-
+            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
                 if (!string.IsNullOrEmpty(Name)) {
-                    float x = sizeAll.X - IconSize.X * blobScale.X;
+                    float space = spaceWidth * DynScale;
+                    float x = sizeAll.X;
                     // Rendering location bits right-to-left
-                    DrawTextPart(Side, AccentColor, y, scale, ref x, ref sizeSpace);
-                    DrawTextPart(Name, TitleColor, y, scale, ref x, ref sizeSpace);
-                    DrawTextPart(":", Color.Lerp(Color, Color.Black, 0.5f), y, scale, ref x, ref sizeSpace);
-                    DrawTextPart(Level, Color, y, scale, ref x, ref sizeSpace);
+                    if (GuiIconShown) {
+                        x -= IconSize * DynScale;
+                        x -= space;
+                    }
+                    DrawTextPart(Side, SideWidthScaled, AccentColor, y, scale, ref x);
+                    x -= space;
+                    DrawTextPart(Name, NameWidthScaled, TitleColor, y, scale, ref x);
+                    x -= space;
+                    DrawTextPart(LocationSeparator, locationSeparatorWidth * DynScale, Color.Lerp(Color, Color.Black, 0.5f), y, scale, ref x);
+                    x -= space;
+                    DrawTextPart(Level, LevelWidthScaled, Color, y, scale, ref x);
                 }
 
                 GuiIconCached?.Draw(
-                    new(50f * scale + sizeAll.X - IconSize.X * blobScale.X, y + DynY),
+                    new(50f * scale + sizeAll.X - IconSize * DynScale, y + DynY),
                     Vector2.Zero,
                     Color.White,
-                    IconScale * blobScale
+                    new Vector2(IconScale * DynScale)
                 );
             }
 

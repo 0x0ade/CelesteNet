@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int UDPEstablishDelay = 2;
 
         public readonly CelesteNetClient Client;
-        private readonly Stream TCPNetStream, TCPStream;
+        private readonly Stream TCPNetStream, TCPReadStream, TCPWriteStream;
         private readonly Socket UDPSocket;
         private readonly BlockingCollection<DataType> TCPSendQueue, UDPSendQueue;
         private readonly byte[] UDPHandshakeMessage;
@@ -28,7 +28,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             Client = client;
 
             // Initialize networking
-            TCPStream = new BufferedStream(TCPNetStream = new NetworkStream(tcpSock));
+            TCPNetStream = new NetworkStream(tcpSock);
+            TCPReadStream = new BufferedStream(TCPNetStream);
+            TCPWriteStream = new BufferedStream(TCPNetStream);
             UDPSocket = new(SocketType.Dgram, ProtocolType.Udp);
             UDPSocket.Connect(tcpSock.RemoteEndPoint);
 
@@ -76,7 +78,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             // Dispose stuff
             TokenSrc.Dispose();
-            TCPStream.Dispose();
+            TCPReadStream.Dispose();
+            TCPWriteStream.Dispose();
             TCPNetStream.Dispose();
             UDPSocket.Dispose();
             TCPSendQueue.Dispose();
@@ -122,7 +125,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 byte[] packetBuffer = new byte[2 + ConnectionSettings.MaxPacketSize];
                 void ReadCount(int off, int numBytes) {
                     while (numBytes > 0) {
-                        int count = TCPStream.Read(packetBuffer, off, numBytes);
+                        int count = TCPReadStream.Read(packetBuffer, off, numBytes);
                         if (count <= 0)
                             throw new EndOfStreamException();
                         off += count;
@@ -254,7 +257,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private void TCPSendThreadFunc() {
             try {
-                using BinaryWriter tcpWriter = new(TCPStream, Encoding.UTF8, true);
+                using BinaryWriter tcpWriter = new(TCPWriteStream, Encoding.UTF8, true);
                 using MemoryStream mStream = new(ConnectionSettings.MaxPacketSize);
                 using CelesteNetBinaryWriter bufWriter = new(Data, Strings, CoreTypeMap, mStream);
                 foreach (DataType p in TCPSendQueue.GetConsumingEnumerable(TokenSrc.Token)) {

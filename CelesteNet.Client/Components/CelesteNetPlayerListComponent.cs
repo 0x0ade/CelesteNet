@@ -75,8 +75,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             };
 
-            DataChannelList.Channel ownChannel = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
-
             switch (ListMode) {
                 case ListModes.Classic:
                     foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
@@ -87,9 +85,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             Name = player.DisplayName
                         };
 
-                        if (ownChannel != null && !string.IsNullOrEmpty(ownChannel.Name)) {
-                            blob.Name += $" #{ownChannel.Name}";
-                        }
+                        DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
+                        if (channel != null && !string.IsNullOrEmpty(channel.Name))
+                            blob.Name += $" #{channel.Name}";
 
                         if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
                             GetState(blob, state);
@@ -102,23 +100,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case ListModes.Channels:
                     HashSet<DataPlayerInfo> listed = new();
 
-                    if (ownChannel != null) {
-                        list.Add(new() {
-                            Name = ownChannel.Name,
-                            Color = ColorChannelHeaderOwn
-                        });
-
-                        foreach (DataPlayerInfo player in ownChannel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
-                            BlobPlayer blob = new() { ScaleFactor = 0.5f };
-                            listed.Add(ListPlayerUnderChannel(blob, player));
-                            list.Add(blob);
-                        }
-                    }
-
-                    foreach (DataChannelList.Channel channel in Channels.List) {
-                        if (channel == ownChannel)
-                            continue;
-
+                    void AddChannel(DataChannelList.Channel channel, Color color, float scaleFactor) {
                         list.Add(new() {
                             Name = channel.Name,
                             Color = ColorChannelHeader
@@ -131,8 +113,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         }
                     }
 
-                    bool wrotePrivate = false;
+                    DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+                    if (own != null)
+                        AddChannel(own, ColorChannelHeaderOwn, 0.5f);
 
+                    foreach (DataChannelList.Channel channel in Channels.List)
+                        if (channel != own)
+                            AddChannel(channel, ColorChannelHeader, 1f);
+
+                    bool wrotePrivate = false;
                     foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
                         if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
                             continue;
@@ -437,7 +426,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public const string LocationSeparator = ":";
 
             public MTexture GuiIconCached;
-            public bool GuiIconShown;
 
             public float IconSize => GuiIconCached != null ? 64f : 0f;
             public Vector2 IconOrigSize => GuiIconCached != null ? new Vector2(GuiIconCached.Width, GuiIconCached.Height) : new();
@@ -460,28 +448,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             public override void Generate(LocationModes locationMode) {
-                if ((locationMode & LocationModes.Icons) == 0) {
-                    GuiIconShown = false;
-                    GuiIconCached = null;
-                } else {
-                    GuiIconShown = true;
-                    GuiIconCached = GFX.Gui.Has(Icon) ? GFX.Gui[Icon] : null;
-                }
-
+                GuiIconCached = (locationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(Icon) ? GFX.Gui[Icon] : null;
                 if ((locationMode & LocationModes.Text) == 0)
                     Name = "";
             }
 
             public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
                 if (string.IsNullOrEmpty(Name))
-                    return new(IconSize * DynScale);
+                    return new(GuiIconCached != null ? IconSize * DynScale : 0f);
 
                 float space = spaceWidth * DynScale;
                 Vector2 size = CelesteNetClientFont.Measure(Name) * DynScale;
                 NameWidthScaled = size.X;
                 SideWidthScaled = CelesteNetClientFont.Measure(Side).X * DynScale;
                 LevelWidthScaled = CelesteNetClientFont.Measure(Level).X * DynScale;
-                return new(LevelWidthScaled + space + locationSeparatorWidth + space + NameWidthScaled + space + SideWidthScaled + space + IconSize * DynScale);
+                return new(LevelWidthScaled + space + locationSeparatorWidth + space + NameWidthScaled + space + SideWidthScaled + (GuiIconCached != null ? space + IconSize * DynScale : 0f));
             }
 
             private void DrawTextPart(string text, float textWidthScaled, Color color, float y, float scale, ref float x) {
@@ -500,7 +481,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     float space = spaceWidth * DynScale;
                     float x = sizeAll.X;
                     // Rendering location bits right-to-left
-                    if (GuiIconShown) {
+                    if (GuiIconCached != null) {
                         x -= IconSize * DynScale;
                         x -= space;
                     }

@@ -79,7 +79,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingSubText("modoptions_celestenetclient_entitieshint")]
         public SyncMode Entities { get; set; } = SyncMode.ON;
 
-        public CelesteNetPlayerListComponent.ListMode PlayerListMode { get; set; }
+        public CelesteNetPlayerListComponent.ListModes PlayerListMode { get; set; } = CelesteNetPlayerListComponent.ListModes.Channels;
+        public CelesteNetPlayerListComponent.LocationModes ShowPlayerListLocations { get; set; } = CelesteNetPlayerListComponent.LocationModes.ON;
         [SettingIgnore]
         public bool PlayerListShortenRandomizer { get; set; } = true;
 

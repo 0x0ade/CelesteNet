@@ -187,7 +187,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         private void GetState(ref BlobPlayer blob, DataPlayerState state) {
-
             if (!string.IsNullOrWhiteSpace(state.SID)) {
                 AreaData area = AreaDataExt.Get(state.SID);
                 string chapter = area?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID;
@@ -325,7 +324,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Vector2 size = CelesteNetClientFont.Measure((blob as BlobPlayer)?.Text ?? blob.Text) * blob.DynScale;
                 if (blob is BlobPlayer p) {
                     // insert extra space for the idle icon on non-idle players too.
-                    if(!p.Idle)
+                    if (!p.Idle)
                        size.X += CelesteNetClientFont.Measure(BlobPlayer.IdleIconCode + " ").X * blob.DynScale;
                     // Adjust for Randomizer locations getting shrunk
                     size.X += (CelesteNetClientFont.Measure(p.Location.Text + " ").X + p.Location.IconSize.X) * blob.DynScale * p.Location.DynScale;
@@ -348,9 +347,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (blob is BlobPlayer player) {
                     string playerinfo = string.Join(" ",
                         new List<string>() {
-                        player.Icon,
-                        player.Name,
-                        player.IdleIcon
+                            player.Icon,
+                            player.Name,
+                            player.IdleIcon
                         }.Where(item => !string.IsNullOrEmpty(item))
                     );
 
@@ -372,7 +371,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             new(":",        Color.Lerp(player.Location.Color, Color.Black, 0.5f)),
                             new(player.Location.Name,  player.Location.TitleColor),
                             new(player.Location.Side,  player.Location.AccentColor)
-                            //new(player.Location.Icon,  player.Location.Color)
+                            // new(player.Location.Icon,  player.Location.Color)
                         };
                         // Rendering Location bits right-to-left, hence the Reverse and the justify = Vector2.UnitX
                         location.Reverse();

@@ -107,7 +107,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         });
 
                         foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
-                            BlobPlayer blob = new() { ScaleFactor = 1f };
+                            BlobPlayer blob = new() { ScaleFactor = scaleFactor };
                             listed.Add(ListPlayerUnderChannel(blob, player));
                             list.Add(blob);
                         }

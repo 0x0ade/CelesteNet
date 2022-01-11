@@ -20,6 +20,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
         public readonly uint SessionID;
+        public readonly CelesteNetClientOptions ClientOptions;
 
         private int _Alive;
         public bool Alive => Volatile.Read(ref _Alive) > 0;
@@ -37,10 +38,11 @@ namespace Celeste.Mod.CelesteNet.Server {
         private readonly object RequestNextIDLock = new();
         private uint RequestNextID = 0;
 
-        internal CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint sesId, string uid, string name) {
+        internal CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint sesId, string uid, string name, CelesteNetClientOptions clientOptions) {
             Server = server;
             Con = con;
             SessionID = sesId;
+            ClientOptions = clientOptions;
 
             _Alive = 1;
             UID = uid;

@@ -28,6 +28,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         protected List<Action> MainThreadQueue = new();
 
         private bool Started = false;
+        public readonly bool IsReconnect;
 
         public static event Action<CelesteNetClientContext> OnCreate;
 
@@ -40,6 +41,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Celeste.Instance.Components.Add(this);
 
+            IsReconnect = oldCtx != null;
             if (oldCtx != null)
                 foreach (CelesteNetGameComponent comp in oldCtx.Components.Values) {
                     if (!comp.Persistent)
@@ -79,7 +81,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         public static event Action<CelesteNetClientContext> OnInit;
 
         public void Init(CelesteNetClientSettings settings) {
-            Client = new(settings);
+            Client = new(settings, new() {
+                IsReconnect = IsReconnect
+            });
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Init();
             OnInit?.Invoke(this);

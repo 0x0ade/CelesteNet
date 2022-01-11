@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -13,21 +14,38 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int TeapotVersion = 1;
 
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
-        public static Tuple<uint, IConnectionFeature[], T> DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey) where T : new() {
+        public static Tuple<uint, IConnectionFeature[], T> DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey, CelesteNetClientOptions options) where T : new() {
             // Find connection features
             // We don't buffer, as we could read actual packet data
             using NetworkStream netStream = new(sock, false);
             using StreamReader reader = new(netStream);
             using StreamWriter writer = new(netStream);
             // Send the "HTTP" request
-            writer.Write($@"
+            StringBuilder reqBuilder = new($@"
 CONNECT /teapot HTTP/1.1
 CelesteNet-TeapotVersion: {TeapotVersion}
 CelesteNet-ConnectionFeatures: {features.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}
 CelesteNet-PlayerNameKey: {nameKey}
+");
 
-Can I have some tea?
-".Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n");
+            foreach (FieldInfo field in typeof(CelesteNetClientOptions).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+                switch (Type.GetTypeCode(field.FieldType)) {
+                    case TypeCode.Boolean:
+                    case TypeCode.Int16:
+                    case TypeCode.Int32:
+                    case TypeCode.Int64:
+                    case TypeCode.UInt16:
+                    case TypeCode.UInt32:
+                    case TypeCode.UInt64:
+                    case TypeCode.Single:
+                    case TypeCode.Double: {
+                        reqBuilder.AppendLine($"CelesteNet-ClientOptions-{field.Name}: {field.GetValue(options)}");
+                    } break;
+                }
+            }
+
+            reqBuilder.AppendLine("\nCan I have some tea?");
+            writer.Write(reqBuilder.ToString().Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n");
             writer.Flush();
 
             // Read the "HTTP" response
@@ -61,14 +79,15 @@ Can I have some tea?
                 string headerName = $"CelesteNet-Settings-{field.Name}";
 #pragma warning disable IDE0049 // Simplify Names
                 switch (Type.GetTypeCode(field.FieldType)) {
-                    case TypeCode.Int16:  field.SetValue(settings,  Int16.Parse(headers[headerName])); break;
-                    case TypeCode.Int32:  field.SetValue(settings,  Int32.Parse(headers[headerName])); break;
-                    case TypeCode.Int64:  field.SetValue(settings,  Int64.Parse(headers[headerName])); break;
-                    case TypeCode.UInt16: field.SetValue(settings, UInt16.Parse(headers[headerName])); break;
-                    case TypeCode.UInt32: field.SetValue(settings, UInt32.Parse(headers[headerName])); break;
-                    case TypeCode.UInt64: field.SetValue(settings, UInt64.Parse(headers[headerName])); break;
-                    case TypeCode.Single: field.SetValue(settings, Single.Parse(headers[headerName])); break;
-                    case TypeCode.Double: field.SetValue(settings, Double.Parse(headers[headerName])); break;
+                    case TypeCode.Boolean: field.SetValue(settings, Boolean.Parse(headers[headerName])); break;
+                    case TypeCode.Int16:   field.SetValue(settings,   Int16.Parse(headers[headerName])); break;
+                    case TypeCode.Int32:   field.SetValue(settings,   Int32.Parse(headers[headerName])); break;
+                    case TypeCode.Int64:   field.SetValue(settings,   Int64.Parse(headers[headerName])); break;
+                    case TypeCode.UInt16:  field.SetValue(settings,  UInt16.Parse(headers[headerName])); break;
+                    case TypeCode.UInt32:  field.SetValue(settings,  UInt32.Parse(headers[headerName])); break;
+                    case TypeCode.UInt64:  field.SetValue(settings,  UInt64.Parse(headers[headerName])); break;
+                    case TypeCode.Single:  field.SetValue(settings,  Single.Parse(headers[headerName])); break;
+                    case TypeCode.Double:  field.SetValue(settings,  Double.Parse(headers[headerName])); break;
                 }
 #pragma warning restore IDE0049
             }

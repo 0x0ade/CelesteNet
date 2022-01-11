@@ -16,6 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClient : IDisposable {
 
         public readonly CelesteNetClientSettings Settings;
+        public readonly CelesteNetClientOptions Options;
 
         public readonly DataContext Data;
 
@@ -44,11 +45,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         private System.Timers.Timer HeartbeatTimer;
 
         public CelesteNetClient()
-            : this(new()) {
+            : this(new(), new()) {
         }
 
-        public CelesteNetClient(CelesteNetClientSettings settings) {
+        public CelesteNetClient(CelesteNetClientSettings settings, CelesteNetClientOptions options) {
             Settings = settings;
+            Options = options;
 
             Data = new();
             Data.RegisterHandlersIn(this);
@@ -132,7 +134,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                             sock.ReceiveTimeout = sock.SendTimeout = 2000;
                                             sock.Connect(address, Settings.Port);
                                             // Do the teapot handshake here, as a successful "connection" doesn't mean that the server can handle IPv6.
-                                            teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name);
+                                            teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name, Options);
                                             Logger.Log(LogLevel.INF, "main", $"Connecting to {address} ({address.AddressFamily}) succeeded");
                                             break;
                                         } catch (Exception e) {

@@ -157,14 +157,19 @@ namespace Celeste.Mod.CelesteNet.Client {
                 _StartThread.Join();
 
             lock (ClientLock) {
-                CelesteNetClientContext last = Context ?? ContextLast;
-                if (Client?.IsAlive ?? false)
-                    Stop();
+                CelesteNetClientContext oldCtx = Context;
+                if (oldCtx?.IsDisposed ?? false)
+                    oldCtx = null;
+                Context = new(Celeste.Instance, oldCtx);
+                oldCtx?.Dispose();
 
-                last?.Status?.Set(null);
-
-                Context = new(Celeste.Instance);
-                ContextLast = Context;
+                if (ContextLast != null) {
+                    foreach (CelesteNetGameComponent comp in ContextLast.Components.Values) {
+                        if (!comp.AutoDispose && comp.Context == null)
+                            comp.Dispose();
+                    }
+                    ContextLast = null;
+                }
 
                 Context.Status.Set("Initializing...");
             }

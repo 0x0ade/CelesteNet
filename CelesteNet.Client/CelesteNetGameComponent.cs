@@ -17,13 +17,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public static bool IsDrawingUI;
 
-        public readonly CelesteNetClientContext Context;
+        public CelesteNetClientContext Context;
         public CelesteNetClient Client => Context?.Client;
         public CelesteNetClientSettings ClientSettings => Context?.Client?.Settings ?? CelesteNetClientModule.Settings;
         public CelesteNetClientSettings Settings => CelesteNetClientModule.Settings;
 
-        public bool AutoRemove = true;
-        public bool AutoDispose = true;
+        public bool Persistent = false, AutoDispose = true;
 
         public CelesteNetGameComponent(CelesteNetClientContext context, Game game)
             : base(game) {
@@ -46,9 +45,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
-
-            if (AutoRemove && Context.Game == null)
-                Dispose();
         }
 
         public virtual void Tick() {
@@ -76,14 +72,19 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override void Draw(GameTime gameTime) {
             if (IsDrawingUI) {
                 RenderContentWrap(gameTime, true);
-            } else if (!IsDrawingUI && (Context.IsDisposed || CelesteNetClientModule.Instance.UIRenderTarget == null)) {
+            } else if (!IsDrawingUI && ((Context?.IsDisposed ?? true) || CelesteNetClientModule.Instance.UIRenderTarget == null)) {
                 RenderContentWrap(gameTime, false);
             }
         }
 
+        public virtual void Disconnect(CelesteNetClientContext newCtx) {
+            Context = Persistent ? newCtx : null;
+            if (AutoDispose && Context == null)
+                Dispose();
+        }
+
         protected override void Dispose(bool disposing) {
-            if (AutoRemove)
-                Game.Components.Remove(this);
+            Game.Components.Remove(this);
             base.Dispose(disposing);
             Client?.Data.UnregisterHandlersIn(this);
         }

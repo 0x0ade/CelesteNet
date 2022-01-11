@@ -53,9 +53,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
-            if (Settings.GreetPlayers)
-                Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.DisplayName ?? "???"));
-            SendTo(session, Settings.MessageMOTD);
+            if (!session.ClientOptions.IsReconnect) {
+                if (Settings.GreetPlayers)
+                    Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.DisplayName ?? "???"));
+                SendTo(session, Settings.MessageMOTD);
+            }
             SpamContext spam = session.Set(this, new SpamContext(this));
             spam.OnSpam += (msg, timeout) => {
                 msg.Target = session.PlayerInfo;

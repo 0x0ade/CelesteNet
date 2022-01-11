@@ -343,54 +343,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             float scale = Scale;
             Vector2 fontScale = Vector2.One * scale;
 
-            if (Active) {
-                Context.RenderHelper.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
-
-                CelesteNetClientFont.Draw(
-                    ">",
-                    new(50f * scale, UI_HEIGHT - 105f * scale),
-                    Vector2.Zero,
-                    fontScale * new Vector2(0.5f, 1f),
-                    Color.White * 0.5f
-                );
-                float offs = CelesteNetClientFont.Measure(">").X * scale;
-
-                string text = Typing;
-                CelesteNetClientFont.Draw(
-                    text,
-                    new(50f * scale + offs, UI_HEIGHT - 105f * scale),
-                    Vector2.Zero,
-                    fontScale,
-                    Color.White
-                );
-
-                if (!Calc.BetweenInterval(_Time, 0.5f)) {
-
-                    if (CursorIndex == Typing.Length) {
-                        offs += CelesteNetClientFont.Measure(text).X * scale;
-                        CelesteNetClientFont.Draw(
-                            "_",
-                            new(50f * scale + offs, UI_HEIGHT - 105f * scale),
-                            Vector2.Zero,
-                            fontScale,
-                            Color.White * 0.5f
-                        );
-                    } else {
-                        // draw cursor at correct location, but move back half a "." width to not overlap following char
-                        offs += CelesteNetClientFont.Measure(Typing.Substring(0, CursorIndex)).X * scale;
-                        offs -= CelesteNetClientFont.Measure(".").X / 2f * scale;
-
-                        CelesteNetClientFont.Draw(
-                               "|",
-                               new(50f * scale + offs, UI_HEIGHT - 110f * scale),
-                               Vector2.Zero,
-                               fontScale * new Vector2(.5f, 1.2f),
-                               Color.White * 0.6f
-                           );
-                    }
-                }
-            }
-
             lock (Log) {
                 List<DataChat> log = Mode switch {
                     ChatMode.Special => LogSpecial,
@@ -456,6 +408,54 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             lineFontScale,
                             msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)
                         );
+                    }
+                }
+            }
+
+            if (Active) {
+                Context.RenderHelper.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
+
+                CelesteNetClientFont.Draw(
+                    ">",
+                    new(50f * scale, UI_HEIGHT - 105f * scale),
+                    Vector2.Zero,
+                    fontScale * new Vector2(0.5f, 1f),
+                    Color.White * 0.5f
+                );
+                float offs = CelesteNetClientFont.Measure(">").X * scale;
+
+                string text = Typing;
+                CelesteNetClientFont.Draw(
+                    text,
+                    new(50f * scale + offs, UI_HEIGHT - 105f * scale),
+                    Vector2.Zero,
+                    fontScale,
+                    Color.White
+                );
+
+                if (!Calc.BetweenInterval(_Time, 0.5f)) {
+
+                    if (CursorIndex == Typing.Length) {
+                        offs += CelesteNetClientFont.Measure(text).X * scale;
+                        CelesteNetClientFont.Draw(
+                            "_",
+                            new(50f * scale + offs, UI_HEIGHT - 105f * scale),
+                            Vector2.Zero,
+                            fontScale,
+                            Color.White * 0.5f
+                        );
+                    } else {
+                        // draw cursor at correct location, but move back half a "." width to not overlap following char
+                        offs += CelesteNetClientFont.Measure(Typing.Substring(0, CursorIndex)).X * scale;
+                        offs -= CelesteNetClientFont.Measure(".").X / 2f * scale;
+
+                        CelesteNetClientFont.Draw(
+                               "|",
+                               new(50f * scale + offs, UI_HEIGHT - 110f * scale),
+                               Vector2.Zero,
+                               fontScale * new Vector2(.5f, 1.2f),
+                               Color.White * 0.6f
+                           );
                     }
                 }
             }

@@ -76,6 +76,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             base.Dispose(disposing);
 
+            // Flush buffers
+            TCPReadStream.Flush();
+            TCPWriteStream.Flush();
+
             // Dispose stuff
             TokenSrc.Dispose();
             TCPReadStream.Dispose();

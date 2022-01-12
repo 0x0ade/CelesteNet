@@ -77,10 +77,20 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
-        public virtual void Disconnect(CelesteNetClientContext newCtx) {
-            Context = Persistent ? newCtx : null;
-            if (AutoDispose && Context == null)
+        public virtual void Disconnect() {
+            if (Context == null)
+                throw new InvalidOperationException($"Component {this} not connected anymore!");
+            Context = null;
+            if (AutoDispose)
                 Dispose();
+        }
+
+        public virtual void Reconnect(CelesteNetClientContext newCtx) {
+            if (Context == null)
+                throw new InvalidOperationException($"Component {this} not connected anymore!");
+            if (!Persistent)
+                throw new InvalidOperationException($"Component {this} not persistent!");
+            Context = newCtx;
         }
 
         protected override void Dispose(bool disposing) {

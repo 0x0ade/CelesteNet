@@ -48,7 +48,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         continue;
 
                     // "Recycle" persistent components
-                    comp.Disconnect(this);
+                    comp.Reconnect(this);
                     Logger.Log(LogLevel.INF, "clientcomp", $"Recycled component: {comp}");
                     Components[comp.GetType()] = comp;
                 }
@@ -175,7 +175,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             foreach (CelesteNetGameComponent component in Components.Values)
                 if (component.Context == this)
-                    component.Disconnect(null);
+                    component.Disconnect();
 
             OnDispose?.Invoke(this);
         }

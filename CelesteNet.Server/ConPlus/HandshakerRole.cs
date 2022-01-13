@@ -267,7 +267,7 @@ Connection: close
             CelesteNetClientOptions clientOptions = new();
             foreach (FieldInfo field in typeof(CelesteNetClientOptions).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
                 string headerName = $"CelesteNet-ClientOptions-{field.Name}";
-                if (!headers.TryGetValue(headerName, out string val))
+                if (!headers.TryGetValue(headerName, out string? val))
                     continue;
 #pragma warning disable IDE0049 // Simplify Names
                 switch (Type.GetTypeCode(field.FieldType)) {

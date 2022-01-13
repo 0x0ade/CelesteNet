@@ -27,7 +27,7 @@ export class FrontendAuth {
 
       let data;
       try {
-        data = await fetch("/auth", {
+        data = await fetch("/api/auth", {
           method: "post",
           body: JSON.stringify(pass)
         }).then(r => r.json());

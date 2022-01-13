@@ -6,7 +6,7 @@
     MinConRate: number,
     MaxConRate: number,
     AvgConRate: number
-}} BandwithRate
+}} BandwidthRate
 
 @typedef {{
     Alive: boolean,
@@ -23,10 +23,10 @@
     // PlayersByID: number?,
     PlayerRefs: number,
 
-    TCPUplinkBpS: BandwithRate, TCPUplinkPpS: BandwithRate,
-    TCPDownlinkBpS: BandwithRate, TCPDownlinkPpS: BandwithRate,
-    UDPUplinkBpS: BandwithRate, UDPUplinkPpS: BandwithRate,
-    UDPDownlinkBpS: BandwithRate, UDPDownlinkPpS: BandwithRate
+    TCPUplinkBpS: BandwidthRate, TCPUplinkPpS: BandwidthRate,
+    TCPDownlinkBpS: BandwidthRate, TCPDownlinkPpS: BandwidthRate,
+    UDPUplinkBpS: BandwidthRate, UDPUplinkPpS: BandwidthRate,
+    UDPDownlinkBpS: BandwidthRate, UDPDownlinkPpS: BandwidthRate
 }} Status
 
 @typedef {{
@@ -166,12 +166,11 @@ let CelesteNet = {
 
                 tickRate: {
                     title: "$ tick rate",
-                    units: "TpS",
+                    units: "ticks/s",
                     family: "ticker",
                     dimensions: {
                         tickRate: {
-                            value: data.TickRate * 1000,
-                            divisor: 1000
+                            value: data.TickRate
                         },
                     },
                 },
@@ -222,105 +221,105 @@ let CelesteNet = {
 
                 tcpDownlinkBpS: {
                     title: "$ TCP BpS downlink",
-                    units: "bytes per second",
-                    family: "bandwith",
+                    units: "B/s",
+                    family: "bandwidth",
                     type: netdata.chartTypes.area,
                     dimensions: {
-                        global: { value: data.TCPDownlinkBpS.GlobalRate * 1000, divisor: 1000 },
-                        minCon: { value: data.TCPDownlinkBpS.MinConRate * 1000, divisor: 1000 },
-                        maxCon: { value: data.TCPDownlinkBpS.MaxConRate * 1000, divisor: 1000 },
-                        avgCon: { value: data.TCPDownlinkBpS.AvgConRate * 1000, divisor: 1000 }
+                        global: { value: data.TCPDownlinkBpS.GlobalRate },
+                        minCon: { value: data.TCPDownlinkBpS.MinConRate },
+                        maxCon: { value: data.TCPDownlinkBpS.MaxConRate },
+                        avgCon: { value: data.TCPDownlinkBpS.AvgConRate }
                     }
                 },
 
                 tcpDownlinkPpS: {
                     title: "$ TCP PpS downlink",
-                    units: "packets per second",
-                    family: "bandwith",
+                    units: "P/s",
+                    family: "bandwidth",
                     type: netdata.chartTypes.area,
                     dimensions: {
-                        global: { value: data.TCPDownlinkPpS.GlobalRate * 1000, divisor: 1000 },
-                        minCon: { value: data.TCPDownlinkPpS.MinConRate * 1000, divisor: 1000 },
-                        maxCon: { value: data.TCPDownlinkPpS.MaxConRate * 1000, divisor: 1000 },
-                        avgCon: { value: data.TCPDownlinkPpS.AvgConRate * 1000, divisor: 1000 }
+                        global: { value: data.TCPDownlinkPpS.GlobalRate },
+                        minCon: { value: data.TCPDownlinkPpS.MinConRate },
+                        maxCon: { value: data.TCPDownlinkPpS.MaxConRate },
+                        avgCon: { value: data.TCPDownlinkPpS.AvgConRate }
                     }
                 },
 
                 udpDownlinkBpS: {
                     title: "$ UDP BpS downlink",
-                    units: "bytes per second",
-                    family: "bandwith",
+                    units: "B/s",
+                    family: "bandwidth",
                     type: netdata.chartTypes.area,
                     dimensions: {
-                        global: { value: data.UDPDownlinkBpS.GlobalRate * 1000, divisor: 1000 },
-                        minCon: { value: data.UDPDownlinkBpS.MinConRate * 1000, divisor: 1000 },
-                        maxCon: { value: data.UDPDownlinkBpS.MaxConRate * 1000, divisor: 1000 },
-                        avgCon: { value: data.UDPDownlinkBpS.AvgConRate * 1000, divisor: 1000 }
+                        global: { value: data.UDPDownlinkBpS.GlobalRate },
+                        minCon: { value: data.UDPDownlinkBpS.MinConRate },
+                        maxCon: { value: data.UDPDownlinkBpS.MaxConRate },
+                        avgCon: { value: data.UDPDownlinkBpS.AvgConRate }
                     }
                 },
 
                 udpDownlinkPpS: {
                     title: "$ UDP PpS downlink",
-                    units: "packets per second",
-                    family: "bandwith",
+                    units: "P/s",
+                    family: "bandwidth",
                     type: netdata.chartTypes.area,
                     dimensions: {
-                        global: { value: data.UDPDownlinkPpS.GlobalRate * 1000, divisor: 1000 },
-                        minCon: { value: data.UDPDownlinkPpS.MinConRate * 1000, divisor: 1000 },
-                        maxCon: { value: data.UDPDownlinkPpS.MaxConRate * 1000, divisor: 1000 },
-                        avgCon: { value: data.UDPDownlinkPpS.AvgConRate * 1000, divisor: 1000 }
+                        global: { value: data.UDPDownlinkPpS.GlobalRate },
+                        minCon: { value: data.UDPDownlinkPpS.MinConRate },
+                        maxCon: { value: data.UDPDownlinkPpS.MaxConRate },
+                        avgCon: { value: data.UDPDownlinkPpS.AvgConRate }
                     }
                 },
 
                 tcpUplinkBpS: {
                     title: "$ TCP BpS uplink",
-                    units: "bytes per second",
-                    family: "bandwith",
+                    units: "B/s",
+                    family: "bandwidth",
                     type: netdata.chartTypes.area,
                     dimensions: {
-                        global: { value: data.TCPUplinkBpS.GlobalRate * 1000, divisor: 1000 },
-                        minCon: { value: data.TCPUplinkBpS.MinConRate * 1000, divisor: 1000 },
-                        maxCon: { value: data.TCPUplinkBpS.MaxConRate * 1000, divisor: 1000 },
-                        avgCon: { value: data.TCPUplinkBpS.AvgConRate * 1000, divisor: 1000 }
+                        global: { value: data.TCPUplinkBpS.GlobalRate },
+                        minCon: { value: data.TCPUplinkBpS.MinConRate },
+                        maxCon: { value: data.TCPUplinkBpS.MaxConRate },
+                        avgCon: { value: data.TCPUplinkBpS.AvgConRate }
                     }
                 },
 
                 tcpUplinkPpS: {
                     title: "$ TCP PpS uplink",
-                    units: "packets per second",
-                    family: "bandwith",
+                    units: "P/s",
+                    family: "bandwidth",
                     type: netdata.chartTypes.area,
                     dimensions: {
-                        global: { value: data.TCPUplinkPpS.GlobalRate * 1000, divisor: 1000 },
-                        minCon: { value: data.TCPUplinkPpS.MinConRate * 1000, divisor: 1000 },
-                        maxCon: { value: data.TCPUplinkPpS.MaxConRate * 1000, divisor: 1000 },
-                        avgCon: { value: data.TCPUplinkPpS.AvgConRate * 1000, divisor: 1000 }
+                        global: { value: data.TCPUplinkPpS.GlobalRate },
+                        minCon: { value: data.TCPUplinkPpS.MinConRate },
+                        maxCon: { value: data.TCPUplinkPpS.MaxConRate },
+                        avgCon: { value: data.TCPUplinkPpS.AvgConRate }
                     }
                 },
 
                 udpUplinkBpS: {
                     title: "$ UDP BpS uplink",
-                    units: "bytes per second",
-                    family: "bandwith",
+                    units: "B/s",
+                    family: "bandwidth",
                     type: netdata.chartTypes.area,
                     dimensions: {
-                        global: { value: data.UDPUplinkBpS.GlobalRate * 1000, divisor: 1000 },
-                        minCon: { value: data.UDPUplinkBpS.MinConRate * 1000, divisor: 1000 },
-                        maxCon: { value: data.UDPUplinkBpS.MaxConRate * 1000, divisor: 1000 },
-                        avgCon: { value: data.UDPUplinkBpS.AvgConRate * 1000, divisor: 1000 }
+                        global: { value: data.UDPUplinkBpS.GlobalRate },
+                        minCon: { value: data.UDPUplinkBpS.MinConRate },
+                        maxCon: { value: data.UDPUplinkBpS.MaxConRate },
+                        avgCon: { value: data.UDPUplinkBpS.AvgConRate }
                     }
                 },
 
                 udpUplinkPpS: {
                     title: "$ UDP PpS uplink",
-                    units: "packets per second",
-                    family: "bandwith",
+                    units: "P/s",
+                    family: "bandwidth",
                     type: netdata.chartTypes.area,
                     dimensions: {
-                        global: { value: data.UDPUplinkPpS.GlobalRate * 1000, divisor: 1000 },
-                        minCon: { value: data.UDPUplinkPpS.MinConRate * 1000, divisor: 1000 },
-                        maxCon: { value: data.UDPUplinkPpS.MaxConRate * 1000, divisor: 1000 },
-                        avgCon: { value: data.UDPUplinkPpS.AvgConRate * 1000, divisor: 1000 }
+                        global: { value: data.UDPUplinkPpS.GlobalRate },
+                        minCon: { value: data.UDPUplinkPpS.MinConRate },
+                        maxCon: { value: data.UDPUplinkPpS.MaxConRate },
+                        avgCon: { value: data.UDPUplinkPpS.AvgConRate }
                     }
                 },
             };

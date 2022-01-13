@@ -2,6 +2,7 @@
 import { rd, rdom, rd$, RDOMListHelper } from "../js/rdom.js";
 import { DateTime } from "../js/deps/luxon.js";
 
+const apiroot = `/api`
 const clientrc = `http://localhost:38038/`;
 
 const elDim = document.getElementById("dim");
@@ -14,7 +15,7 @@ function li(value) {
 
 function fetchStatus() {
 	const el = document.getElementById("status-list");
-	fetch("/status").then(r => r.json()).then(status => {
+	fetch(`${apiroot}/status?t=${Date.now()}`).then(r => r.json()).then(status => {
 		for (let dummy of el.querySelectorAll(".dummy"))
 			dummy.remove();
 
@@ -31,20 +32,52 @@ function fetchStatus() {
 
 		const startupDate = DateTime.fromMillis(status.StartupTime).setLocale("en-GB");
 		list.add("uptime", li(`Last server restart: ${startupDate.toFormat("yyyy-MM-dd HH:mm:ss")}`));
-		list.add("memory", li(`Memory used: ${mem}${memSuffix}`));
-		list.add("modules", li(`Modules loaded: ${status.Modules}`));
-		list.add("playersTotal", li(`Players since restart: ${status.PlayerCounter}`));
+		// list.add("memory", li(`Memory used: ${mem}${memSuffix}`));
+		// list.add("modules", li(`Modules loaded: ${status.Modules}`));
+		list.add("playersTotal", li(`Sessions since restart: ${status.PlayerCounter}`));
 		list.add("playersReg", li(`Registered: ${status.Registered}`));
 		list.add("playersBan", li(`Banned: ${status.Banned}`));
-		list.add("players", li(`Online: ${status.PlayerRefs}`));
+		// list.add("players", li(`Online: ${status.PlayerRefs}`));
 
 		list.end();
 	});
 }
 
+function fetchOnline() {
+	const el = document.getElementById("online-list");
+	fetch(`${apiroot}/players?t=${Date.now()}`).then(r => r.json()).then(players => {
+		for (let dummy of el.querySelectorAll(".dummy"))
+			dummy.remove();
+
+		document.getElementById("online-count").innerText = `${players.length} player${players.length == 1 ? "" : "s"} are online right now${players.length == 0 ? "." : ":"}`
+
+		const list = new RDOMListHelper(el);
+
+		players.sort((a, b) => a.FullName.localeCompare(b.FullName));
+		for (let player of players) {
+			/** @type {string} */
+			let name = player.DisplayName;
+			if (name.charAt(0) == ":")
+				name = name.substring(name.indexOf(" ") + 1);
+			list.add(player.ID, el => rd$(el)`
+			<li>
+				${player.Avatar ? el => rd$(el)`<span class="online-icon" style=${`background-image: url(${player.Avatar})`}></span>` : null}
+				${name}
+			</li>`);
+		}
+
+		list.end();
+	});
+}
+
+function fetchAll() {
+	fetchStatus();
+	fetchOnline();
+}
+
 function renderUser() {
 	const el = document.getElementById("userpanel");
-	fetch("/userinfo").then(r => r.json()).then(info => {
+	fetch(`${apiroot}/userinfo?t=${Date.now()}`).then(r => r.json()).then(info => {
 		for (let dummy of el.querySelectorAll(".dummy"))
 			dummy.remove();
 
@@ -53,13 +86,11 @@ function renderUser() {
 		if (info.Error) {
 			list.add("linkerror", el => rd$(el)`
 			<p>
-				Create a CelesteNet account<br>
-				by linking your Discord account.<br>
+				Create a CelesteNet account to show your profile picture in-game and to let the server remember your last channel and command settings.<br>
 				<br>
-				<a id="button-auth" class="button" href="/discordauth"><span class="button-icon"></span><span>Link your account</span></a><br>
+				<a id="button-auth" class="button" href="/discordauth"><span class="button-icon"></span><span>Link your Discord account</span></a><br>
 				<sub style="line-height: 0.5em;">
-					Linking your account requires a "cookie."<br>
-					It is only used to keep you logged in.
+					Linking your account is fully optional and requires telling your browser to store a "cookie." This cookie is only used to keep you logged in.
 				</sub>
 			</p>`);
 
@@ -74,7 +105,7 @@ function renderUser() {
 			<a id="button-reauth" class="button" href="/discordauth">
 				<span class="button-icon"></span>
 				<span class="button-text">
-					<span class="button-icon discord-avatar" style=${`background-image: url(/avatar?uid=${info.UID})`}></span>
+					<span class="button-icon discord-avatar" style=${`background-image: url(/api/avatar?uid=${info.UID})`}></span>
 					${info.Name}#${info.Discrim}
 				</span>
 			</a>
@@ -102,11 +133,11 @@ function renderUser() {
 }
 
 function deauth() {
-	fetch("/deauth").then(() => window.location.reload());
+	fetch(`${apiroot}/deauth?t=${Date.now()}`).then(() => window.location.reload());
 }
 
 function revokeKey() {
-	fetch("/revokekey").then(() => window.location.reload());
+	fetch(`${apiroot}/revokekey?t=${Date.now()}`).then(() => window.location.reload());
 }
 
 function dialog(content) {
@@ -124,14 +155,14 @@ function dialog(content) {
 function sendKey(key) {
 	const controller = new AbortController();
 	setTimeout(() => controller.abort(), 500);
-	fetch(`${clientrc}setkey?value=${key}`, { signal: controller.signal }).then(
+	fetch(`${clientrc}setkey?value=${key}&t=${Date.now()}`, { signal: controller.signal }).then(
 		() => dialog("Sent. Check your mod options."),
 		() => dialog("Couldn't find client.<br>Is Everest running?<br>Is CelesteNet enabled?")
 	);
 }
 
-setInterval(fetchStatus, 30000);
-fetchStatus();
+setInterval(fetchAll, 30000);
+fetchAll();
 renderUser();
 dialog();
 

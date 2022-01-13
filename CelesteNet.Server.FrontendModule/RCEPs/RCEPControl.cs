@@ -234,7 +234,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         }
                     }
 
-                // Update bandwith stats
+                // Update bandwidth stats
                 using (server.ConLock.R()) {
                     TCPRecvBpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPRecvRate.ByteRate : null);
                     TCPRecvPpSRate.UpdateRate(server, c => (c is ConPlusTCPUDPConnection con) ? con.TCPRecvRate.PacketRate : null);
@@ -356,6 +356,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 p.PlayerInfo?.Name,
                 p.PlayerInfo?.FullName,
                 p.PlayerInfo?.DisplayName,
+                Avatar = f.Server.UserData.HasFile(p.UID, "avatar.png") ? $"{f.Settings.APIPrefix}/avatar?uid={p.UID}" : null,
 
                 Connection = auth ? p.Con.ID : null,
                 ConnectionUID = auth ? p.Con.UID : null,

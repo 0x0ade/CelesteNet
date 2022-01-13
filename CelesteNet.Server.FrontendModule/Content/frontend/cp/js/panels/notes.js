@@ -16,7 +16,7 @@ export class FrontendNotesPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Notes";
-    this.ep = "/notes";
+    this.ep = "/api/notes";
 
     this.data = "";
 

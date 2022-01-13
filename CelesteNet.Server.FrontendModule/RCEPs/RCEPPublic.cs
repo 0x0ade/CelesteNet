@@ -79,8 +79,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 using (JsonTextReader jtr = new(sr))
                     tokenData = f.Serializer.Deserialize<dynamic>(jtr);
 
-                if (!(tokenData?.access_token?.ToString() is string token) ||
-                    !(tokenData?.token_type?.ToString() is string tokenType) ||
+                if (tokenData?.access_token?.ToString() is not string token ||
+                    tokenData?.token_type?.ToString() is not string tokenType ||
                     token.IsNullOrEmpty() ||
                     tokenType.IsNullOrEmpty()) {
                     Logger.Log(LogLevel.CRI, "frontend-discordauth", $"Failed to obtain token: {tokenData}");
@@ -255,12 +255,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             });
         }
 
-        [RCEndpoint(false, "/avatar", "?uid={uid}", "", "Get Avatar", "Get a 64x64 round user avatar PNG.")]
+        [RCEndpoint(false, "/avatar", "?uid={uid}&fallback={true|false}", "", "Get Avatar", "Get a 64x64 round user avatar PNG.")]
         public static void Avatar(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
             string? uid = args["uid"];
             if (uid.IsNullOrEmpty()) {
+                if (bool.TryParse(args["fallback"], out bool fallback) && fallback) {
+                    f.RespondContent(c, "frontend/assets/avatar_fallback.png");
+                    return;
+                }
+
                 c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
                 f.RespondJSON(c, new {
                     Error = "No UID."
@@ -270,6 +275,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             Stream? data = f.Server.UserData.ReadFile(uid, "avatar.png");
             if (data == null) {
+                if (bool.TryParse(args["fallback"], out bool fallback) && fallback) {
+                    f.RespondContent(c, "frontend/assets/avatar_fallback.png");
+                    return;
+                }
+
                 c.Response.StatusCode = (int) HttpStatusCode.NotFound;
                 f.RespondJSON(c, new {
                     Error = "Not found."

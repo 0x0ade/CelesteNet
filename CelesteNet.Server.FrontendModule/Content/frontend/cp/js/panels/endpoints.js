@@ -16,7 +16,7 @@ export class FrontendEndpointsPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Endpoints";
-    this.ep = "/eps";
+    this.ep = "/api/eps";
   }
 
   async update() {

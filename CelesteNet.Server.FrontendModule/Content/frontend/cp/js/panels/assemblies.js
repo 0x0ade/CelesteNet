@@ -24,7 +24,7 @@ export class FrontendAssembliesPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Assemblies";
-    this.ep = "/asms";
+    this.ep = "/api/asms";
     /** @type {AssemblyInfo[]} */
     this.data = [];
   }

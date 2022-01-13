@@ -22,7 +22,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             using StreamWriter writer = new(netStream);
             // Send the "HTTP" request
             StringBuilder reqBuilder = new($@"
-CONNECT /teapot HTTP/1.1
+TEAREQ /teapot HTTP/4.2
+Connection: keep-alive
 CelesteNet-TeapotVersion: {TeapotVersion}
 CelesteNet-ConnectionFeatures: {features.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}
 CelesteNet-PlayerNameKey: {nameKey}

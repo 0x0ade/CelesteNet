@@ -196,7 +196,7 @@ The server encountered an internal error while handling the request"
             string[] reqLineSegs = reqLine.Split(' ').Where(s => !string.IsNullOrEmpty(s)).ToArray();
             if (
                 reqLineSegs.Length != 3 ||
-                reqLineSegs[0] != "CONNECT" ||
+                (reqLineSegs[0] != "CONNECT" && reqLineSegs[0] != "TEAREQ") ||
                 reqLineSegs[1] != "/teapot"
             )
                 return await Send500();
@@ -302,8 +302,8 @@ Connection: close
             }
 
             await writer.WriteAsync(
-$@"HTTP/1.1 418 I'm a teapot
-Connection: close
+$@"HTTP/4.2 418 I'm a teapot
+Connection: keep-alive
 CelesteNet-TeapotVersion: {TeapotVersion}
 CelesteNet-ConnectionToken: {conToken:X}
 CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string?) null, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}

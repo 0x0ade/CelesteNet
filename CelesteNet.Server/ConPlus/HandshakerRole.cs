@@ -22,7 +22,6 @@ namespace Celeste.Mod.CelesteNet.Server {
     public partial class HandshakerRole : NetPlusThreadRole {
 
         public const int TeapotTimeout = 5000;
-        public const int TeapotVersion = 1;
 
         private class TaskWorkerScheduler : TaskScheduler, IDisposable {
 
@@ -215,13 +214,13 @@ The server encountered an internal error while handling the request"
             if (!headers.TryGetValue("CelesteNet-TeapotVersion", out string? teapotVerHeader) || !int.TryParse(teapotVerHeader, out int teapotVer))
                 return await Send500();
 
-            if (teapotVer != TeapotVersion) {
-                Logger.Log(LogLevel.VVV, "teapot", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {TeapotVersion} [server]");
+            if (teapotVer != CelesteNetUtils.LoadedVersion) {
+                Logger.Log(LogLevel.VVV, "teapot", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {CelesteNetUtils.LoadedVersion} [server]");
                 await writer.WriteAsync(
 $@"HTTP/1.1 409 Version Mismatch
 Connection: close
 
-{string.Format(Server.Settings.MessageTeapotVersionMismatch, teapotVer, TeapotVersion)}"
+{string.Format(Server.Settings.MessageTeapotVersionMismatch, teapotVer, CelesteNetUtils.LoadedVersion)}"
                     .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n")
                 );
                 return null;
@@ -306,7 +305,7 @@ Connection: close
             await writer.WriteAsync(
 $@"HTTP/4.2 418 I'm a teapot
 Connection: keep-alive
-CelesteNet-TeapotVersion: {TeapotVersion}
+CelesteNet-TeapotVersion: {CelesteNetUtils.LoadedVersion}
 CelesteNet-ConnectionToken: {conToken:X}
 CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string?) null, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
 {settingsBuilder.ToString().Trim()}

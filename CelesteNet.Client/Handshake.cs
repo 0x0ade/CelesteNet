@@ -11,8 +11,6 @@ using System.Threading;
 namespace Celeste.Mod.CelesteNet.Client {
     public static class Handshake {
 
-        public const int TeapotVersion = 1;
-
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
         public static Tuple<uint, IConnectionFeature[], T> DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey, CelesteNetClientOptions options) where T : new() {
             // Find connection features
@@ -24,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             StringBuilder reqBuilder = new($@"
 TEAREQ /teapot HTTP/4.2
 Connection: keep-alive
-CelesteNet-TeapotVersion: {TeapotVersion}
+CelesteNet-TeapotVersion: {CelesteNetUtils.LoadedVersion}
 CelesteNet-ConnectionFeatures: {features.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}
 CelesteNet-PlayerNameKey: {nameKey}
 ");

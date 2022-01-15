@@ -116,7 +116,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (Client?.Con != null && Client.SafeDisposeTriggered && Client.Con.IsAlive)
                 Client.Con.Dispose();
 
-            if (Started && !(Client?.IsAlive ?? true)) {
+            if (Started && !(Client?.IsAlive ?? true) && !(Client?.DontReconnect ?? false)) {
                 // The connection died
                 if (CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected) {
                     if (Status.Spin)

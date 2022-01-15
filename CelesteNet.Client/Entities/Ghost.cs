@@ -74,11 +74,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Add(Sprite);
             Hair.Color = Player.NormalHairColor;
             Add(Leader = new(new(0f, -8f)));
-            Holdable = new() {
+            Add(Holdable = new() {
                 OnPickup = OnPickup,
                 OnCarry = OnCarry,
                 OnRelease = OnRelease
-            };
+            });
 
             Collidable = true;
             Collider = new Hitbox(8f, 11f, -4f, -11f);

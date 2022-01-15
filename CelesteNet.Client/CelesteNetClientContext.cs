@@ -28,22 +28,30 @@ namespace Celeste.Mod.CelesteNet.Client {
         protected List<Action> MainThreadQueue = new();
 
         private bool Started = false;
+        public readonly bool IsReconnect;
 
         public static event Action<CelesteNetClientContext> OnCreate;
 
         public bool IsDisposed { get; private set; }
 
-        public CelesteNetClientContext(Game game)
+        public CelesteNetClientContext(Game game, CelesteNetClientContext oldCtx = null)
             : base(game) {
 
             UpdateOrder = -10000;
 
             Celeste.Instance.Components.Add(this);
 
-            Add(Main = new(this, game));
-            Add(RenderHelper = new(this, game));
-            Add(Status = new(this, game));
-            Add(Chat = new(this, game));
+            IsReconnect = oldCtx != null;
+            if (oldCtx != null)
+                foreach (CelesteNetGameComponent comp in oldCtx.Components.Values) {
+                    if (!comp.Persistent)
+                        continue;
+
+                    // "Recycle" persistent components
+                    comp.Reconnect(this);
+                    Logger.Log(LogLevel.INF, "clientcomp", $"Recycled component: {comp}");
+                    Components[comp.GetType()] = comp;
+                }
 
             foreach (Type type in FakeAssembly.GetFakeEntryAssembly().GetTypes()) {
                 if (type.IsAbstract || !typeof(CelesteNetGameComponent).IsAssignableFrom(type) || Components.ContainsKey(type))
@@ -52,6 +60,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Add((CelesteNetGameComponent) Activator.CreateInstance(type, this, game));
             }
 
+            Main = Get<CelesteNetMainComponent>();
+            RenderHelper = Get<CelesteNetRenderHelperComponent>();
+            Status = Get<CelesteNetStatusComponent>();
+            Chat = Get<CelesteNetChatComponent>();
             DrawableComponents = Components.Values.Where(c => c.Visible).OrderBy(c => c.DrawOrder).ToList();
 
             OnCreate?.Invoke(this);
@@ -69,7 +81,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         public static event Action<CelesteNetClientContext> OnInit;
 
         public void Init(CelesteNetClientSettings settings) {
-            Client = new(settings);
+            Client = new(settings, new() {
+                IsReconnect = IsReconnect
+            });
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Init();
             OnInit?.Invoke(this);
@@ -102,8 +116,15 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (Client?.Con != null && Client.SafeDisposeTriggered && Client.Con.IsAlive)
                 Client.Con.Dispose();
 
-            if (Started && !(Client?.IsAlive ?? true))
-                Dispose();
+            if (Started && !(Client?.IsAlive ?? true)) {
+                // The connection died
+                if (CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected) {
+                    if (Status.Spin)
+                        Status.Set("Disconnected", 3f, false);
+                    QueuedTaskHelper.Do("CelesteNetAutoReconnect", 1D, () => CelesteNetClientModule.Instance.Start());
+                } else
+                    Dispose();
+            }
         }
 
         internal void _RunOnMainThread(Action action, bool wait = false)
@@ -138,9 +159,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         protected override void Dispose(bool disposing) {
             IsDisposed = true;
 
-            bool reconnect = false;
             if (CelesteNetClientModule.Instance.Context == this) {
-                reconnect = CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected;
+                if (Status.Spin)
+                    Status.Set("Disconnected", 3f, false);
                 CelesteNetClientModule.Instance.Context = null;
                 CelesteNetClientModule.Settings.Connected = false;
             }
@@ -153,25 +174,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             Celeste.Instance.Components.Remove(this);
 
             foreach (CelesteNetGameComponent component in Components.Values)
-                if (component.AutoDispose)
-                    component.Dispose();
+                if (component.Context == this)
+                    component.Disconnect();
 
             OnDispose?.Invoke(this);
-
-            if (Status != null) {
-                if (Status.Spin) {
-                    Status.Set("Disconnected", 3f, false);
-                    if (reconnect) {
-                        // Try queueing onto the main thread first, which then queues onto the queued task helper, as...
-                        try {
-                            MainThreadHelper.Do(() => QueuedTaskHelper.Do("CelesteNetAutoReconnect", 1D, () => CelesteNetClientModule.Settings.Connected = true));
-                        } catch (ObjectDisposedException) {
-                            // ... there's a chance that the game is exiting right now, at which point the main thread queue has shut down.
-                        }
-                    }
-                }
-                Status.AutoDispose = true;
-            }
         }
 
     }

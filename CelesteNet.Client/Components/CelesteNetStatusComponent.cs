@@ -36,6 +36,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             UpdateOrder = 10000;
             DrawOrder = 10200;
 
+            Persistent = true;
             AutoDispose = false;
             Enabled = true;
         }
@@ -100,7 +101,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             timeSpin += Engine.RawDeltaTime * spinSpeed;
 
-            if (AutoDispose && time == 0f)
+            if (Context == null && time == 0f)
                 Dispose();
         }
 

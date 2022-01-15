@@ -157,14 +157,19 @@ namespace Celeste.Mod.CelesteNet.Client {
                 _StartThread.Join();
 
             lock (ClientLock) {
-                CelesteNetClientContext last = Context ?? ContextLast;
-                if (Client?.IsAlive ?? false)
-                    Stop();
+                CelesteNetClientContext oldCtx = Context;
+                if (oldCtx?.IsDisposed ?? false)
+                    oldCtx = null;
+                Context = new(Celeste.Instance, oldCtx);
+                oldCtx?.Dispose();
 
-                last?.Status?.Set(null);
-
-                Context = new(Celeste.Instance);
-                ContextLast = Context;
+                if (ContextLast != null) {
+                    foreach (CelesteNetGameComponent comp in ContextLast.Components.Values) {
+                        if (!comp.AutoDispose && comp.Context == null)
+                            comp.Dispose();
+                    }
+                    ContextLast = null;
+                }
 
                 Context.Status.Set("Initializing...");
             }
@@ -193,17 +198,25 @@ namespace Celeste.Mod.CelesteNet.Client {
                     _StartThread = null;
                     Stop();
 
-                } catch (ConnectionErrorException e) {
-                    Logger.Log(LogLevel.CRI, "clientmod", $"Connection error:\n{e}");
-                    _StartThread = null;
-                    Stop();
-                    context.Status.Set(e.Status ?? "Connection failed", 3f, false);
-
                 } catch (Exception e) {
-                    Logger.Log(LogLevel.CRI, "clientmod", $"Failed connecting:\n{e}");
-                    _StartThread = null;
-                    Stop();
-                    context.Status.Set("Connection failed", 3f, false);
+                    bool handled = false;
+                    for (Exception ie = e; ie != null; ie = ie.InnerException) {
+                        if (ie is ConnectionErrorException cee) {
+                            Logger.Log(LogLevel.CRI, "clientmod", $"Connection error:\n{e}");
+                            _StartThread = null;
+                            Stop();
+                            context.Status.Set(cee.Status ?? "Connection failed", 3f, false);
+                            handled = true;
+                            break;
+                        }
+                    }
+
+                    if (!handled) {
+                        Logger.Log(LogLevel.CRI, "clientmod", $"Failed connecting:\n{e}");
+                        _StartThread = null;
+                        Stop();
+                        context.Status.Set("Connection failed", 3f, false);
+                    }
 
                 } finally {
                     _StartThread = null;

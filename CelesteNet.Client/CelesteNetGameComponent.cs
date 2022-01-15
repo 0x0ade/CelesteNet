@@ -17,13 +17,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public static bool IsDrawingUI;
 
-        public readonly CelesteNetClientContext Context;
+        public CelesteNetClientContext Context;
         public CelesteNetClient Client => Context?.Client;
         public CelesteNetClientSettings ClientSettings => Context?.Client?.Settings ?? CelesteNetClientModule.Settings;
         public CelesteNetClientSettings Settings => CelesteNetClientModule.Settings;
 
-        public bool AutoRemove = true;
-        public bool AutoDispose = true;
+        public bool Persistent = false, AutoDispose = true;
 
         public CelesteNetGameComponent(CelesteNetClientContext context, Game game)
             : base(game) {
@@ -46,9 +45,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
-
-            if (AutoRemove && Context.Game == null)
-                Dispose();
         }
 
         public virtual void Tick() {
@@ -76,14 +72,29 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override void Draw(GameTime gameTime) {
             if (IsDrawingUI) {
                 RenderContentWrap(gameTime, true);
-            } else if (!IsDrawingUI && (Context.IsDisposed || CelesteNetClientModule.Instance.UIRenderTarget == null)) {
+            } else if (!IsDrawingUI && ((Context?.IsDisposed ?? true) || CelesteNetClientModule.Instance.UIRenderTarget == null)) {
                 RenderContentWrap(gameTime, false);
             }
         }
 
+        public virtual void Disconnect() {
+            if (Context == null)
+                throw new InvalidOperationException($"Component {this} not connected anymore!");
+            Context = null;
+            if (AutoDispose)
+                Dispose();
+        }
+
+        public virtual void Reconnect(CelesteNetClientContext newCtx) {
+            if (Context == null)
+                throw new InvalidOperationException($"Component {this} not connected anymore!");
+            if (!Persistent)
+                throw new InvalidOperationException($"Component {this} not persistent!");
+            Context = newCtx;
+        }
+
         protected override void Dispose(bool disposing) {
-            if (AutoRemove)
-                Game.Components.Remove(this);
+            Game.Components.Remove(this);
             base.Dispose(disposing);
             Client?.Data.UnregisterHandlersIn(this);
         }

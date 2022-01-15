@@ -16,6 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int UDPEstablishDelay = 2;
 
         public readonly CelesteNetClient Client;
+
         private readonly Stream TCPNetStream, TCPReadStream, TCPWriteStream;
         private readonly Socket UDPSocket;
         private readonly BlockingCollection<DataType> TCPSendQueue, UDPSendQueue;
@@ -181,6 +182,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             } catch (EndOfStreamException) {
                 if (!TokenSrc.IsCancellationRequested) {
                     Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
+                    Client.DontReconnect = true;
                     DisposeSafe();
                 }
                 return;

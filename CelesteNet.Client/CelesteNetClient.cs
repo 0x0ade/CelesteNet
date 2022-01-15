@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetConnection Con;
         public readonly IConnectionFeature[] ConFeatures;
-        public volatile bool SafeDisposeTriggered = false;
+        public volatile bool DontReconnect = false, SafeDisposeTriggered = false;
 
         private bool _IsAlive;
         public bool IsAlive {
@@ -183,11 +183,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                             // Create a connection and start the heartbeat timer
                             CelesteNetClientTCPUDPConnection con = new(this, conToken, settings, sock);
-                            con.OnDisconnect += _ => {
-                                CelesteNetClientModule.Instance.Context?.Dispose();
-                                Dispose();
-                                CelesteNetClientModule.Instance.Context?.Status?.Set("Server disconnected", 3f);
-                            };
+                            con.OnDisconnect += _ => Dispose();
                             if (Settings.ConnectionType == ConnectionType.TCP)
                                 con.UseUDP = false;
 

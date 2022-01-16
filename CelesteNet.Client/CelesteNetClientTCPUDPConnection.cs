@@ -77,14 +77,18 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             base.Dispose(disposing);
 
-            // Flush buffers
-            TCPReadStream.Flush();
-            TCPWriteStream.Flush();
-
             // Dispose stuff
             TokenSrc.Dispose();
-            TCPReadStream.Dispose();
-            TCPWriteStream.Dispose();
+            // We must try-catch buffered stream disposes as those will try to flush.
+            // If a network stream was torn down out of our control, it will throw!
+            try {
+                TCPReadStream.Dispose();
+            } catch {
+            }
+            try {
+                TCPWriteStream.Dispose();
+            } catch {
+            }
             TCPNetStream.Dispose();
             UDPSocket.Dispose();
             TCPSendQueue.Dispose();

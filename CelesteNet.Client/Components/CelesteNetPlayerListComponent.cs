@@ -46,7 +46,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private int PlayerCountLast = 0;
         private int ChannelLengthLast = 0;
-        private bool SplitViewPartially => PlayerCountLast - ChannelLengthLast > 25 && SplitStartsAt > 0;
+        private bool SplitViewPartially => ListMode == ListModes.Channels && Settings.PlayerListAllowSplit && PlayerCountLast - ChannelLengthLast > 12 && SplitStartsAt > 0;
+        private bool SplitSuccessfully = false;
         private int SplitStartsAt = 0;
 
         public enum ListModes {
@@ -84,6 +85,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             };
 
+            int lastPossibleSplit = 0;
+
             switch (ListMode) {
                 case ListModes.Classic:
                     foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
@@ -91,7 +94,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             continue;
 
                         BlobPlayer blob = new() {
-                            Name = player.DisplayName
+                            Name = player.DisplayName,
+                            ScaleFactor = 0.75f
                         };
 
                         DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
@@ -117,6 +121,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             ScaleFactor = scaleFactorHeader,
                             CanSplit = channel != own
                         });
+                        if (channel != own)
+                            lastPossibleSplit = list.Count - 1;
 
                         foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
                             BlobPlayer blob = new() { ScaleFactor = scaleFactor };
@@ -135,8 +141,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         if (channel != own)
                             AddChannel(channel, ColorChannelHeader, 0.75f, 1f, LocationModes.OFF);
 
-                    SplitStartsAt = list.Count > splitIndex + 1 ? splitIndex + 1 : 0;
-
                     bool wrotePrivate = false;
                     foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
                         if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
@@ -147,8 +151,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             list.Add(new() {
                                 Name = "!<private>",
                                 Color = ColorChannelHeaderPrivate,
-                                ScaleFactor = 0.8f
+                                ScaleFactor = 0.8f,
+                                CanSplit = true
                             });
+                            lastPossibleSplit = list.Count - 1;
                         }
 
                         list.Add(new() {
@@ -156,6 +162,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             ScaleFactor = 1f
                         });
                     }
+
+                    SplitStartsAt = list.Count > splitIndex + 1 ? splitIndex + 1 : 0;
 
                     break;
             }
@@ -185,9 +193,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     sizeToSplit.X = Math.Max(sizeToSplit.X, size.X);
                     sizeToSplit.Y += size.Y + 10f * scale;
                 }
+
                 if (SplitStartsAt == 0 || i < SplitStartsAt)
                     SizeUpper = sizeAll;
-                if (SplitStartsAt > 0 && i == SplitStartsAt) {
+                if (ListMode == ListModes.Channels && SplitStartsAt > 0 && i == SplitStartsAt) {
                     blob.Dyn.Y += 30f * scale;
                     sizeAll.Y += 30f * scale;
                 }
@@ -199,27 +208,40 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
+            SplitSuccessfully = false;
+            int forceSplitAt = -1;
+            RetryPartialSplit:
             Vector2 sizeColumn = Vector2.Zero;
             float maxColumnY = 0f;
             
+            int switchedSidesAt = 0;
             if (SplitViewPartially) {
-                int switchedSidesAt = 0;
                 for (int i = SplitStartsAt; i < list.Count; i++) {
                     Blob blob = list[i];
                     Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
                     sizeColumn.X = Math.Max(sizeColumn.X, size.X);
-                    if (sizeColumn.Y > sizeToSplit.Y / 2f + 10f && blob.CanSplit) {
-                        switchedSidesAt = i;
-                        maxColumnY = sizeColumn.Y;
-                        sizeColumn.Y = 0f;
+                    if (lastPossibleSplit > SplitStartsAt && (sizeColumn.Y > sizeToSplit.Y / 2f + 10f || forceSplitAt == i)) {
+                        if (blob.CanSplit) {
+                            switchedSidesAt = i;
+                            maxColumnY = sizeColumn.Y;
+                            sizeColumn.Y = 0f;
+                            SplitSuccessfully = true;
+                        } else if (lastPossibleSplit > 0 && i > lastPossibleSplit && forceSplitAt == -1) {
+                            forceSplitAt = lastPossibleSplit;
+                            list[lastPossibleSplit].CanSplit = true;
+                            goto RetryPartialSplit;
+                        }
                     }
                     blob.Dyn.Y = sizeAll.Y + sizeColumn.Y;
                     sizeColumn.Y += size.Y + 10f * scale;
                 }
-                sizeColumn.X += 30f * scale;
 
-                for (int i = switchedSidesAt; i < list.Count; i++) {
-                    list[i].Dyn.X = sizeColumn.X + 15f;
+                if (SplitSuccessfully) {
+                    sizeColumn.X += 30f * scale;
+
+                    for (int i = switchedSidesAt; i < list.Count; i++) {
+                        list[i].Dyn.X = sizeColumn.X + 15f;
+                    }
                 }
 
                 if (sizeColumn.Y > maxColumnY)
@@ -228,6 +250,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 sizeAll.Y += maxColumnY;
                 sizeAll.X = Math.Max(sizeAll.X, sizeColumn.X * 2f);
             }
+
+            //list[0].Name += $" {SplitStartsAt} {lastPossibleSplit} {SplitSuccessfully} {maxColumnY} {switchedSidesAt}";
+            //list[0].Generate();
 
             List = list;
             SizeAll = sizeAll;
@@ -397,14 +422,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             float x = 25f * scale;
             float sizeAllXPadded = sizeAll.X + 50f * scale;
-            Context.RenderHelper.Rect(x, y - 25f * scale, sizeAllXPadded, SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
-            if (SplitViewPartially) {
-                float sizeColXPadded = SizeColumn.X + 25f * scale;
-                Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
-                x += sizeColXPadded + 5f * scale;
-                Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded - sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+            if (ListMode == ListModes.Channels) {
+                Context.RenderHelper.Rect(x, y - 25f * scale, sizeAllXPadded, SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+                if (SplitViewPartially && SplitSuccessfully) {
+                    float sizeColXPadded = SizeColumn.X + 25f * scale;
+                    Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+                    x += sizeColXPadded + 5f * scale;
+                    Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded - sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+                } else {
+                    Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+                }
             } else {
-                Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+                Context.RenderHelper.Rect(x, y - 25f * scale, sizeAllXPadded, sizeAll.Y + 30f * scale, Color.Black * 0.8f);
             }
 
             foreach (Blob blob in List)

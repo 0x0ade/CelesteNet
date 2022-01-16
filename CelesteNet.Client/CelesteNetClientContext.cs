@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client {
-    public class CelesteNetClientContext : GameComponent {
+    public class CelesteNetClientContext : DrawableGameComponent {
 
         public CelesteNetClient Client;
 
@@ -34,10 +34,14 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool IsDisposed { get; private set; }
 
+        private bool SafeDisposeTriggered, SafeDisposeForceDispose;
+        private readonly object SafeDisposeLock = new();
+
         public CelesteNetClientContext(Game game, CelesteNetClientContext oldCtx = null)
             : base(game) {
 
             UpdateOrder = -10000;
+            DrawOrder = int.MaxValue;
 
             Celeste.Instance.Components.Add(this);
 
@@ -115,6 +119,17 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             if (Client?.Con != null && Client.SafeDisposeTriggered && Client.Con.IsAlive)
                 Client.Con.Dispose();
+        }
+
+        public override void Draw(GameTime gameTime) {
+            base.Draw(gameTime);
+
+            // This must happen at the very end, as XNA / FNA won't update their internal lists.
+
+            if (SafeDisposeTriggered) {
+                Dispose();
+                return;
+            }
 
             if (Started && !(Client?.IsAlive ?? true) && !(Client?.DontReconnect ?? false)) {
                 // The connection died
@@ -153,12 +168,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (wait)
                 WaitHandle.WaitAny(new WaitHandle[] { waiter });
         }
-
-        public static event Action<CelesteNetClientContext> OnDispose;
-
-        protected override void Dispose(bool disposing) {
-            IsDisposed = true;
-
+        
+        protected void DisposeCore() {
             if (CelesteNetClientModule.Instance.Context == this) {
                 if (Status.Spin)
                     Status.Set("Disconnected", 3f, false);
@@ -166,18 +177,41 @@ namespace Celeste.Mod.CelesteNet.Client {
                 CelesteNetClientModule.Settings.Connected = false;
             }
 
-            base.Dispose(disposing);
-
             Client?.Dispose();
             Client = null;
+        }
 
-            Celeste.Instance.Components.Remove(this);
+        public void DisposeSafe(bool forceDispose = false) {
+            lock (SafeDisposeLock) {
+                if (IsDisposed)
+                    return;
 
-            foreach (CelesteNetGameComponent component in Components.Values)
-                if (component.Context == this)
-                    component.Disconnect();
+                SafeDisposeForceDispose |= forceDispose;
+                SafeDisposeTriggered = true;
 
-            OnDispose?.Invoke(this);
+                DisposeCore();
+            }
+        }
+
+        public static event Action<CelesteNetClientContext> OnDispose;
+
+        protected override void Dispose(bool disposing) {
+            lock (SafeDisposeLock) {
+                IsDisposed = true;
+
+                base.Dispose(disposing);
+
+                if (!SafeDisposeTriggered)
+                    DisposeCore();
+
+                Celeste.Instance.Components.Remove(this);
+
+                foreach (CelesteNetGameComponent component in Components.Values)
+                    if (component.Context == this)
+                        component.Disconnect(SafeDisposeForceDispose);
+
+                OnDispose?.Invoke(this);
+            }
         }
 
     }

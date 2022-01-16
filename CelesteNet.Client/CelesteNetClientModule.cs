@@ -161,13 +161,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (oldCtx?.IsDisposed ?? false)
                     oldCtx = null;
                 Context = new(Celeste.Instance, oldCtx);
-                oldCtx?.Dispose();
+                oldCtx?.DisposeSafe(true);
 
-                if (ContextLast != null) {
-                    foreach (CelesteNetGameComponent comp in ContextLast.Components.Values) {
-                        if (!comp.AutoDispose && comp.Context == null)
-                            comp.Dispose();
-                    }
+                oldCtx = ContextLast;
+                if (oldCtx != null) {
+                    MainThreadHelper.Do(() => {
+                        foreach (CelesteNetGameComponent comp in oldCtx.Components.Values)
+                            comp.Disconnect(true);
+                    });
                     ContextLast = null;
                 }
 
@@ -244,7 +245,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
 
                 ContextLast = Context;
-                Context.Dispose();
+                Context.DisposeSafe();
                 Context = null;
             }
         }

@@ -86,26 +86,27 @@ namespace Celeste.Mod.CelesteNet.Server {
             TCPReceiver = tcpReceiver;
             UDPReceiver = udpReceiver;
             Sender = sender;
-            UsageLock = new();
-            TCPRecvRate = new(this);
-            TCPSendRate = new(this);
-            UDPRecvRate = new(this);
-            UDPSendRate = new(this);
+            lock ((UsageLock = new()).W()) {
+                TCPRecvRate = new(this);
+                TCPSendRate = new(this);
+                UDPRecvRate = new(this);
+                UDPSendRate = new(this);
 
-            // Initialize TCP receiving
-            tcpSock.Blocking = false;
-            TCPRecvBuffer = new byte[Math.Max(server.Settings.TCPRecvBufferSize, 2 + server.Settings.MaxPacketSize)];
-            TCPRecvBufferOff = 0;
-            tcpReceiver.Poller.AddConnection(this);
+                // Initialize TCP receiving
+                tcpSock.Blocking = false;
+                TCPRecvBuffer = new byte[Math.Max(server.Settings.TCPRecvBufferSize, 2 + server.Settings.MaxPacketSize)];
+                TCPRecvBufferOff = 0;
+                tcpReceiver.Poller.AddConnection(this);
 
-            // Initialize TCP sending
-            TCPSendBuffer = new byte[(2 + server.Settings.MaxPacketSize) * server.Settings.MaxQueueSize];
-            TCPSendBufferStream = new(TCPSendBuffer);
-            TCPSendPacketWriter = new(server.Data, Strings, CoreTypeMap, TCPSendBufferStream);
-            TCPSendBufferOff = TCPSendBufferNumBytes = TCPSendBufferNumPackets = 0;
+                // Initialize TCP sending
+                TCPSendBuffer = new byte[(2 + server.Settings.MaxPacketSize) * server.Settings.MaxQueueSize];
+                TCPSendBufferStream = new(TCPSendBuffer);
+                TCPSendPacketWriter = new(server.Data, Strings, CoreTypeMap, TCPSendBufferStream);
+                TCPSendBufferOff = TCPSendBufferNumBytes = TCPSendBufferNumPackets = 0;
 
-            // Initialize UDP receiving
-            udpReceiver.AddConnection(this);
+                // Initialize UDP receiving
+                udpReceiver.AddConnection(this);
+            }
         }
 
         // The usage lock could still be used after we dispose

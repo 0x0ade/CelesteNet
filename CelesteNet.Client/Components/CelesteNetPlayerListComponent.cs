@@ -29,6 +29,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private List<Blob> List = new();
         private Vector2 SizeAll;
+        private Vector2 SizeUpper;
+        private Vector2 SizeColumn;
 
         public DataChannelList Channels;
 
@@ -41,6 +43,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private float? SpaceWidth;
         private float? LocationSeparatorWidth;
         private float? IdleIconWidth;
+
+        private int PlayerCountLast = 0;
+        private int ChannelLengthLast = 0;
+        private bool SplitViewPartially => PlayerCountLast - ChannelLengthLast > 25 && SplitStartsAt > 0;
+        private int SplitStartsAt = 0;
 
         public enum ListModes {
             Channels,
@@ -67,11 +74,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
+            PlayerCountLast = all.Length;
 
             List<Blob> list = new() {
                 new() {
                     Name = $"{all.Length} player{(all.Length == 1 ? "" : "s")}",
-                    Color = ColorCountHeader
+                    Color = ColorCountHeader,
+                    ScaleFactor = 0.25f
                 }
             };
 
@@ -99,27 +108,34 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 case ListModes.Channels:
                     HashSet<DataPlayerInfo> listed = new();
+                    DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
-                    void AddChannel(DataChannelList.Channel channel, Color color, float scaleFactor) {
+                    void AddChannel(DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor, LocationModes locationMode) {
                         list.Add(new() {
                             Name = channel.Name,
-                            Color = ColorChannelHeader
+                            Color = ColorChannelHeader,
+                            ScaleFactor = scaleFactorHeader,
+                            CanSplit = channel != own
                         });
 
                         foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
                             BlobPlayer blob = new() { ScaleFactor = scaleFactor };
-                            listed.Add(ListPlayerUnderChannel(blob, player));
+                            listed.Add(ListPlayerUnderChannel(blob, player, locationMode));
                             list.Add(blob);
                         }
                     }
 
-                    DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
-                    if (own != null)
-                        AddChannel(own, ColorChannelHeaderOwn, 0.5f);
+                    if (own != null) {
+                        ChannelLengthLast = own.Players.Length;
+                        AddChannel(own, ColorChannelHeaderOwn, 0.25f, 0.5f, LocationMode);
+                    }
+                    int splitIndex = list.Count - 1;
 
                     foreach (DataChannelList.Channel channel in Channels.List)
                         if (channel != own)
-                            AddChannel(channel, ColorChannelHeader, 1f);
+                            AddChannel(channel, ColorChannelHeader, 0.75f, 1f, LocationModes.OFF);
+
+                    SplitStartsAt = list.Count > splitIndex + 1 ? splitIndex + 1 : 0;
 
                     bool wrotePrivate = false;
                     foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
@@ -130,7 +146,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             wrotePrivate = true;
                             list.Add(new() {
                                 Name = "!<private>",
-                                Color = ColorChannelHeaderPrivate
+                                Color = ColorChannelHeaderPrivate,
+                                ScaleFactor = 0.8f
                             });
                         }
 
@@ -146,31 +163,75 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             PrepareRenderLayout(out float scale, out _, out _, out float spaceWidth, out float locationSeparatorWidth, out float idleIconWidth);
 
             foreach (Blob blob in list)
-                blob.Generate(LocationMode);
+                blob.Generate();
 
             int textScaleTry = 0;
             float textScale = scale;
             RetryLineScale:
 
             Vector2 sizeAll = Vector2.Zero;
-
-            foreach (Blob blob in list) {
+            Vector2 sizeToSplit = Vector2.Zero;
+            
+            for (int i = 0; i < list.Count; i++) {
+                Blob blob = list[i];
                 blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
-                blob.DynY = sizeAll.Y;
+                blob.Dyn.Y = sizeAll.Y;
 
                 Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
-                sizeAll.X = Math.Max(sizeAll.X, size.X);
-                sizeAll.Y += size.Y + 10f * scale;
+                if (!SplitViewPartially || SplitStartsAt == 0 || i < SplitStartsAt) {
+                    sizeAll.X = Math.Max(sizeAll.X, size.X);
+                    sizeAll.Y += size.Y + 10f * scale;
+                } else {
+                    sizeToSplit.X = Math.Max(sizeToSplit.X, size.X);
+                    sizeToSplit.Y += size.Y + 10f * scale;
+                }
+                if (SplitStartsAt == 0 || i < SplitStartsAt)
+                    SizeUpper = sizeAll;
+                if (SplitStartsAt > 0 && i == SplitStartsAt) {
+                    blob.Dyn.Y += 30f * scale;
+                    sizeAll.Y += 30f * scale;
+                }
 
-                if (((sizeAll.X + 100f * scale) > UI_WIDTH * 0.7f || (sizeAll.Y + 90f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 5) {
+                if (((Math.Max(sizeAll.X, sizeToSplit.X) + 100f * scale) > UI_WIDTH * 0.7f || (sizeAll.Y + sizeToSplit.Y / 2f + 90f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 5) {
                     textScaleTry++;
                     textScale -= scale * 0.1f;
                     goto RetryLineScale;
                 }
             }
 
+            Vector2 sizeColumn = Vector2.Zero;
+            float maxColumnY = 0f;
+            
+            if (SplitViewPartially) {
+                int switchedSidesAt = 0;
+                for (int i = SplitStartsAt; i < list.Count; i++) {
+                    Blob blob = list[i];
+                    Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
+                    sizeColumn.X = Math.Max(sizeColumn.X, size.X);
+                    if (sizeColumn.Y > sizeToSplit.Y / 2f + 10f && blob.CanSplit) {
+                        switchedSidesAt = i;
+                        maxColumnY = sizeColumn.Y;
+                        sizeColumn.Y = 0f;
+                    }
+                    blob.Dyn.Y = sizeAll.Y + sizeColumn.Y;
+                    sizeColumn.Y += size.Y + 10f * scale;
+                }
+                sizeColumn.X += 30f * scale;
+
+                for (int i = switchedSidesAt; i < list.Count; i++) {
+                    list[i].Dyn.X = sizeColumn.X + 15f;
+                }
+
+                if (sizeColumn.Y > maxColumnY)
+                    maxColumnY = sizeColumn.Y;
+
+                sizeAll.Y += maxColumnY;
+                sizeAll.X = Math.Max(sizeAll.X, sizeColumn.X * 2f);
+            }
+
             List = list;
             SizeAll = sizeAll;
+            SizeColumn = new(sizeColumn.X, maxColumnY);
         }
 
         private string GetOrderKey(DataPlayerInfo player) {
@@ -189,17 +250,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return null;
         }
 
-        private DataPlayerInfo ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo player) {
+        private DataPlayerInfo ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo player, LocationModes locationMode) {
             if (player != null) {
                 blob.Name = player.DisplayName;
 
-                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
+                blob.LocationMode = locationMode;
+                if (locationMode != LocationModes.OFF && Client.Data.TryGetBoundRef(player, out DataPlayerState state))
                     GetState(blob, state);
 
                 return player;
 
             } else {
                 blob.Name = "?";
+                blob.LocationMode = LocationModes.OFF;
                 return null;
             }
         }
@@ -332,7 +395,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected override void Render(GameTime gameTime, bool toBuffer) {
             PrepareRenderLayout(out float scale, out float y, out Vector2 sizeAll, out float spaceWidth, out float locationSeparatorWidth, out _);
 
-            Context.RenderHelper.Rect(25f * scale, y - 25f * scale, sizeAll.X + 50f * scale, sizeAll.Y + 40f * scale, Color.Black * 0.8f);
+            float x = 25f * scale;
+            float sizeAllXPadded = sizeAll.X + 50f * scale;
+            Context.RenderHelper.Rect(x, y - 25f * scale, sizeAllXPadded, SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+            if (SplitViewPartially) {
+                float sizeColXPadded = SizeColumn.X + 25f * scale;
+                Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+                x += sizeColXPadded + 5f * scale;
+                Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded - sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+            } else {
+                Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+            }
 
             foreach (Blob blob in List)
                 blob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth);
@@ -348,21 +421,24 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public Color Color = Color.White;
 
             public float ScaleFactor = 0f;
-            public float DynY;
+            public Vector2 Dyn = Vector2.Zero;
             public float DynScale;
+            public bool CanSplit = false;
 
-            public virtual void Generate(LocationModes locationMode) {
+            public LocationModes LocationMode = LocationModes.ON;
+
+            public virtual void Generate() {
                 if (GetType() == typeof(Blob)) {
                     TextCached = Name;
                     return;
                 }
 
                 StringBuilder sb = new();
-                Generate(sb, locationMode);
+                Generate(sb);
                 TextCached = sb.ToString();
             }
 
-            protected virtual void Generate(StringBuilder sb, LocationModes locationMode) {
+            protected virtual void Generate(StringBuilder sb) {
                 sb.Append(Name);
             }
 
@@ -373,7 +449,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public virtual void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
                 CelesteNetClientFont.Draw(
                     TextCached,
-                    new(50f * scale, y + DynY),
+                    new(50f * scale + Dyn.X, y + Dyn.Y),
                     Vector2.Zero,
                     new(DynScale),
                     Color
@@ -390,17 +466,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             public bool Idle;
 
-            protected override void Generate(StringBuilder sb, LocationModes locationMode) {
+            protected override void Generate(StringBuilder sb) {
                 sb.Append(Name);
                 if (Idle)
                     sb.Append(" ").Append(IdleIconCode);
 
                 // If the player blob was forced to regenerate its text, forward that to the location blob too.
-                Location.Generate(locationMode);
+                Location.LocationMode = LocationMode;
+                Location.Generate();
             }
 
             public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
-                Location.DynY = DynY;
+                Location.Dyn.Y = Dyn.Y;
                 Location.DynScale = DynScale;
 
                 Vector2 size = base.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
@@ -447,9 +524,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Color = DefaultLevelColor;
             }
 
-            public override void Generate(LocationModes locationMode) {
-                GuiIconCached = (locationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(Icon) ? GFX.Gui[Icon] : null;
-                if ((locationMode & LocationModes.Text) == 0)
+            public override void Generate() {
+                GuiIconCached = (LocationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(Icon) ? GFX.Gui[Icon] : null;
+                if ((LocationMode & LocationModes.Text) == 0)
                     Name = "";
             }
 
@@ -468,7 +545,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             private void DrawTextPart(string text, float textWidthScaled, Color color, float y, float scale, ref float x) {
                 CelesteNetClientFont.Draw(
                     text,
-                    new(50f * scale + x, y + DynY),
+                    new(50f * scale + x, y + Dyn.Y),
                     Vector2.UnitX, // Rendering location bits right-to-left
                     new(DynScale),
                     color
@@ -479,7 +556,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
                 if (!string.IsNullOrEmpty(Name)) {
                     float space = spaceWidth * DynScale;
-                    float x = sizeAll.X;
+                    float x = sizeAll.X + Dyn.X;
                     // Rendering location bits right-to-left
                     if (GuiIconCached != null) {
                         x -= IconSize * DynScale;
@@ -495,7 +572,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
 
                 GuiIconCached?.Draw(
-                    new(50f * scale + sizeAll.X - IconSize * DynScale, y + DynY),
+                    new(50f * scale + sizeAll.X + Dyn.X - IconSize * DynScale, y + Dyn.Y),
                     Vector2.Zero,
                     Color.White,
                     new Vector2(IconScale * DynScale)

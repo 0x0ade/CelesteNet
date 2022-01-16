@@ -86,7 +86,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             TCPReceiver = tcpReceiver;
             UDPReceiver = udpReceiver;
             Sender = sender;
-            lock ((UsageLock = new()).W()) {
+            using ((UsageLock = new()).W()) {
                 TCPRecvRate = new(this);
                 TCPSendRate = new(this);
                 UDPRecvRate = new(this);

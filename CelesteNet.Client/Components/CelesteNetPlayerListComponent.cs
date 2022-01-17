@@ -28,9 +28,32 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public bool Active;
 
         private List<Blob> List = new();
+
         private Vector2 SizeAll;
         private Vector2 SizeUpper;
         private Vector2 SizeColumn;
+
+        /*
+         SizeAll - outer dimensions
+        +------------------------------------+
+        |                                    |
+        |            own channel             |
+        |                                    |
+        |             SizeUpper              |
+        |                                    |
+        +-----------------+------------------+
+        |                 |                  |
+        |                 |                  |
+        |   SizeColumn    |  (calculated     |
+        |                 |   from other     |
+        |                 |   three sizes)   |
+        |                 |                  |
+        |(extends all ->  |                  |
+        | the way right   |                  |
+        | if single-col)  |                  |
+        +-----------------+------------------+
+        When not in Channel Mode, only SizeAll gets used.
+         */
 
         public DataChannelList Channels;
 

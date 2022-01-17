@@ -260,11 +260,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             Vector2 sizeAll = Vector2.Zero;
             Vector2 sizeToSplit = Vector2.Zero;
-            
+            Vector2 sizeUpper = Vector2.Zero;
+
             for (int i = 0; i < list.Count; i++) {
                 Blob blob = list[i];
                 blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
                 blob.Dyn.Y = sizeAll.Y;
+
+                // introducing gap after own channel
+                if (splitStartsAt > 0 && i == splitStartsAt) {
+                    sizeUpper = sizeAll;
+                    blob.Dyn.Y += 30f * scale;
+                    sizeAll.Y += 30f * scale;
+                }
 
                 Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
                 // proceed as we usually did if not splitting or before split starts
@@ -277,22 +285,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     sizeToSplit.Y += size.Y + 10f * scale;
                 }
 
-                // SizeUpper just keeps track of size before split
-                if (splitStartsAt == 0 || i < splitStartsAt)
-                    SizeUpper = sizeAll;
-
-                // introducing gap after own channel
-                if (splitStartsAt > 0 && i == splitStartsAt) {
-                    blob.Dyn.Y += 30f * scale;
-                    sizeAll.Y += 30f * scale;
-                }
-
                 if (((Math.Max(sizeAll.X, sizeToSplit.X) + 100f * scale) > UI_WIDTH * 0.7f || (sizeAll.Y + sizeToSplit.Y / 2f + 90f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 5) {
                     textScaleTry++;
                     textScale -= scale * 0.1f;
                     goto RetryLineScale;
                 }
             }
+
+            if (splitStartsAt == 0)
+                sizeUpper = sizeAll;
 
             SplitSuccessfully = false;
             int forceSplitAt = -1;
@@ -343,6 +344,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             SizeAll = sizeAll;
+            SizeUpper = sizeUpper;
             SizeColumn = new(sizeColumn.X, maxColumnY);
         }
 

@@ -165,8 +165,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             Vector2 sizeAll = Vector2.Zero;
 
-            for (int i = 0; i < list.Count; i++) {
-                Blob blob = list[i];
+            foreach (Blob blob in list) {
                 blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
                 blob.Dyn.Y = sizeAll.Y;
 

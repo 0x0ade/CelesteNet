@@ -149,6 +149,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Start() {
+            // Cancel pending reconnect requests.
+            if (Context != null)
+                QueuedTaskHelper.Cancel(new Tuple<object, string>(Context, "CelesteNetAutoReconnect"));
+
             try {
                 _StartTokenSource?.Cancel();
             } catch (ObjectDisposedException) {}
@@ -214,8 +218,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                     if (!handled) {
                         Logger.Log(LogLevel.CRI, "clientmod", $"Failed connecting:\n{e}");
-                        _StartThread = null;
-                        Stop();
+                        // Don't stop the context on unhandled connection errors so that it gets a chance to retry.
+                        // Instead, dispose the client and let the context do the rest.
+                        context.Client.SafeDisposeTriggered = true;
                         context.Status.Set("Connection failed", 3f, false);
                     }
 
@@ -231,7 +236,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Stop() {
-            QueuedTaskHelper.Cancel("CelesteNetAutoReconnect");
+            if (Context != null)
+                QueuedTaskHelper.Cancel(new Tuple<object, string>(Context, "CelesteNetAutoReconnect"));
 
             try {
                 _StartTokenSource?.Cancel();

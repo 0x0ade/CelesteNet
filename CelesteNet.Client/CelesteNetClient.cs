@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetConnection Con;
         public readonly IConnectionFeature[] ConFeatures;
-        public volatile bool DontReconnect = false, SafeDisposeTriggered = false;
+        public volatile bool EndOfStream = false, SafeDisposeTriggered = false;
 
         private bool _IsAlive;
         public bool IsAlive {

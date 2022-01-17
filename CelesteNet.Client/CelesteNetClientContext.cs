@@ -27,7 +27,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
         protected List<Action> MainThreadQueue = new();
 
-        private bool Started = false;
+        private bool Started;
+        private bool Reconnecting;
+        public bool Succeeded;
+
         public readonly bool IsReconnect;
 
         public static event Action<CelesteNetClientContext> OnCreate;
@@ -45,7 +48,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Celeste.Instance.Components.Add(this);
 
-            IsReconnect = oldCtx != null;
+            IsReconnect = oldCtx?.Succeeded ?? false;
             if (oldCtx != null)
                 foreach (CelesteNetGameComponent comp in oldCtx.Components.Values) {
                     if (!comp.Persistent)
@@ -99,46 +102,56 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (Client == null)
                 return;
 
+            Started = true;
+
             Client.Start(token);
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Start();
 
             OnStart?.Invoke(this);
 
-            Started = true;
+            Succeeded = true;
         }
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
             lock (MainThreadQueue) {
-                for(int i = 0; i < MainThreadQueue.Count; i++)
+                for (int i = 0; i < MainThreadQueue.Count; i++)
                     MainThreadQueue[i]();
                 MainThreadQueue.Clear();
             }
 
-            if (Client?.Con != null && Client.SafeDisposeTriggered && Client.Con.IsAlive)
-                Client.Con.Dispose();
+            if (Client?.SafeDisposeTriggered ?? false)
+                Client.Dispose();
         }
 
         public override void Draw(GameTime gameTime) {
             base.Draw(gameTime);
 
-            // This must happen at the very end, as XNA / FNA won't update their internal lists.
+            // This must happen at the very end, as XNA / FNA won't update their internal lists, causing "dead" components to update.
 
             if (SafeDisposeTriggered) {
                 Dispose();
                 return;
             }
 
-            if (Started && !(Client?.IsAlive ?? true) && !(Client?.DontReconnect ?? false)) {
-                // The connection died
+            if (Started && !(Client?.IsAlive ?? false)) {
+                // The connection died.
                 if (CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected) {
-                    if (Status.Spin)
-                        Status.Set("Disconnected", 3f, false);
-                    QueuedTaskHelper.Do("CelesteNetAutoReconnect", 1D, () => CelesteNetClientModule.Instance.Start());
-                } else
+                    if (!Reconnecting) {
+                        Reconnecting = true;
+                        // FIXME: Make sure that nothing tries to make use of the dead connection until the restart.
+                        if (Status.Spin)
+                            Status.Set("Disconnected", 3f, false);
+                        QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 1D, () => {
+                            if (CelesteNetClientModule.Instance.Context == this)
+                                CelesteNetClientModule.Instance.Start();
+                        });
+                    }
+                } else {
                     Dispose();
+                }
             }
         }
 
@@ -171,8 +184,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         
         protected void DisposeCore() {
             if (CelesteNetClientModule.Instance.Context == this) {
-                if (Status.Spin)
-                    Status.Set("Disconnected", 3f, false);
+                Status.Set("Disconnected", 3f, false);
                 CelesteNetClientModule.Instance.Context = null;
                 CelesteNetClientModule.Settings.Connected = false;
             }
@@ -197,6 +209,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         protected override void Dispose(bool disposing) {
             lock (SafeDisposeLock) {
+                if (IsDisposed)
+                    return;
                 IsDisposed = true;
 
                 base.Dispose(disposing);

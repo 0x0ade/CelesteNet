@@ -36,6 +36,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             UDPSocket.Connect(tcpSock.RemoteEndPoint);
 
             OnUDPDeath += (_, _) => {
+                if (!IsAlive)
+                    return;
                 Logger.Log(LogLevel.INF, "tcpudpcon", UseUDP ? "UDP connection died" : "Switching to TCP only");
                 if (Logger.Level <= LogLevel.DBG)
                     CelesteNetClientModule.Instance?.Context?.Status?.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
@@ -186,7 +188,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             } catch (EndOfStreamException) {
                 if (!TokenSrc.IsCancellationRequested) {
                     Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
-                    Client.DontReconnect = true;
+                    Client.EndOfStream = true;
                     DisposeSafe();
                 }
                 return;

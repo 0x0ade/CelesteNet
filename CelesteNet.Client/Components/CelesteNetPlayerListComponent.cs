@@ -44,11 +44,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private float? LocationSeparatorWidth;
         private float? IdleIconWidth;
 
-        private int PlayerCountLast = 0;
-        private int ChannelLengthLast = 0;
-        private bool SplitViewPartially => ListMode == ListModes.Channels && Settings.PlayerListAllowSplit && PlayerCountLast - ChannelLengthLast > 12 && SplitStartsAt > 0;
+        private int SplittablePlayerCount = 0;
+
+        private readonly int SplitThresholdLower = 10;
+        private readonly int SplitThresholdUpper = 12;
+
+        private bool _splitViewPartially = false;
+        private bool SplitViewPartially {
+            get {
+                if (ListMode != ListModes.Channels || !Settings.PlayerListAllowSplit)
+                    return _splitViewPartially = false;
+                // only flip value after passing threshold to prevent flipping on +1/-1s at threshold
+                if (!_splitViewPartially && SplittablePlayerCount > SplitThresholdUpper)
+                    return _splitViewPartially = true;
+                if (_splitViewPartially && SplittablePlayerCount < SplitThresholdLower)
+                    return _splitViewPartially = false;
+
+                return _splitViewPartially;
+            }
+        }
         private bool SplitSuccessfully = false;
-        private int SplitStartsAt = 0;
 
         public enum ListModes {
             Channels,
@@ -75,7 +90,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
-            PlayerCountLast = all.Length;
 
             List<Blob> list = new() {
                 new() {
@@ -85,88 +99,133 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             };
 
-            int lastPossibleSplit = 0;
-
             switch (ListMode) {
                 case ListModes.Classic:
-                    foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
-                        if (string.IsNullOrWhiteSpace(player.DisplayName))
-                            continue;
-
-                        BlobPlayer blob = new() {
-                            Name = player.DisplayName,
-                            ScaleFactor = 0.75f
-                        };
-
-                        DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
-                        if (channel != null && !string.IsNullOrEmpty(channel.Name))
-                            blob.Name += $" #{channel.Name}";
-
-                        if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                            GetState(blob, state);
-
-                        list.Add(blob);
-                    }
-
+                    RebuildListClassic(ref list, ref all);
                     break;
 
                 case ListModes.Channels:
-                    HashSet<DataPlayerInfo> listed = new();
-                    DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
-
-                    void AddChannel(DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor, LocationModes locationMode) {
-                        list.Add(new() {
-                            Name = channel.Name,
-                            Color = ColorChannelHeader,
-                            ScaleFactor = scaleFactorHeader,
-                            CanSplit = channel != own
-                        });
-                        if (channel != own)
-                            lastPossibleSplit = list.Count - 1;
-
-                        foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
-                            BlobPlayer blob = new() { ScaleFactor = scaleFactor };
-                            listed.Add(ListPlayerUnderChannel(blob, player, locationMode));
-                            list.Add(blob);
-                        }
-                    }
-
-                    if (own != null) {
-                        ChannelLengthLast = own.Players.Length;
-                        AddChannel(own, ColorChannelHeaderOwn, 0.25f, 0.5f, LocationMode);
-                    }
-                    int splitIndex = list.Count - 1;
-
-                    foreach (DataChannelList.Channel channel in Channels.List)
-                        if (channel != own)
-                            AddChannel(channel, ColorChannelHeader, 0.75f, 1f, LocationModes.OFF);
-
-                    bool wrotePrivate = false;
-                    foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
-                        if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
-                            continue;
-
-                        if (!wrotePrivate) {
-                            wrotePrivate = true;
-                            list.Add(new() {
-                                Name = "!<private>",
-                                Color = ColorChannelHeaderPrivate,
-                                ScaleFactor = 0.8f,
-                                CanSplit = true
-                            });
-                            lastPossibleSplit = list.Count - 1;
-                        }
-
-                        list.Add(new() {
-                            Name = player.DisplayName,
-                            ScaleFactor = 1f
-                        });
-                    }
-
-                    SplitStartsAt = list.Count > splitIndex + 1 ? splitIndex + 1 : 0;
-
+                    RebuildListChannels(ref list, ref all);
                     break;
             }
+
+            List = list;
+        }
+        public void RebuildListClassic(ref List<Blob> list, ref DataPlayerInfo[] all) {
+            foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
+                if (string.IsNullOrWhiteSpace(player.DisplayName))
+                    continue;
+
+                BlobPlayer blob = new() {
+                    Name = player.DisplayName,
+                    ScaleFactor = 0.75f
+                };
+
+                DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
+                if (channel != null && !string.IsNullOrEmpty(channel.Name))
+                    blob.Name += $" #{channel.Name}";
+
+                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
+                    GetState(blob, state);
+
+                list.Add(blob);
+            }
+
+            PrepareRenderLayout(out float scale, out _, out _, out float spaceWidth, out float locationSeparatorWidth, out float idleIconWidth);
+
+            foreach (Blob blob in list)
+                blob.Generate();
+
+            int textScaleTry = 0;
+            float textScale = scale;
+            RetryLineScale:
+
+            Vector2 sizeAll = Vector2.Zero;
+
+            for (int i = 0; i < list.Count; i++) {
+                Blob blob = list[i];
+                blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
+                blob.Dyn.Y = sizeAll.Y;
+
+                Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
+                sizeAll.X = Math.Max(sizeAll.X, size.X);
+                sizeAll.Y += size.Y + 10f * scale;
+
+                if (((sizeAll.X + 100f * scale) > UI_WIDTH * 0.7f || (sizeAll.Y + 90f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 5) {
+                    textScaleTry++;
+                    textScale -= scale * 0.1f;
+                    goto RetryLineScale;
+                }
+            }
+
+            SizeAll = sizeAll;
+            SizeUpper = sizeAll;
+            SizeColumn = Vector2.Zero;
+        }
+
+        public void RebuildListChannels(ref List<Blob> list, ref DataPlayerInfo[] all) {
+            // this value gets updated at every blob that we could split at
+            // i.e. every channel header besides our own.
+            int lastPossibleSplit = 0;
+
+            HashSet<DataPlayerInfo> listed = new();
+            DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+
+            void AddChannel(ref List<Blob> list, DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor, LocationModes locationMode) {
+                list.Add(new() {
+                    Name = channel.Name,
+                    Color = ColorChannelHeader,
+                    ScaleFactor = scaleFactorHeader,
+                    CanSplit = channel != own
+                });
+                if (channel != own)
+                    lastPossibleSplit = list.Count - 1;
+
+                foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
+                    BlobPlayer blob = new() { ScaleFactor = scaleFactor };
+                    listed.Add(ListPlayerUnderChannel(blob, player, locationMode));
+                    list.Add(blob);
+                }
+            }
+
+            SplittablePlayerCount = all.Length;
+
+            if (own != null) {
+                SplittablePlayerCount -= own.Players.Length;
+                AddChannel(ref list, own, ColorChannelHeaderOwn, 0.25f, 0.5f, LocationMode);
+            }
+            // this is the index of the first element relevant for splitting,
+            // i.e. first blob after our own channel is fully listed.
+            int splitStartsAt = list.Count - 1;
+
+            foreach (DataChannelList.Channel channel in Channels.List)
+                if (channel != own)
+                    AddChannel(ref list, channel, ColorChannelHeader, 0.75f, 1f, LocationModes.OFF);
+
+            bool wrotePrivate = false;
+            foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
+                if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
+                    continue;
+
+                if (!wrotePrivate) {
+                    wrotePrivate = true;
+                    list.Add(new() {
+                        Name = "!<private>",
+                        Color = ColorChannelHeaderPrivate,
+                        ScaleFactor = 0.8f,
+                        CanSplit = true
+                    });
+                    lastPossibleSplit = list.Count - 1;
+                }
+
+                list.Add(new() {
+                    Name = player.DisplayName,
+                    ScaleFactor = 1f
+                });
+            }
+
+            // if nothing was actually added after recording splitStartsAt, reset it to 0 (nothing to split up)
+            splitStartsAt = list.Count > splitStartsAt + 1 ? splitStartsAt + 1 : 0;
 
             PrepareRenderLayout(out float scale, out _, out _, out float spaceWidth, out float locationSeparatorWidth, out float idleIconWidth);
 
@@ -186,17 +245,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 blob.Dyn.Y = sizeAll.Y;
 
                 Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
-                if (!SplitViewPartially || SplitStartsAt == 0 || i < SplitStartsAt) {
+                // proceed as we usually did if not splitting or before split starts
+                if (!SplitViewPartially || splitStartsAt == 0 || i < splitStartsAt) {
                     sizeAll.X = Math.Max(sizeAll.X, size.X);
                     sizeAll.Y += size.Y + 10f * scale;
                 } else {
+                    // ... otherwise we record the sizes seperately
                     sizeToSplit.X = Math.Max(sizeToSplit.X, size.X);
                     sizeToSplit.Y += size.Y + 10f * scale;
                 }
 
-                if (SplitStartsAt == 0 || i < SplitStartsAt)
+                // SizeUpper just keeps track of size before split
+                if (splitStartsAt == 0 || i < splitStartsAt)
                     SizeUpper = sizeAll;
-                if (ListMode == ListModes.Channels && SplitStartsAt > 0 && i == SplitStartsAt) {
+
+                // introducing gap after own channel
+                if (splitStartsAt > 0 && i == splitStartsAt) {
                     blob.Dyn.Y += 30f * scale;
                     sizeAll.Y += 30f * scale;
                 }
@@ -215,18 +279,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             float maxColumnY = 0f;
             
             int switchedSidesAt = 0;
-            if (SplitViewPartially) {
-                for (int i = SplitStartsAt; i < list.Count; i++) {
+            if (SplitViewPartially && splitStartsAt > 0) {
+                for (int i = splitStartsAt; i < list.Count; i++) {
                     Blob blob = list[i];
+
                     Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
                     sizeColumn.X = Math.Max(sizeColumn.X, size.X);
-                    if (lastPossibleSplit > SplitStartsAt && (sizeColumn.Y > sizeToSplit.Y / 2f + 10f || forceSplitAt == i)) {
+
+                    // have we reached half the splittable height or enforced a split?
+                    if (!SplitSuccessfully && (sizeColumn.Y > sizeToSplit.Y / 2f + 10f || forceSplitAt == i)) {
                         if (blob.CanSplit) {
                             switchedSidesAt = i;
                             maxColumnY = sizeColumn.Y;
                             sizeColumn.Y = 0f;
                             SplitSuccessfully = true;
-                        } else if (lastPossibleSplit > 0 && i > lastPossibleSplit && forceSplitAt == -1) {
+                        } else if (lastPossibleSplit > splitStartsAt && i > lastPossibleSplit && forceSplitAt == -1) {
+                            // this is for cases where the last possible split was before the half-way point in height; forcing with a "goto retry"
                             forceSplitAt = lastPossibleSplit;
                             list[lastPossibleSplit].CanSplit = true;
                             goto RetryPartialSplit;
@@ -237,11 +305,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
 
                 if (SplitSuccessfully) {
+                    // some padding for when the individual rects get drawn later
                     sizeColumn.X += 30f * scale;
 
-                    for (int i = switchedSidesAt; i < list.Count; i++) {
+                    // move all the right column's elements to the right via Dyn.X
+                    for (int i = switchedSidesAt; i < list.Count; i++)
                         list[i].Dyn.X = sizeColumn.X + 15f;
-                    }
                 }
 
                 if (sizeColumn.Y > maxColumnY)
@@ -251,10 +320,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 sizeAll.X = Math.Max(sizeAll.X, sizeColumn.X * 2f);
             }
 
-            //list[0].Name += $" {SplitStartsAt} {lastPossibleSplit} {SplitSuccessfully} {maxColumnY} {switchedSidesAt}";
-            //list[0].Generate();
-
-            List = list;
             SizeAll = sizeAll;
             SizeColumn = new(sizeColumn.X, maxColumnY);
         }
@@ -422,14 +487,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             float x = 25f * scale;
             float sizeAllXPadded = sizeAll.X + 50f * scale;
+
             if (ListMode == ListModes.Channels) {
+                // own channel box always there
                 Context.RenderHelper.Rect(x, y - 25f * scale, sizeAllXPadded, SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
                 if (SplitViewPartially && SplitSuccessfully) {
+                    // two rects for the two columns
                     float sizeColXPadded = SizeColumn.X + 25f * scale;
                     Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
                     x += sizeColXPadded + 5f * scale;
                     Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded - sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
                 } else {
+                    // single rect below the other, nothing was split after all
                     Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
                 }
             } else {

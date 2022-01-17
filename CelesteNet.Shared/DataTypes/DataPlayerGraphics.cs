@@ -67,7 +67,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             HairTextures = new string[HairCount];
             for (int i = 0; i < HairCount; i++) {
                 HairTextures[i] = reader.ReadNetMappedString();
-                if (string.IsNullOrEmpty(HairTextures[i]) && i > 0)
+                if (HairTextures[i] == NetStringCtrl.RepeatString && i > 0)
                     HairTextures[i] = HairTextures[i - 1];
             }
         }
@@ -89,7 +89,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 writer.Write(HairScales[i]);
             for (int i = 0; i < HairCount; i++) {
                 if (i > 0 && HairTextures[i] == HairTextures[i - 1])
-                    writer.WriteNetMappedString(null);
+                    writer.WriteNetMappedString(NetStringCtrl.RepeatString);
                 else
                     writer.WriteNetMappedString(HairTextures[i]);
             }

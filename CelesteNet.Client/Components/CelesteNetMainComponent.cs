@@ -877,7 +877,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 
@@ -922,7 +922,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendGraphics:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 
@@ -1018,7 +1018,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendFrame:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 
@@ -1036,7 +1036,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendAudioPlay:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 
@@ -1055,7 +1055,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendDashTrail:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 
@@ -1069,7 +1069,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendReleaseMe:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 

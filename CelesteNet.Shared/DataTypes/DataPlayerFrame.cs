@@ -112,7 +112,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 f.SpriteRate = reader.ReadSingle();
                 f.SpriteJustify = reader.ReadBoolean() ? (Vector2?) reader.ReadVector2() : null;
                 f.SpriteID = reader.ReadNetMappedString();
-                if (string.IsNullOrEmpty(f.SpriteID)) {
+                if (f.SpriteID == NetStringCtrl.RepeatString) {
                     Entity p = Followers[i - 1];
                     f.SpriteID = p.SpriteID;
                     f.CurrentAnimationID = p.CurrentAnimationID;
@@ -216,7 +216,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                     if (i >= 1 &&
                         f.SpriteID == Followers[i - 1].SpriteID &&
                         f.CurrentAnimationID == Followers[i - 1].CurrentAnimationID) {
-                        writer.WriteNetMappedString(null);
+                        writer.WriteNetMappedString(NetStringCtrl.RepeatString);
                     } else {
                         writer.WriteNetMappedString(f.SpriteID);
                         writer.WriteNetMappedString(f.CurrentAnimationID);

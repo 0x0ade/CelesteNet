@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client {
-    public class CelesteNetClientContext : GameComponent {
+    public class CelesteNetClientContext : DrawableGameComponent {
 
         public CelesteNetClient Client;
 
@@ -27,21 +27,28 @@ namespace Celeste.Mod.CelesteNet.Client {
         // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
         protected List<Action> MainThreadQueue = new();
 
-        private bool Started = false;
+        private bool Started;
+        private bool Reconnecting;
+        public bool Succeeded;
+
         public readonly bool IsReconnect;
 
         public static event Action<CelesteNetClientContext> OnCreate;
 
         public bool IsDisposed { get; private set; }
 
+        private bool SafeDisposeTriggered, SafeDisposeForceDispose;
+        private readonly object SafeDisposeLock = new();
+
         public CelesteNetClientContext(Game game, CelesteNetClientContext oldCtx = null)
             : base(game) {
 
             UpdateOrder = -10000;
+            DrawOrder = int.MaxValue;
 
             Celeste.Instance.Components.Add(this);
 
-            IsReconnect = oldCtx != null;
+            IsReconnect = oldCtx?.Succeeded ?? false;
             if (oldCtx != null)
                 foreach (CelesteNetGameComponent comp in oldCtx.Components.Values) {
                     if (!comp.Persistent)
@@ -95,35 +102,56 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (Client == null)
                 return;
 
+            Started = true;
+
             Client.Start(token);
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Start();
 
             OnStart?.Invoke(this);
 
-            Started = true;
+            Succeeded = true;
         }
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
             lock (MainThreadQueue) {
-                for(int i = 0; i < MainThreadQueue.Count; i++)
+                for (int i = 0; i < MainThreadQueue.Count; i++)
                     MainThreadQueue[i]();
                 MainThreadQueue.Clear();
             }
 
-            if (Client?.Con != null && Client.SafeDisposeTriggered && Client.Con.IsAlive)
-                Client.Con.Dispose();
+            if (Client?.SafeDisposeTriggered ?? false)
+                Client.Dispose();
+        }
 
-            if (Started && !(Client?.IsAlive ?? true) && !(Client?.DontReconnect ?? false)) {
-                // The connection died
+        public override void Draw(GameTime gameTime) {
+            base.Draw(gameTime);
+
+            // This must happen at the very end, as XNA / FNA won't update their internal lists, causing "dead" components to update.
+
+            if (SafeDisposeTriggered) {
+                Dispose();
+                return;
+            }
+
+            if (Started && !(Client?.IsAlive ?? false)) {
+                // The connection died.
                 if (CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected) {
-                    if (Status.Spin)
-                        Status.Set("Disconnected", 3f, false);
-                    QueuedTaskHelper.Do("CelesteNetAutoReconnect", 1D, () => CelesteNetClientModule.Instance.Start());
-                } else
+                    if (!Reconnecting) {
+                        Reconnecting = true;
+                        // FIXME: Make sure that nothing tries to make use of the dead connection until the restart.
+                        if (Status.Spin)
+                            Status.Set("Disconnected", 3f, false);
+                        QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 1D, () => {
+                            if (CelesteNetClientModule.Instance.Context == this)
+                                CelesteNetClientModule.Instance.Start();
+                        });
+                    }
+                } else {
                     Dispose();
+                }
             }
         }
 
@@ -153,31 +181,51 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (wait)
                 WaitHandle.WaitAny(new WaitHandle[] { waiter });
         }
-
-        public static event Action<CelesteNetClientContext> OnDispose;
-
-        protected override void Dispose(bool disposing) {
-            IsDisposed = true;
-
+        
+        protected void DisposeCore() {
             if (CelesteNetClientModule.Instance.Context == this) {
-                if (Status.Spin)
-                    Status.Set("Disconnected", 3f, false);
+                Status.Set("Disconnected", 3f, false);
                 CelesteNetClientModule.Instance.Context = null;
                 CelesteNetClientModule.Settings.Connected = false;
             }
 
-            base.Dispose(disposing);
-
             Client?.Dispose();
             Client = null;
+        }
 
-            Celeste.Instance.Components.Remove(this);
+        public void DisposeSafe(bool forceDispose = false) {
+            lock (SafeDisposeLock) {
+                if (IsDisposed)
+                    return;
 
-            foreach (CelesteNetGameComponent component in Components.Values)
-                if (component.Context == this)
-                    component.Disconnect();
+                SafeDisposeForceDispose |= forceDispose;
+                SafeDisposeTriggered = true;
 
-            OnDispose?.Invoke(this);
+                DisposeCore();
+            }
+        }
+
+        public static event Action<CelesteNetClientContext> OnDispose;
+
+        protected override void Dispose(bool disposing) {
+            lock (SafeDisposeLock) {
+                if (IsDisposed)
+                    return;
+                IsDisposed = true;
+
+                base.Dispose(disposing);
+
+                if (!SafeDisposeTriggered)
+                    DisposeCore();
+
+                Celeste.Instance.Components.Remove(this);
+
+                foreach (CelesteNetGameComponent component in Components.Values)
+                    if (component.Context == this)
+                        component.Disconnect(SafeDisposeForceDispose);
+
+                OnDispose?.Invoke(this);
+            }
         }
 
     }

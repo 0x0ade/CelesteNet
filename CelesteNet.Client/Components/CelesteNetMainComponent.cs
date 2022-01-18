@@ -287,10 +287,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if ((Settings.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0 || Engine.Scene is not Level level || level.Paused)
                 return;
 
-            if (audio.Position == null) {
-                Audio.Play(audio.Sound, audio.Param, audio.Value);
-                return;
-            }
+            Ghost ghost = null;
 
             if (audio.Player != null) {
                 Session session = Session;
@@ -300,9 +297,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     state.Mode != session.Area.Mode ||
                     state.Level != session.Level)
                     return;
+
+                if (!Ghosts.TryGetValue(audio.Player.ID, out ghost))
+                    ghost = null;
             }
 
-            Audio.Play(audio.Sound, audio.Position.Value, audio.Param, audio.Value);
+            if (audio.Position == null) {
+                PlayAudio(ghost, audio.Sound, null, audio.Param, audio.Value);
+                return;
+            }
+
+            PlayAudio(ghost, audio.Sound, audio.Position.Value, audio.Param, audio.Value);
         }
 
         public void Handle(CelesteNetConnection con, DataDashTrail trail) {
@@ -616,6 +621,43 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        public EventInstance PlayAudio(Ghost ghost, string sound, Vector2? at, string param = null, float value = 0f) {
+            if ((Settings.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0)
+                return null;
+
+            EventDescription desc = Audio.GetEventDescription(sound);
+            if (desc == null)
+                return null;
+            
+            desc.is3D(out bool is3D);
+
+            if (ghost != null) {
+                if (ghost.Scene is not Level level)
+                    return null;
+
+                // Note: dying outside of room = dying outside of cam range!
+                if (!level.IsInCamera(ghost.Position, is3D ? 128f : 64f))
+                    return null;
+            }
+
+            desc.createInstance(out EventInstance ev);
+            if (ev == null)
+                return null;
+
+            if (is3D && at != null)
+                Audio.Position(ev, at.Value);
+
+            ev.setVolume(Settings.SoundVolume / 10f);
+
+            if (!string.IsNullOrEmpty(param))
+                ev.setParameterValue(param, value);
+
+            ev.start();
+            ev.release();
+
+            return ev;
+        }
+
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
@@ -877,7 +919,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 
@@ -922,7 +964,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendGraphics:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 
@@ -1018,7 +1060,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendFrame:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 
@@ -1036,7 +1078,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendAudioPlay:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 
@@ -1055,7 +1097,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendDashTrail:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 
@@ -1069,7 +1111,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendReleaseMe:\n{e}");
-                Context.Dispose();
+                Context.DisposeSafe();
             }
         }
 

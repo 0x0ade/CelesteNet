@@ -268,11 +268,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
-            RebuildList();
+            RunOnMainThread(() => RebuildList());
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
-            RebuildList();
+            RunOnMainThread(() => RebuildList());
         }
 
         public void Handle(CelesteNetConnection con, DataChannelList channels) {

@@ -84,10 +84,13 @@ namespace Celeste.Mod.CelesteNet {
 
         public virtual string ReadNetString() {
             char c = (char) ReadByte();
-            if (c == 0xFF)
+            if (c == NetStringCtrl.Mapped)
                 throw new Exception("Trying to read a mapped string as a non-mapped string!");
 
-            if (c == 0x00)
+            if (c == NetStringCtrl.Repeat)
+                return NetStringCtrl.RepeatString;
+
+            if (c == NetStringCtrl.End)
                 return "";
 
             ReadNetStringCore(c, out char[] chars, out int i);
@@ -98,15 +101,18 @@ namespace Celeste.Mod.CelesteNet {
             string value;
 
             char c = (char) ReadByte();
-            if (c == 0xFF) {
+            if (c == NetStringCtrl.Mapped) {
                 if (Strings == null)
                     throw new Exception("Trying to read a mapped string without a string map!");
                 value = Strings.Get(Read7BitEncodedInt());
                 return value;
             }
 
-            if (c == 0x00)
+            if (c == NetStringCtrl.End)
                 return "";
+
+            if (NetStringCtrl.First <= c && c <= NetStringCtrl.Last)
+                return NetStringCtrl.Strings[c];
 
             ReadNetStringCore(c, out char[] chars, out int i);
             value = chars.ToDedupedString(i);

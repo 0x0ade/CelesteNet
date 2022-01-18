@@ -295,27 +295,38 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (splitStartsAt == 0)
                 sizeUpper = sizeAll;
 
-            SplitSuccessfully = false;
             int forceSplitAt = -1;
             RetryPartialSplit:
+            bool splitSuccessfully = false;
             Vector2 sizeColumn = Vector2.Zero;
             float maxColumnY = 0f;
+
+            //string debug = "";
             
-            int switchedSidesAt = 0;
+            int switchedSidesAt = 0, widest = 0;
             if (SplitViewPartially && splitStartsAt > 0) {
                 for (int i = splitStartsAt; i < list.Count; i++) {
                     Blob blob = list[i];
 
                     Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
+                    if (size.X > sizeColumn.X) {
+                        widest = i;
+                        /*string[] s;
+                        if ((s = blob.TextCached.Split(' ')).Length > 1) {
+                            debug = $"{CelesteNetClientFont.Measure(s[0].Trim())}";
+                            if ((s = s[0].Split(':')).Length > 2)
+                                debug += $"{Emoji.TryGet(s[1], out char _)}";
+                        }*/
+                    }
                     sizeColumn.X = Math.Max(sizeColumn.X, size.X);
 
                     // have we reached half the splittable height or enforced a split?
-                    if (!SplitSuccessfully && (sizeColumn.Y > sizeToSplit.Y / 2f + 10f || forceSplitAt == i)) {
+                    if (!splitSuccessfully && (sizeColumn.Y > sizeToSplit.Y / 2f + 10f || forceSplitAt == i)) {
                         if (blob.CanSplit) {
                             switchedSidesAt = i;
                             maxColumnY = sizeColumn.Y;
                             sizeColumn.Y = 0f;
-                            SplitSuccessfully = true;
+                            splitSuccessfully = true;
                         } else if (lastPossibleSplit > splitStartsAt && i > lastPossibleSplit && forceSplitAt == -1) {
                             // this is for cases where the last possible split was before the half-way point in height; forcing with a "goto retry"
                             forceSplitAt = lastPossibleSplit;
@@ -327,7 +338,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     sizeColumn.Y += size.Y + 10f * scale;
                 }
 
-                if (SplitSuccessfully) {
+                if (splitSuccessfully) {
                     // some padding for when the individual rects get drawn later
                     sizeColumn.X += 30f * scale;
 
@@ -343,9 +354,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 sizeAll.X = Math.Max(sizeAll.X, sizeColumn.X * 2f);
             }
 
+            /*list[0].Name += $" {splitStartsAt} {lastPossibleSplit} {splitSuccessfully} {sizeAll} {sizeUpper} {sizeToSplit} {sizeColumn} {spaceWidth} {locationSeparatorWidth} {idleIconWidth} ";
+            if (widest > 0 && list[widest] is BlobPlayer p)
+                list[0].Name += $"+{p.TextCached}+ {CelesteNetClientFont.Measure(p.TextCached)} {debug} {p.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth)} {p.Location.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth)} {p.LocationMode} {p.DynScale} {p.Dyn}";
+            list[0].Generate();
+            if (widest > 0) {
+                list[widest].Color = Color.Red;
+            }*/
+
             SizeAll = sizeAll;
             SizeUpper = sizeUpper;
             SizeColumn = new(sizeColumn.X, maxColumnY);
+            SplitSuccessfully = splitSuccessfully;
         }
 
         private string GetOrderKey(DataPlayerInfo player) {
@@ -601,6 +621,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
                 Location.Dyn.Y = Dyn.Y;
                 Location.DynScale = DynScale;
+                Location.LocationMode = LocationMode;
 
                 Vector2 size = base.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
 
@@ -653,7 +674,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
-                if (string.IsNullOrEmpty(Name))
+                if (string.IsNullOrEmpty(Name) || (LocationMode & LocationModes.Text) == 0)
                     return new(GuiIconCached != null ? IconSize * DynScale : 0f);
 
                 float space = spaceWidth * DynScale;

@@ -300,24 +300,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             bool splitSuccessfully = false;
             Vector2 sizeColumn = Vector2.Zero;
             float maxColumnY = 0f;
-
-            //string debug = "";
             
-            int switchedSidesAt = 0, widest = 0;
+            int switchedSidesAt = 0;
             if (SplitViewPartially && splitStartsAt > 0) {
                 for (int i = splitStartsAt; i < list.Count; i++) {
                     Blob blob = list[i];
 
                     Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
-                    if (size.X > sizeColumn.X) {
-                        widest = i;
-                        /*string[] s;
-                        if ((s = blob.TextCached.Split(' ')).Length > 1) {
-                            debug = $"{CelesteNetClientFont.Measure(s[0].Trim())}";
-                            if ((s = s[0].Split(':')).Length > 2)
-                                debug += $"{Emoji.TryGet(s[1], out char _)}";
-                        }*/
-                    }
                     sizeColumn.X = Math.Max(sizeColumn.X, size.X);
 
                     // have we reached half the splittable height or enforced a split?
@@ -353,14 +342,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 sizeAll.Y += maxColumnY;
                 sizeAll.X = Math.Max(sizeAll.X, sizeColumn.X * 2f);
             }
-
-            /*list[0].Name += $" {splitStartsAt} {lastPossibleSplit} {splitSuccessfully} {sizeAll} {sizeUpper} {sizeToSplit} {sizeColumn} {spaceWidth} {locationSeparatorWidth} {idleIconWidth} ";
-            if (widest > 0 && list[widest] is BlobPlayer p)
-                list[0].Name += $"+{p.TextCached}+ {CelesteNetClientFont.Measure(p.TextCached)} {debug} {p.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth)} {p.Location.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth)} {p.LocationMode} {p.DynScale} {p.Dyn}";
-            list[0].Generate();
-            if (widest > 0) {
-                list[widest].Color = Color.Red;
-            }*/
 
             SizeAll = sizeAll;
             SizeUpper = sizeUpper;

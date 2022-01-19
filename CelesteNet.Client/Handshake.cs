@@ -43,7 +43,7 @@ CelesteNet-PlayerNameKey: {nameKey}
                 }
             }
 
-            reqBuilder.AppendLine("\nCan I have some tea?");
+            reqBuilder.AppendLine();
             writer.Write(reqBuilder.ToString().Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n");
             writer.Flush();
 

@@ -44,7 +44,7 @@ CelesteNet-PlayerNameKey: {nameKey}
             }
 
             reqBuilder.AppendLine();
-            writer.Write(reqBuilder.ToString().Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n");
+            writer.Write(reqBuilder.ToString().TrimStart().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n");
             writer.Flush();
 
             // Read the "HTTP" response

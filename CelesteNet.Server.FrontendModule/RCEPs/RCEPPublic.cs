@@ -129,20 +129,24 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     avatarOrig = Image.FromStream(s);
                 } catch {
                     using Stream s = client.GetAsync(
-                        $"https://cdn.discordapp.com/embed/avatars/{((int) userData.discriminator) % 5}.png"
+                        $"https://cdn.discordapp.com/embed/avatars/{((int) userData.discriminator) % 6}.png"
                     ).Await().Content.ReadAsStreamAsync().Await();
                     avatarOrig = Image.FromStream(s);
                 }
             }
             using (avatarOrig)
-            using (Image avatarScale = avatarOrig.Width == 64 && avatarOrig.Height == 64 ? avatarOrig : new Bitmap(64, 64, PixelFormat.Format32bppArgb))
-            using (Bitmap avatar = new(64, 64, PixelFormat.Format32bppArgb)) {
-                if (avatarScale != avatarOrig) {
-                    using Graphics g = Graphics.FromImage(avatar);
+            using (Bitmap avatarScale = new(64, 64, PixelFormat.Format32bppArgb))
+            using (Bitmap avatarFinal = new(64, 64, PixelFormat.Format32bppArgb)) {
+                using (Graphics g = Graphics.FromImage(avatarScale)) {
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+
                     g.DrawImage(avatarOrig, 0, 0, 64, 64);
                 }
 
-                using (Graphics g = Graphics.FromImage(avatar)) {
+                using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.orig.png"))
+                    avatarScale.Save(s, ImageFormat.Png);
+
+                using (Graphics g = Graphics.FromImage(avatarFinal)) {
                     g.SmoothingMode = SmoothingMode.AntiAlias;
 
                     using (TextureBrush tbr = new(avatarScale))
@@ -158,8 +162,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     }
                 }
 
-                using Stream s = f.Server.UserData.WriteFile(uid, "avatar.png");
-                avatar.Save(s, ImageFormat.Png);
+                using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.png"))
+                    avatarFinal.Save(s, ImageFormat.Png);
             }
 
             c.Response.StatusCode = (int) HttpStatusCode.Redirect;

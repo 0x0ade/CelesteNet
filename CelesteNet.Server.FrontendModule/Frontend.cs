@@ -22,6 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : CelesteNetServerModule<FrontendSettings> {
 
         public static readonly string COOKIE_SESSION = "celestenet-session";
+        public static readonly string TAG_AUTH = "cp-auth";
 
         public readonly List<RCEndpoint> EndPoints = new();
         public readonly HashSet<string> CurrentSessionKeys = new();
@@ -258,8 +259,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             endpoint.Handle(this, c);
         }
 
-        public bool IsAuthorized(HttpRequestEventArgs c)
-            => c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionKeys.Contains(session);
+        public bool IsAuthorized(HttpRequestEventArgs c) =>
+            (c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionKeys.Contains(session)) ||
+            (
+                    c.Request.Cookies[RCEndpoints.COOKIE_KEY]?.Value is string key && !key.IsNullOrEmpty() &&
+                    Server.UserData.GetUID(key) is string uid && !uid.IsNullOrEmpty() &&
+                    Server.UserData.TryLoad<BasicUserInfo>(uid, out BasicUserInfo info) && info.Tags.Contains(TAG_AUTH)
+            );
 
         public bool IsAuthorizedExec(HttpRequestEventArgs c)
             => c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionExecKeys.Contains(session);

@@ -104,6 +104,8 @@ namespace Celeste.Mod.CelesteNet {
         public virtual unsafe void WriteNetString(string? text) {
             if (text != null && text.Length != 0) {
                 if (NetStringCtrl.First <= text[0] && text[0] <= NetStringCtrl.Last) {
+                    if (NetStringCtrl.ReservedFirst <= text[0] && text[0] < NetStringCtrl.FreeFirst)
+                        throw new ArgumentException("Cannot use reserved control strings.");
                     if (text.Length > 1)
                         throw new ArgumentException("Control strings cannot be used to start a string.");
                     Write((byte) text[0]);

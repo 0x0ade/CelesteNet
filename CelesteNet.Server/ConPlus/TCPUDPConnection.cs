@@ -114,16 +114,16 @@ namespace Celeste.Mod.CelesteNet.Server {
         ~ConPlusTCPUDPConnection() => UsageLock.Dispose();
 
         protected override void Dispose(bool disposing) {
-            TCPReceiver.Poller.RemoveConnection(this);
-            UDPReceiver.RemoveConnection(this);
+            TCPReceiver?.Poller?.RemoveConnection(this);
+            UDPReceiver?.RemoveConnection(this);
             using (UsageLock.W()) {
                 base.Dispose(disposing);
-                TCPSendPacketWriter.Dispose();
-                TCPSendBufferStream.Dispose();
-                TCPRecvRate.Dispose();
-                TCPSendRate.Dispose();
-                UDPRecvRate.Dispose();
-                UDPSendRate.Dispose();
+                TCPSendPacketWriter?.Dispose();
+                TCPSendBufferStream?.Dispose();
+                TCPRecvRate?.Dispose();
+                TCPSendRate?.Dispose();
+                UDPRecvRate?.Dispose();
+                UDPSendRate?.Dispose();
             }
         }
 

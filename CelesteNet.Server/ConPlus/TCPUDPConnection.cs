@@ -230,8 +230,15 @@ namespace Celeste.Mod.CelesteNet.Server {
                                         // Read the packet
                                         DataType packet;
                                         using (MemoryStream mStream = new(TCPRecvBuffer, 2, packetLen))
-                                        using (CelesteNetBinaryReader reader = new(Server.Data, Strings, CoreTypeMap, mStream))
+                                        using (CelesteNetBinaryReader reader = new(Server.Data, Strings, CoreTypeMap, mStream)) {
                                             packet = Server.Data.Read(reader);
+                                            if (mStream.Position != packetLen) {
+                                                Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.TCP, "Downlink packet cap hit", TCPRecvBuffer, 0, TCPRecvBufferOff);
+                                                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} didn't read all data in TCP vdgram: {mStream.Position} read, {packetLen} total");
+                                                DisposeSafe();
+                                                return;
+                                            }
+                                        }
 
                                         // Handle the packet
                                         switch (packet) {

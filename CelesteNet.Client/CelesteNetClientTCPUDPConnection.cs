@@ -157,8 +157,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                     // Read the packet
                     DataType packet;
                     using (MemoryStream packetStream = new(packetBuffer, 2, packetSize))
-                    using (CelesteNetBinaryReader packetReader = new(Data, Strings, CoreTypeMap, packetStream))
+                    using (CelesteNetBinaryReader packetReader = new(Data, Strings, CoreTypeMap, packetStream)) {
                         packet = Data.Read(packetReader);
+                        if (packetStream.Position != packetSize)
+                            throw new InvalidDataException($"Didn't read all data in TCP vdgram ({packetStream.Position} read, {packetSize} total)!");
+                    }
 
                     // Handle the packet
                     switch (packet) {

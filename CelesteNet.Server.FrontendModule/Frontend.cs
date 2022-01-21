@@ -22,7 +22,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : CelesteNetServerModule<FrontendSettings> {
 
         public static readonly string COOKIE_SESSION = "celestenet-session";
-        public static readonly string TAG_AUTH = "cp-auth";
+        public static readonly string TAG_AUTH = "moderator";
+        public static readonly string TAG_AUTH_EXEC = "admin";
 
         public readonly List<RCEndpoint> EndPoints = new();
         public readonly HashSet<string> CurrentSessionKeys = new();
@@ -264,11 +265,16 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             (
                 c.Request.Cookies[RCEndpoints.COOKIE_KEY]?.Value is string key && !key.IsNullOrEmpty() &&
                 Server.UserData.GetUID(key) is string uid && !uid.IsNullOrEmpty() &&
-                Server.UserData.TryLoad(uid, out BasicUserInfo info) && info.Tags.Contains(TAG_AUTH)
+                Server.UserData.TryLoad(uid, out BasicUserInfo info) && (info.Tags.Contains(TAG_AUTH) || info.Tags.Contains(TAG_AUTH_EXEC))
             );
 
         public bool IsAuthorizedExec(HttpRequestEventArgs c)
-            => c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionExecKeys.Contains(session);
+            => (c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionExecKeys.Contains(session)) ||
+            (
+                c.Request.Cookies[RCEndpoints.COOKIE_KEY]?.Value is string key && !key.IsNullOrEmpty() &&
+                Server.UserData.GetUID(key) is string uid && !uid.IsNullOrEmpty() &&
+                Server.UserData.TryLoad(uid, out BasicUserInfo info) && info.Tags.Contains(TAG_AUTH_EXEC)
+            );
 
         public void BroadcastRawString(bool authOnly, string data) {
             if (WSHost == null)

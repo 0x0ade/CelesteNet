@@ -93,6 +93,9 @@ namespace Celeste.Mod.CelesteNet {
             if (c == NetStringCtrl.End)
                 return "";
 
+            if (NetStringCtrl.ReservedFirst <= c && c < NetStringCtrl.FreeFirst)
+                throw new Exception("Trying to read a reserved control string!");
+
             ReadNetStringCore(c, out char[] chars, out int i);
             return chars.ToDedupedString(i);
         }

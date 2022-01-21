@@ -123,6 +123,18 @@ export class FrontendSync {
     return this.resyncPromise;
   }
 
+  reauth() {
+    this.run("reauth", this.frontend.auth.key).then(valid => {
+      if (!valid) {
+        return this.frontend.auth.reauth().then(() => this.reauth());
+      }
+    }).then(() => {
+      if (this.resyncPromiseResolve)
+        this.resyncPromiseResolve();
+      this.resyncPromiseResolve = null;
+    });
+  }
+
   close(reason) {
     this.status = "closing";
     this.state = "invalid";
@@ -139,14 +151,7 @@ export class FrontendSync {
     console.log("sync open", e);
     this.state = "waitForType";
 
-    this.run("reauth", this.frontend.auth.key).then(valid => {
-      if (!valid) {
-        return this.frontend.auth.reauth();
-      }
-    }).then(() => {
-      this.resyncPromiseResolve();
-      this.resyncPromiseResolve = null;
-    });
+    this.reauth();
   }
 
   /**

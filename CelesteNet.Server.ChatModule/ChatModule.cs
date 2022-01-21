@@ -248,6 +248,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public event Action<ChatModule, DataChat>? OnForceSend;
 
         public void ForceSend(DataChat msg) {
+            msg.Version++;
             Logger.Log(LogLevel.INF, "chatupd", msg.ToString(false, true));
             OnForceSend?.Invoke(this, msg);
 

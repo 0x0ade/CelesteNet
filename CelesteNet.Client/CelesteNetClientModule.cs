@@ -135,8 +135,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (requested.Count != 0) {
                     TextMenu.Item item;
                     menu.Add(item = new TextMenu.Button("modoptions_celestenetclient_recommended".DialogClean()).Pressed(() => {
+                        bool isConnected = Settings.Connected;
+                        Settings.Connected = false;
                         f_OuiDependencyDownloader_MissingDependencies.SetValue(null, requested);
                         m_Overworld_Goto_OuiDependencyDownloader.Invoke(Engine.Scene, Dummy<object>.EmptyArray);
+                        Settings.Connected = isConnected;
                     }));
 
                     item.AddDescription(

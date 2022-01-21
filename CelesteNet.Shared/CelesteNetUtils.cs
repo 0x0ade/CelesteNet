@@ -250,8 +250,8 @@ namespace Celeste.Mod.CelesteNet {
         public const string RepeatString = "\x02";
 
         public const char First = '\x01';
+        public const char ReservedFirst = '\x03';
         public const char FreeFirst = '\x10';
-        public const char FreeLast = '\x1f';
         public const char Last = '\x1f';
 
         public static readonly string[] Strings = _GenerateStrings();

@@ -36,7 +36,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public DataPlayerInfo? Player;
 
-        public uint ID = uint.MaxValue;
+        public uint ID = 0xffffff;
+        public byte Version = 0;
         public string Tag = "";
         public string Text = "";
         public Color Color = Color.White;
@@ -53,7 +54,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         protected override void Read(CelesteNetBinaryReader reader) {
             CreatedByServer = false;
             Player = reader.ReadOptRef<DataPlayerInfo>();
-            ID = reader.ReadUInt32();
+            uint packedID = reader.ReadUInt32();
+            ID = (packedID >> 0) & 0xffffff;
+            Version = (byte) ((packedID >> 24) & 0xff);
+            if (ID == 0xffffff) {
+                ID = uint.MaxValue;
+                Version = 0;
+            }
             Tag = reader.ReadNetString();
             Text = reader.ReadNetString();
             Color = reader.ReadColorNoA();
@@ -63,7 +70,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         protected override void Write(CelesteNetBinaryWriter writer) {
             writer.WriteOptRef(Player);
-            writer.Write(ID);
+            writer.Write(
+                ((uint) (ID & 0xffffff) << 0) |
+                ((uint) (Version & 0xff) << 24)
+            );
             writer.WriteNetString(Tag);
             writer.WriteNetString(Text);
             writer.WriteNoA(Color);
@@ -74,7 +84,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             => ToString(true, false);
 
         public string ToString(bool displayName, bool id)
-            => $"{(id ? $"{{{ID}}} " : "")}{(Tag.IsNullOrEmpty() ? "" : $"[{Tag}] ")}{(displayName ? Player?.DisplayName : Player?.FullName) ?? "**SERVER**"}{(Target != null ? " @ " + Target.DisplayName : "")}:{(Text.IndexOf('\n') != -1 ? "\n" : " ")}{Text}";
+            => $"{(id ? $"{{{ID}v{Version}}} " : "")}{(Tag.IsNullOrEmpty() ? "" : $"[{Tag}] ")}{(displayName ? Player?.DisplayName : Player?.FullName) ?? "**SERVER**"}{(Target != null ? " @ " + Target.DisplayName : "")}:{(Text.IndexOf('\n') != -1 ? "\n" : " ")}{Text}";
 
 
     }

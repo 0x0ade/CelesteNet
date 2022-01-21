@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDUnban : WSCMD<string> {
-        public override bool Auth => true;
+        public override bool MustAuth => true;
         public override object? Run(string uid) {
             if ((uid = uid?.Trim() ?? "").IsNullOrEmpty())
                 return null;

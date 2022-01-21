@@ -172,18 +172,23 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
 
                 int index = Log.FindLastIndex(other => other.ID == msg.ID);
-                if (index != -1) {
+                if (index == -1) {
+                    index = Log.FindLastIndex(other => other.ID < msg.ID);
+                    if (index == -1)
+                        index = Log.Count - 1;
+                    Log.Insert(index + 1, msg);
+                } else if (Log[index].Version <= msg.Version) {
                     Log[index] = msg;
-                } else {
-                    Log.Add(msg);
                 }
-
                 if (msg.Color != Color.White) {
                     index = LogSpecial.FindLastIndex(other => other.ID == msg.ID);
-                    if (index != -1) {
+                    if (index == -1) {
+                        index = LogSpecial.FindLastIndex(other => other.ID < msg.ID);
+                        if (index == -1)
+                            index = LogSpecial.Count - 1;
+                        LogSpecial.Insert(index + 1, msg);
+                    } else if (LogSpecial[index].Version <= msg.Version) {
                         LogSpecial[index] = msg;
-                    } else {
-                        LogSpecial.Add(msg);
                     }
                 }
             }

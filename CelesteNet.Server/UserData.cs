@@ -46,7 +46,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract int GetRegisteredCount();
         public abstract int GetAllCount();
 
-        public abstract string Create(string uid);
+        public abstract string Create(string uid, bool force);
         public abstract void RevokeKey(string key);
 
         public abstract void CopyTo(UserData other);

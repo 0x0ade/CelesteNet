@@ -114,16 +114,16 @@ namespace Celeste.Mod.CelesteNet.Server {
         ~ConPlusTCPUDPConnection() => UsageLock.Dispose();
 
         protected override void Dispose(bool disposing) {
-            TCPReceiver.Poller.RemoveConnection(this);
-            UDPReceiver.RemoveConnection(this);
+            TCPReceiver?.Poller?.RemoveConnection(this);
+            UDPReceiver?.RemoveConnection(this);
             using (UsageLock.W()) {
                 base.Dispose(disposing);
-                TCPSendPacketWriter.Dispose();
-                TCPSendBufferStream.Dispose();
-                TCPRecvRate.Dispose();
-                TCPSendRate.Dispose();
-                UDPRecvRate.Dispose();
-                UDPSendRate.Dispose();
+                TCPSendPacketWriter?.Dispose();
+                TCPSendBufferStream?.Dispose();
+                TCPRecvRate?.Dispose();
+                TCPSendRate?.Dispose();
+                UDPRecvRate?.Dispose();
+                UDPSendRate?.Dispose();
             }
         }
 
@@ -230,8 +230,15 @@ namespace Celeste.Mod.CelesteNet.Server {
                                         // Read the packet
                                         DataType packet;
                                         using (MemoryStream mStream = new(TCPRecvBuffer, 2, packetLen))
-                                        using (CelesteNetBinaryReader reader = new(Server.Data, Strings, CoreTypeMap, mStream))
+                                        using (CelesteNetBinaryReader reader = new(Server.Data, Strings, CoreTypeMap, mStream)) {
                                             packet = Server.Data.Read(reader);
+                                            if (mStream.Position != packetLen) {
+                                                Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.TCP, "Downlink packet cap hit", TCPRecvBuffer, 0, TCPRecvBufferOff);
+                                                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} didn't read all data in TCP vdgram: {mStream.Position} read, {packetLen} total");
+                                                DisposeSafe();
+                                                return;
+                                            }
+                                        }
 
                                         // Handle the packet
                                         switch (packet) {

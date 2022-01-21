@@ -12,10 +12,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDAddTag : WSCMD {
         public override bool Auth => true;
         public override object? Run(dynamic? data) {
+            if (!Frontend.CurrentSessionExecKeys.Contains(WS.SessionKey))
+                return null;
             string? uid = data?.UID, tag = data?.Tag;
             if (uid.IsNullOrEmpty() || tag.IsNullOrEmpty())
                 return null;
-            if (!Frontend.Server.UserData.TryLoad<BasicUserInfo>(uid, out BasicUserInfo info))
+            if (!Frontend.Server.UserData.TryLoad(uid, out BasicUserInfo info))
                 return null;
             info.Tags.Add(tag);
             Frontend.Server.UserData.Save(uid, info);
@@ -26,10 +28,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDRemoveTag : WSCMD {
         public override bool Auth => true;
         public override object? Run(dynamic? data) {
+            if (!Frontend.CurrentSessionExecKeys.Contains(WS.SessionKey))
+                return null;
             string? uid = data?.UID, tag = data?.Tag;
             if (uid.IsNullOrEmpty() || tag.IsNullOrEmpty())
                 return null;
-            if (!Frontend.Server.UserData.TryLoad<BasicUserInfo>(uid, out BasicUserInfo info))
+            if (!Frontend.Server.UserData.TryLoad(uid, out BasicUserInfo info))
                 return null;
             info.Tags.Remove(tag);
             Frontend.Server.UserData.Save(uid, info);

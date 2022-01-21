@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         protected float _Time;
 
-        public float Scale => Settings.UIScale;
+        public float Scale => Settings.UIScaleChat;
         protected int ScrolledFromIndex = 0;
         protected float ScrolledDistance = 0f;
         protected int skippedMsgCount = 0;
@@ -43,12 +43,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                                 GFX.Gui["controls/directions/0x-1"].Width + GFX.Gui["controls/keyboard/PageUp"].Width,
                                 Math.Max(GFX.Gui["controls/directions/0x-1"].Height, GFX.Gui["controls/keyboard/PageUp"].Height)
                             );
-        public float ScrollFade => (int) Settings.ChatScrollFade / 2f;
+        public float ScrollFade => (int) Settings.ChatScrollFading / 2f;
 
         public enum ChatScrollFade {
             None = 0,
-            Low = 1,
-            High = 2
+            Fast = 1,
+            Smooth = 2
         }
 
         public List<string> Repeat = new() {
@@ -211,7 +211,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             } else if (Active) {
                 Engine.Commands.Open = false;
 
-                ScrolledDistance = Math.Max(0f, ScrolledDistance + (MInput.Keyboard.CurrentState[Keys.PageUp] - MInput.Keyboard.CurrentState[Keys.PageDown]) * 3f * (CelesteNetClientSettings.UISizeMax - Settings.UISize)/2f);
+                ScrolledDistance = Math.Max(0f, ScrolledDistance + (MInput.Keyboard.CurrentState[Keys.PageUp] - MInput.Keyboard.CurrentState[Keys.PageDown]) * 2f * Settings.ChatScrollSpeed);
                 if (ScrolledDistance < 10f) {
                     ScrolledFromIndex = Log.Count;
                 }

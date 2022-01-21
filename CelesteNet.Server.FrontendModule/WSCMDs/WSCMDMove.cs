@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDMove : WSCMD {
-        public override bool Auth => true;
+        public override bool MustAuth => true;
         public override object? Run(dynamic? input) {
             if (input == null)
                 return null;

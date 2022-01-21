@@ -38,6 +38,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 pass = null;
             }
 
+            bool expired = false;
+
             if (pass.IsNullOrEmpty() && !key.IsNullOrEmpty()) {
                 if (f.CurrentSessionKeys.Contains(key)) {
                     f.RespondJSON(c, new {
@@ -47,12 +49,47 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     return;
 
                 } else {
-                    c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
-                    f.RespondJSON(c, new {
-                        Error = "Previous session expired."
-                    });
-                    return;
+                    expired = true;
                 }
+            }
+
+            key = c.Request.Cookies[COOKIE_KEY]?.Value;
+            if (!key.IsNullOrEmpty() &&
+                f.Server.UserData.GetUID(key) is string uid && !uid.IsNullOrEmpty() &&
+                f.Server.UserData.TryLoad(uid, out BasicUserInfo info)) {
+                    if (info.Tags.Contains(TAG_AUTH_EXEC)) {
+                        do {
+                            key = Guid.NewGuid().ToString();
+                        } while (!f.CurrentSessionKeys.Add(key) || !f.CurrentSessionExecKeys.Add(key));
+                        c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key));
+                        f.RespondJSON(c, new {
+                            Key = key,
+                            Info = $"Welcome, {info.Name}#{info.Discrim}"
+                        });
+                        return;
+
+                    } else if (info.Tags.Contains(TAG_AUTH)) {
+                        do {
+                            key = Guid.NewGuid().ToString();
+                        } while (!f.CurrentSessionKeys.Add(key));
+                        c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key));
+                        f.RespondJSON(c, new {
+                            Key = key,
+                            Info = $"Welcome, {info.Name}#{info.Discrim}"
+                        });
+                        return;
+
+                    } else {
+                        // Fall through to "previous session" / password checks.
+                    }
+            }
+
+            if (expired) {
+                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                f.RespondJSON(c, new {
+                    Error = "Previous session expired."
+                });
+                return;
             }
 
             if (pass == null) {

@@ -9,11 +9,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
-    public class WSCMDAddTag : WSCMD {
-        public override bool Auth => true;
+    public class WSCMDTagAdd : WSCMD {
+        public override bool MustAuth => true;
+        public override bool MustAuthExec => true;
         public override object? Run(dynamic? data) {
-            if (!Frontend.CurrentSessionExecKeys.Contains(WS.SessionKey))
-                return null;
             string? uid = data?.UID, tag = data?.Tag;
             if (uid.IsNullOrEmpty() || tag.IsNullOrEmpty())
                 return null;
@@ -25,11 +24,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
     }
 
-    public class WSCMDRemoveTag : WSCMD {
-        public override bool Auth => true;
+    public class WSCMDTagRemove : WSCMD {
+        public override bool MustAuth => true;
+        public override bool MustAuthExec => true;
         public override object? Run(dynamic? data) {
-            if (!Frontend.CurrentSessionExecKeys.Contains(WS.SessionKey))
-                return null;
             string? uid = data?.UID, tag = data?.Tag;
             if (uid.IsNullOrEmpty() || tag.IsNullOrEmpty())
                 return null;

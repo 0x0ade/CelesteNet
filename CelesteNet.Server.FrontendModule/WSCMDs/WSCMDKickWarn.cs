@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDKickWarn : WSCMD {
-        public override bool Auth => true;
+        public override bool MustAuth => true;
         public override object? Run(dynamic? input) {
             uint id = (uint) input?.ID;
             string? reason = (string?) input?.Reason ?? "";

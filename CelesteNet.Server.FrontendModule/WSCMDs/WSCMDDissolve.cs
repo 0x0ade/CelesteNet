@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDDissolve : WSCMD<uint> {
-        public override bool Auth => true;
+        public override bool MustAuth => true;
         public override object? Run(uint input) {
             if (input == 0)
                 return null;

@@ -20,6 +20,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return null;
             info.Tags.Add(tag);
             Frontend.Server.UserData.Save(uid, info);
+            if (tag == RCEndpoints.TAG_AUTH || tag == RCEndpoints.TAG_AUTH_EXEC)
+                Frontend.Server.UserData.Create(uid, true);
             return null;
         }
     }

@@ -641,10 +641,10 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
             }
         }
 
-        public override string Create(string uid) {
+        public override string Create(string uid, bool force) {
             lock (GlobalLock) {
                 string key = GetKey(uid);
-                if (!key.IsNullOrEmpty())
+                if (!key.IsNullOrEmpty() && !force)
                     return key;
 
                 string keyFull;

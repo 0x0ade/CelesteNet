@@ -117,7 +117,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
-            string key = f.Server.UserData.Create(uid);
+            string key = f.Server.UserData.Create(uid, false);
             BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
             info.Name = userData.username.ToString();
             info.Discrim = userData.discriminator.ToString();

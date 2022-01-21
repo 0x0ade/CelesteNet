@@ -332,7 +332,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     info.Name,
                     info.Discrim,
                     info.Tags,
-                    Key = f.Server.UserData.GetKey(uid),
+                    Key = (!f.IsAuthorizedExec(c) && info.Tags.Contains(TAG_AUTH)) || info.Tags.Contains(TAG_AUTH_EXEC) ? null : f.Server.UserData.GetKey(uid),
                     Ban = ban.Reason.IsNullOrEmpty() ? null : new {
                         ban.Name,
                         ban.Reason,

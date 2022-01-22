@@ -283,8 +283,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                     for (DataType packet = p; packet != null; packet = TCPSendQueue.TryTake(out packet) ? packet : null) {
                         // Handle special packets
                         if (packet is DataInternalDisconnect) {
+                            tcpWriter.Flush();
                             DisposeSafe();
-                            break;
+                            return;
                         }
 
                         // Send the packet

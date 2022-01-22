@@ -187,6 +187,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             lock (DisposeLock) {
                 if (CoreDisposed)
                     return;
+                CoreDisposed = true;
 
                 if (CelesteNetClientModule.Instance.Context == this) {
                     Status.Set("Disconnected", 3f, false);
@@ -196,7 +197,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 Client?.Dispose();
                 Client = null;
-                CoreDisposed = true;
             }
         }
 

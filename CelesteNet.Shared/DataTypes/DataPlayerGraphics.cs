@@ -65,8 +65,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             for (int i = 0; i < HairCount; i++)
                 HairScales[i] = reader.ReadVector2Scale();
             HairTextures = new string[HairCount];
-            for (int i = 0; i < HairCount; i++)
+            for (int i = 0; i < HairCount; i++) {
                 HairTextures[i] = reader.ReadNetMappedString();
+                if (HairTextures[i] == NetStringCtrl.RepeatString && i > 0)
+                    HairTextures[i] = HairTextures[i - 1];
+            }
         }
 
         protected override void Write(CelesteNetBinaryWriter writer) {
@@ -84,8 +87,12 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(HairStepYSinePerSegment);
             for (int i = 0; i < HairCount; i++)
                 writer.Write(HairScales[i]);
-            for (int i = 0; i < HairCount; i++)
-                writer.WriteNetMappedString(HairTextures[i]);
+            for (int i = 0; i < HairCount; i++) {
+                if (i > 0 && HairTextures[i] == HairTextures[i - 1])
+                    writer.WriteNetMappedString(NetStringCtrl.RepeatString);
+                else
+                    writer.WriteNetMappedString(HairTextures[i]);
+            }
         }
 
     }

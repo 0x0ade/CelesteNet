@@ -39,7 +39,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public Frontend Frontend => WS.Frontend;
         public virtual string ID => GetType().Name.Substring(5);
         public virtual Type? InputType { get; } = null;
-        public abstract bool Auth { get; }
+        public abstract bool MustAuth { get; }
+        public virtual bool MustAuthExec => false;
         public abstract object? Run(object? input);
     }
 

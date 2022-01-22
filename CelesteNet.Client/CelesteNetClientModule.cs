@@ -135,8 +135,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (requested.Count != 0) {
                     TextMenu.Item item;
                     menu.Add(item = new TextMenu.Button("modoptions_celestenetclient_recommended".DialogClean()).Pressed(() => {
+                        bool isConnected = Settings.Connected;
+                        Settings.Connected = false;
                         f_OuiDependencyDownloader_MissingDependencies.SetValue(null, requested);
                         m_Overworld_Goto_OuiDependencyDownloader.Invoke(Engine.Scene, Dummy<object>.EmptyArray);
+                        Settings.Connected = isConnected;
                     }));
 
                     item.AddDescription(
@@ -149,6 +152,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Start() {
+            // Cancel pending reconnect requests.
+            if (Context != null)
+                QueuedTaskHelper.Cancel(new Tuple<object, string>(Context, "CelesteNetAutoReconnect"));
+
             try {
                 _StartTokenSource?.Cancel();
             } catch (ObjectDisposedException) {}
@@ -161,13 +168,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (oldCtx?.IsDisposed ?? false)
                     oldCtx = null;
                 Context = new(Celeste.Instance, oldCtx);
-                oldCtx?.Dispose();
+                oldCtx?.DisposeSafe(true);
 
-                if (ContextLast != null) {
-                    foreach (CelesteNetGameComponent comp in ContextLast.Components.Values) {
-                        if (!comp.AutoDispose && comp.Context == null)
-                            comp.Dispose();
-                    }
+                oldCtx = ContextLast;
+                if (oldCtx != null) {
+                    MainThreadHelper.Do(() => {
+                        foreach (CelesteNetGameComponent comp in oldCtx.Components.Values)
+                            comp.Disconnect(true);
+                    });
                     ContextLast = null;
                 }
 
@@ -198,17 +206,26 @@ namespace Celeste.Mod.CelesteNet.Client {
                     _StartThread = null;
                     Stop();
 
-                } catch (ConnectionErrorException e) {
-                    Logger.Log(LogLevel.CRI, "clientmod", $"Connection error:\n{e}");
-                    _StartThread = null;
-                    Stop();
-                    context.Status.Set(e.Status ?? "Connection failed", 3f, false);
-
                 } catch (Exception e) {
-                    Logger.Log(LogLevel.CRI, "clientmod", $"Failed connecting:\n{e}");
-                    _StartThread = null;
-                    Stop();
-                    context.Status.Set("Connection failed", 3f, false);
+                    bool handled = false;
+                    for (Exception ie = e; ie != null; ie = ie.InnerException) {
+                        if (ie is ConnectionErrorException cee) {
+                            Logger.Log(LogLevel.CRI, "clientmod", $"Connection error:\n{e}");
+                            _StartThread = null;
+                            Stop();
+                            context.Status.Set(cee.Status ?? "Connection failed", 3f, false);
+                            handled = true;
+                            break;
+                        }
+                    }
+
+                    if (!handled) {
+                        Logger.Log(LogLevel.CRI, "clientmod", $"Failed connecting:\n{e}");
+                        // Don't stop the context on unhandled connection errors so that it gets a chance to retry.
+                        // Instead, dispose the client and let the context do the rest.
+                        context.Client.SafeDisposeTriggered = true;
+                        context.Status.Set("Connection failed", 3f, false);
+                    }
 
                 } finally {
                     _StartThread = null;
@@ -222,7 +239,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Stop() {
-            QueuedTaskHelper.Cancel("CelesteNetAutoReconnect");
+            if (Context != null)
+                QueuedTaskHelper.Cancel(new Tuple<object, string>(Context, "CelesteNetAutoReconnect"));
 
             try {
                 _StartTokenSource?.Cancel();
@@ -236,7 +254,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     return;
 
                 ContextLast = Context;
-                Context.Dispose();
+                Context.DisposeSafe();
                 Context = null;
             }
         }

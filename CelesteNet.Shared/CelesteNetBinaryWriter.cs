@@ -102,12 +102,23 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public virtual unsafe void WriteNetString(string? text) {
-            if (text != null) {
+            if (text != null && text.Length != 0) {
+                if (NetStringCtrl.First <= text[0] && text[0] <= NetStringCtrl.Last) {
+                    if (NetStringCtrl.ReservedFirst <= text[0] && text[0] < NetStringCtrl.FreeFirst)
+                        throw new ArgumentException("Cannot use reserved control strings.");
+                    if (text.Length > 1)
+                        throw new ArgumentException("Control strings cannot be used to start a string.");
+                    Write((byte) text[0]);
+                    return;
+                }
+
                 if (text.Length > 4096)
-                    throw new Exception("String too long.");
+                    throw new ArgumentException("String too long.");
                 fixed (char* src = text) {
                     char* ptr = src;
                     for (int i = text.Length; i > 0; i--) {
+                        if (*ptr == '\0')
+                            throw new ArgumentException("String contains null byte.");
                         Write(*ptr++);
                     }
                 }
@@ -121,7 +132,7 @@ namespace Celeste.Mod.CelesteNet {
                 return;
             }
 
-            Write((byte) 0xFF);
+            Write((byte) NetStringCtrl.Mapped);
             Write7BitEncodedInt(id);
         }
 

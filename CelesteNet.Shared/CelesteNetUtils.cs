@@ -239,4 +239,32 @@ namespace Celeste.Mod.CelesteNet {
         }
 
     }
+
+    public static class NetStringCtrl {
+
+        public const char End = '\x00';
+
+        public const char Mapped = '\x01';
+
+        public const char Repeat = '\x02';
+        public const string RepeatString = "\x02";
+
+        public const char First = '\x01';
+        public const char ReservedFirst = '\x03';
+        public const char FreeFirst = '\x10';
+        public const char Last = '\x1f';
+
+        public static readonly string[] Strings = _GenerateStrings();
+        private static string[] _GenerateStrings() {
+            string[] all = new string[0x20];
+            for (int i = 0; i < all.Length; i++)
+                all[i] = "" + (char) (byte) i;
+
+            // Special cases to make use of interned strings.
+            all[Repeat] = RepeatString;
+
+            return all;
+        }
+
+    }
 }

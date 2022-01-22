@@ -24,6 +24,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public string SessionKey = "";
         public bool IsAuthorized => Frontend.CurrentSessionKeys.Contains(SessionKey);
+        public bool IsAuthorizedExec => Frontend.CurrentSessionExecKeys.Contains(SessionKey);
 
         public WSCommands Commands;
 
@@ -122,7 +123,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         break;
                     }
 
-                    if (cmd.Auth && !IsAuthorized) {
+                    if (cmd.MustAuth && !IsAuthorized) {
+                        Close("unauthorized");
+                        break;
+                    }
+
+                    if (cmd.MustAuthExec && !IsAuthorizedExec) {
                         Close("unauthorized");
                         break;
                     }

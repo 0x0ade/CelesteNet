@@ -86,26 +86,27 @@ namespace Celeste.Mod.CelesteNet.Server {
             TCPReceiver = tcpReceiver;
             UDPReceiver = udpReceiver;
             Sender = sender;
-            UsageLock = new();
-            TCPRecvRate = new(this);
-            TCPSendRate = new(this);
-            UDPRecvRate = new(this);
-            UDPSendRate = new(this);
+            using ((UsageLock = new()).W()) {
+                TCPRecvRate = new(this);
+                TCPSendRate = new(this);
+                UDPRecvRate = new(this);
+                UDPSendRate = new(this);
 
-            // Initialize TCP receiving
-            tcpSock.Blocking = false;
-            TCPRecvBuffer = new byte[Math.Max(server.Settings.TCPRecvBufferSize, 2 + server.Settings.MaxPacketSize)];
-            TCPRecvBufferOff = 0;
-            tcpReceiver.Poller.AddConnection(this);
+                // Initialize TCP receiving
+                tcpSock.Blocking = false;
+                TCPRecvBuffer = new byte[Math.Max(server.Settings.TCPRecvBufferSize, 2 + server.Settings.MaxPacketSize)];
+                TCPRecvBufferOff = 0;
+                tcpReceiver.Poller.AddConnection(this);
 
-            // Initialize TCP sending
-            TCPSendBuffer = new byte[(2 + server.Settings.MaxPacketSize) * server.Settings.MaxQueueSize];
-            TCPSendBufferStream = new(TCPSendBuffer);
-            TCPSendPacketWriter = new(server.Data, Strings, CoreTypeMap, TCPSendBufferStream);
-            TCPSendBufferOff = TCPSendBufferNumBytes = TCPSendBufferNumPackets = 0;
+                // Initialize TCP sending
+                TCPSendBuffer = new byte[(2 + server.Settings.MaxPacketSize) * server.Settings.MaxQueueSize];
+                TCPSendBufferStream = new(TCPSendBuffer);
+                TCPSendPacketWriter = new(server.Data, Strings, CoreTypeMap, TCPSendBufferStream);
+                TCPSendBufferOff = TCPSendBufferNumBytes = TCPSendBufferNumPackets = 0;
 
-            // Initialize UDP receiving
-            udpReceiver.AddConnection(this);
+                // Initialize UDP receiving
+                udpReceiver.AddConnection(this);
+            }
         }
 
         // The usage lock could still be used after we dispose
@@ -113,16 +114,16 @@ namespace Celeste.Mod.CelesteNet.Server {
         ~ConPlusTCPUDPConnection() => UsageLock.Dispose();
 
         protected override void Dispose(bool disposing) {
-            TCPReceiver.Poller.RemoveConnection(this);
-            UDPReceiver.RemoveConnection(this);
+            TCPReceiver?.Poller?.RemoveConnection(this);
+            UDPReceiver?.RemoveConnection(this);
             using (UsageLock.W()) {
                 base.Dispose(disposing);
-                TCPSendPacketWriter.Dispose();
-                TCPSendBufferStream.Dispose();
-                TCPRecvRate.Dispose();
-                TCPSendRate.Dispose();
-                UDPRecvRate.Dispose();
-                UDPSendRate.Dispose();
+                TCPSendPacketWriter?.Dispose();
+                TCPSendBufferStream?.Dispose();
+                TCPRecvRate?.Dispose();
+                TCPSendRate?.Dispose();
+                UDPRecvRate?.Dispose();
+                UDPSendRate?.Dispose();
             }
         }
 
@@ -229,8 +230,15 @@ namespace Celeste.Mod.CelesteNet.Server {
                                         // Read the packet
                                         DataType packet;
                                         using (MemoryStream mStream = new(TCPRecvBuffer, 2, packetLen))
-                                        using (CelesteNetBinaryReader reader = new(Server.Data, Strings, CoreTypeMap, mStream))
+                                        using (CelesteNetBinaryReader reader = new(Server.Data, Strings, CoreTypeMap, mStream)) {
                                             packet = Server.Data.Read(reader);
+                                            if (mStream.Position != packetLen) {
+                                                Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.TCP, "Downlink packet cap hit", TCPRecvBuffer, 0, TCPRecvBufferOff);
+                                                Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} didn't read all data in TCP vdgram: {mStream.Position} read, {packetLen} total");
+                                                DisposeSafe();
+                                                return;
+                                            }
+                                        }
 
                                         // Handle the packet
                                         switch (packet) {

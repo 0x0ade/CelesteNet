@@ -16,6 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public const int UDPEstablishDelay = 2;
 
         public readonly CelesteNetClient Client;
+
         private readonly Stream TCPNetStream, TCPReadStream, TCPWriteStream;
         private readonly Socket UDPSocket;
         private readonly BlockingCollection<DataType> TCPSendQueue, UDPSendQueue;
@@ -35,6 +36,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             UDPSocket.Connect(tcpSock.RemoteEndPoint);
 
             OnUDPDeath += (_, _) => {
+                if (!IsAlive)
+                    return;
                 Logger.Log(LogLevel.INF, "tcpudpcon", UseUDP ? "UDP connection died" : "Switching to TCP only");
                 if (Logger.Level <= LogLevel.DBG)
                     CelesteNetClientModule.Instance?.Context?.Status?.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
@@ -76,14 +79,18 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             base.Dispose(disposing);
 
-            // Flush buffers
-            TCPReadStream.Flush();
-            TCPWriteStream.Flush();
-
             // Dispose stuff
             TokenSrc.Dispose();
-            TCPReadStream.Dispose();
-            TCPWriteStream.Dispose();
+            // We must try-catch buffered stream disposes as those will try to flush.
+            // If a network stream was torn down out of our control, it will throw!
+            try {
+                TCPReadStream.Dispose();
+            } catch {
+            }
+            try {
+                TCPWriteStream.Dispose();
+            } catch {
+            }
             TCPNetStream.Dispose();
             UDPSocket.Dispose();
             TCPSendQueue.Dispose();
@@ -150,8 +157,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                     // Read the packet
                     DataType packet;
                     using (MemoryStream packetStream = new(packetBuffer, 2, packetSize))
-                    using (CelesteNetBinaryReader packetReader = new(Data, Strings, CoreTypeMap, packetStream))
+                    using (CelesteNetBinaryReader packetReader = new(Data, Strings, CoreTypeMap, packetStream)) {
                         packet = Data.Read(packetReader);
+                        if (packetStream.Position != packetSize)
+                            throw new InvalidDataException($"Didn't read all data in TCP vdgram ({packetStream.Position} read, {packetSize} total)!");
+                    }
 
                     // Handle the packet
                     switch (packet) {
@@ -181,6 +191,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             } catch (EndOfStreamException) {
                 if (!TokenSrc.IsCancellationRequested) {
                     Logger.Log(LogLevel.WRN, "tcprecv", "Remote closed the connection");
+                    Client.EndOfStream = true;
                     DisposeSafe();
                 }
                 return;

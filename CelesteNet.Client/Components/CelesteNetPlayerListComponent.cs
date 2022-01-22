@@ -388,19 +388,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 string chapter = area?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID;
 
                 blob.Location.Color = DefaultLevelColor;
-                if (area?.LevelSet == "Celeste") {
-                    blob.Location.TitleColor = Color.Lerp(area?.CassseteNoteColor ?? Color.White, DefaultLevelColor, 0.5f);
-                    blob.Location.AccentColor = Color.Lerp(area?.TitleAccentColor ?? Color.White, DefaultLevelColor, 0.5f);
-                } else {
-                    blob.Location.TitleColor = Color.Lerp(area?.TitleAccentColor ?? Color.White, DefaultLevelColor, 0.5f);
-                    blob.Location.AccentColor = Color.Lerp(area?.TitleBaseColor ?? Color.White, DefaultLevelColor, 0.5f);
-                }
+                blob.Location.TitleColor = Color.Lerp(area?.TitleBaseColor ?? Color.White, DefaultLevelColor, 0.5f);
+                blob.Location.AccentColor = Color.Lerp(area?.TitleAccentColor ?? Color.White, DefaultLevelColor, 0.8f);
 
                 blob.Location.Name = chapter;
                 blob.Location.Side = ((char) ('A' + (int) state.Mode)).ToString();
                 blob.Location.Level = state.Level;
 
-                blob.Location.IsRandomizer = chapter.StartsWith("rnd/") || chapter.StartsWith("randomizer/");
+                blob.Location.IsRandomizer = chapter.StartsWith("randomizer/");
 
                 if (blob.Location.IsRandomizer || area == null) {
                     blob.Location.Icon = "";
@@ -432,13 +427,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             // shorten the randomizer/ part down
-            location.Name = "rnd/" + location.Name.Substring("randomizer/".Length);
+            int split = location.Name.IndexOf('/');
+            if (split >= 0)
+                location.Name = "rnd/" + location.Name.Substring(split + 1);
 
             // yoink out all the funny numbers like _0_1234567 at the end
             location.Name = location.Name.TrimEnd(RandomizerEndTrimChars);
 
             // Only display the last two parts of the currently played level.
-            int split = location.Level.LastIndexOf('/');
+            split = location.Level.LastIndexOf('/');
             if ((split - 1) >= 0)
                 split = location.Level.LastIndexOf('/', split - 1);
             if (split >= 0)
@@ -449,11 +446,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
-            RebuildList();
+            RunOnMainThread(() => RebuildList());
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
-            RebuildList();
+            RunOnMainThread(() => RebuildList());
         }
 
         public void Handle(CelesteNetConnection con, DataChannelList channels) {

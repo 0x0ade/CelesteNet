@@ -22,7 +22,6 @@ namespace Celeste.Mod.CelesteNet.Server {
     public partial class HandshakerRole : NetPlusThreadRole {
 
         public const int TeapotTimeout = 5000;
-        public const int TeapotVersion = 1;
 
         private class TaskWorkerScheduler : TaskScheduler, IDisposable {
 
@@ -120,20 +119,20 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Do the teapot handshake
                 IConnectionFeature[]? conFeatures = null;
                 string? playerUID = null, playerName = null;
-                CelesteNetClientOptions? clientSettings = null;
+                CelesteNetClientOptions? clientOptions = null;
                 using (CancellationTokenSource tokenSrc = new()) {
                     // .NET is completly stupid, you can't cancel async socket operations
                     // We literally have to kill the socket for the handshake to be able to timeout
                     tokenSrc.CancelAfter(TeapotTimeout);
                     tokenSrc.Token.Register(() => sock.Close());
                     try {
-                        (IConnectionFeature[] conFeatures, string playerUID, string playerName, CelesteNetClientOptions clientSettings)? teapotRes =
+                        (IConnectionFeature[] conFeatures, string playerUID, string playerName, CelesteNetClientOptions clientOptions)? teapotRes =
                             await TeapotHandshake(
                                 sock, conToken, settings,
                                 ConPlusTCPUDPConnection.GetConnectionUID(remoteEP)
                             );
                         if (teapotRes != null)
-                            (conFeatures, playerUID, playerName, clientSettings) = teapotRes.Value;
+                            (conFeatures, playerUID, playerName, clientOptions) = teapotRes.Value;
                     } catch {
                         if (tokenSrc.IsCancellationRequested) {
                             Logger.Log(LogLevel.VVV, "tcpudphs", $"Handshake for connection {remoteEP} timed out, maybe an old client?");
@@ -144,7 +143,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     }
                 }
 
-                if (conFeatures == null || playerUID.IsNullOrEmpty() || playerName.IsNullOrEmpty() || clientSettings == null) {
+                if (conFeatures == null || playerUID.IsNullOrEmpty() || playerName.IsNullOrEmpty() || clientOptions == null) {
                     Logger.Log(LogLevel.VVV, "tcpudphs", $"Connection from {remoteEP} failed teapot handshake");
                     sock.ShutdownSafe(SocketShutdown.Both);
                     sock.Close();
@@ -161,7 +160,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     // Better safe than sorry
                     if (!alive || !con.IsConnected)
                         return;
-                    Server.CreateSession(con, playerUID, playerName, clientSettings);
+                    Server.CreateSession(con, playerUID, playerName, clientOptions);
                 }
             } catch {
                 con?.Dispose();
@@ -172,148 +171,178 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         // Let's mess with web crawlers even more ;)
         // Also: I'm a Teapot
-        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName, CelesteNetClientOptions clientSettings)?> TeapotHandshake<T>(Socket sock, uint conToken, T settings, string conUID) where T : new() {
+        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName, CelesteNetClientOptions clientOptions)?> TeapotHandshake<T>(Socket sock, uint conToken, T settings, string conUID) where T : new() {
             using NetworkStream netStream = new(sock, false);
-            using BufferedStream bufStream = new(netStream);
-            using StreamReader reader = new(bufStream);
-            using StreamWriter writer = new(bufStream);
-            async Task<(IConnectionFeature[], string, string, CelesteNetClientOptions)?> Send500() {
-                await writer.WriteAsync(
+            BufferedStream bufStream = new(netStream);
+            try {
+                using StreamReader reader = new(bufStream, CelesteNetUtils.UTF8NoBOM, false, 1024, true);
+                using StreamWriter writer = new(bufStream, CelesteNetUtils.UTF8NoBOM, 1024, true);
+                async Task<(IConnectionFeature[], string, string, CelesteNetClientOptions)?> Send500() {
+                    await writer.WriteAsync(
 @"HTTP/1.1 500 Internal Server Error
 Connection: close
 
 The server encountered an internal error while handling the request"
-                    .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n")
-                );
-                return null;
-            }
+                        .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n")
+                    );
+                    return null;
+                }
 
-            // Parse the "HTTP" request line
-            string? reqLine = await reader.ReadLineAsync();
-            if (reqLine == null)
-                return await Send500();
-
-            string[] reqLineSegs = reqLine.Split(' ').Where(s => !string.IsNullOrEmpty(s)).ToArray();
-            if (
-                reqLineSegs.Length != 3 ||
-                reqLineSegs[0] != "CONNECT" ||
-                reqLineSegs[1] != "/teapot"
-            )
-                return await Send500();
-
-            // Parse the headers
-            Dictionary<string, string> headers = new();
-            for (string? line = await reader.ReadLineAsync(); !string.IsNullOrEmpty(line); line = await reader.ReadLineAsync()) {
-                int split = line.IndexOf(':');
-                if (split == -1)
+                // Parse the "HTTP" request line
+                string? reqLine = await reader.ReadLineAsync();
+                if (reqLine == null)
                     return await Send500();
-                headers[line.Substring(0, split).Trim()] = line.Substring(split + 1).Trim();
-            }
-            bufStream.Flush();
 
-            // Check teapot version
-            if (!headers.TryGetValue("CelesteNet-TeapotVersion", out string? teapotVerHeader) || !int.TryParse(teapotVerHeader, out int teapotVer))
-                return await Send500();
+                string[] reqLineSegs = reqLine.Split(' ').Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                if (
+                    reqLineSegs.Length != 3 ||
+                    (reqLineSegs[0] != "CONNECT" && reqLineSegs[0] != "TEAREQ") ||
+                    reqLineSegs[1] != "/teapot"
+                )
+                    return await Send500();
 
-            if (teapotVer != TeapotVersion) {
-                Logger.Log(LogLevel.VVV, "teapot", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {TeapotVersion} [server]");
-                await writer.WriteAsync(
+                // Parse the headers
+                Dictionary<string, string> headers = new();
+                for (string? line = await reader.ReadLineAsync(); !string.IsNullOrEmpty(line); line = await reader.ReadLineAsync()) {
+                    int split = line.IndexOf(':');
+                    if (split == -1)
+                        return await Send500();
+                    headers[line.Substring(0, split).Trim()] = line.Substring(split + 1).Trim();
+                }
+                bufStream.Flush();
+
+                // Check teapot version
+                if (!headers.TryGetValue("CelesteNet-TeapotVersion", out string? teapotVerHeader) || !int.TryParse(teapotVerHeader, out int teapotVer))
+                    return await Send500();
+
+                if (teapotVer != CelesteNetUtils.LoadedVersion) {
+                    Logger.Log(LogLevel.VVV, "teapot", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {CelesteNetUtils.LoadedVersion} [server]");
+                    await writer.WriteAsync(
 $@"HTTP/1.1 409 Version Mismatch
 Connection: close
 
-{string.Format(Server.Settings.MessageTeapotVersionMismatch, teapotVer, TeapotVersion)}"
-                    .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n")
-                );
-                return null;
-            }
+{string.Format(Server.Settings.MessageTeapotVersionMismatch, teapotVer, CelesteNetUtils.LoadedVersion)}"
+                        .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n")
+                    );
+                    return null;
+                }
 
-            // Get the list of supported connection features
-            HashSet<string> conFeatures;
-            if (headers.TryGetValue("CelesteNet-ConnectionFeatures", out string? conFeaturesRaw))
-                conFeatures = new(conFeaturesRaw.Split(',').Select(f => f.Trim().ToLower()));
-            else
-                conFeatures = new();
+                // Get the list of supported connection features
+                HashSet<string> conFeatures;
+                if (headers.TryGetValue("CelesteNet-ConnectionFeatures", out string? conFeaturesRaw))
+                    conFeatures = new(conFeaturesRaw.Split(',').Select(f => f.Trim().ToLower()));
+                else
+                    conFeatures = new();
 
-            // Match connection features
-            List<(string name, IConnectionFeature feature)> matchedFeats = new();
-            foreach ((string name, IConnectionFeature feature) feat in ConFeatures) {
-                if (conFeatures.Contains(feat.name.ToLower()))
-                    matchedFeats.Add((feat.name, feat.feature));
-            }
+                // Match connection features
+                List<(string name, IConnectionFeature feature)> matchedFeats = new();
+                foreach ((string name, IConnectionFeature feature) feat in ConFeatures) {
+                    if (conFeatures.Contains(feat.name.ToLower()))
+                        matchedFeats.Add((feat.name, feat.feature));
+                }
 
-            // Get the player name-key
-            if (!headers.TryGetValue("CelesteNet-PlayerNameKey", out string? playerNameKey))
-                return await Send500();
+                // Get the player name-key
+                if (!headers.TryGetValue("CelesteNet-PlayerNameKey", out string? playerNameKey))
+                    return await Send500();
 
-            // Authenticate name-key
-            string? errorReason = AuthenticatePlayerNameKey(playerNameKey, conUID, out string? playerUID, out string? playerName);
-            if (playerUID == null)
-                errorReason ??= "No UID";
-            if (playerName == null)
-                errorReason ??= "No name";
-            if (errorReason != null || playerUID == null || playerName == null) {
-                Logger.Log(LogLevel.VVV, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
-                await writer.WriteAsync(
+                // Authenticate name-key
+                string? errorReason = AuthenticatePlayerNameKey(playerNameKey, conUID, out string? playerUID, out string? playerName);
+                if (playerUID == null)
+                    errorReason ??= "No UID";
+                if (playerName == null)
+                    errorReason ??= "No name";
+                if (errorReason != null || playerUID == null || playerName == null) {
+                    Logger.Log(LogLevel.VVV, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
+                    await writer.WriteAsync(
 $@"HTTP/1.1 403 Access Denied
 Connection: close
 
 {errorReason}"
-                    .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n")
-                );
-                return null;
-            }
+                        .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n")
+                    );
+                    return null;
+                }
 
-            // Parse the client options
-            CelesteNetClientOptions clientOptions = new();
-            foreach (FieldInfo field in typeof(CelesteNetClientOptions).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
-                string headerName = $"CelesteNet-ClientOptions-{field.Name}";
+                // Parse the client options
+                CelesteNetClientOptions clientOptions = new();
+                foreach (FieldInfo field in typeof(CelesteNetClientOptions).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+                    string headerName = $"CelesteNet-ClientOptions-{field.Name}";
+                    if (!headers.TryGetValue(headerName, out string? val))
+                        continue;
 #pragma warning disable IDE0049 // Simplify Names
-                switch (Type.GetTypeCode(field.FieldType)) {
-                    case TypeCode.Boolean: field.SetValue(clientOptions, Boolean.Parse(headers[headerName])); break;
-                    case TypeCode.Int16:   field.SetValue(clientOptions,   Int16.Parse(headers[headerName])); break;
-                    case TypeCode.Int32:   field.SetValue(clientOptions,   Int32.Parse(headers[headerName])); break;
-                    case TypeCode.Int64:   field.SetValue(clientOptions,   Int64.Parse(headers[headerName])); break;
-                    case TypeCode.UInt16:  field.SetValue(clientOptions,  UInt16.Parse(headers[headerName])); break;
-                    case TypeCode.UInt32:  field.SetValue(clientOptions,  UInt32.Parse(headers[headerName])); break;
-                    case TypeCode.UInt64:  field.SetValue(clientOptions,  UInt64.Parse(headers[headerName])); break;
-                    case TypeCode.Single:  field.SetValue(clientOptions,  Single.Parse(headers[headerName])); break;
-                    case TypeCode.Double:  field.SetValue(clientOptions,  Double.Parse(headers[headerName])); break;
-                }
+                    switch (Type.GetTypeCode(field.FieldType)) {
+                        case TypeCode.Boolean:
+                            field.SetValue(clientOptions, Boolean.Parse(val));
+                            break;
+                        case TypeCode.Int16:
+                            field.SetValue(clientOptions, Int16.Parse(val));
+                            break;
+                        case TypeCode.Int32:
+                            field.SetValue(clientOptions, Int32.Parse(val));
+                            break;
+                        case TypeCode.Int64:
+                            field.SetValue(clientOptions, Int64.Parse(val));
+                            break;
+                        case TypeCode.UInt16:
+                            field.SetValue(clientOptions, UInt16.Parse(val));
+                            break;
+                        case TypeCode.UInt32:
+                            field.SetValue(clientOptions, UInt32.Parse(val));
+                            break;
+                        case TypeCode.UInt64:
+                            field.SetValue(clientOptions, UInt64.Parse(val));
+                            break;
+                        case TypeCode.Single:
+                            field.SetValue(clientOptions, Single.Parse(val));
+                            break;
+                        case TypeCode.Double:
+                            field.SetValue(clientOptions, Double.Parse(val));
+                            break;
+                    }
 #pragma warning restore IDE0049
-            }
-
-            // Answer with the almighty teapot
-            StringBuilder settingsBuilder = new();
-            settings ??= new();
-            foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
-                switch (Type.GetTypeCode(field.FieldType)) {
-                    case TypeCode.Boolean:
-                    case TypeCode.Int16:
-                    case TypeCode.Int32:
-                    case TypeCode.Int64:
-                    case TypeCode.UInt16:
-                    case TypeCode.UInt32:
-                    case TypeCode.UInt64:
-                    case TypeCode.Single:
-                    case TypeCode.Double: {
-                        settingsBuilder.AppendLine($"CelesteNet-Settings-{field.Name}: {field.GetValue(settings)}");
-                    } break;
                 }
-            }
 
-            await writer.WriteAsync(
-$@"HTTP/1.1 418 I'm a teapot
-Connection: close
-CelesteNet-TeapotVersion: {TeapotVersion}
+                // Answer with the almighty teapot
+                StringBuilder settingsBuilder = new();
+                settings ??= new();
+                foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+                    switch (Type.GetTypeCode(field.FieldType)) {
+                        case TypeCode.Boolean:
+                        case TypeCode.Int16:
+                        case TypeCode.Int32:
+                        case TypeCode.Int64:
+                        case TypeCode.UInt16:
+                        case TypeCode.UInt32:
+                        case TypeCode.UInt64:
+                        case TypeCode.Single:
+                        case TypeCode.Double: {
+                                settingsBuilder.AppendLine($"CelesteNet-Settings-{field.Name}: {field.GetValue(settings)}");
+                            }
+                            break;
+                    }
+                }
+
+                await writer.WriteAsync(
+$@"HTTP/4.2 418 I'm a teapot
+Connection: keep-alive
+CelesteNet-TeapotVersion: {CelesteNetUtils.LoadedVersion}
 CelesteNet-ConnectionToken: {conToken:X}
 CelesteNet-ConnectionFeatures: {matchedFeats.Aggregate((string?) null, (a, f) => ((a == null) ? f.name : $"{a}, {f.name}"))}
 {settingsBuilder.ToString().Trim()}
 
 Who wants some tea?"
-                .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n" + "\r\n"
-            );
+                    .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n" + "\r\n"
+                );
 
-            return (matchedFeats.Select(f => f.feature).ToArray(), playerUID, playerName, clientOptions);
+                return (matchedFeats.Select(f => f.feature).ToArray(), playerUID, playerName, clientOptions);
+            } finally {
+                // We must try-catch buffered stream disposes as those will try to flush.
+                // If a network stream was torn down out of our control, it will throw!
+                try {
+                    bufStream.Dispose();
+                } catch {
+                }
+            }
         }
 
         public async Task DoConnectionHandshake(CelesteNetConnection con, IConnectionFeature[] features) {

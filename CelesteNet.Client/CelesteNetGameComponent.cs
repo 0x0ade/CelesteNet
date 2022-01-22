@@ -24,6 +24,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool Persistent = false, AutoDispose = true;
 
+        private bool IsDisposed;
+
         public CelesteNetGameComponent(CelesteNetClientContext context, Game game)
             : base(game) {
 
@@ -77,13 +79,24 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
-        public virtual void Disconnect(CelesteNetClientContext newCtx) {
-            Context = Persistent ? newCtx : null;
-            if (AutoDispose && Context == null)
+        public virtual void Disconnect(bool forceDispose = false) {
+            if (Context == null && !forceDispose)
+                throw new InvalidOperationException($"Component {this} not connected anymore!");
+            Context = null;
+            if ((AutoDispose || forceDispose) && !IsDisposed)
                 Dispose();
         }
 
+        public virtual void Reconnect(CelesteNetClientContext newCtx) {
+            if (Context == null)
+                throw new InvalidOperationException($"Component {this} not connected anymore!");
+            if (!Persistent)
+                throw new InvalidOperationException($"Component {this} not persistent!");
+            Context = newCtx;
+        }
+
         protected override void Dispose(bool disposing) {
+            IsDisposed = true;
             Game.Components.Remove(this);
             base.Dispose(disposing);
             Client?.Data.UnregisterHandlersIn(this);

@@ -244,7 +244,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                         client.Send(GrabPacket);
                     } catch (Exception e) {
                         Logger.Log(LogLevel.INF, "client-ghost", $"Error sending grab packet: {e}");
-                        Context.Dispose();
+                        Context.DisposeSafe();
                     }
                 }
             }

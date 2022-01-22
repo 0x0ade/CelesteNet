@@ -11,8 +11,6 @@ using System.Threading;
 namespace Celeste.Mod.CelesteNet.Client {
     public static class Handshake {
 
-        public const int TeapotVersion = 1;
-
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
         public static Tuple<uint, IConnectionFeature[], T> DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey, CelesteNetClientOptions options) where T : new() {
             // Find connection features
@@ -22,8 +20,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             using StreamWriter writer = new(netStream);
             // Send the "HTTP" request
             StringBuilder reqBuilder = new($@"
-CONNECT /teapot HTTP/1.1
-CelesteNet-TeapotVersion: {TeapotVersion}
+TEAREQ /teapot HTTP/4.2
+Connection: keep-alive
+CelesteNet-TeapotVersion: {CelesteNetUtils.LoadedVersion}
 CelesteNet-ConnectionFeatures: {features.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}
 CelesteNet-PlayerNameKey: {nameKey}
 ");
@@ -44,8 +43,7 @@ CelesteNet-PlayerNameKey: {nameKey}
                 }
             }
 
-            reqBuilder.AppendLine("\nCan I have some tea?");
-            writer.Write(reqBuilder.ToString().Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n");
+            writer.Write(reqBuilder.ToString().Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n\r\n");
             writer.Flush();
 
             // Read the "HTTP" response

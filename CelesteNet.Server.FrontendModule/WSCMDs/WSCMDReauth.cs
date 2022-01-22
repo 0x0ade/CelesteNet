@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDReauth : WSCMD<string> {
-        public override bool Auth => false;
+        public override bool MustAuth => false;
         public override object? Run(string data) {
             if (WS == null)
                 return null;

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDBan : WSCMD {
-        public override bool Auth => true;
+        public override bool MustAuth => true;
         public override object? Run(dynamic? input) {
             JArray? uidsRaw = (JArray?) input?.UIDs;
             string[]? uids = uidsRaw?.Select(t => t.ToString()).ToArray();

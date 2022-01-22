@@ -76,6 +76,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingSubText("modoptions_celestenetclient_interactionshint")]
         public bool Interactions { get; set; } = true;
         public SyncMode Sounds { get; set; } = SyncMode.ON;
+        [SettingRange(1, 10)]
+        public int SoundVolume { get; set; } = 8;
         [SettingSubText("modoptions_celestenetclient_entitieshint")]
         public SyncMode Entities { get; set; } = SyncMode.ON;
 

@@ -71,7 +71,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             List<Blob> list = new() {
                 new() {
                     Name = $"{all.Length} player{(all.Length == 1 ? "" : "s")}",
-                    Color = ColorCountHeader
+                    Color = ColorCountHeader,
+                    ScaleFactor = 0.25f
                 }
             };
 
@@ -82,7 +83,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             continue;
 
                         BlobPlayer blob = new() {
-                            Name = player.DisplayName
+                            Name = player.DisplayName,
+                            ScaleFactor = 0.75f
                         };
 
                         DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
@@ -100,10 +102,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case ListModes.Channels:
                     HashSet<DataPlayerInfo> listed = new();
 
-                    void AddChannel(DataChannelList.Channel channel, Color color, float scaleFactor) {
+                    void AddChannel(DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor) {
                         list.Add(new() {
                             Name = channel.Name,
-                            Color = ColorChannelHeader
+                            Color = ColorChannelHeader,
+                            ScaleFactor = scaleFactorHeader
                         });
 
                         foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
@@ -115,11 +118,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
                     if (own != null)
-                        AddChannel(own, ColorChannelHeaderOwn, 0.5f);
+                        AddChannel(own, ColorChannelHeaderOwn, 0.25f, 0.5f);
 
                     foreach (DataChannelList.Channel channel in Channels.List)
                         if (channel != own)
-                            AddChannel(channel, ColorChannelHeader, 1f);
+                            AddChannel(channel, ColorChannelHeader, 0.75f, 1f);
 
                     bool wrotePrivate = false;
                     foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
@@ -130,7 +133,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             wrotePrivate = true;
                             list.Add(new() {
                                 Name = "!<private>",
-                                Color = ColorChannelHeaderPrivate
+                                Color = ColorChannelHeaderPrivate,
+                                ScaleFactor = 0.8f
                             });
                         }
 

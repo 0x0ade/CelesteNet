@@ -519,21 +519,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Color colorFull = Color.Black * 0.8f;
             Color colorFaded = Color.Black * 0.5f;
 
-            if (ListMode == ListModes.Channels) {
-                // own channel box always there
-                SplitRectAbsolute(x, y - 25f * scale, sizeAllXPadded, SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
-                if (SplitViewPartially && SplitSuccessfully) {
-                    // two rects for the two columns
-                    float sizeColXPadded = SizeColumn.X + 25f * scale;
-                    SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
-                    x += sizeColXPadded + 5f * scale;
-                    SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded - sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
-                } else {
-                    // single rect below the other, nothing was split after all
-                    SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
-                }
-            } else {
-                SplitRectAbsolute(x, y - 25f * scale, sizeAllXPadded, sizeAll.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+            switch (ListMode) {
+                case ListModes.Classic:
+                    SplitRectAbsolute(x, y - 25f * scale, sizeAllXPadded, sizeAll.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                    break;
+
+                case ListModes.Channels:
+                    // own channel box always there
+                    SplitRectAbsolute(x, y - 25f * scale, sizeAllXPadded, SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+
+                    if (SplitViewPartially && SplitSuccessfully) {
+                        // two rects for the two columns
+                        float sizeColXPadded = SizeColumn.X + 25f * scale;
+                        SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                        x += sizeColXPadded + 5f * scale;
+                        SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded - sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                    } else {
+                        // single rect below the other, nothing was split after all
+                        SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                    }
+                    break;
             }
 
             float alpha = 1f;

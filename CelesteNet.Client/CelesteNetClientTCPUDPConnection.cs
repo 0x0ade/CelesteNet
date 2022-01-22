@@ -276,8 +276,19 @@ namespace Celeste.Mod.CelesteNet.Client {
                 using MemoryStream mStream = new(ConnectionSettings.MaxPacketSize);
                 using CelesteNetBinaryWriter bufWriter = new(Data, Strings, CoreTypeMap, mStream);
                 foreach (DataType p in TCPSendQueue.GetConsumingEnumerable(TokenSrc.Token)) {
+                    if (!IsConnected)
+                        break;
+
                     // Try to send as many packets as possible
                     for (DataType packet = p; packet != null; packet = TCPSendQueue.TryTake(out packet) ? packet : null) {
+                        // Handle special packets
+                        if (packet is DataInternalDisconnect) {
+                            tcpWriter.Flush();
+                            DisposeSafe();
+                            return;
+                        }
+
+                        // Send the packet
                         mStream.Position = 0;
                         Data.Write(bufWriter, packet);
                         bufWriter.Flush();

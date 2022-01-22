@@ -27,9 +27,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static readonly string COOKIE_DISCORDAUTH = "celestenet-discordauth";
         public static readonly string COOKIE_KEY = "celestenet-key";
 
-        public static readonly string TAG_AUTH = "moderator";
-        public static readonly string TAG_AUTH_EXEC = "admin";
-
         [RCEndpoint(false, "/discordauth", "", "", "Discord OAuth2", "User auth using Discord.")]
         public static void DiscordOAuth(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);

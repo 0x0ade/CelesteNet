@@ -37,12 +37,18 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             string prefix = Chat.Settings.CommandPrefix;
             StringBuilder builder = new();
 
-            int pages = (int) Math.Ceiling(Chat.Commands.All.Count / (float) pageSize);
+            List<ChatCMD> all = Chat.Commands.All.Where(cmd =>
+                env.IsAuthorizedExec || (!cmd.MustAuthExec && (
+                    env.IsAuthorized || !cmd.MustAuth
+                ))
+            ).ToList();
+
+            int pages = (int) Math.Ceiling(all.Count / (float) pageSize);
             if (page < 0 || pages <= page)
                 throw new Exception("Page out of range.");
 
-            for (int i = page * pageSize; i < (page + 1) * pageSize && i < Chat.Commands.All.Count; i++) {
-                ChatCMD cmd = Chat.Commands.All[i];
+            for (int i = page * pageSize; i < (page + 1) * pageSize && i < all.Count; i++) {
+                ChatCMD cmd = all[i];
                 builder
                     .Append(prefix)
                     .Append(cmd.ID)
@@ -64,6 +70,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             ChatCMD? cmd = Chat.Commands.Get(cmdName);
             if (cmd == null)
                 throw new Exception($"Command {cmdName} not found.");
+
+            if ((cmd.MustAuth && !env.IsAuthorized) || (cmd.MustAuthExec && !env.IsAuthorizedExec))
+                throw new Exception("Unauthorized!");
 
             return Help_GetCommandSnippet(env, cmd);
         }

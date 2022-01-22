@@ -151,9 +151,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         #region Handlers
+
         public void Handle(CelesteNetConnection con, DataDisconnectReason reason) {
-            CelesteNetClientModule.Settings.WantsToBeConnected = false;
-            Context?.DisposeSafe();
+            CelesteNetClientModule.Settings.Connected = false;
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {

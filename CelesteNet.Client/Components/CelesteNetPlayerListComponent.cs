@@ -328,8 +328,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
 
                 if (splitSuccessfully) {
-                    // some padding for when the individual rects get drawn later
-                    sizeColumn.X += 30f * scale;
+
+                    if (sizeColumn.X * 2f < sizeAll.X) {
+                        sizeColumn.X = sizeAll.X / 2f;
+                    } else {
+                        // some padding for when the individual rects get drawn later
+                        sizeColumn.X += 30f * scale;
+                    }
+
 
                     // move all the right column's elements to the right via Dyn.X
                     for (int i = switchedSidesAt; i < list.Count; i++)

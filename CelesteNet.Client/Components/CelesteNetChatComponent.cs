@@ -18,6 +18,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public float Scale => Settings.UIScale;
 
+        public float? RenderPositionY { get; private set; } = null;
+
         protected Overlay _DummyOverlay = new PauseUpdateOverlay();
 
         public List<DataChat> Log = new();
@@ -396,6 +398,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
+            RenderPositionY = null;
+
             lock (Log) {
                 List<DataChat> log = Mode switch {
                     ChatMode.Special => LogSpecial,
@@ -462,6 +466,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)
                         );
                     }
+
+                    RenderPositionY = y;
                 }
             }
         }

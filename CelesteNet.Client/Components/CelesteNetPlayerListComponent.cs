@@ -515,27 +515,55 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             float x = 25f * scale;
             float sizeAllXPadded = sizeAll.X + 50f * scale;
+            float chatStartY = (Context?.Chat?.RenderPositionY ?? UI_HEIGHT) - 5f;
+            Color colorFull = Color.Black * 0.8f;
+            Color colorFaded = Color.Black * 0.5f;
 
             if (ListMode == ListModes.Channels) {
                 // own channel box always there
-                Context.RenderHelper.Rect(x, y - 25f * scale, sizeAllXPadded, SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+                SplitRectAbsolute(x, y - 25f * scale, sizeAllXPadded, SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
                 if (SplitViewPartially && SplitSuccessfully) {
                     // two rects for the two columns
                     float sizeColXPadded = SizeColumn.X + 25f * scale;
-                    Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+                    SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
                     x += sizeColXPadded + 5f * scale;
-                    Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded - sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+                    SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded - sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
                 } else {
                     // single rect below the other, nothing was split after all
-                    Context.RenderHelper.Rect(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 30f * scale, Color.Black * 0.8f);
+                    SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
                 }
             } else {
-                Context.RenderHelper.Rect(x, y - 25f * scale, sizeAllXPadded, sizeAll.Y + 30f * scale, Color.Black * 0.8f);
+                SplitRectAbsolute(x, y - 25f * scale, sizeAllXPadded, sizeAll.Y + 30f * scale, chatStartY, colorFull, colorFaded);
             }
 
-            foreach (Blob blob in List)
-                blob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth);
+            float alpha = 1f;
+            foreach (Blob blob in List) {
+                alpha = (y + blob.Dyn.Y < chatStartY) ? 1f : 0.5f;
+                blob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
+            }
 
+        }
+
+        private void SplitRectAbsolute(float x, float y, float width, float height, float splitAtY, Color colorA, Color colorB) {
+            if (splitAtY > y + height) {
+                Context.RenderHelper.Rect(x, y, width, height, colorA);
+            }
+            else if (splitAtY < y) {
+                Context.RenderHelper.Rect(x, y, width, height, colorB);
+            }
+            else {
+                SplitRect(x, y, width, height, splitAtY - y, colorA, colorB);
+            }
+        }
+
+        private void SplitRect(float x, float y, float width, float height, float splitheight, Color colorA, Color colorB) {
+            if (splitheight >= height) {
+                Context.RenderHelper.Rect(x, y, width, height, colorA);
+                return;
+            }
+
+            Context.RenderHelper.Rect(x, y, width, splitheight, colorA);
+            Context.RenderHelper.Rect(x, y + splitheight, width, height - splitheight, colorB);
         }
 
         public class Blob {
@@ -572,13 +600,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return CelesteNetClientFont.Measure(TextCached) * DynScale;
             }
 
-            public virtual void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
+            public virtual void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha) {
                 CelesteNetClientFont.Draw(
                     TextCached,
                     new(50f * scale + Dyn.X, y + Dyn.Y),
                     Vector2.Zero,
                     new(DynScale),
-                    Color
+                    Color * alpha
                 );
             }
 
@@ -618,9 +646,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return size;
             }
 
-            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
-                base.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth);
-                Location.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth);
+            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha) {
+                base.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
+                Location.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
             }
 
         }
@@ -680,7 +708,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 x -= textWidthScaled;
             }
 
-            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
+            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha) {
                 if (!string.IsNullOrEmpty(Name)) {
                     float space = spaceWidth * DynScale;
                     float x = sizeAll.X + Dyn.X;
@@ -689,19 +717,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         x -= IconSize * DynScale;
                         x -= space;
                     }
-                    DrawTextPart(Side, SideWidthScaled, AccentColor, y, scale, ref x);
+                    DrawTextPart(Side, SideWidthScaled, AccentColor * alpha, y, scale, ref x);
                     x -= space;
-                    DrawTextPart(Name, NameWidthScaled, TitleColor, y, scale, ref x);
+                    DrawTextPart(Name, NameWidthScaled, TitleColor * alpha, y, scale, ref x);
                     x -= space;
-                    DrawTextPart(LocationSeparator, locationSeparatorWidth * DynScale, Color.Lerp(Color, Color.Black, 0.5f), y, scale, ref x);
+                    DrawTextPart(LocationSeparator, locationSeparatorWidth * DynScale, Color.Lerp(Color, Color.Black, 0.5f) * alpha, y, scale, ref x);
                     x -= space;
-                    DrawTextPart(Level, LevelWidthScaled, Color, y, scale, ref x);
+                    DrawTextPart(Level, LevelWidthScaled, Color * alpha, y, scale, ref x);
                 }
 
                 GuiIconCached?.Draw(
                     new(50f * scale + sizeAll.X + Dyn.X - IconSize * DynScale, y + Dyn.Y),
                     Vector2.Zero,
-                    Color.White,
+                    Color.White * alpha,
                     new Vector2(IconScale * DynScale)
                 );
             }

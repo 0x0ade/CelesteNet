@@ -306,15 +306,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             Con.OnSendFilter -= ConSendFilter;
             Server.Data.UnregisterHandlersIn(this);
 
-            Logger.Log(LogLevel.VVV, "playersession", $"Loopend send #{SessionID} {Con}");
-            Con.Send(new DataInternalLoopend(() => {
-                Logger.Log(LogLevel.VVV, "playersession", $"Loopend run #{SessionID} {Con}");
+            Server.Data.FreeRef<DataPlayerInfo>(SessionID);
+            Server.Data.FreeOrder<DataPlayerFrame>(SessionID);
 
-                Server.Data.FreeRef<DataPlayerInfo>(SessionID);
-                Server.Data.FreeOrder<DataPlayerFrame>(SessionID);
-
-                OnEnd?.Invoke(this, playerInfoLast);
-            }));
+            OnEnd?.Invoke(this, playerInfoLast);
 
             StateLock.Dispose();
         }

@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         private readonly byte[] TCPRecvBuffer, TCPSendBuffer;
         private readonly MemoryStream TCPSendBufferStream;
         private readonly CelesteNetBinaryWriter TCPSendPacketWriter;
-        private volatile bool TCPTriggerSendBufferFlush;
+        private volatile bool TCPTriggerSendBufferFlush, TCPDisconnectAfterSendBufferFlush;
         private volatile float TCPSendQueueDelay;
         private int TCPRecvBufferOff, TCPSendBufferOff, TCPSendBufferNumBytes, TCPSendBufferNumPackets, TCPSendBufferRetries;
         public int UDPNextConnectionID = 0;
@@ -305,6 +305,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                 TCPSendBufferOff = 0;
                 TCPSendBufferStream.Position = 0;
                 while (TCPQueue.BackQueue.TryDequeue(out DataType? packet)) {
+                    // Check for special packets
+                    if (packet is DataInternalDisconnect) {
+                        TCPDisconnectAfterSendBufferFlush = true;
+                        break;
+                    }
+
                     // Write the packet
                     long origPos = TCPSendBufferStream.Position;
                     TCPSendBufferStream.Position = origPos + 2;
@@ -361,6 +367,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                         TCPQueue.DelayFlush(TCPSendQueueDelay, true);
 
                     TCPSendBufferOff = TCPSendBufferNumBytes = TCPSendBufferNumPackets = 0;
+                    if (TCPDisconnectAfterSendBufferFlush)
+                        DisposeSafe();
                     return;
 
                 } catch (SocketException e) {

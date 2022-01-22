@@ -173,11 +173,11 @@ namespace Celeste.Mod.CelesteNet.Server {
         public override int GetAllCount()
             => Directory.GetDirectories(UserRoot).Length;
 
-        public override string Create(string uid, bool force) {
+        public override string Create(string uid, bool forceNewKey) {
             lock (GlobalLock) {
                 Global global = LoadRaw<Global>(GlobalPath);
                 string key = GetKey(uid);
-                if (!key.IsNullOrEmpty() && !force)
+                if (!key.IsNullOrEmpty() && !forceNewKey)
                     return key;
 
                 string keyFull;

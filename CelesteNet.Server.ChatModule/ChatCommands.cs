@@ -68,6 +68,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public virtual string Help => Info;
         public virtual int HelpOrder => 0;
 
+        public virtual bool MustAuth => false;
+        public virtual bool MustAuthExec => false;
+
         public virtual void Init(ChatModule chat) {
             Chat = chat;
         }
@@ -76,6 +79,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         public virtual void ParseAndRun(ChatCMDEnv env) {
+            if ((MustAuth && !env.IsAuthorized) || (MustAuthExec && !env.IsAuthorizedExec))
+                throw new Exception("Unauthorized!");
+
             // TODO: Improve or rewrite. This comes from GhostNet, which adopted it from disbot (0x0ade's C# Discord bot).
 
             string raw = env.FullText;
@@ -263,6 +269,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public DataPlayerInfo? Player => Session?.PlayerInfo;
 
         public DataPlayerState? State => Chat.Server.Data.TryGetBoundRef(Player, out DataPlayerState? state) ? state : null;
+
+        public bool IsAuthorized => !(Session?.UID?.IsNullOrEmpty() ?? true) && Chat.Server.UserData.TryLoad(Session.UID, out BasicUserInfo info) && (info.Tags.Contains(BasicUserInfo.TAG_AUTH) || info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC));
+        public bool IsAuthorizedExec => !(Session?.UID?.IsNullOrEmpty() ?? true) && Chat.Server.UserData.TryLoad(Session.UID, out BasicUserInfo info) && info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC);
 
         public string FullText => Msg.Text;
         public string Text => Cmd == null ? Msg.Text : Msg.Text.Substring(Chat.Settings.CommandPrefix.Length + Cmd.ID.Length);

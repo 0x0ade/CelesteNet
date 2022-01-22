@@ -152,6 +152,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         #region Handlers
 
+        public void Handle(CelesteNetConnection con, DataDisconnectReason reason) {
+            CelesteNetClientModule.Settings.Connected = false;
+        }
+
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
             if (player.ID == Client.PlayerInfo.ID) {
                 if (PlayerNameTag != null)

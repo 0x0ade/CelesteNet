@@ -37,8 +37,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool IsDisposed { get; private set; }
 
+        private readonly object DisposeLock = new();
+        private bool CoreDisposed;
         private bool SafeDisposeTriggered, SafeDisposeForceDispose;
-        private readonly object SafeDisposeLock = new();
 
         public CelesteNetClientContext(Game game, CelesteNetClientContext oldCtx = null)
             : base(game) {
@@ -183,18 +184,24 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
         
         protected void DisposeCore() {
-            if (CelesteNetClientModule.Instance.Context == this) {
-                Status.Set("Disconnected", 3f, false);
-                CelesteNetClientModule.Instance.Context = null;
-                CelesteNetClientModule.Settings.Connected = false;
-            }
+            lock (DisposeLock) {
+                if (CoreDisposed)
+                    return;
+                CoreDisposed = true;
 
-            Client?.Dispose();
-            Client = null;
+                if (CelesteNetClientModule.Instance.Context == this) {
+                    Status.Set("Disconnected", 3f, false);
+                    CelesteNetClientModule.Instance.Context = null;
+                    CelesteNetClientModule.Settings.Connected = false;
+                }
+
+                Client?.Dispose();
+                Client = null;
+            }
         }
 
         public void DisposeSafe(bool forceDispose = false) {
-            lock (SafeDisposeLock) {
+            lock (DisposeLock) {
                 if (IsDisposed)
                     return;
 
@@ -208,15 +215,14 @@ namespace Celeste.Mod.CelesteNet.Client {
         public static event Action<CelesteNetClientContext> OnDispose;
 
         protected override void Dispose(bool disposing) {
-            lock (SafeDisposeLock) {
+            lock (DisposeLock) {
                 if (IsDisposed)
                     return;
                 IsDisposed = true;
 
                 base.Dispose(disposing);
 
-                if (!SafeDisposeTriggered)
-                    DisposeCore();
+                DisposeCore();
 
                 Celeste.Instance.Components.Remove(this);
 

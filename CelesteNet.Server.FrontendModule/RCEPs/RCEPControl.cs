@@ -57,7 +57,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (!key.IsNullOrEmpty() &&
                 f.Server.UserData.GetUID(key) is string uid && !uid.IsNullOrEmpty() &&
                 f.Server.UserData.TryLoad(uid, out BasicUserInfo info)) {
-                    if (info.Tags.Contains(TAG_AUTH_EXEC)) {
+                    if (info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC)) {
                         do {
                             key = Guid.NewGuid().ToString();
                         } while (!f.CurrentSessionKeys.Add(key) || !f.CurrentSessionExecKeys.Add(key));
@@ -68,7 +68,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         });
                         return;
 
-                    } else if (info.Tags.Contains(TAG_AUTH)) {
+                    } else if (info.Tags.Contains(BasicUserInfo.TAG_AUTH)) {
                         do {
                             key = Guid.NewGuid().ToString();
                         } while (!f.CurrentSessionKeys.Add(key));
@@ -332,7 +332,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     info.Name,
                     info.Discrim,
                     info.Tags,
-                    Key = (!f.IsAuthorizedExec(c) && info.Tags.Contains(TAG_AUTH)) || info.Tags.Contains(TAG_AUTH_EXEC) ? null : f.Server.UserData.GetKey(uid),
+                    Key = (!f.IsAuthorizedExec(c) && info.Tags.Contains(BasicUserInfo.TAG_AUTH)) || info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC) ? null : f.Server.UserData.GetKey(uid),
                     Ban = ban.Reason.IsNullOrEmpty() ? null : new {
                         ban.Name,
                         ban.Reason,

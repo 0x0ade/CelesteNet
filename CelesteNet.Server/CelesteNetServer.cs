@@ -288,22 +288,17 @@ namespace Celeste.Mod.CelesteNet.Server {
             using (ConLock.W())
                 Connections.Remove(con);
 
-            Logger.Log(LogLevel.VVV, "main", $"Loopend send {con}");
-            con.Send(new DataInternalLoopend(() => {
-                Logger.Log(LogLevel.VVV, "main", $"Loopend run {con}");
-
-                PlayersByCon.TryGetValue(con, out CelesteNetPlayerSession? session);
-                if (session != null) {
-                    using (ConLock.W()) {
-                        Sessions.Remove(session);
-                        PlayersByCon.TryRemove(con, out _);
-                        PlayersByID.TryRemove(session.SessionID, out _);
-                    }
-                    session?.Dispose();
+            PlayersByCon.TryGetValue(con, out CelesteNetPlayerSession? session);
+            if (session != null) {
+                using (ConLock.W()) {
+                    Sessions.Remove(session);
+                    PlayersByCon.TryRemove(con, out _);
+                    PlayersByID.TryRemove(session.SessionID, out _);
                 }
+                session?.Dispose();
+            }
 
-                OnDisconnect?.Invoke(this, con, session);
-            }));
+            OnDisconnect?.Invoke(this, con, session);
         }
 
         public event Action<CelesteNetPlayerSession>? OnSessionStart;

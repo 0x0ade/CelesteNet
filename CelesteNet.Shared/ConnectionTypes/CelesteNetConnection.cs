@@ -90,14 +90,6 @@ namespace Celeste.Mod.CelesteNet {
         public virtual void Send(DataType? data) {
             if (data == null)
                 return;
-            if (data is DataInternalLoopbackMessage msg) {
-                LoopbackReceive(msg);
-                return;
-            }
-            if (data is DataInternalLoopend end) {
-                LoopbackReceive(end);
-                return;
-            }
             if (data is not DataInternalBlob)
                 data.Meta = data.GenerateMeta(Data);
             if (!data.FilterSend(Data))
@@ -123,18 +115,6 @@ namespace Celeste.Mod.CelesteNet {
                 if (!(_OnReceiveFilter?.InvokeWhileTrue(this, data) ?? true))
                     return;
             Data.Handle(this, data);
-        }
-
-        protected virtual void LoopbackReceive(DataInternalLoopbackMessage msg) {
-            Receive(msg);
-        }
-
-        protected virtual void LoopbackReceive(DataInternalLoopend end) {
-            end.Action();
-        }
-
-        public virtual void LogCreator(LogLevel level) {
-            Logger.Log(level, "con", $"Creator: {Creator}");
         }
 
         protected virtual void Dispose(bool disposing) {

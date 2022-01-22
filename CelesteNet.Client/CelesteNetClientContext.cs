@@ -188,7 +188,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (CoreDisposed)
                     return;
 
-                if (CelesteNetClientModule.Instance.Context == this || Client != null) {
+                if (CelesteNetClientModule.Instance.Context == this) {
                     Status.Set("Disconnected", 3f, false);
                     CelesteNetClientModule.Instance.Context = null;
                     CelesteNetClientModule.Settings.Connected = false;

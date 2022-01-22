@@ -234,7 +234,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     list.Add(new() {
                         Name = "!<private>",
                         Color = ColorChannelHeaderPrivate,
-                        ScaleFactor = 0.8f,
+                        ScaleFactor = 0.75f,
                         CanSplit = true
                     });
                     lastPossibleSplit = list.Count - 1;

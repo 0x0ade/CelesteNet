@@ -22,9 +22,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/deauth", "", "", "Deauthenticate", "Deauthenticate and force-unset all set cookies.")]
         public static void Deauth(Frontend f, HttpRequestEventArgs c) {
-            c.Response.SetCookie(new(Frontend.COOKIE_SESSION, ""));
-            c.Response.SetCookie(new(COOKIE_KEY, ""));
-            c.Response.SetCookie(new(COOKIE_DISCORDAUTH, ""));
+            c.Response.SetCookie(new(Frontend.COOKIE_SESSION, "", "/"));
+            c.Response.SetCookie(new(COOKIE_KEY, "", "/"));
+            c.Response.SetCookie(new(COOKIE_DISCORDAUTH, "", "/"));
             f.RespondJSON(c, new {
                 Info = "Success."
             });

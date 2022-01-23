@@ -4,6 +4,7 @@
         THIS IS THE DEFAULT WEBSITE.
         If you're hosting your own CelesteNet server, replace it!
         Or host it separately, as the built-in HTTP server isn't the best.
+        Most importantly though, CTRL+F 0x0a.de and replace it all, and maybe adjust / remove the netdata graphs.
     -->
     <head>
         <meta charset="utf-8">
@@ -12,19 +13,20 @@
         <link rel="shortcut icon" type="image/png" href="/favicon.png">
 
         <title>CelesteNet</title>
-        <meta name="description" content="The online multiplayer mod for Celeste.">
 
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="theme-color" content="#3b2d4a">
 
-        <meta property="og:description" content="The online multiplayer mod for Celeste.">
+        <meta property="og:title" content="CelesteNet" />
+        <meta name="description" content="An online multiplayer mod for Celeste.">
+        <meta property="og:description" content="An online multiplayer mod for Celeste.">
         <meta name="author" content="0x0ade">
         <meta property="og:locale" content="en_US">
-        <link rel="canonical" href="https://celestenet.0x0ade.ga/"><meta property="og:url" content="https://celestenet.0x0ade.ga/">
-        <meta property="og:image" content="https://celestenet.0x0ade.ga/logo.png">
-        <meta name="twitter:card" content="summary"><meta name="twitter:image" content="https://celestenet.0x0ade.ga/logo.png"><meta name="twitter:site" content="@everestapi"><meta name="twitter:creator" content="@everestapi">
+        <link rel="canonical" href="https://celestenet.0x0a.de/"><meta property="og:url" content="https://celestenet.0x0a.de/">
+        <meta property="og:image" content="https://celestenet.0x0a.de/logo.png">
+        <meta name="twitter:card" content="summary"><meta name="twitter:image" content="https://celestenet.0x0a.de/logo.png"><meta name="twitter:site" content="@everestapi"><meta name="twitter:creator" content="@everestapi">
 
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:400,600&display=swap">
 
@@ -32,20 +34,18 @@
         <link rel="stylesheet" href="/overlay/style.css">
     </head>
     <body>
-        <div id="background"></div>
+        <div id="background">
+            <div id="cogwheel"></div>
+        </div>
 
-        <div id="parallax-root">
+        <div id="body">
             <div id="front">
-                <img id="front-logo" src="/main/header.png">
-            </div>
-
-            <div id="body">
-                <a id="front-arrow" href="#about"></a>
-
-                <div id="body-bg">
-                    <div id="cogwheel"></div>
+                <div id="front-clips-wrap">
+                    <video id="front-clips" src="https://papyrus.0x0a.de/celestenet/clips_opt.mp4" width="484" height="272" autoplay="autoplay" loop="true" muted="true"></video>
                 </div>
-
+                <div id="front-dim"></div>
+                <div id="front-logo"></div>
+                <div id="front-text">An online multiplayer mod for <a href="http://www.celestegame.com/">Celeste</a>.</div>
                 <ul id="toplist">
                     <!-- Auto-install link needs to be updated via JS. -->
                     <!--
@@ -54,63 +54,153 @@
                     <li><a id="toplink-manual" class="button" href="https://gamebanana.com/gamefiles/12267"><span class="toplink-icon"></span><span class="toplink-text">Download CelesteNet</span></a></li>
                     <li><a id="toplink-discord" class="button" href="https://discord.gg/6qjaePQ"><span class="toplink-icon"></span><span class="toplink-text">Join the Community</span></a></li>
                 </ul>
+            </div>
 
-                <div id="main">
-                    <div id="about">
-                        <h2>About</h2>
+            <div id="main">
+                <div id="sidebar">
+                    <div id="user">
+                        <h2>Your Profile</h2>
+                        <div id="userpanel">
+                            <noscript class="dummy"><p>You need to enable JavaScript to link your Discord account, sorry.</p></noscript>
+                        </div>
+                    </div>
+
+                    <div id="online">
+                        <p id="online-count"></p>
+                        <div id="online-list">
+                            <noscript class="dummy"><p>You need to enable JavaScript to see who's online, sorry.</p></noscript>
+                        </div>
+                    </div>
+
+                    <div id="status">
+                        <h2>Status</h2>
+                        <ul id="status-list">
+                            <li class="dummy">The server is up, hopefully.</li>
+                            <noscript class="dummy"><li>You need to enable JavaScript for detailed status, sorry.</li></noscript>
+                        </ul>
+                        <div id="status-graphs">
+                            <div data-netdata="CelesteNet_v2.online"
+                                data-title="Player activity"
+                                data-chart-library="dygraph"
+                                data-width="100%"
+                                data-height="96px"
+                                style="width: 100%;"
+                                data-before="0"
+                                data-after="-3600"
+                                data-dygraph-valuerange="[0, null]"
+                                role="application"></div>
+                            <div data-netdata="CelesteNet_v2.gcmemory"
+                                data-title="GC memory usage"
+                                data-chart-library="dygraph"
+                                data-width="100%"
+                                data-height="96px"
+                                style="width: 100%;"
+                                data-before="0"
+                                data-after="-3600"
+                                data-dygraph-valuerange="[0, null]"
+                                data-units="B"
+                                role="application"></div>
+                            <div data-netdata="CelesteNet_v2.tcpDownlinkBpS"
+                                data-title="TCP bandwidth down"
+                                data-chart-library="dygraph"
+                                data-width="100%"
+                                data-height="96px"
+                                style="width: 100%;"
+                                data-before="0"
+                                data-after="-3600"
+                                data-dygraph-valuerange="[0, null]"
+                                data-units="B/s"
+                                role="application"></div>
+                            <div data-netdata="CelesteNet_v2.tcpUplinkBpS"
+                                data-title="TCP bandwidth up"
+                                data-chart-library="dygraph"
+                                data-width="100%"
+                                data-height="96px"
+                                style="width: 100%;"
+                                data-before="0"
+                                data-after="-3600"
+                                data-dygraph-valuerange="[0, null]"
+                                data-units="B/s"
+                                role="application"></div>
+                            <div data-netdata="CelesteNet_v2.udpDownlinkBpS"
+                                data-title="UDP bandwidth down"
+                                data-chart-library="dygraph"
+                                data-width="100%"
+                                data-height="96px"
+                                style="width: 100%;"
+                                data-before="0"
+                                data-after="-3600"
+                                data-dygraph-valuerange="[0, null]"
+                                data-units="B/s"
+                                role="application"></div>
+                            <div data-netdata="CelesteNet_v2.udpUplinkBpS"
+                                data-title="UDP bandwidth up"
+                                data-chart-library="dygraph"
+                                data-width="100%"
+                                data-height="96px"
+                                style="width: 100%;"
+                                data-before="0"
+                                data-after="-3600"
+                                data-dygraph-valuerange="[0, null]"
+                                data-units="B/s"
+                                role="application"></div>
+                        </div>
+                    </div>
+
+                    <div id="baked">
+                        Baked with <img class="berry" src="/main/berry.gif" alt="a strawberry"> by <a href="https://github.com/0x0ade/CelesteNet">the CelesteNet devs</a>
+                    </div>
+                </div>
+
+                <div id="content">
+                    <div>
                         <p class="note">
                             <img class="haha" src="/main/haha.png" alt="granny laughing">
                             Hey, kiddo! This is very fresh and might still be buggy.<br>
-                            Report all your problems to jade on Discord and have fun!
+                            Report all your problems to the CelesteNet Team on Discord and have fun!
                         </p>
+                    </div>
+                    <div>
+                        <h2>What is CelesteNet?</h2>
                         <p>
                             CelesteNet is an <b>online multiplayer mod for <a href="http://www.celestegame.com/">Celeste</a></b>, using the <a href="https://everestapi.github.io/">Everest mod loader</a>, made with a lot of love and sweat.<br>
-                            It <b>completely replaces</b> the previous <a href="https://0x0ade.ga/ghostnet/">GhostNet</a> mod from 2018.<br>
-                            <br>
+                            It lets you join levels together with your friends or complete strangers, even jumping on others' heads and throwing them across pits if you want to!
+                            There even are some <a href="https://gamebanana.com/mods/150725">multiplayer-exclusive maps</a> and <a href="https://gamebanana.com/mods/335146">custom game modes</a> for you to experience already, and more in development by the community.<br>
+                        </p>
+                    </div>
+                    <div>
+                        <h2>How do I play on CelesteNet?</h2>
+                        </p>
+                            First, make sure that you've installed <a href="https://everestapi.github.io/">Everest (loader) via Olympus (manager)</a>.<br>
+                            Click on the "Download CelesteNet" button above, then click the "1-CLICK INSTALL" button on the latest version.
+                            <h3>Once you're in-game:</h3>
                             Press T to talk.<br>
                             Use the right stick for emoji and click it down to send it.<br>
                             Emotes can be set up in the settings file found in your saves folder.<br>
                             Press tab (KB) or select / back (controller) to open the player list.<br>
                             Send /help in chat for a list of all commands.<br>
-                            Listing all features on this website would be harder than just giving it a try.<br>
-                            <br>
-                            <b>Boring but important stuff:</b><br>
-                            Both mods are created by <a class="ade" href="https://0x0ade.github.io/">0x0ade</a>, who also hosts the main servers.<br>
-                            By connecting to any server, no matter who's hosting them, some basic information (IP address, nickname, messages, ...) gets logged temporarily to prevent abuse and to ban spammers.<br>
-                            Linking your account via Discord is opt-in and only uses the <a href="https://discord.com/developers/docs/resources/user#user-object">user info endpoint</a> for your user ID, nickname, discrim and avatar. All that info is already public if you're using Discord.<br>
-                            That information cannot be used to determine your actual identity, unless you f.e. provide that information via chat on your own. That would be similar to yelling the same info out loud to all the people around you.<br>
-                            This website tells your browser to stay logged in using a cookie.<br>
-                            Feel free to contact the server host if you want to be wiped from those logs or your Discord info to be deleted.<br>
-                            Bans can no longer be appealed. Enough "second chances" have been wasted and those who were banned the first time usually haven't shown any improvements no matter how sorry or nagging they were.<br>
-                            <br>
-                            If you need any help, have any suggestions or want to access the source code, feel free to <a href="https://discord.gg/6qjaePQ">join the Celeste Discord server</a> and ping 0x0ade.
                         </p>
                     </div>
-
-                    <div id="content">
-                        <div id="status">
-                            <h2>Status</h2>
-                            <ul id="status-list">
-                                <li class="dummy">The server is up, hopefully.</li>
-                                <noscript class="dummy"><li>You need to enable JavaScript for detailed status, sorry.</li></noscript>
-                            </ul>
-                        </div>
-
-                        <div id="user">
-                            <h2>User</h2>
-                            <div id="userpanel">
-                                <noscript class="dummy"><p>You need to enable JavaScript to link your Discord account, sorry.</p></noscript>
-                            </div>
-                        </div>
+                    <div>
+                        <h2>Boring stuff:</h2>
+                        <p>
+                            The CelesteNet server is hosted by <a href="https://0x0ade.github.io/">0x0ade</a>. The <a href="https://github.com/0x0ade/CelesteNet"></a>source code is available on GitHub</a> and is being maintained by multiple people.<br>
+                            Hosting your own server is possible, but not advised and is very "do it yourself." Instead, it's much easier to create a private channel (/help join).<br>
+                            <br>
+                            Connecting to any server will share some basic information (IP address, nickname, messages, ...), which then gets logged temporarily to prevent abuse and to ban spammers and other misbehaving players.<br>
+                            <br>
+                            Linking your account via Discord is opt-in and only uses <a href="https://discord.com/developers/docs/resources/user#user-object">publicly available user info</a>.<br>
+                            That information cannot be used to determine your actual identity, unless you decide to disclose your identity yourself.<br>
+                            Feel free to contact the server host if you want to be wiped from those logs or your Discord info to be deleted.<br>
+                            <br>
+                            <b>The only exception to creating an account being opt-in is when the server is in lockdown mode. This happens very rarely and only when absolutely necessary, f.e. when enough guest accounts keep evading bans. Don't ruin the fun for everyone, please.</b><br>
+                            <br>
+                            If you need any help, have any suggestions or want to access the source code, feel free to <a href="https://discord.gg/6qjaePQ">join the Celeste Discord server</a> and ping @CelesteNet Team.<br>
+                            <i>Not everyone with that role is a CelesteNet dev. Think of it more as a support team.</i><br>
+                        </p>
                     </div>
                 </div>
-
             </div>
-
-            <div id="footer">
-                Baked with <img class="berry" src="/main/berry.gif" alt="a strawberry"> by <a class="ade" href="https://0x0ade.github.io/">0x0ade</a>
-            </div>
-
         </div>
 
         <div id="foreground">
@@ -130,6 +220,31 @@
         </div>
 
         <div id="dummy"></div>
+
+        <script>
+            // netdata is fuuuun~
+            window.netdataStatusHolder = document.getElementById("status");
+            window.netdataStatusInnerHTML = window.netdataStatusHolder.innerHTML;
+
+            // can be slate or white
+            window.netdataTheme = "slate";
+            window.netdataNoBootstrap = true;
+        </script>
         <script src="/main/index.js" type="module" async></script>
+        <script src="https://netdata.0x0a.de/dashboard.js" async defer></script>
+        <script async defer>
+            function netdataHook() {
+                if (!window.NETDATA)
+                    return;
+                clearInterval(window.netdataHookInterval);
+
+                //NETDATA.options.current.legend_right = false;
+                NETDATA.options.current.legend_toolbox = false;
+                NETDATA.options.current.destroy_on_hide = false;
+                NETDATA.options.current.parallel_refresher = true;
+                NETDATA.options.current.stop_updates_when_focus_is_lost = true;
+            }
+            window.netdataHookInterval = setInterval(netdataHook, 100);
+        </script>
     </body>
 </html>

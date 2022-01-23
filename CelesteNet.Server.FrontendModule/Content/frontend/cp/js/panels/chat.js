@@ -27,7 +27,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Chat";
-    this.ep = "/chatlog";
+    this.ep = "/api/chatlog";
 
     /** @type {[string, string, () => void][]} */
     this.actions = [

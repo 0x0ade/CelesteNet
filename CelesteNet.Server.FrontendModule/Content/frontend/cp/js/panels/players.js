@@ -32,7 +32,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Players";
-    this.ep = "/players";
+    this.ep = "/api/players";
     /** @type {PlayerData[]} */
     this.data = [];
   }

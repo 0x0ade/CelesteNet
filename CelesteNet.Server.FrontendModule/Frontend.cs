@@ -79,11 +79,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             HTTPServer.OnGet += HandleRequestRaw;
             HTTPServer.OnPost += HandleRequestRaw;
 
-            HTTPServer.WebSocketServices.AddService<FrontendWebSocket>("/ws", ws => ws.Frontend = this);
+            HTTPServer.WebSocketServices.AddService<FrontendWebSocket>($"{Settings.APIPrefix}/ws", ws => ws.Frontend = this);
 
             HTTPServer.Start();
 
-            HTTPServer.WebSocketServices.TryGetServiceHost("/ws", out WSHost);
+            HTTPServer.WebSocketServices.TryGetServiceHost($"{Settings.APIPrefix}/ws", out WSHost);
 
             StatsTimer = new Timer(Settings.NetPlusStatsUpdateRate);
             StatsTimer.AutoReset = true;
@@ -229,16 +229,25 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private void HandleRequest(HttpRequestEventArgs c) {
             Logger.Log(LogLevel.VVV, "frontend", $"{c.Request.RemoteEndPoint} requested: {c.Request.RawUrl}");
 
-            string url = c.Request.RawUrl;
+            string urlRaw = c.Request.RawUrl;
+            string url = urlRaw;
             int indexOfSplit = url.IndexOf('?');
             if (indexOfSplit != -1)
                 url = url.Substring(0, indexOfSplit);
 
+            if (!url.ToLowerInvariant().StartsWith(Settings.APIPrefix)) {
+                RespondContent(c, "frontend/" + url.Substring(1));
+                return;
+            }
+
+            string urlApiRaw = urlRaw.Substring(Settings.APIPrefix.Length);
+            string urlApi = url.Substring(Settings.APIPrefix.Length);
+
             RCEndpoint? endpoint =
-                EndPoints.FirstOrDefault(ep => ep.Path == c.Request.RawUrl) ??
-                EndPoints.FirstOrDefault(ep => ep.Path == url) ??
-                EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == c.Request.RawUrl.ToLowerInvariant()) ??
-                EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == url.ToLowerInvariant());
+                EndPoints.FirstOrDefault(ep => ep.Path == urlApiRaw) ??
+                EndPoints.FirstOrDefault(ep => ep.Path == urlApi) ??
+                EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == urlApiRaw.ToLowerInvariant()) ??
+                EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == urlApi.ToLowerInvariant());
 
             if (endpoint == null) {
                 RespondContent(c, "frontend/" + url.Substring(1));

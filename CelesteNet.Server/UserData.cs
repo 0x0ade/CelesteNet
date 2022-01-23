@@ -30,6 +30,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract bool TryLoad<T>(string uid, out T value) where T : new();
         public T Load<T>(string uid) where T : new()
             => TryLoad(uid, out T value) ? value : value;
+        public abstract bool HasFile(string uid, string name);
         public abstract Stream? ReadFile(string uid, string name);
         public abstract void Save<T>(string uid, T value) where T : notnull;
         public abstract Stream WriteFile(string uid, string name);

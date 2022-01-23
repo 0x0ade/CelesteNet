@@ -17,7 +17,7 @@ export class FrontendExecPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Run C#";
-    this.ep = "/exec";
+    this.ep = "/api/exec";
 
     this.data = "";
 

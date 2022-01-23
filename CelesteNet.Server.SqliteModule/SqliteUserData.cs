@@ -318,6 +318,29 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
             }
         }
 
+        public override bool HasFile(string uid, string name) {
+            using UserDataBatchContext batch = OpenBatch();
+            string table = GetFileTable(name, false);
+            if (table.IsNullOrEmpty())
+                return false;
+            using MiniCommand mini = new(this) {
+                SqliteOpenMode.ReadOnly,
+                @$"
+                    SELECT value
+                    FROM [{table}]
+                    WHERE uid = $uid
+                    LIMIT 1;
+                ",
+                { "$uid", uid },
+            };
+            (SqliteConnection con, SqliteCommand cmd, SqliteDataReader reader) = mini.Read();
+
+            if (!reader.Read())
+                return false;
+
+            return true;
+        }
+
         public override Stream? ReadFile(string uid, string name) {
             using UserDataBatchContext batch = OpenBatch();
             string table = GetFileTable(name, false);

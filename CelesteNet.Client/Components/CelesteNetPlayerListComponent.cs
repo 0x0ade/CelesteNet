@@ -360,7 +360,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return "9";
 
             if (Client.Data.TryGetBoundRef(player, out DataPlayerState state) && !string.IsNullOrEmpty(state?.SID))
-                return $"0 {"0" + state.SID + (int) state.Mode} {player.FullName}";
+                return $"0 {(state.SID.StartsWith("Celeste/") ? "0" : "1") + state.SID + (int) state.Mode} {player.FullName}";
 
             return $"8 {player.FullName}";
         }
@@ -541,7 +541,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     break;
             }
 
-            float alpha = 1f;
+            float alpha;
             foreach (Blob blob in List) {
                 alpha = (y + blob.Dyn.Y < chatStartY) ? 1f : 0.5f;
                 blob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);

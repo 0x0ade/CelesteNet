@@ -88,7 +88,7 @@ function renderUser() {
 			<p>
 				Create a CelesteNet account to show your profile picture in-game and to let the server remember your last channel and command settings.<br>
 				<br>
-				<a id="button-auth" class="button" href="/discordauth"><span class="button-icon"></span><span>Link your Discord account</span></a><br>
+				<a id="button-auth" class="button" href="/api/discordauth"><span class="button-icon"></span><span>Link your Discord account</span></a><br>
 				<sub style="line-height: 0.5em;">
 					Linking your account is fully optional and requires telling your browser to store a "cookie." This cookie is only used to keep you logged in.
 				</sub>
@@ -102,7 +102,7 @@ function renderUser() {
 		list.add("userinfo", el => rd$(el)`
 		<p>
 			Linked to:<br>
-			<a id="button-reauth" class="button" href="/discordauth">
+			<a id="button-reauth" class="button" href="/api/discordauth">
 				<span class="button-icon"></span>
 				<span class="button-text">
 					<span class="button-icon discord-avatar" style=${`background-image: url(/api/avatar?uid=${info.UID})`}></span>

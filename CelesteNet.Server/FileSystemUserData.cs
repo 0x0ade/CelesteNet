@@ -105,6 +105,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public override bool TryLoad<T>(string uid, out T value)
             => TryLoadRaw(GetUserDataFilePath(uid, typeof(T)), out value);
 
+        public override bool HasFile(string uid, string name) {
+            return File.Exists(GetUserDataFilePath(uid, name));
+        }
+
         public override Stream? ReadFile(string uid, string name) {
             string path = GetUserFilePath(uid, name);
             if (!File.Exists(path))

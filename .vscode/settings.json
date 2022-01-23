@@ -1,5 +1,11 @@
 {
     "cmake.configureOnOpen": false,
     "git.followTagsWhenSync": false,
-    "git.pullTags": false
+    "git.pullTags": false,
+    "liveServer.settings.root": "/CelesteNet.Server.FrontendModule/Content/frontend/",
+    "liveServer.settings.proxy": {
+        "enable": true,
+        "baseUri": "/api",
+        "proxyUri": "http://127.0.0.1:3821/api"
+    }
 }

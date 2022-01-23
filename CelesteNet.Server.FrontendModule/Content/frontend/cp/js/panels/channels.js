@@ -26,7 +26,7 @@ export class FrontendChannelsPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Channels";
-    this.ep = "/channels";
+    this.ep = "/api/channels";
     /** @type {ChannelData[]} */
     this.data = [];
   }

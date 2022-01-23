@@ -16,8 +16,8 @@ export class FrontendStatusPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Status";
-    this.ep = "/status";
-    this.netPlusEp = "/netplus";
+    this.ep = "/api/status";
+    this.netPlusEp = "/api/netplus";
 
     this.data = {
       Alive: false,

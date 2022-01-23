@@ -234,7 +234,7 @@ window["dialog"] = dialog;
 
 		const w = vidW * scale;
 		const h = vidH * scale;
-		ctx2d.filter = "blur(3px)";
+		ctx2d.filter = "blur(5px)";
 		ctx2d.drawImage(
 			elClipsVideo,
 			ctxW / 2 - w / 2,
@@ -247,6 +247,7 @@ window["dialog"] = dialog;
 	}
 
 	animCanvasFrame = requestAnimationFrame(() => {
+		elClipsVideo.playbackRate = 0.75;
 		elClipsVideo.classList.add("disabled");
 		animCanvas();
 	});

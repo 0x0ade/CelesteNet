@@ -49,9 +49,17 @@ function fetchOnline() {
 		for (let dummy of el.querySelectorAll(".dummy"))
 			dummy.remove();
 
-		document.getElementById("online-count").innerText = `${players.length} player${players.length == 1 ? "" : "s"} are online right now${players.length == 0 ? "." : ":"}`
-
 		const list = new RDOMListHelper(el);
+
+		if (players.Error) {
+			document.getElementById("online").classList.add("hidden");
+			list.end();
+			return;
+		}
+
+		document.getElementById("online").classList.remove("hidden");
+
+		document.getElementById("online-count").innerText = `${players.length} player${players.length == 1 ? "" : "s"} are online right now${players.length == 0 ? "." : ":"}`
 
 		players.sort((a, b) => a.FullName.localeCompare(b.FullName));
 		for (let player of players) {

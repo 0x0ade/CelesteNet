@@ -139,7 +139,8 @@ html, body, #body {
     min-width: 1600px;
     min-height: 900px;
     transform: translate(-50%, -50%);
-    filter: blur(calc(max(0.6vw, 0.6vh)));
+    /* filter: blur(calc(max(0.6vw, 0.6vh))); */
+    filter: blur(4px);
     pointer-events: none;
     z-index: -1;
 }

@@ -170,3 +170,84 @@ elDim.addEventListener("click", () => dialog());
 
 window["deauth"] = deauth;
 window["dialog"] = dialog;
+
+{
+	const elClipsWrap = document.getElementById("front-clips-wrap");
+	/** @type {HTMLVideoElement} */
+	// @ts-ignore
+	const elClipsVideo = document.getElementById("front-clips-video");
+	/** @type {HTMLCanvasElement} */
+	// @ts-ignore
+	const elClipsCanvas = rd$(null)`<canvas id="front-clips-canvas"></canvas>`;
+	elClipsWrap.appendChild(elClipsCanvas);
+	const ctx2d = elClipsCanvas.getContext("2d");
+
+	const vidW = elClipsVideo.width;
+	const vidH = elClipsVideo.height;
+
+	let start = 0;
+	let then = window.performance.now();
+	let skip = 0;
+
+	let animCanvasFrame;
+	function animCanvas() {
+		const rect = elClipsCanvas.getBoundingClientRect();
+		if (rect.bottom <= elClipsCanvas.clientHeight / 2) {
+			elClipsVideo.pause();
+			setTimeout(animCanvas, 100);
+			return;
+
+		} else if (elClipsVideo.paused) {
+			elClipsVideo.play();
+		}
+
+		if (skip > 0) {
+			skip--;
+			animCanvasFrame = requestAnimationFrame(animCanvas);
+			return;
+		}
+
+		let now = window.performance.now();
+		if (!start)
+			start = now;
+	  	now -= start;
+		const delta = now - then;
+		then = now;
+
+		skip = 0;
+
+		// TODO: Adjust skip and scale based on delta.
+
+		const ctxW = elClipsCanvas.clientWidth / 8;
+		const ctxH = elClipsCanvas.clientHeight / 8;
+		elClipsCanvas.width = ctxW;
+		elClipsCanvas.height = ctxH;
+
+		const scaleW = ctxW / vidW;
+		const scaleH = ctxH / vidH;
+		let scale;
+		if (scaleW > scaleH) {
+			scale = scaleW;
+		} else {
+			scale = scaleH;
+		}
+
+		const w = vidW * scale;
+		const h = vidH * scale;
+		ctx2d.filter = "blur(3px)";
+		ctx2d.drawImage(
+			elClipsVideo,
+			ctxW / 2 - w / 2,
+			ctxH / 2 - h / 2,
+			w,
+			h
+		);
+
+		animCanvasFrame = requestAnimationFrame(animCanvas);
+	}
+
+	animCanvasFrame = requestAnimationFrame(() => {
+		elClipsVideo.classList.add("disabled");
+		animCanvas();
+	});
+}

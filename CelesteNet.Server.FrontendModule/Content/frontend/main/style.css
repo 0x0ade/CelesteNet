@@ -187,7 +187,6 @@ html, body, #body {
 
 #content {
     flex: 2 1;
-    min-width: 400px;
 }
 
 #sidebar {

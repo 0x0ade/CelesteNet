@@ -44,8 +44,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (args["error"] == "access_denied") {
                 c.Response.StatusCode = (int) HttpStatusCode.Redirect;
                 c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/");
-                c.Response.SetCookie(new(COOKIE_KEY, ""));
-                c.Response.SetCookie(new(COOKIE_DISCORDAUTH, ""));
+                c.Response.SetCookie(new(COOKIE_KEY, "", "/"));
+                c.Response.SetCookie(new(COOKIE_DISCORDAUTH, "", "/"));
                 f.RespondJSON(c, new {
                     Info = "Denied - redirecting to /"
                 });
@@ -168,8 +168,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             c.Response.StatusCode = (int) HttpStatusCode.Redirect;
             c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/");
-            c.Response.SetCookie(new(COOKIE_KEY, key));
-            c.Response.SetCookie(new(COOKIE_DISCORDAUTH, code));
+            c.Response.SetCookie(new(COOKIE_KEY, key, "/"));
+            c.Response.SetCookie(new(COOKIE_DISCORDAUTH, code, "/"));
             f.RespondJSON(c, new {
                 Info = "Success - redirecting to /"
             });

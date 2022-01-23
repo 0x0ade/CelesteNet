@@ -61,7 +61,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         do {
                             key = Guid.NewGuid().ToString();
                         } while (!f.CurrentSessionKeys.Add(key) || !f.CurrentSessionExecKeys.Add(key));
-                        c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key));
+                        c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key, "/"));
                         f.RespondJSON(c, new {
                             Key = key,
                             Info = $"Welcome, {info.Name}#{info.Discrim}"
@@ -72,7 +72,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         do {
                             key = Guid.NewGuid().ToString();
                         } while (!f.CurrentSessionKeys.Add(key));
-                        c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key));
+                        c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key, "/"));
                         f.RespondJSON(c, new {
                             Key = key,
                             Info = $"Welcome, {info.Name}#{info.Discrim}"
@@ -104,7 +104,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 do {
                     key = Guid.NewGuid().ToString();
                 } while (!f.CurrentSessionKeys.Add(key) || !f.CurrentSessionExecKeys.Add(key));
-                c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key));
+                c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key, "/"));
                 f.RespondJSON(c, new {
                     Key = key
                 });
@@ -115,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 do {
                     key = Guid.NewGuid().ToString();
                 } while (!f.CurrentSessionKeys.Add(key));
-                c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key));
+                c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key, "/"));
                 f.RespondJSON(c, new {
                     Key = key
                 });

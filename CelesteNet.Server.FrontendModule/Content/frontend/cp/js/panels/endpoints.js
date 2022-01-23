@@ -25,8 +25,8 @@ export class FrontendEndpointsPanel extends FrontendBasicPanel {
       .then(r => r.map(ep => [
         el => rd$(el)`<span>
           <b>${ep.Name}</b>
-          <a href=${ep.PathExample ? `${ep.Path}${ep.PathExample}` : ep.Path}>
-            <code>${ep.PathHelp ? `${ep.Path}${ep.PathHelp}` : ep.Path}</code>
+          <a href=${"/api" + (ep.PathExample ? `${ep.Path}${ep.PathExample}` : ep.Path)}>
+            <code>${"/api" + (ep.PathHelp ? `${ep.Path}${ep.PathHelp}` : ep.Path)}</code>
           </a><br>
           ${ep.Info}
         </span>`

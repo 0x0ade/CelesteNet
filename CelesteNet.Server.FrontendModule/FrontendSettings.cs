@@ -31,7 +31,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         [YamlIgnore]
         public string DiscordOAuthURL => $"https://discord.com/oauth2/authorize?client_id={DiscordOAuthClientID}&redirect_uri={Uri.EscapeDataString(DiscordOAuthRedirectURL)}&response_type=code&scope=identify";
         [YamlIgnore]
-        public string DiscordOAuthRedirectURL => $"{CanonicalAPIRoot}discordauth";
+        public string DiscordOAuthRedirectURL => $"{CanonicalAPIRoot}/discordauth";
         public string DiscordOAuthClientID { get; set; } = "";
         public string DiscordOAuthClientSecret { get; set; } = "";
 

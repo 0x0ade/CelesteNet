@@ -228,8 +228,10 @@ window["dialog"] = dialog;
 
 		const ctxW = elClipsCanvas.clientWidth / 8;
 		const ctxH = elClipsCanvas.clientHeight / 8;
-		elClipsCanvas.width = ctxW;
-		elClipsCanvas.height = ctxH;
+		if (elClipsCanvas.width != ctxW || elClipsCanvas.height != ctxH) {
+			elClipsCanvas.width = ctxW;
+			elClipsCanvas.height = ctxH;
+		}
 
 		const scaleW = ctxW / vidW;
 		const scaleH = ctxH / vidH;
@@ -243,6 +245,7 @@ window["dialog"] = dialog;
 		const w = vidW * scale;
 		const h = vidH * scale;
 		ctx2d.filter = "blur(5px)";
+		ctx2d.globalAlpha = 0.6;
 		ctx2d.drawImage(
 			elClipsVideo,
 			ctxW / 2 - w / 2,
@@ -255,7 +258,7 @@ window["dialog"] = dialog;
 	}
 
 	animCanvasFrame = requestAnimationFrame(() => {
-		elClipsVideo.playbackRate = 0.75;
+		elClipsVideo.playbackRate = 0.5;
 		elClipsVideo.classList.add("disabled");
 		animCanvas();
 	});

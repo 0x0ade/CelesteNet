@@ -493,7 +493,7 @@ a.button:hover, a.button:focus, a.button:active {
 
 @media only screen and (max-width: calc(280px * 2 + 64px)) {
     #toplist {
-        width: 280px;
+        width: 296px;
     }
 }
 

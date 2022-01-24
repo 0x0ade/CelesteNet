@@ -196,6 +196,8 @@ window["dialog"] = dialog;
 	let start = 0;
 	let then = window.performance.now();
 	let skip = 0;
+	let manualTime = 0;
+	let manualTimeMax = 1;
 
 	let animCanvasFrame;
 	function animCanvas() {
@@ -204,9 +206,6 @@ window["dialog"] = dialog;
 			elClipsVideo.pause();
 			setTimeout(animCanvas, 100);
 			return;
-
-		} else if (elClipsVideo.paused) {
-			elClipsVideo.play();
 		}
 
 		if (skip > 0) {
@@ -222,7 +221,25 @@ window["dialog"] = dialog;
 		const delta = now - then;
 		then = now;
 
-		skip = 0;
+		let paused = elClipsVideo.paused;
+		if (paused) {
+			try {
+				elClipsVideo.play().then(() => paused = false).catch(() => {});
+			} catch (e) {
+			}
+		}
+
+		if (paused) {
+			manualTime -= delta / 1000 * elClipsVideo.playbackRate;
+			if (manualTime <= 0) {
+				manualTimeMax = manualTime = delta / 1000 + Math.random() * 0.2 + 0.1;
+				elClipsVideo.currentTime = (elClipsVideo.currentTime + manualTime) % elClipsVideo.duration;
+			}
+			skip = 2;
+		} else {
+			skip = 0;
+		}
+
 
 		// TODO: Adjust skip and scale based on delta.
 
@@ -245,7 +262,7 @@ window["dialog"] = dialog;
 		const w = vidW * scale;
 		const h = vidH * scale;
 		ctx2d.filter = "blur(5px)";
-		ctx2d.globalAlpha = 0.6;
+		ctx2d.globalAlpha = paused ? 0.4 : 0.6;
 		ctx2d.drawImage(
 			elClipsVideo,
 			ctxW / 2 - w / 2,
@@ -257,9 +274,19 @@ window["dialog"] = dialog;
 		animCanvasFrame = requestAnimationFrame(animCanvas);
 	}
 
-	animCanvasFrame = requestAnimationFrame(() => {
-		elClipsVideo.playbackRate = 0.5;
-		elClipsVideo.classList.add("disabled");
-		animCanvas();
-	});
+	function animCanvasStart() {
+		elClipsVideo.removeEventListener("canplay", animCanvasStart);
+		animCanvasFrame = requestAnimationFrame(() => {
+			elClipsVideo.currentTime = Math.floor((Math.random() * 0.8 + 0.1) * elClipsVideo.duration * 10) / 10;
+			elClipsVideo.playbackRate = 0.5;
+			elClipsVideo.classList.add("disabled");
+			animCanvas();
+		});
+	}
+
+	if (elClipsVideo.duration == NaN) {
+		elClipsVideo.addEventListener("canplay", animCanvasStart);
+	} else {
+		animCanvasStart();
+	}
 }

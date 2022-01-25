@@ -118,10 +118,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     _RepeatIndex = 0;
                     _Time = 0;
+                    CompletionCancelled = false;
                     TextInput.OnInput += OnTextInput;
                 } else {
                     Typing = "";
                     CursorIndex = 0;
+                    CompletionPartial = "";
                     Engine.Scene.Paused = _SceneWasPaused;
                     _ConsumeInput = 2;
                     if (Engine.Scene is Level level && level.Overlay == _DummyOverlay)
@@ -134,7 +136,33 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         protected List<string> Completion = new() {};
-        protected string Completing;
+        public bool CompletionCancelled { get; private set; } = false;
+        public string CompletionPartial { get; private set; } = "";
+        private int _CompletionSelected = -1;
+        public int CompletionSelected { 
+            get => _CompletionSelected; 
+            private set {
+                if (value == _CompletionSelected)
+                    return;
+
+                if (value < -1)
+                    value = -1;
+
+                if (value > Completion.Count)
+                    value = Completion.Count;
+
+                _CompletionSelected = value;
+            }
+        }
+        protected CompletionGroup CompletionType;
+        public enum CompletionGroup {
+            None = 0,
+            Command = 1,
+            Player = 2,
+            Channel = 3
+        }
+
+        public readonly string[] CommandList = { "tp", "help", "channel", "join", "channelchat", "whisper" };
 
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -249,12 +277,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Send(Typing);
                     Active = false;
 
-                } else if (MInput.Keyboard.Pressed(Keys.Down) && RepeatIndex > 0) {
-                    RepeatIndex--;
-
-                } else if (MInput.Keyboard.Pressed(Keys.Up) && RepeatIndex < Repeat.Count - 1) {
-                    RepeatIndex++;
-
+                } else if (MInput.Keyboard.Pressed(Keys.Down)) {
+                    if (Completion.Count > 0 && !CompletionCancelled) {
+                        CompletionSelected--;
+                    } else if (RepeatIndex > 0) {
+                            RepeatIndex--;
+                    }
+                } else if (MInput.Keyboard.Pressed(Keys.Up)) {
+                    if (Completion.Count > 0 && !CompletionCancelled) {
+                        CompletionSelected++;
+                    } else if (RepeatIndex < Repeat.Count - 1) {
+                        RepeatIndex++;
+                    }
                 } else if (MInput.Keyboard.Check(Keys.Left) && _cursorCanMove && CursorIndex > 0) {
                     if (_ControlHeld) {
                         // skip over space right before the cursor, if there is one
@@ -289,14 +323,37 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     CursorIndex = Typing.Length;
 
                 } else if (Input.ESC.Pressed) {
-                    Active = false;
+                    if (Completion.Count > 0 && !CompletionCancelled)
+                        CompletionCancelled = true;
+                    else
+                        Active = false;
                 }
 
-                if(Typing.StartsWith("/tp ") && Typing.Length > 4) {
-                    PopulateCompletionList(Typing.Substring(4));
+
+                if (Typing.StartsWith("/")) {
+                    int space = Typing.IndexOf(" ");
+                    if (space == -1) {
+                        UpdateCompletion(CompletionGroup.Command, Typing.Substring(1));
+                    } else {
+                        if (CompletionType == CompletionGroup.Command)
+                            UpdateCompletion(CompletionGroup.None, "");
+
+                        if (Typing.IndexOf(" ", space + 1) == -1) {
+                            string cmd = Typing.Substring(1, space - 1);
+                            switch (cmd.ToLowerInvariant().Trim()) {
+                                case "tp":
+                                case "whisper":
+                                    UpdateCompletion(CompletionGroup.Player, Typing.Substring(space));
+                                    break;
+                                case "join":
+                                case "channel":
+                                    UpdateCompletion(CompletionGroup.Channel, Typing.Substring(space));
+                                    break;
+                            }
+                        }
+                    }
                 } else {
-                    Completion.Clear();
-                    Completing = "";
+                    CompletionPartial = "";
                 }
             }
 
@@ -366,7 +423,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
                 _RepeatIndex = 0;
                 _Time = 0;
+            } else if (c == (char) 9) {
+                // Tab - completion
+                string accepted = "";
+                if (Completion.Count == 1) {
+                    accepted = Completion[0];
+                } else if (Completion.Count > 1 && CompletionSelected >= 0) {
+                    accepted = Completion[CompletionSelected];
+                }
 
+                if (!accepted.IsNullOrEmpty()) {
+                    if (accepted.Length > CompletionPartial.Length)
+                        accepted = accepted.Substring(CompletionPartial.Length);
+                    Typing += accepted + " ";
+                    _CursorIndex += accepted.Length + 1;
+                    UpdateCompletion(CompletionGroup.None, "");
+                }
             } else if (!char.IsControl(c)) {
                 if (CursorIndex == Typing.Length) {
                     // Any other character - append.
@@ -378,6 +450,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 _CursorIndex++;
                 _RepeatIndex = 0;
                 _Time = 0;
+
+                if (c == ' ') {
+                    CompletionCancelled = false;
+                    CompletionPartial = "";
+                }
             }
         }
 
@@ -386,11 +463,35 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             PromptMessageColor = color ?? Color.White;
         }
 
-        protected void PopulateCompletionList(string partial) {
-            DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
+        public void UpdateCompletion(CompletionGroup type, string partial) {
+            if (partial == CompletionPartial && type == CompletionType || CompletionCancelled)
+                return;
 
-            Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList();
-            Completing = partial;
+            partial = partial.Trim();
+            CompletionPartial = partial;
+
+            if (string.IsNullOrWhiteSpace(partial) || type == CompletionGroup.None) {
+                Completion.Clear();
+                CompletionPartial = "";
+                CompletionSelected = -1;
+            } else {
+                switch (type) {
+                    case CompletionGroup.Command:
+                        Completion = CommandList.Where(cmd => cmd.StartsWith(partial)).ToList();
+
+                        break;
+                    case CompletionGroup.Player:
+                        DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
+
+                        Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                        break;
+                    case CompletionGroup.Channel:
+                        CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
+                        Completion = playerlist?.Channels?.List?.Select(channel => channel.Name).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
+
+                        break;
+                }
+            }
         }
 
         protected override void Render(GameTime gameTime, bool toBuffer) {
@@ -606,13 +707,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if(Active) {
                 float y = UI_HEIGHT - 125f * scale;
 
-                foreach (string player in Completion) {
-                    string Matching = player.Substring(0, Completing.Length);
-                    string Suggestion = player.Substring(Completing.Length);
+                for (int i = 0; i < Completion.Count; i++) {
+                    string match = Completion[i];
+                    string typed = match.Substring(0, CompletionPartial.Length);
+                    string suggestion = match.Substring(CompletionPartial.Length);
 
-                    string text = Typing.Substring(0, Typing.Length - Completing.Length) + Matching;
+                    string text = Typing.Substring(0, Typing.Length - CompletionPartial.Length) + typed;
                     Vector2 sizeText = CelesteNetClientFont.Measure(text);
-                    Vector2 sizeSuggestion = CelesteNetClientFont.Measure(Suggestion);
+                    Vector2 sizeSuggestion = CelesteNetClientFont.Measure(suggestion);
 
                     float width = sizeText.X + sizeSuggestion.X + 50f;
                     float height = 5f + Math.Max(sizeText.Y, sizeSuggestion.Y);
@@ -620,22 +722,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     y -= height * scale;
 
                     Context.RenderHelper.Rect(25f * scale, y, width * scale, height * scale, Color.Black * 0.8f);
-
                     
                     CelesteNetClientFont.Draw(
                         text,
                         new(50f * scale, y),
                         Vector2.Zero,
                         fontScale,
-                        Color.Gray
+                        CompletionSelected == i ? Color.LightGray : Color.Gray
                     );
 
                     CelesteNetClientFont.Draw(
-                        Suggestion,
+                        suggestion,
                         new(50f * scale + sizeText.X * scale, y),
                         Vector2.Zero,
                         fontScale,
-                        Color.Gold
+                        CompletionSelected == i ? Color.LightGoldenrodYellow : Color.Gold
                     );
                 }
             }

@@ -432,8 +432,8 @@ let CelesteNet = {
                 netdata.service({
                     name: server.name,
                     type: "celestenet-status",
-                    url: server.url + "/status",
-                    request: netdata.requestFromURL(server.url + "/status"),
+                    url: server.url + "/api/status",
+                    request: netdata.requestFromURL(server.url + "/api/status"),
                     base_priority: this.base_priority + (server.priority || 0),
                     update_every: server.update_every || this.update_every,
                     module: this,
@@ -441,8 +441,8 @@ let CelesteNet = {
                 netdata.service({
                     name: server.name,
                     type: "celestenet-netplus",
-                    url: server.url + "/netplus",
-                    request: netdata.requestFromURL(server.url + "/netplus"),
+                    url: server.url + "/api/netplus",
+                    request: netdata.requestFromURL(server.url + "/api/netplus"),
                     base_priority: this.base_priority + (server.priority || 0),
                     update_every: server.update_every || this.update_every,
                     module: this,

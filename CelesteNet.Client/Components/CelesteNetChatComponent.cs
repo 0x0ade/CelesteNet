@@ -133,6 +133,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        protected List<string> Completion = new() {};
+        protected string Completing;
+
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
@@ -288,6 +291,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (Input.ESC.Pressed) {
                     Active = false;
                 }
+
+                if(Typing.StartsWith("/tp ") && Typing.Length > 4) {
+                    PopulateCompletionList(Typing.Substring(4));
+                } else {
+                    Completion.Clear();
+                    Completing = "";
+                }
             }
 
             // Prevent menus from reacting to player input after exiting chat.
@@ -374,6 +384,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void SetPromptMessage(string msg, Color? color = null) {
             PromptMessage = msg;
             PromptMessageColor = color ?? Color.White;
+        }
+
+        protected void PopulateCompletionList(string partial) {
+            DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
+
+            Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList();
+            Completing = partial;
         }
 
         protected override void Render(GameTime gameTime, bool toBuffer) {
@@ -582,6 +599,43 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         Vector2.Zero,
                         fontScale,
                         Color.GreenYellow
+                    );
+                }
+            }
+
+            if(Active) {
+                float y = UI_HEIGHT - 125f * scale;
+
+                foreach (string player in Completion) {
+                    string Matching = player.Substring(0, Completing.Length);
+                    string Suggestion = player.Substring(Completing.Length);
+
+                    string text = Typing.Substring(0, Typing.Length - Completing.Length) + Matching;
+                    Vector2 sizeText = CelesteNetClientFont.Measure(text);
+                    Vector2 sizeSuggestion = CelesteNetClientFont.Measure(Suggestion);
+
+                    float width = sizeText.X + sizeSuggestion.X + 50f;
+                    float height = 5f + Math.Max(sizeText.Y, sizeSuggestion.Y);
+
+                    y -= height * scale;
+
+                    Context.RenderHelper.Rect(25f * scale, y, width * scale, height * scale, Color.Black * 0.8f);
+
+                    
+                    CelesteNetClientFont.Draw(
+                        text,
+                        new(50f * scale, y),
+                        Vector2.Zero,
+                        fontScale,
+                        Color.Gray
+                    );
+
+                    CelesteNetClientFont.Draw(
+                        Suggestion,
+                        new(50f * scale + sizeText.X * scale, y),
+                        Vector2.Zero,
+                        fontScale,
+                        Color.Gold
                     );
                 }
             }

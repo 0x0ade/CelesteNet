@@ -30,13 +30,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Position = player.Position;
             Add(hair = player.Hair);
             Add(sprite = player.Sprite);
-            sprite.Color = Color.White;
-            initialHairColor = hair.Color;
+            sprite.Color = Color.White * alpha;
+            initialHairColor = hair.Color * alpha;
             bounce = direction;
-            Add(new Coroutine(DeathRoutine()));
-            Tag = Tags.PauseUpdate | Tags.TransitionUpdate;
             Alpha = alpha;
             hair.Alpha = Alpha;
+            Add(new Coroutine(DeathRoutine()));
+            Tag = Tags.PauseUpdate | Tags.TransitionUpdate;
         }
 
         private IEnumerator DeathRoutine() {
@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Position += Vector2.UnitY * -5f;
             level.Displacement.AddBurst(Position, 0.3f, 0f, 80f, Alpha);
             player.Context.Main.PlayAudio(player, "event:/char/madeline/death", Position);
-            Add(deathEffect = new(initialHairColor * Alpha, Center - Position));
+            Add(deathEffect = new(initialHairColor, Center - Position));
             yield return deathEffect.Duration * 1.0f;
             player.RemoveSelf();
             RemoveSelf();
@@ -52,7 +52,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public override void Update() {
             base.Update();
-            hair.Color = sprite.CurrentAnimationFrame == 0 ? Color.White : initialHairColor;
+            hair.Color = sprite.CurrentAnimationFrame == 0 ? sprite.Color : initialHairColor;
         }
 
         public override void Render() {

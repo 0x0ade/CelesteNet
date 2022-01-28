@@ -404,7 +404,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 level.Paused || level.Overlay != null ||
                 CelesteNetClientModule.Settings.PlayerOpacity == 0)
                 return;
-            level.Add(new GhostDeadBody(this, Vector2.Zero));
+            level.Add(new GhostDeadBody(this, Vector2.Zero, Alpha));
         }
 
     }

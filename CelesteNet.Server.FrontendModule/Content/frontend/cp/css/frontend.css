@@ -133,6 +133,16 @@ app {
     display: none !important;
 }
 
+.minimized span {
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+}
+
+.button-fade {
+    opacity: 50%;
+}
+
 /* #splash inlined */
 #splash.hidden {
     display: block !important;

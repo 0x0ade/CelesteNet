@@ -38,6 +38,15 @@ export class FrontendSettings {
     this.data.sensitive = value;
   }
 
+
+  /** @type {boolean} */
+  get minimizeServerMsgs() {
+    return this.data.minimizeServerMsgs;
+  }
+  set minimizeServerMsgs(value) {
+    this.data.minimizeServerMsgs = value;
+  }
+
   /** @type {boolean} */
   get accountsClutter() {
     return this.data.accountsClutter;

@@ -48,7 +48,8 @@ export class FrontendDialog {
       body: el => rd$(el)`
       <div>
         ${group(
-          id("setting-sensitive", mdcrd.checkbox("Show sensitive data", s.sensitive))
+          id("setting-sensitive", mdcrd.checkbox("Show sensitive data", s.sensitive)),
+          id("setting-minimizeServerMsgs", mdcrd.checkbox("Collapse join messages (MOTD)", s.minimizeServerMsgs))
         )}
       </div>`,
       defaultButton: "yes",
@@ -71,6 +72,7 @@ export class FrontendDialog {
         if (action !== "1")
           return;
         s.sensitive = el.querySelector("#setting-sensitive input")["checked"];
+        s.minimizeServerMsgs = el.querySelector("#setting-minimizeServerMsgs input")["checked"];
         s.save();
         this.frontend.dom.render();
       }

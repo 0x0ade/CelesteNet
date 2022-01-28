@@ -115,7 +115,7 @@ export class FrontendDialog {
         setTimeout(() => editor.layout(), 0);
 
         editor.setValue("# Loading...");
-        fetch(`/settings?module=${encodeURIComponent(module)}`).then(r => r.text()).then(
+        fetch(`/api/settings?module=${encodeURIComponent(module)}`).then(r => r.text()).then(
           value => editor.setValue(value),
           e => editor.setValue(`# Error: ${e}`)
         );
@@ -146,7 +146,7 @@ export class FrontendDialog {
       action => {
         if (action !== "1")
           return;
-        fetch(`/settings?module=${encodeURIComponent(module)}`, {
+        fetch(`/api/settings?module=${encodeURIComponent(module)}`, {
           method: "post",
           body: editor.getValue()
         }).then(r => r.json()).then(r => {

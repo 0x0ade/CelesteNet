@@ -130,7 +130,7 @@ html, body, #body {
     overflow: hidden;
 }
 
-#front-clips {
+#front-clips-video {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -139,8 +139,28 @@ html, body, #body {
     min-width: 1600px;
     min-height: 900px;
     transform: translate(-50%, -50%);
-    /* filter: blur(calc(max(0.6vw, 0.6vh))); */
-    filter: blur(4px);
+    background: black;
+    pointer-events: none;
+    z-index: -1;
+}
+#front-clips-video.disabled {
+    display: none;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    min-width: 0;
+    min-height: 0;
+    transform: none;
+}
+
+#front-clips-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: black;
     pointer-events: none;
     z-index: -1;
 }
@@ -473,7 +493,7 @@ a.button:hover, a.button:focus, a.button:active {
 
 @media only screen and (max-width: calc(280px * 2 + 64px)) {
     #toplist {
-        width: 280px;
+        width: 296px;
     }
 }
 

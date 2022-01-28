@@ -218,6 +218,7 @@ main {
 .settings-group {
     padding: 0;
     margin: 0 0 16px 0;
+    border: 0px;
 }
 .settings-group .row {
     margin: 0 0 8px 0;

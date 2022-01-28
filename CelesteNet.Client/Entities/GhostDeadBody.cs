@@ -21,7 +21,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         private float scale = 1f;
 
-        public GhostDeadBody(Ghost player, Vector2 direction) {
+        private float Alpha = 1f;
+
+        public GhostDeadBody(Ghost player, Vector2 direction, float alpha = 1f) {
             Depth = -1000000;
             this.player = player;
             facing = player.Hair.Facing;
@@ -33,14 +35,16 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             bounce = direction;
             Add(new Coroutine(DeathRoutine()));
             Tag = Tags.PauseUpdate | Tags.TransitionUpdate;
+            Alpha = alpha;
+            hair.Alpha = Alpha;
         }
 
         private IEnumerator DeathRoutine() {
             Level level = SceneAs<Level>();
             Position += Vector2.UnitY * -5f;
-            level.Displacement.AddBurst(Position, 0.3f, 0f, 80f);
+            level.Displacement.AddBurst(Position, 0.3f, 0f, 80f, Alpha);
             player.Context.Main.PlayAudio(player, "event:/char/madeline/death", Position);
-            Add(deathEffect = new(initialHairColor, Center - Position));
+            Add(deathEffect = new(initialHairColor * Alpha, Center - Position));
             yield return deathEffect.Duration * 1.0f;
             player.RemoveSelf();
             RemoveSelf();

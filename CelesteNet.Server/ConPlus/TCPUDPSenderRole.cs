@@ -49,18 +49,17 @@ namespace Celeste.Mod.CelesteNet.Server {
                             if (!alive || !con.IsConnected)
                                 continue;
                             try {
-
-                                    switch (act) {
-                                        case SendAction.FlushTCPQueue: {
-                                            con.FlushTCPSendQueue();
-                                        } break;
-                                        case SendAction.FlushTCPBuffer: {
-                                            con.FlushTCPSendBuffer();
-                                        } break;
-                                        case SendAction.FlushUDPQueue: {
-                                            FlushUDPSendQueue(con, token);
-                                        } break;
-                                    }
+                                switch (act) {
+                                    case SendAction.FlushTCPQueue: {
+                                        con.FlushTCPSendQueue();
+                                    } break;
+                                    case SendAction.FlushTCPBuffer: {
+                                        con.FlushTCPSendBuffer();
+                                    } break;
+                                    case SendAction.FlushUDPQueue: {
+                                        FlushUDPSendQueue(con, token);
+                                    } break;
+                                }
                             } catch (Exception e) {
                                 switch (act) {
                                     case SendAction.FlushTCPQueue:

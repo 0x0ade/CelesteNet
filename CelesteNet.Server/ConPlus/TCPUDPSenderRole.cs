@@ -48,37 +48,39 @@ namespace Celeste.Mod.CelesteNet.Server {
                             // Maybe the connection got closed while it was in the queue
                             if (!alive || !con.IsConnected)
                                 continue;
+                            try {
 
-                            switch (act) {
-                                case SendAction.FlushTCPQueue: {
-                                    con.FlushTCPSendQueue();
-                                } break;
-                                case SendAction.FlushTCPBuffer: {
-                                    con.FlushTCPSendBuffer();
-                                } break;
-                                case SendAction.FlushUDPQueue: {
-                                    FlushUDPSendQueue(con, token);
-                                } break;
-                            }
-                        }
-                    } catch (Exception e) {
-                        switch (act) {
-                            case SendAction.FlushTCPQueue:
-                            case SendAction.FlushTCPBuffer: {
-                                if (e is SocketException se && se.IsDisconnect()) {
-                                    Logger.Log(LogLevel.INF, "tcpsend", $"Remote of connection {con} closed the connection");
-                                    con.DisposeSafe();
-                                    continue;
+                                    switch (act) {
+                                        case SendAction.FlushTCPQueue: {
+                                            con.FlushTCPSendQueue();
+                                        } break;
+                                        case SendAction.FlushTCPBuffer: {
+                                            con.FlushTCPSendBuffer();
+                                        } break;
+                                        case SendAction.FlushUDPQueue: {
+                                            FlushUDPSendQueue(con, token);
+                                        } break;
+                                    }
+                            } catch (Exception e) {
+                                switch (act) {
+                                    case SendAction.FlushTCPQueue:
+                                    case SendAction.FlushTCPBuffer: {
+                                        if (e is SocketException se && se.IsDisconnect()) {
+                                            Logger.Log(LogLevel.INF, "tcpsend", $"Remote of connection {con} closed the connection");
+                                            con.DisposeSafe();
+                                            continue;
+                                        }
+
+                                        Logger.Log(LogLevel.WRN, "tcpsend", $"Error flushing connection {con} TCP data: {e}");
+                                        con.DisposeSafe();
+                                    } break;
+                                    case SendAction.FlushUDPQueue: {
+                                        Logger.Log(LogLevel.WRN, "udpsend", $"Error flushing connection {con} UDP queue: {e}");
+                                        con.UDPQueue.SignalFlushed();
+                                        con.DecreaseUDPScore(reason: "Error flushing queue");
+                                    } break;
                                 }
-
-                                Logger.Log(LogLevel.WRN, "tcpsend", $"Error flushing connection {con} TCP data: {e}");
-                                con.DisposeSafe();
-                            } break;
-                            case SendAction.FlushUDPQueue: {
-                                Logger.Log(LogLevel.WRN, "udpsend", $"Error flushing connection {con} UDP queue: {e}");
-                                con.UDPQueue.SignalFlushed();
-                                con.DecreaseUDPScore(reason: "Error flushing queue");
-                            } break;
+                            }
                         }
                     } finally {
                         ExitActiveZone();

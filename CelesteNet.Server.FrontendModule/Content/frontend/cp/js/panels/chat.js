@@ -34,29 +34,29 @@ export class FrontendChatPanel extends FrontendBasicPanel {
       [
         "Pause", "pause",
         () => {
-            this.paused = !this.paused;
-            this.render();
-            if (!this.paused)
-                this.refresh();
+          this.paused = !this.paused;
+          this.render();
+          if (!this.paused)
+            this.refresh();
         }
       ],
 
       [
         "Auto-scroll", "vertical_align_bottom",
         () => {
-            this.autoscroll = !this.autoscroll;
-            this.refresh();
+          this.autoscroll = !this.autoscroll;
+          this.refresh();
         }
       ],
 
       [
           "Shorten Server messages", this.frontend.settings.minimizeServerMsgs ? "short_text" : "notes",
         () => {
-            this.frontend.settings.minimizeServerMsgs = !this.frontend.settings.minimizeServerMsgs;
-            this.frontend.settings.save();
-            this.actions[2][1] = this.frontend.settings.minimizeServerMsgs ? "short_text" : "notes";
-            this.list = [];
-            this.refresh();
+          this.frontend.settings.minimizeServerMsgs = !this.frontend.settings.minimizeServerMsgs;
+          this.frontend.settings.save();
+          this.actions[2][1] = this.frontend.settings.minimizeServerMsgs ? "short_text" : "notes";
+          this.list = [];
+          this.refresh();
         }
       ],
 
@@ -90,15 +90,15 @@ export class FrontendChatPanel extends FrontendBasicPanel {
 
   async refresh() {
     if (this.paused)
-        return;
+      return;
     await super.refresh();
     if (this.autoscroll)
-        this.elBody.scrollTop = this.elBody.scrollHeight;
+      this.elBody.scrollTop = this.elBody.scrollHeight;
   }
 
   async update() {
     if (this.paused)
-        return;
+      return;
     this.data = await fetch(this.ep + "?count=100").then(r => r.json());
     // @ts-ignore
     this.list = this.data.map(data => this.createEntry(data.Text, data.Color, data));
@@ -234,7 +234,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     this.list.push(this.createEntry(text, color, data));
     if (this.list.length > 100) {
       this.list = this.list.slice(-100);
-      }
+    }
     if (this.paused)
       return;
     this.render(null);

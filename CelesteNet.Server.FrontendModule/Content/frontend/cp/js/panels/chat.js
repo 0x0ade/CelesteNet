@@ -50,7 +50,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
       ],
 
       [
-          "Shorten Server messages", this.frontend.settings.minimizeServerMsgs ? "short_text" : "notes",
+        "Shorten Server messages", this.frontend.settings.minimizeServerMsgs ? "short_text" : "notes",
         () => {
           this.frontend.settings.minimizeServerMsgs = !this.frontend.settings.minimizeServerMsgs;
           this.frontend.settings.save();

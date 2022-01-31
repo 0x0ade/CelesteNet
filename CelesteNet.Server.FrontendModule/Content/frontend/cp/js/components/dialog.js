@@ -24,11 +24,13 @@ export class FrontendDialog {
 
   settingsCP() {
     const row = (body) => el => rd$(el)`<span class="row">${body}</span>`;
-      const form = (id, body) => el => {
-          el = rd$(el)`<form>${body}</form>`;
-          el.id = id;
-          return el;
-      }
+
+    const form = (id, body) => el => {
+      el = rd$(el)`<form>${body}</form>`;
+      el.id = id;
+      return el;
+    }
+
     const fieldset = (...items) => el => {
       el = rd$(el)`<fieldset class="settings-group"></fieldset>`;
 
@@ -40,7 +42,8 @@ export class FrontendDialog {
 
       return el;
     }
-    const input = (id, gen, formid) => el => {
+
+    const input = (formid, id, gen) => el => {
       el = gen(el);
       el.id = id;
       let input = el.querySelector("input");
@@ -59,8 +62,8 @@ export class FrontendDialog {
       body: el => rd$(el)`
       <div>
         ${form("settings-form", fieldset(
-            row(input("setting-sensitive", mdcrd.checkbox("Show sensitive data", s.sensitive), "settings-form")),
-            row(input("setting-minimizeServerMsgs", mdcrd.checkbox("Collapse join messages (MOTD)", s.minimizeServerMsgs), "settings-form"))
+          row(input("settings-form", "setting-sensitive", mdcrd.checkbox("Show sensitive data", s.sensitive))),
+          row(input("settings-form", "setting-minimizeServerMsgs", mdcrd.checkbox("Collapse join messages (MOTD)", s.minimizeServerMsgs)))
         ))}
       </div>`,
       defaultButton: "yes",

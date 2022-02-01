@@ -26,6 +26,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private static readonly char[] RandomizerEndTrimChars = "_0123456789".ToCharArray();
 
         public bool Active;
+        public bool ShouldRebuild = false;
 
         private List<Blob> List = new();
 
@@ -134,6 +135,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             List = list;
         }
+
         public void RebuildListClassic(ref List<Blob> list, ref DataPlayerInfo[] all) {
             foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
                 if (string.IsNullOrWhiteSpace(player.DisplayName))
@@ -463,14 +465,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Channels = channels;
             RebuildList();
         }
+        
+        public void Handle(CelesteNetConnection con, DataNetEmoji netemoji) {
+            if (!netemoji.MoreFragments)
+                ShouldRebuild = true;
+        }
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
             if (LastListMode != ListMode ||
-                LastLocationMode != LocationMode) {
+                LastLocationMode != LocationMode ||
+                ShouldRebuild) {
                 LastListMode = ListMode;
                 LastLocationMode = LocationMode;
+                ShouldRebuild = false;
                 RebuildList();
             }
 

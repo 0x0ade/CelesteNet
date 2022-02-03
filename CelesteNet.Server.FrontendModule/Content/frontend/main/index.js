@@ -165,7 +165,7 @@ function sendKey(key) {
 	setTimeout(() => controller.abort(), 500);
 	fetch(`${clientrc}setkey?value=${key}&t=${Date.now()}`, { signal: controller.signal }).then(
 		() => dialog("Sent. Check your mod options.<br>If you're already connected, disconnect then reconnect."),
-		() => dialog("Couldn't find client.<br>Is Everest running?<br>Is CelesteNet enabled?<br>Does your web browser block this function?")
+		() => dialog("Couldn't find client.<br>Is Everest running?<br>Is CelesteNet enabled?<br>Does your web browser block this?")
 	);
 }
 

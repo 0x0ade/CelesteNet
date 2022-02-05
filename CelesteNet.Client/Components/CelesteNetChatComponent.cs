@@ -31,6 +31,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Dictionary<string, DataChat> Pending = new();
         public string Typing = "";
 
+        public List<DataCommandList.Command> CommandList = new();
+
         public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 
         public enum ChatMode {
@@ -223,6 +225,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     }
                 }
             }
+        }
+
+        public void Handle(CelesteNetConnection con, DataCommandList commands) {
+            foreach (DataCommandList.Command cmd in commands.List)
+                CommandList.Add(cmd);
         }
 
         public override void Update(GameTime gameTime) {

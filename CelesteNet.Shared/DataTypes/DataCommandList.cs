@@ -24,6 +24,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             for (int ci = 0; ci < List.Length; ci++) {
                 CommandInfo c = List[ci] = new();
                 c.ID = reader.ReadNetString();
+                c.AliasTo = reader.ReadNetString();
                 c.Auth = reader.ReadBoolean();
                 c.AuthExec = reader.ReadBoolean();
                 c.FirstArg = (CompletionType) reader.ReadByte();
@@ -34,6 +35,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write((uint) List.Length);
             foreach (CommandInfo c in List) {
                 writer.WriteNetString(c.ID);
+                writer.WriteNetString(c.AliasTo);
                 writer.Write(c.Auth);
                 writer.Write(c.AuthExec);
                 writer.Write((byte) c.FirstArg);
@@ -42,6 +44,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public class CommandInfo {
             public string ID = "";
+            public string AliasTo = "";
             public bool Auth = false;
             public bool AuthExec = false;
             public CompletionType FirstArg = CompletionType.None;

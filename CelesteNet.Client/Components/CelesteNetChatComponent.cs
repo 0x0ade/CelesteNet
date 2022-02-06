@@ -231,7 +231,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Handle(CelesteNetConnection con, DataCommandList commands) {
             CommandList.Clear();
             foreach (CommandInfo cmd in commands.List) {
-                Logger.Log(LogLevel.INF, "chat", $"Learned about server command: {cmd.ID} ({cmd.FirstArg})");
+                Logger.Log(LogLevel.INF, "chat", $"Learned about server command: {cmd.ID}{(!cmd.AliasTo.IsNullOrEmpty() ? $" (alias of {cmd.AliasTo})" : "")} ({cmd.FirstArg})");
                 CommandList.Add(cmd);
             }
         }
@@ -352,7 +352,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     } else if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
                         int firstSpace = Typing.IndexOf(" ");
                         CommandInfo cmd = CommandList.Where(c => c.ID == Typing.Substring(1, firstSpace - 1)).FirstOrDefault();
-                        UpdateCompletion(cmd.FirstArg, completable);
+                        if (cmd != null)
+                            UpdateCompletion(cmd.FirstArg, completable);
                     }
                 } else {
                     UpdateCompletion(CompletionType.None);
@@ -437,6 +438,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     accepted = Completion[CompletionSelected];
                 }
 
+                CommandInfo? aliased = CommandList.Where(cmd => cmd.ID == accepted && cmd.AliasTo != "").FirstOrDefault();
+                if (aliased != null)
+                    accepted = aliased.AliasTo;
+
                 if (!accepted.IsNullOrEmpty()) {
                     // remove the thing being completed, since we're inserting the accepted one
                     // and if "Name" matches for "na" we want to end up with "Name", not "name".
@@ -493,7 +498,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         if (string.IsNullOrWhiteSpace(partial))
                             Completion = CommandList.Select(cmd => cmd.ID).ToList();
                         else
-                            Completion = CommandList.Select(cmd => cmd.ID).Where(id => id.StartsWith(partial)).ToList();
+                            Completion = CommandList.Where(cmd => cmd.ID.StartsWith(partial) || cmd.AliasTo.StartsWith(partial)).Select(cmd => cmd.ID).ToList();
 
                         break;
                     case CompletionType.Player:
@@ -731,8 +736,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             for (int i = 0; i < Completion.Count; i++) {
                 string match = Completion[i];
-                string typed = match.Substring(0, CompletionPartial.Length);
-                string suggestion = match.Substring(CompletionPartial.Length);
+
+                string typed = "", suggestion = "";
+                if (match.StartsWith(CompletionPartial, StringComparison.InvariantCultureIgnoreCase)) {
+                    typed = match.Substring(0, CompletionPartial.Length);
+                    suggestion = match.Substring(CompletionPartial.Length);
+                } else {
+                    suggestion = match;
+                }
 
                 string padding = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
                 Vector2 sizePadding = CelesteNetClientFont.Measure(padding);

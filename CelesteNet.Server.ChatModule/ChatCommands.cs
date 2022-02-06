@@ -36,7 +36,14 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             int i = 0;
             foreach (ChatCMD cmd in All) {
                 cmd.Init(chat);
-                DataAll.List[i++] = new CommandInfo() {ID = cmd.ID, Auth = cmd.MustAuth, AuthExec = cmd.MustAuthExec, FirstArg = cmd.Completion };
+
+                // check if **base** type is an existing command in ByType, which means this cmd is an alias
+                // N.B. the base type ChatCMD itself is abstract and shouldn't be in ByType; see above
+                ByType.TryGetValue(cmd.GetType().BaseType, out ChatCMD? aliasTo);
+
+                if (aliasTo != null)
+                    Logger.Log(LogLevel.VVV, "chatcmds", $"Command: {cmd.ID.ToLowerInvariant()} is alias of {aliasTo.ID.ToLowerInvariant()}");
+                DataAll.List[i++] = new CommandInfo() {ID = cmd.ID, Auth = cmd.MustAuth, AuthExec = cmd.MustAuthExec, FirstArg = cmd.Completion, AliasTo = aliasTo?.ID.ToLowerInvariant() ?? "" };
             }
 
             All = All.OrderBy(cmd => cmd.HelpOrder).ToList();

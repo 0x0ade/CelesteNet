@@ -36,6 +36,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public class Command {
             public string ID = "";
+            public bool Auth = false;
+            public bool AuthExec = false;
         }
 
     }

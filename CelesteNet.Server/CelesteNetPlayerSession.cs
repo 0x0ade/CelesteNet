@@ -38,7 +38,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         private readonly object RequestNextIDLock = new();
         private uint RequestNextID = 0;
 
-        public DataCommandList[] Commands = Dummy<DataCommandList>.EmptyArray;
+        public DataCommandList Commands = new();
         internal CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint sesId, string uid, string name, CelesteNetClientOptions clientOptions) {
             Server = server;
             Con = con;
@@ -293,7 +293,17 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (commands == null || commands.List.Length == 0) {
                 return;
             }
-            Con.Send(commands);
+
+            bool auth = false;
+            bool authExec = false;
+            if (!(UID?.IsNullOrEmpty() ?? true) && Server.UserData.TryLoad(UID, out BasicUserInfo info)) {
+                auth = info.Tags.Contains(BasicUserInfo.TAG_AUTH);
+                authExec = info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC);
+            }
+
+            Commands.List = commands.List.Where(cmd => (!cmd.Auth || auth) && (!cmd.AuthExec || authExec)).ToArray();
+
+            Con.Send(Commands);
         }
 
         public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;

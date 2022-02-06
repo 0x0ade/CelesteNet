@@ -7,11 +7,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Celeste.Mod.CelesteNet.DataTypes.DataCommandList;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDHelp : ChatCMD {
 
         public override string Args => "[page] | [command]";
+
+        public override CompletionType Completion => CompletionType.Command;
 
         public override string Info => "Get help on how to use commands.";
 

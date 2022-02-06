@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Celeste.Mod.CelesteNet.DataTypes.DataCommandList;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDKick : ChatCMD {
@@ -15,6 +16,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public override string Args => "<user>";
 
         public override string Info => "Kick a player from the server.";
+
+        public override CompletionType Completion => CompletionType.Player;
 
         public override bool MustAuth => true;
 

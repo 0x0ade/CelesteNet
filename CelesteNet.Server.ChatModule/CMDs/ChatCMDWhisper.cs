@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Celeste.Mod.CelesteNet.DataTypes.DataCommandList;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDW : ChatCMDWhisper {
@@ -19,6 +20,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDWhisper : ChatCMD {
 
         public override string Args => "<user> <text>";
+
+        public override CompletionType Completion => CompletionType.Player;
 
         public override string Info => "Send a whisper to someone else or toggle whispers.";
 

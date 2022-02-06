@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Celeste.Mod.CelesteNet.DataTypes.DataCommandList;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -31,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Dictionary<string, DataChat> Pending = new();
         public string Typing = "";
 
-        public List<DataCommandList.Command> CommandList = new();
+        public List<CommandInfo> CommandList = new();
         /*
          * I was using these to debug on live server which doesn't send me command list yet
         {
@@ -164,13 +165,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 _CompletionSelected = value;
             }
         }
-        protected CompletionGroup CompletionType;
-        public enum CompletionGroup {
-            None = 0,
-            Command = 1,
-            Player = 2,
-            Channel = 3
-        }
+        protected CompletionType CompletionArgType;
 
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -235,8 +230,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataCommandList commands) {
             CommandList.Clear();
-            foreach (DataCommandList.Command cmd in commands.List) {
-                Logger.Log(LogLevel.INF, "chat", $"Learned about server command: {cmd.ID}");
+            foreach (CommandInfo cmd in commands.List) {
+                Logger.Log(LogLevel.INF, "chat", $"Learned about server command: {cmd.ID} ({cmd.FirstArg})");
                 CommandList.Add(cmd);
             }
         }
@@ -353,25 +348,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (Typing.StartsWith("/") && !completable.IsNullOrEmpty()) {
                     if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
-                        UpdateCompletion(CompletionGroup.Command, completable.Substring(1));
+                        UpdateCompletion(CompletionType.Command, completable.Substring(1));
                     } else if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
                         int firstSpace = Typing.IndexOf(" ");
-                        string cmd = Typing.Substring(1, firstSpace - 1);
-                        // TODO - not hard code first argument type here, get it from server
-                        switch (cmd.ToLowerInvariant().Trim()) {
-                            case "tp":
-                            case "whisper":
-                            case "w":
-                                UpdateCompletion(CompletionGroup.Player, completable);
-                                break;
-                            case "join":
-                            case "channel":
-                                UpdateCompletion(CompletionGroup.Channel, completable);
-                                break;
-                        }
+                        CommandInfo cmd = CommandList.Where(c => c.ID == Typing.Substring(1, firstSpace - 1)).FirstOrDefault();
+                        UpdateCompletion(cmd.FirstArg, completable);
                     }
                 } else {
-                    UpdateCompletion(CompletionGroup.None);
+                    UpdateCompletion(CompletionType.None);
                 }
             }
 
@@ -467,7 +451,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     }
 
                     _CursorIndex += accepted.Length + 1;
-                    UpdateCompletion(CompletionGroup.None);
+                    UpdateCompletion(CompletionType.None);
                 }
             } else if (!char.IsControl(c)) {
                 if (CursorIndex == Typing.Length) {
@@ -482,7 +466,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 _Time = 0;
 
                 if (c == ' ')
-                    UpdateCompletion(CompletionGroup.None);
+                    UpdateCompletion(CompletionType.None);
             }
         }
 
@@ -491,33 +475,33 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             PromptMessageColor = color ?? Color.White;
         }
 
-        public void UpdateCompletion(CompletionGroup type, string partial = "") {
-            if (partial == CompletionPartial && type == CompletionType && Completion.Count == 0)
+        public void UpdateCompletion(CompletionType type, string partial = "") {
+            if (partial == CompletionPartial && type == CompletionArgType && Completion.Count == 0)
                 return;
 
             partial = partial.Trim();
             CompletionPartial = partial;
-            CompletionType = type;
+            CompletionArgType = type;
 
-            if (type == CompletionGroup.None) {
+            if (type == CompletionType.None) {
                 Completion.Clear();
                 CompletionPartial = "";
                 CompletionSelected = -1;
             } else {
                 switch (type) {
-                    case CompletionGroup.Command:
+                    case CompletionType.Command:
                         if (string.IsNullOrWhiteSpace(partial))
                             Completion = CommandList.Select(cmd => cmd.ID).ToList();
                         else
                             Completion = CommandList.Select(cmd => cmd.ID).Where(id => id.StartsWith(partial)).ToList();
 
                         break;
-                    case CompletionGroup.Player:
+                    case CompletionType.Player:
                         DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
 
                         Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList();
                         break;
-                    case CompletionGroup.Channel:
+                    case CompletionType.Channel:
                         CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
                         Completion = playerlist?.Channels?.List?.Select(channel => channel.Name).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
 

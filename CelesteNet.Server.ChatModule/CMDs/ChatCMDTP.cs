@@ -9,11 +9,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Celeste.Mod.CelesteNet.DataTypes.DataCommandList;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDTP : ChatCMD {
 
         public override string Args => "<player>";
+
+        public override CompletionType Completion => CompletionType.Player;
 
         public override string Info => "Teleport to another player.";
 

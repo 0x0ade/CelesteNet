@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Celeste.Mod.CelesteNet.DataTypes.DataCommandList;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDJoin : ChatCMDChannel {
@@ -19,6 +20,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDChannel : ChatCMD {
 
         public override string Args => "[page] | [channel]";
+
+        public override CompletionType Completion => CompletionType.Channel;
 
         public override string Info => "Switch to a different channel.";
         public override string Help =>

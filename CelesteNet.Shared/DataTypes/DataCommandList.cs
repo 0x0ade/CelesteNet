@@ -17,27 +17,41 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             DataID = "commandList";
         }
 
-        public Command[] List = Dummy<Command>.EmptyArray;
+        public CommandInfo[] List = Dummy<CommandInfo>.EmptyArray;
 
         protected override void Read(CelesteNetBinaryReader reader) {
-            List = new Command[reader.ReadUInt32()];
+            List = new CommandInfo[reader.ReadUInt32()];
             for (int ci = 0; ci < List.Length; ci++) {
-                Command c = List[ci] = new();
+                CommandInfo c = List[ci] = new();
                 c.ID = reader.ReadNetString();
+                c.Auth = reader.ReadBoolean();
+                c.AuthExec = reader.ReadBoolean();
+                c.FirstArg = (CompletionType) reader.ReadByte();
             }
         }
 
         protected override void Write(CelesteNetBinaryWriter writer) {
             writer.Write((uint) List.Length);
-            foreach (Command c in List) {
+            foreach (CommandInfo c in List) {
                 writer.WriteNetString(c.ID);
+                writer.Write(c.Auth);
+                writer.Write(c.AuthExec);
+                writer.Write((byte) c.FirstArg);
             }
         }
 
-        public class Command {
+        public class CommandInfo {
             public string ID = "";
             public bool Auth = false;
             public bool AuthExec = false;
+            public CompletionType FirstArg = CompletionType.None;
+        }
+
+        public enum CompletionType : byte {
+            None = 0,
+            Command = 1,
+            Channel = 2,
+            Player = 3
         }
 
     }

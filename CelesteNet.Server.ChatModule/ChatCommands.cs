@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
+using static Celeste.Mod.CelesteNet.DataTypes.DataCommandList;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCommands : IDisposable {
@@ -25,17 +26,17 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 ChatCMD? cmd = (ChatCMD?) Activator.CreateInstance(type);
                 if (cmd == null)
                     throw new Exception($"Cannot create instance of CMD {type.FullName}");
-                Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd.ID.ToLowerInvariant()} ({type.FullName})");
+                Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd.ID.ToLowerInvariant()} ({type.FullName}, {cmd.Completion})");
                 All.Add(cmd);
                 ByID[cmd.ID.ToLowerInvariant()] = cmd;
                 ByType[type] = cmd;
             }
-            DataAll.List = new DataCommandList.Command[All.Count];
+            DataAll.List = new CommandInfo[All.Count];
 
             int i = 0;
             foreach (ChatCMD cmd in All) {
                 cmd.Init(chat);
-                DataAll.List[i++] = new DataCommandList.Command() {ID = cmd.ID, Auth = cmd.MustAuth, AuthExec = cmd.MustAuthExec };
+                DataAll.List[i++] = new CommandInfo() {ID = cmd.ID, Auth = cmd.MustAuth, AuthExec = cmd.MustAuthExec, FirstArg = cmd.Completion };
             }
 
             All = All.OrderBy(cmd => cmd.HelpOrder).ToList();
@@ -75,6 +76,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public virtual bool MustAuth => false;
         public virtual bool MustAuthExec => false;
+
+        public virtual CompletionType Completion => CompletionType.None;
 
         public virtual void Init(ChatModule chat) {
             Chat = chat;

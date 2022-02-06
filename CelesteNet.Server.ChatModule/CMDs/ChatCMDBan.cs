@@ -8,11 +8,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Celeste.Mod.CelesteNet.DataTypes.DataCommandList;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDBan : ChatCMD {
 
         public override string Args => "<user> <text>";
+
+        public override CompletionType Completion => CompletionType.Player;
 
         public override string Info => "Ban a player from the server with a given reason.";
 

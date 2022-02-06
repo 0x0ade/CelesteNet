@@ -32,6 +32,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public string Typing = "";
 
         public List<DataCommandList.Command> CommandList = new();
+        /*
+         * I was using these to debug on live server which doesn't send me command list yet
+        {
+            new() { ID = "tp" },
+            new() { ID = "whisper" },
+            new() { ID = "join" },
+            new() { ID = "channel" },
+            new() { ID = "tpon" }
+        };
+        */
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 
@@ -148,10 +158,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
 
                 if (value < -1)
-                    value = -1;
+                    value = Completion.Count - 1;
 
-                if (value > Completion.Count)
-                    value = Completion.Count;
+                if (value >= Completion.Count)
+                    value = -1;
 
                 _CompletionSelected = value;
             }
@@ -163,8 +173,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Player = 2,
             Channel = 3
         }
-
-        public readonly string[] CommandList = { "tp", "help", "channel", "join", "channelchat", "whisper" };
 
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -228,8 +236,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataCommandList commands) {
-            foreach (DataCommandList.Command cmd in commands.List)
+            CommandList.Clear();
+            foreach (DataCommandList.Command cmd in commands.List) {
+                Logger.Log(LogLevel.INF, "chat", $"Learned about server command: {cmd.ID}");
                 CommandList.Add(cmd);
+            }
         }
 
         public override void Update(GameTime gameTime) {
@@ -285,14 +296,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Active = false;
 
                 } else if (MInput.Keyboard.Pressed(Keys.Down)) {
-                    if (Completion.Count > 0 && !CompletionCancelled) {
+                    if (Completion.Count > 0) {
                         CompletionSelected--;
+                        CompletionCancelled = false;
                     } else if (RepeatIndex > 0) {
                             RepeatIndex--;
                     }
                 } else if (MInput.Keyboard.Pressed(Keys.Up)) {
-                    if (Completion.Count > 0 && !CompletionCancelled) {
+                    if (Completion.Count > 0) {
                         CompletionSelected++;
+                        CompletionCancelled = false;
                     } else if (RepeatIndex < Repeat.Count - 1) {
                         RepeatIndex++;
                     }
@@ -329,38 +342,45 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (MInput.Keyboard.Pressed(Keys.End)) {
                     CursorIndex = Typing.Length;
 
-                } else if (Input.ESC.Pressed) {
-                    if (Completion.Count > 0 && !CompletionCancelled)
+                } else if (Input.ESC.Released) {
+                    if (Completion.Count > 0 && !CompletionCancelled) {
                         CompletionCancelled = true;
-                    else
+                        CompletionSelected = -1;
+                    } else {
                         Active = false;
+                    }
                 }
 
+                int spaceBeforeCursor = -1;
+                string completable = "";
+                if (_CursorIndex > 0) {
+                    spaceBeforeCursor = Typing.LastIndexOf(" ", _CursorIndex - 1) + 1;
+                    if (spaceBeforeCursor < _CursorIndex) {
+                        completable = Typing.Substring(0, _CursorIndex).Substring(spaceBeforeCursor);
+                    }
+                }
 
-                if (Typing.StartsWith("/")) {
-                    int space = Typing.IndexOf(" ");
-                    if (space == -1) {
-                        UpdateCompletion(CompletionGroup.Command, Typing.Substring(1));
-                    } else {
-                        if (CompletionType == CompletionGroup.Command)
-                            UpdateCompletion(CompletionGroup.None, "");
-
-                        if (Typing.IndexOf(" ", space + 1) == -1) {
-                            string cmd = Typing.Substring(1, space - 1);
-                            switch (cmd.ToLowerInvariant().Trim()) {
-                                case "tp":
-                                case "whisper":
-                                    UpdateCompletion(CompletionGroup.Player, Typing.Substring(space));
-                                    break;
-                                case "join":
-                                case "channel":
-                                    UpdateCompletion(CompletionGroup.Channel, Typing.Substring(space));
-                                    break;
-                            }
+                if (Typing.StartsWith("/") && !completable.IsNullOrEmpty()) {
+                    if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
+                        UpdateCompletion(CompletionGroup.Command, completable.Substring(1));
+                    } else if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
+                        int firstSpace = Typing.IndexOf(" ");
+                        string cmd = Typing.Substring(1, firstSpace - 1);
+                        // TODO - not hard code first argument type here, get it from server
+                        switch (cmd.ToLowerInvariant().Trim()) {
+                            case "tp":
+                            case "whisper":
+                            case "w":
+                                UpdateCompletion(CompletionGroup.Player, completable);
+                                break;
+                            case "join":
+                            case "channel":
+                                UpdateCompletion(CompletionGroup.Channel, completable);
+                                break;
                         }
                     }
                 } else {
-                    CompletionPartial = "";
+                    UpdateCompletion(CompletionGroup.None);
                 }
             }
 
@@ -439,12 +459,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     accepted = Completion[CompletionSelected];
                 }
 
-                if (!accepted.IsNullOrEmpty()) {
-                    if (accepted.Length > CompletionPartial.Length)
-                        accepted = accepted.Substring(CompletionPartial.Length);
-                    Typing += accepted + " ";
+                if (!accepted.IsNullOrEmpty() && !CompletionCancelled) {
+                    // remove the thing being completed, since we're inserting the accepted one
+                    // and if "Name" matches for "na" we want to end up with "Name", not "name".
+                    _CursorIndex -= CompletionPartial.Length;
+                    Typing = Typing.Remove(_CursorIndex, CompletionPartial.Length);
+
+                    if (CursorIndex == Typing.Length) {
+                        Typing += accepted + " ";
+                    } else {
+                        // insert into string if cursor is not at the end
+                        Typing = Typing.Insert(_CursorIndex, accepted + (Typing[_CursorIndex] == ' ' ? "" : " "));
+                    }
+
                     _CursorIndex += accepted.Length + 1;
-                    UpdateCompletion(CompletionGroup.None, "");
+                    UpdateCompletion(CompletionGroup.None);
                 }
             } else if (!char.IsControl(c)) {
                 if (CursorIndex == Typing.Length) {
@@ -460,7 +489,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (c == ' ') {
                     CompletionCancelled = false;
-                    CompletionPartial = "";
+                    UpdateCompletion(CompletionGroup.None);
                 }
             }
         }
@@ -470,21 +499,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             PromptMessageColor = color ?? Color.White;
         }
 
-        public void UpdateCompletion(CompletionGroup type, string partial) {
-            if (partial == CompletionPartial && type == CompletionType || CompletionCancelled)
+        public void UpdateCompletion(CompletionGroup type, string partial = "") {
+            if (partial == CompletionPartial && type == CompletionType && Completion.Count == 0 || CompletionCancelled)
                 return;
 
             partial = partial.Trim();
             CompletionPartial = partial;
+            CompletionType = type;
 
-            if (string.IsNullOrWhiteSpace(partial) || type == CompletionGroup.None) {
+            if (type == CompletionGroup.None) {
                 Completion.Clear();
                 CompletionPartial = "";
                 CompletionSelected = -1;
             } else {
                 switch (type) {
                     case CompletionGroup.Command:
-                        Completion = CommandList.Where(cmd => cmd.StartsWith(partial)).ToList();
+                        if (string.IsNullOrWhiteSpace(partial))
+                            Completion = CommandList.Select(cmd => cmd.ID).ToList();
+                        else
+                            Completion = CommandList.Select(cmd => cmd.ID).Where(id => id.StartsWith(partial)).ToList();
 
                         break;
                     case CompletionGroup.Player:
@@ -680,12 +713,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         offs -= CelesteNetClientFont.Measure(".").X / 2f * scale;
 
                         CelesteNetClientFont.Draw(
-                               "|",
-                               new(50f * scale + offs, UI_HEIGHT - 110f * scale),
-                               Vector2.Zero,
-                               fontScale * new Vector2(.5f, 1.2f),
-                               Color.White * 0.6f
-                           );
+                            "|",
+                            new(50f * scale + offs, UI_HEIGHT - 110f * scale),
+                            Vector2.Zero,
+                            fontScale * new Vector2(.5f, 1.2f),
+                            Color.White * 0.6f
+                        );
                     }
                 }
 
@@ -693,59 +726,77 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     skippedMsgCount += Log.Count - ScrolledFromIndex;
 
                 if (Typing.Length > 0 && skippedMsgCount > 0) {
-                    CelesteNetClientFont.Draw(
+                    SetPromptMessage(
                         $"({skippedMsgCount} newer message{(skippedMsgCount > 1 ? "s" : "")} off-screen!)",
-                        new(200f * scale + CelesteNetClientFont.Measure(text).X * scale, UI_HEIGHT - 105f * scale),
-                        Vector2.Zero,
-                        fontScale,
                         Color.OrangeRed
                     );
                 } else if (ScrolledFromIndex > 0 && ScrolledFromIndex < Log.Count) {
-                    CelesteNetClientFont.Draw(
+                    SetPromptMessage(
                         $"({Log.Count - ScrolledFromIndex} new message{(Log.Count - ScrolledFromIndex > 1 ? "s" : "")} since you scrolled up!)",
-                        new(200f * scale + CelesteNetClientFont.Measure(text).X * scale, UI_HEIGHT - 105f * scale),
-                        Vector2.Zero,
-                        fontScale,
                         Color.GreenYellow
                     );
                 }
+
+                CelesteNetClientFont.Draw(
+                    PromptMessage,
+                    new(200f * scale + CelesteNetClientFont.Measure(text).X * scale, UI_HEIGHT - 105f * scale),
+                    Vector2.Zero,
+                    fontScale,
+                    PromptMessageColor
+                );
+
+                if (!CompletionCancelled)
+                    RenderCompletions(new(25f * scale, UI_HEIGHT - 125f * scale), scale, fontScale);
             }
+        }
 
-            if(Active) {
-                float y = UI_HEIGHT - 125f * scale;
+        protected void RenderCompletions(Vector2 pos, float scale, Vector2 fontScale) {
+            Vector2 curPos = pos;
 
-                for (int i = 0; i < Completion.Count; i++) {
-                    string match = Completion[i];
-                    string typed = match.Substring(0, CompletionPartial.Length);
-                    string suggestion = match.Substring(CompletionPartial.Length);
+            for (int i = 0; i < Completion.Count; i++) {
+                string match = Completion[i];
+                string typed = match.Substring(0, CompletionPartial.Length);
+                string suggestion = match.Substring(CompletionPartial.Length);
 
-                    string text = Typing.Substring(0, Typing.Length - CompletionPartial.Length) + typed;
-                    Vector2 sizeText = CelesteNetClientFont.Measure(text);
-                    Vector2 sizeSuggestion = CelesteNetClientFont.Measure(suggestion);
+                string padding = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
+                Vector2 sizePadding = CelesteNetClientFont.Measure(padding);
+                Vector2 sizeTyped = CelesteNetClientFont.Measure(typed);
+                Vector2 sizeSuggestion = CelesteNetClientFont.Measure(suggestion);
 
-                    float width = sizeText.X + sizeSuggestion.X + 50f;
-                    float height = 5f + Math.Max(sizeText.Y, sizeSuggestion.Y);
+                float width = sizePadding.X + sizeTyped.X + sizeSuggestion.X + 50f;
+                float height = 5f + Math.Max(sizeTyped.Y, sizeSuggestion.Y);
 
-                    y -= height * scale;
+                curPos.X = pos.X;
+                curPos.Y -= height * scale;
 
-                    Context.RenderHelper.Rect(25f * scale, y, width * scale, height * scale, Color.Black * 0.8f);
-                    
-                    CelesteNetClientFont.Draw(
-                        text,
-                        new(50f * scale, y),
-                        Vector2.Zero,
-                        fontScale,
-                        CompletionSelected == i ? Color.LightGray : Color.Gray
-                    );
+                Context.RenderHelper.Rect(curPos.X, curPos.Y, width * scale, height * scale, Color.Black * 0.8f);
+                curPos.X += 25f * scale;
 
-                    CelesteNetClientFont.Draw(
-                        suggestion,
-                        new(50f * scale + sizeText.X * scale, y),
-                        Vector2.Zero,
-                        fontScale,
-                        CompletionSelected == i ? Color.LightGoldenrodYellow : Color.Gold
-                    );
-                }
+                CelesteNetClientFont.Draw(
+                    padding,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    Color.Gray
+                );
+                curPos.X += sizePadding.X * scale;
+
+                CelesteNetClientFont.Draw(
+                    typed,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    CompletionSelected == i ? Color.LightGray : Color.Gray
+                );
+                curPos.X += sizeTyped.X * scale;
+
+                CelesteNetClientFont.Draw(
+                    suggestion,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    CompletionSelected == i ? Color.LightGoldenrodYellow : Color.Gold
+                );
             }
         }
 

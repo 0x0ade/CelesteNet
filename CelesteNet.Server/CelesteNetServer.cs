@@ -274,10 +274,11 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public void HandleConnect(CelesteNetConnection con) {
             Logger.Log(LogLevel.INF, "main", $"New connection: {con}");
-            using (ConLock.W())
+            using (ConLock.W()) {
                 Connections.Add(con);
-            OnConnect?.Invoke(this, con);
-            con.OnDisconnect += HandleDisconnect;
+                OnConnect?.Invoke(this, con);
+                con.OnDisconnect += HandleDisconnect;
+            }
         }
 
         public event Action<CelesteNetServer, CelesteNetConnection, CelesteNetPlayerSession?>? OnDisconnect;

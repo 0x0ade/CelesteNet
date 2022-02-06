@@ -49,9 +49,17 @@ function fetchOnline() {
 		for (let dummy of el.querySelectorAll(".dummy"))
 			dummy.remove();
 
-		document.getElementById("online-count").innerText = `${players.length} player${players.length == 1 ? "" : "s"} are online right now${players.length == 0 ? "." : ":"}`
-
 		const list = new RDOMListHelper(el);
+
+		if (players.Error) {
+			document.getElementById("online").classList.add("hidden");
+			list.end();
+			return;
+		}
+
+		document.getElementById("online").classList.remove("hidden");
+
+		document.getElementById("online-count").innerText = `${players.length} player${players.length == 1 ? "" : "s"} are online right now${players.length == 0 ? "." : ":"}`
 
 		players.sort((a, b) => a.FullName.localeCompare(b.FullName));
 		for (let player of players) {
@@ -156,8 +164,8 @@ function sendKey(key) {
 	const controller = new AbortController();
 	setTimeout(() => controller.abort(), 500);
 	fetch(`${clientrc}setkey?value=${key}&t=${Date.now()}`, { signal: controller.signal }).then(
-		() => dialog("Sent. Check your mod options."),
-		() => dialog("Couldn't find client.<br>Is Everest running?<br>Is CelesteNet enabled?")
+		() => dialog("Sent. Check your mod options.<br>If you're already connected, disconnect then reconnect."),
+		() => dialog("Couldn't find client.<br>Is Everest running?<br>Is CelesteNet enabled?<br>Does your web browser block this?")
 	);
 }
 
@@ -170,3 +178,115 @@ elDim.addEventListener("click", () => dialog());
 
 window["deauth"] = deauth;
 window["dialog"] = dialog;
+
+{
+	const elClipsWrap = document.getElementById("front-clips-wrap");
+	/** @type {HTMLVideoElement} */
+	// @ts-ignore
+	const elClipsVideo = document.getElementById("front-clips-video");
+	/** @type {HTMLCanvasElement} */
+	// @ts-ignore
+	const elClipsCanvas = rd$(null)`<canvas id="front-clips-canvas"></canvas>`;
+	elClipsWrap.appendChild(elClipsCanvas);
+	const ctx2d = elClipsCanvas.getContext("2d");
+
+	const vidW = elClipsVideo.width;
+	const vidH = elClipsVideo.height;
+
+	let start = 0;
+	let then = window.performance.now();
+	let skip = 0;
+	let manualTime = 0;
+	let manualTimeMax = 1;
+
+	let animCanvasFrame;
+	function animCanvas() {
+		const rect = elClipsCanvas.getBoundingClientRect();
+		if (rect.bottom <= elClipsCanvas.clientHeight / 2) {
+			elClipsVideo.pause();
+			setTimeout(animCanvas, 100);
+			return;
+		}
+
+		if (skip > 0) {
+			skip--;
+			animCanvasFrame = requestAnimationFrame(animCanvas);
+			return;
+		}
+
+		let now = window.performance.now();
+		if (!start)
+			start = now;
+	  	now -= start;
+		const delta = now - then;
+		then = now;
+
+		let paused = elClipsVideo.paused;
+		if (paused) {
+			try {
+				elClipsVideo.play().then(() => paused = false).catch(() => {});
+			} catch (e) {
+			}
+		}
+
+		if (paused) {
+			manualTime -= delta / 1000 * elClipsVideo.playbackRate;
+			if (manualTime <= 0) {
+				manualTimeMax = manualTime = delta / 1000 + Math.random() * 0.2 + 0.1;
+				elClipsVideo.currentTime = (elClipsVideo.currentTime + manualTime) % elClipsVideo.duration;
+			}
+			skip = 2;
+		} else {
+			skip = 0;
+		}
+
+
+		// TODO: Adjust skip and scale based on delta.
+
+		const ctxW = elClipsCanvas.clientWidth / 8;
+		const ctxH = elClipsCanvas.clientHeight / 8;
+		if (elClipsCanvas.width != ctxW || elClipsCanvas.height != ctxH) {
+			elClipsCanvas.width = ctxW;
+			elClipsCanvas.height = ctxH;
+		}
+
+		const scaleW = ctxW / vidW;
+		const scaleH = ctxH / vidH;
+		let scale;
+		if (scaleW > scaleH) {
+			scale = scaleW;
+		} else {
+			scale = scaleH;
+		}
+
+		const w = vidW * scale;
+		const h = vidH * scale;
+		ctx2d.filter = "blur(5px)";
+		ctx2d.globalAlpha = paused ? 0.4 : 0.6;
+		ctx2d.drawImage(
+			elClipsVideo,
+			ctxW / 2 - w / 2,
+			ctxH / 2 - h / 2,
+			w,
+			h
+		);
+
+		animCanvasFrame = requestAnimationFrame(animCanvas);
+	}
+
+	function animCanvasStart() {
+		elClipsVideo.removeEventListener("canplay", animCanvasStart);
+		animCanvasFrame = requestAnimationFrame(() => {
+			elClipsVideo.currentTime = Math.floor((Math.random() * 0.8 + 0.1) * elClipsVideo.duration * 10) / 10;
+			elClipsVideo.playbackRate = 0.5;
+			elClipsVideo.classList.add("disabled");
+			animCanvas();
+		});
+	}
+
+	if (elClipsVideo.duration == NaN) {
+		elClipsVideo.addEventListener("canplay", animCanvasStart);
+	} else {
+		animCanvasStart();
+	}
+}

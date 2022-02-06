@@ -262,7 +262,6 @@ namespace Celeste.Mod.CelesteNet {
                 } catch (Exception e) {
                     Logger.Log(LogLevel.WRN, "sendqueue", $"Error flushing connection {Con}'s send queue '{Name}': {e}");
                     Con.DisposeSafe();
-                    Dispose();
                 }
             }
         }

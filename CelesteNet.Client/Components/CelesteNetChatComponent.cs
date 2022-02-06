@@ -438,15 +438,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     accepted = Completion[CompletionSelected];
                 }
 
-                CommandInfo? aliased = CommandList.Where(cmd => cmd.ID == accepted && cmd.AliasTo != "").FirstOrDefault();
-                if (aliased != null)
-                    accepted = aliased.AliasTo;
-
                 if (!accepted.IsNullOrEmpty()) {
                     // remove the thing being completed, since we're inserting the accepted one
                     // and if "Name" matches for "na" we want to end up with "Name", not "name".
                     _CursorIndex -= CompletionPartial.Length;
                     Typing = Typing.Remove(_CursorIndex, CompletionPartial.Length);
+
+                    if (CompletionArgType == CompletionType.Command) {
+                        string aliased = CommandList.Where(cmd => cmd.AliasTo == accepted).Select(c => c.ID).FirstOrDefault();
+                        if (!aliased.IsNullOrEmpty())
+                            accepted = aliased;
+                    }
 
                     if (CursorIndex == Typing.Length) {
                         Typing += accepted + " ";
@@ -495,10 +497,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             } else {
                 switch (type) {
                     case CompletionType.Command:
-                        if (string.IsNullOrWhiteSpace(partial))
-                            Completion = CommandList.Select(cmd => cmd.ID).ToList();
-                        else
-                            Completion = CommandList.Where(cmd => cmd.ID.StartsWith(partial) || cmd.AliasTo.StartsWith(partial)).Select(cmd => cmd.ID).ToList();
+                        if (string.IsNullOrWhiteSpace(partial)) {
+                            Completion = CommandList.Where(cmd => cmd.AliasTo == "").Select(cmd => cmd.ID).ToList();
+                        }
+                        else {
+                            IEnumerable<string> commands = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo == "").Select(cmd => cmd.ID);
+                            IEnumerable<string> aliased = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo != "").Select(cmd => cmd.AliasTo);
+                            Completion = commands.Union(aliased).ToList();
+                        }
 
                         break;
                     case CompletionType.Player:

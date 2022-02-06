@@ -42,8 +42,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 ByType.TryGetValue(cmd.GetType().BaseType, out ChatCMD? aliasTo);
 
                 if (aliasTo != null)
-                    Logger.Log(LogLevel.VVV, "chatcmds", $"Command: {cmd.ID.ToLowerInvariant()} is alias of {aliasTo.ID.ToLowerInvariant()}");
-                DataAll.List[i++] = new CommandInfo() {ID = cmd.ID, Auth = cmd.MustAuth, AuthExec = cmd.MustAuthExec, FirstArg = cmd.Completion, AliasTo = aliasTo?.ID.ToLowerInvariant() ?? "" };
+                    Logger.Log(LogLevel.VVV, "chatcmds", $"Command: {cmd.ID.ToLowerInvariant()} is {(cmd.InternalAliasing ? "internal alias" : "alias")} of {aliasTo.ID.ToLowerInvariant()}");
+
+                DataAll.List[i++] = new CommandInfo() {
+                                        ID = cmd.ID,
+                                        Auth = cmd.MustAuth,
+                                        AuthExec = cmd.MustAuthExec,
+                                        FirstArg = cmd.Completion,
+                                        AliasTo = cmd.InternalAliasing ? "" : aliasTo?.ID.ToLowerInvariant() ?? ""
+                                    };
             }
 
             All = All.OrderBy(cmd => cmd.HelpOrder).ToList();
@@ -85,6 +92,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public virtual bool MustAuthExec => false;
 
         public virtual CompletionType Completion => CompletionType.None;
+
+        public virtual bool InternalAliasing => false;
 
         public virtual void Init(ChatModule chat) {
             Chat = chat;

@@ -15,6 +15,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDChannel>().ID}";
 
+        public override bool InternalAliasing => true;
+
     }
 
     public class ChatCMDChannel : ChatCMD {

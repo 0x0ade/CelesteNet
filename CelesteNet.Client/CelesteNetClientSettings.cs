@@ -85,6 +85,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetPlayerListComponent.LocationModes ShowPlayerListLocations { get; set; } = CelesteNetPlayerListComponent.LocationModes.ON;
         [SettingIgnore]
         public bool PlayerListShortenRandomizer { get; set; } = true;
+#if !DEBUG
+        [SettingIgnore]
+#endif
+        public bool PlayerListAllowSplit { get; set; } = true;
 
         public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }
 

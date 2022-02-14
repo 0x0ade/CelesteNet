@@ -46,6 +46,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Type = typeof(Texture2D);
                 Format = "png";
                 PathVirtual = $"emoji/{ID}";
+                Emoji.Register(ID, GFX.Misc["whiteCube"]);
+                Emoji.Fill(CelesteNetClientFont.Font);
             }
 
             public void Dispose() {

@@ -32,6 +32,35 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     /** @type {[string, string, () => void][]} */
     this.actions = [
       [
+        "Pause", "pause",
+        () => {
+          this.paused = !this.paused;
+          this.render();
+          if (!this.paused)
+            this.refresh();
+        }
+      ],
+
+      [
+        "Auto-scroll", "vertical_align_bottom",
+        () => {
+          this.autoscroll = !this.autoscroll;
+          this.refresh();
+        }
+      ],
+
+      [
+        "Shorten Server messages", this.frontend.settings.minimizeServerMsgs ? "short_text" : "notes",
+        () => {
+          this.frontend.settings.minimizeServerMsgs = !this.frontend.settings.minimizeServerMsgs;
+          this.frontend.settings.save();
+          this.actions[2][1] = this.frontend.settings.minimizeServerMsgs ? "short_text" : "notes";
+          this.list = [];
+          this.refresh();
+        }
+      ],
+
+      [
         "Fetch Log", "history",
         () => {
           this.refresh();
@@ -51,16 +80,25 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     this.list = [];
     /** @type {ChatData[]} */
     this.data = [];
+    /** @type boolean */
+    this.paused = false;
+    /** @type boolean */
+    this.autoscroll = true;
 
     frontend.sync.register("chat", data => this.log(data.Text, data.Color, data));
   }
 
   async refresh() {
+    if (this.paused)
+      return;
     await super.refresh();
-    this.elBody.scrollTop = this.elBody.scrollHeight;
+    if (this.autoscroll)
+      this.elBody.scrollTop = this.elBody.scrollHeight;
   }
 
   async update() {
+    if (this.paused)
+      return;
     this.data = await fetch(this.ep + "?count=100").then(r => r.json());
     // @ts-ignore
     this.list = this.data.map(data => this.createEntry(data.Text, data.Color, data));
@@ -74,6 +112,21 @@ export class FrontendChatPanel extends FrontendBasicPanel {
       ${el => this.renderBody(el)}
       ${el => this.renderInput(el)}
     </div>`;
+  }
+
+  renderHeader(el) {
+    el = super.renderHeader(el);
+    let actionBtns = this.elHeader.getElementsByTagName("button");
+    actionBtns[0].classList.toggle("button-fade", !this.paused);
+    actionBtns[1].classList.toggle("button-fade", !this.autoscroll);
+    if (this.paused) {
+      actionBtns[1].setAttribute("disabled", "true");
+      actionBtns[2].setAttribute("disabled", "true");
+    } else {
+      actionBtns[1].removeAttribute("disabled");
+      actionBtns[2].removeAttribute("disabled");
+    }
+    return el;
   }
 
   renderInput(el) {
@@ -163,6 +216,10 @@ export class FrontendChatPanel extends FrontendBasicPanel {
       else
         el.classList.remove("hidden");
 
+      if (this.frontend.settings.minimizeServerMsgs)
+        if (data.Targeted && color && (color.toLowerCase() == "#9e24f5" || color.toLowerCase() == "#e39dcc"))
+          el.classList.add("minimized");
+
       return el;
     };
   }
@@ -178,8 +235,11 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     if (this.list.length > 100) {
       this.list = this.list.slice(-100);
     }
+    if (this.paused)
+      return;
     this.render(null);
-    this.elBody.scrollTop = this.elBody.scrollHeight;
+    if (this.autoscroll)
+      this.elBody.scrollTop = this.elBody.scrollHeight;
   }
 
 }

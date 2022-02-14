@@ -23,9 +23,16 @@ export class FrontendDialog {
   }
 
   settingsCP() {
-    const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
-    const group = (...items) => el => {
-      el = rd$(el)`<ul class="settings-group"></ul>`;
+    const row = (body) => el => rd$(el)`<span class="row">${body}</span>`;
+
+    const form = (id, body) => el => {
+      el = rd$(el)`<form>${body}</form>`;
+      el.id = id;
+      return el;
+    }
+
+    const fieldset = (...items) => el => {
+      el = rd$(el)`<fieldset class="settings-group"></fieldset>`;
 
       let list = new RDOMListHelper(el);
       for (let i in items) {
@@ -35,9 +42,16 @@ export class FrontendDialog {
 
       return el;
     }
-    const id = (id, gen) => el => {
+
+    const input = (formid, id, gen) => el => {
       el = gen(el);
       el.id = id;
+      let input = el.querySelector("input");
+      let label = el.querySelector("label");
+      input.id = `${id}-input`;
+      label.setAttribute("for", input.id);
+      input.setAttribute("form", formid);
+      label.setAttribute("form", formid);
       return el;
     }
 
@@ -47,9 +61,10 @@ export class FrontendDialog {
       title: "Settings: Control Panel",
       body: el => rd$(el)`
       <div>
-        ${group(
-          id("setting-sensitive", mdcrd.checkbox("Show sensitive data", s.sensitive))
-        )}
+        ${form("settings-form", fieldset(
+          row(input("settings-form", "setting-sensitive", mdcrd.checkbox("Show sensitive data", s.sensitive))),
+          row(input("settings-form", "setting-minimizeServerMsgs", mdcrd.checkbox("Collapse join messages (MOTD)", s.minimizeServerMsgs)))
+        ))}
       </div>`,
       defaultButton: "yes",
       buttons: ["Cancel", "OK"],
@@ -71,6 +86,7 @@ export class FrontendDialog {
         if (action !== "1")
           return;
         s.sensitive = el.querySelector("#setting-sensitive input")["checked"];
+        s.minimizeServerMsgs = el.querySelector("#setting-minimizeServerMsgs input")["checked"];
         s.save();
         this.frontend.dom.render();
       }

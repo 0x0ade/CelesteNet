@@ -56,6 +56,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly TCPUDPSenderRole Sender;
 
         private readonly RWLock UsageLock;
+        private int UsageLockCounter;
         private int DownlinkCapCounter = 0;
         private readonly object TCPLock = new();
         private readonly byte[] TCPRecvBuffer, TCPSendBuffer;
@@ -87,6 +88,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             UDPReceiver = udpReceiver;
             Sender = sender;
             using ((UsageLock = new()).W()) {
+                UsageLockCounter = 1;
+
                 TCPRecvRate = new(this);
                 TCPSendRate = new(this);
                 UDPRecvRate = new(this);
@@ -109,10 +112,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
-        // The usage lock could still be used after we dispose
-        // So keep it alive as long as possible
-        ~ConPlusTCPUDPConnection() => UsageLock.Dispose();
-
         protected override void Dispose(bool disposing) {
             TCPReceiver?.Poller?.RemoveConnection(this);
             UDPReceiver?.RemoveConnection(this);
@@ -125,6 +124,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                 UDPRecvRate?.Dispose();
                 UDPSendRate?.Dispose();
             }
+            if (Interlocked.Decrement(ref UsageLockCounter) <= 0)
+                UsageLock.Dispose();
         }
 
         public override void DisposeSafe() {
@@ -143,14 +144,26 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return null;
             }
 
+            // Aquire the lock
+            Interlocked.Increment(ref UsageLockCounter);
             IDisposable dis = UsageLock.R();
 
             // Detect race conditions with Dispose
             if (!IsAlive) {
                 dis.Dispose();
+
+                // We might have kept the usage lock alive
+                if (Interlocked.Decrement(ref UsageLockCounter) <= 0)
+                    UsageLock.Dispose();
+
                 alive = false;
                 return null;
             }
+
+            // The connection is still alive, and can't die while we hold the lock
+            // So the following condition should never be true
+            if (Interlocked.Decrement(ref UsageLockCounter) <= 0)
+                throw new InvalidOperationException("Usage lock counter reached zero while connection is alive. THIS SHOULD NEVER HAPPEN!");
 
             alive = true;
             return dis;

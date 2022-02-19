@@ -363,26 +363,30 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
-            f.RespondJSON(c, f.Server.PlayersByID.Values.Select(p => new {
-                ID = p.SessionID,
-                UID = auth ? p.UID : null,
-                p.PlayerInfo?.Name,
-                p.PlayerInfo?.FullName,
-                p.PlayerInfo?.DisplayName,
-                Avatar = f.Server.UserData.HasFile(p.UID, "avatar.png") ? $"{f.Settings.APIPrefix}/avatar?uid={p.UID}" : null,
+            object responseObj;
+            using (f.Server.ConLock.R()) {
+                responseObj = f.Server.PlayersByID.Values.Select(p => new {
+                    ID = p.SessionID,
+                    UID = auth ? p.UID : null,
+                    p.PlayerInfo?.Name,
+                    p.PlayerInfo?.FullName,
+                    p.PlayerInfo?.DisplayName,
+                    Avatar = f.Server.UserData.HasFile(p.UID, "avatar.png") ? $"{f.Settings.APIPrefix}/avatar?uid={p.UID}" : null,
 
-                Connection = auth ? p.Con.ID : null,
-                ConnectionUID = auth ? p.Con.UID : null,
+                    Connection = auth ? p.Con.ID : null,
+                    ConnectionUID = auth ? p.Con.UID : null,
 
-                TCPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.ByteRate : null,
-                TCPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.PacketRate : null,
-                TCPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.ByteRate : null,
-                TCPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.PacketRate : null,
-                UDPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPRecvRate.ByteRate : null,
-                UDPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPRecvRate.PacketRate : null,
-                UDPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendRate.ByteRate : null,
-                UDPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendRate.PacketRate : null,
-            }).ToArray());
+                    TCPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.ByteRate : null,
+                    TCPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.PacketRate : null,
+                    TCPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.ByteRate : null,
+                    TCPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.PacketRate : null,
+                    UDPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPRecvRate.ByteRate : null,
+                    UDPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPRecvRate.PacketRate : null,
+                    UDPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendRate.ByteRate : null,
+                    UDPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendRate.PacketRate : null,
+                }).ToArray();
+            }
+            f.RespondJSON(c, responseObj);
         }
 
         [RCEndpoint(false, "/channels", null, null, "Channel List", "Basic channel list.")]

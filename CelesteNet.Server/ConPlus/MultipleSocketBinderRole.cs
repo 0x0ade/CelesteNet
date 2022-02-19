@@ -13,8 +13,13 @@ namespace Celeste.Mod.CelesteNet.Server {
             public new MultipleSocketBinderRole Role => (MultipleSocketBinderRole) base.Role;
 
             protected internal override void StartWorker(CancellationToken token) {
-                using Socket sock = Role.CreateSocket();
-                StartWorker(sock, token);
+                (Socket sock, bool ownsSock) = Role.CreateSocket();
+                try {
+                    StartWorker(sock, token);
+                } finally {
+                    if (ownsSock)
+                        sock.Dispose();
+                }
             }
 
             protected abstract void StartWorker(Socket socket, CancellationToken token);
@@ -32,7 +37,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             EndPoint = endPoint;
         }
 
-        protected virtual Socket CreateSocket() {
+        protected virtual (Socket sock, bool ownsSocket) CreateSocket() {
             Socket? socket = null;
             try {
                 // Create socket and perform socket options magic
@@ -49,7 +54,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 // Bind the socket
                 socket.Bind(EndPoint);
 
-                return socket;
+                return (socket, true);
             } catch {
                 socket?.Dispose();
                 throw;

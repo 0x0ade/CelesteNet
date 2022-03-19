@@ -55,7 +55,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly UDPReceiverRole UDPReceiver;
         public readonly TCPUDPSenderRole Sender;
 
-        private readonly RWLock UsageLock;
+        private RWLock? UsageLock;
         private int UsageLockCounter;
         private int DownlinkCapCounter = 0;
         private readonly object TCPLock = new();
@@ -115,7 +115,9 @@ namespace Celeste.Mod.CelesteNet.Server {
         protected override void Dispose(bool disposing) {
             TCPReceiver?.Poller?.RemoveConnection(this);
             UDPReceiver?.RemoveConnection(this);
-            using (UsageLock.W()) {
+
+            // Usage lock can't be null here, as UsageLockCounter is not zero
+            using (UsageLock!.W()) {
                 base.Dispose(disposing);
                 TCPSendPacketWriter?.Dispose();
                 TCPSendBufferStream?.Dispose();
@@ -124,8 +126,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                 UDPRecvRate?.Dispose();
                 UDPSendRate?.Dispose();
             }
+
+            // Decrement the usage counter and possibly dispose the lock
             if (Interlocked.Decrement(ref UsageLockCounter) <= 0)
-                UsageLock.Dispose();
+                Interlocked.Exchange(ref UsageLock, null)?.Dispose();
         }
 
         public override void DisposeSafe() {
@@ -139,22 +143,17 @@ namespace Celeste.Mod.CelesteNet.Server {
         protected override void FlushUDPQueue() => Sender.TriggerUDPQueueFlush(this);
 
         public IDisposable? Utilize(out bool alive) {
-            if (!IsAlive) {
-                alive = false;
-                return null;
-            }
-
             // Aquire the lock
             Interlocked.Increment(ref UsageLockCounter);
-            IDisposable dis = UsageLock.R();
+            IDisposable? dis = IsAlive ? UsageLock?.R() : null;
 
             // Detect race conditions with Dispose
-            if (!IsAlive) {
-                dis.Dispose();
+            if (dis == null || !IsAlive) {
+                dis?.Dispose();
 
                 // We might have kept the usage lock alive
                 if (Interlocked.Decrement(ref UsageLockCounter) <= 0)
-                    UsageLock.Dispose();
+                    Interlocked.Exchange(ref UsageLock, null)?.Dispose();
 
                 alive = false;
                 return null;

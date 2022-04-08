@@ -18,6 +18,7 @@ const mdc = window["mdc"]; // mdc
   DisplayName: string,
   Connection: string,
   ConnectionUID: string,
+  TCPPingMs: number, UDPPingMs: number?,
   TCPDownlinkBpS: number?, TCPDownlinkPpS: number?,
   UDPDownlinkBpS: number?, UDPDownlinkPpS: number?,
   TCPUplinkBpS: number?, TCPUplinkPpS: number?,
@@ -50,6 +51,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
         ${this.frontend.censor(p.Connection)}<br>
         ${el => !p.TCPDownlinkBpS ? rd$(el)`<span></span>` :
           rd$(el)`<span>
+            <code>Ping:${` ${p.TCPPingMs ? `${p.TCPPingMs}ms` : '-'} TCP | ${p.UDPPingMs ? `${p.UDPPingMs}ms` : '-'} UDP`}</code><br>
             <code>TCP ↓:${` ${p.TCPDownlinkBpS.toFixed(3)} BpS | ${p.TCPDownlinkPpS.toFixed(3)} PpS`}</code><br>
             <code>UDP ↓:${` ${p.UDPDownlinkBpS.toFixed(3)} BpS | ${p.UDPDownlinkPpS.toFixed(3)} PpS`}</code><br>
             <code>TCP ↑:${` ${p.TCPUplinkBpS.toFixed(3)} BpS | ${p.TCPUplinkPpS.toFixed(3)} PpS`}</code><br>

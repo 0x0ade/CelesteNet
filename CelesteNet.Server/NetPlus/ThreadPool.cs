@@ -9,7 +9,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private bool Disposed = false;
         private readonly RWLock _PoolLock = new();
-        private readonly Stopwatch RuntimeWatch = new();
+        public readonly Stopwatch RuntimeWatch = new();
 
         private readonly NetPlusThread[] Threads;
         private readonly int[] ThreadRestarts;

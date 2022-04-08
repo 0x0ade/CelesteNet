@@ -12,37 +12,37 @@ namespace Celeste.Mod.CelesteNet.Server {
         public class RateMetric : IDisposable {
 
             public readonly ConPlusTCPUDPConnection Con;
-            private readonly RWLock RateLock;
+            private readonly RWLock MetricLock;
             private long LastByteRateUpdate, LastPacketRateUpdate;
             private float _ByteRate, _PacketRate;
 
             public float ByteRate {
                 get {
-                    using (RateLock.R())
+                    using (MetricLock.R())
                         return Con.Server.ThreadPool.IterateEventHeuristic(ref _ByteRate, ref LastByteRateUpdate);
                 }
             }
 
             public float PacketRate {
                 get {
-                    using (RateLock.R())
+                    using (MetricLock.R())
                         return Con.Server.ThreadPool.IterateEventHeuristic(ref _PacketRate, ref LastPacketRateUpdate);
                 }
             }
 
             internal RateMetric(ConPlusTCPUDPConnection con) {
                 Con = con;
-                RateLock = new();
+                MetricLock = new();
                 LastByteRateUpdate = LastPacketRateUpdate = 0;
                 _ByteRate = _PacketRate = 0;
             }
 
             public void Dispose() {
-                RateLock.Dispose();
+                MetricLock.Dispose();
             }
 
-            public void UpdateRate(int byteCount, int packetCount) {
-                using (RateLock.W()) {
+            public void UpdateMetric(int byteCount, int packetCount) {
+                using (MetricLock.W()) {
                     Con.Server.ThreadPool.IterateEventHeuristic(ref _ByteRate, ref LastByteRateUpdate, byteCount, true);
                     Con.Server.ThreadPool.IterateEventHeuristic(ref _PacketRate, ref LastPacketRateUpdate, packetCount, true);
                 }
@@ -69,6 +69,15 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public readonly RateMetric TCPRecvRate, TCPSendRate;
         public readonly RateMetric UDPRecvRate, UDPSendRate;
+
+        private int _TCPPingMs, _UDPPingMs;
+        public int TCPPingMs => _TCPPingMs;
+        public int? UDPPingMs {
+            get {
+                lock (UDPLock)
+                    return (UDPEndpoint != null && UDPConnectionID >= 0) ? _UDPPingMs : null;
+            }
+        }
 
         public bool TCPSendCapped => TCPSendRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkBpTCap || TCPSendRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkPpTCap;
         public float TCPSendCapDelay => Math.Max(Server.Settings.HeuristicSampleWindow * Math.Max(1 - Server.Settings.PlayerTCPUplinkBpTCap / TCPSendRate.ByteRate, 1 - Server.Settings.PlayerTCPUplinkPpTCap / TCPSendRate.PacketRate), 0);
@@ -186,6 +195,19 @@ namespace Celeste.Mod.CelesteNet.Server {
             return null;
         }
 
+        public void SendPingRequest() {
+            // Send ping request packet
+            DataLowLevelPingRequest pingRequest = new DataLowLevelPingRequest() {
+                PingTime = Server.ThreadPool.RuntimeWatch.ElapsedMilliseconds
+            };
+
+            TCPQueue.Enqueue(pingRequest);
+
+            lock (UDPLock) {
+                if (UDPEndpoint != null && UDPConnectionID >= 0) UDPQueue.Enqueue(pingRequest);
+            }
+        }
+
         public void HandleTCPData() {
             lock (TCPLock) {
                 using (Utilize(out bool alive)) {
@@ -208,7 +230,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                             TCPHeartbeat();
 
                             // Update metrics and check if we hit the cap
-                            TCPRecvRate.UpdateRate(numRead, 0);
+                            TCPRecvRate.UpdateMetric(numRead, 0);
                             if (TCPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap && Interlocked.Increment(ref DownlinkCapCounter) >= DownlinkCapCounterMax) {
                                 Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.TCP, "Downlink byte cap hit", TCPRecvBuffer, 0, TCPRecvBufferOff);
                                 Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink byte cap: {TCPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkBpTCap} cap BpS");
@@ -231,7 +253,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                     // Did we receive the entire packet already?
                                     if (2 + packetLen <= TCPRecvBufferOff) {
                                         // Update metrics and check if we hit the cap
-                                        TCPRecvRate.UpdateRate(0, 1);
+                                        TCPRecvRate.UpdateMetric(0, 1);
                                         if (TCPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap && Interlocked.Increment(ref DownlinkCapCounter) >= DownlinkCapCounterMax) {
                                             Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.TCP, "Downlink packet cap hit", TCPRecvBuffer, 0, TCPRecvBufferOff);
                                             Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit TCP downlink packet cap: {TCPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerTCPDownlinkPpTCap} cap PpS");
@@ -254,6 +276,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                                         // Handle the packet
                                         switch (packet) {
+                                            case DataLowLevelPingReply pingReply: {
+                                                _TCPPingMs = (int) (Server.ThreadPool.RuntimeWatch.ElapsedMilliseconds - pingReply.PingTime);
+                                            } break;
                                             case DataLowLevelUDPInfo udpInfo: {
                                                 HandleUDPInfo(udpInfo);
                                             } break;
@@ -344,7 +369,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         SurpressTCPKeepAlives();
 
                     // Update connection metrics and check if we hit the connection cap
-                    TCPSendRate.UpdateRate(2 + packLen, 1);
+                    TCPSendRate.UpdateMetric(2 + packLen, 1);
                     if (TCPSendCapped)
                         break;
                 }
@@ -407,7 +432,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         return;
 
                     // Update metrics
-                    UDPRecvRate.UpdateRate(dgSize, 0);
+                    UDPRecvRate.UpdateMetric(dgSize, 0);
                     if (UDPRecvRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap && Interlocked.Increment(ref DownlinkCapCounter) >= DownlinkCapCounterMax) {
                         Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.UDP, "Downlink byte cap hit", buffer, 0, dgSize);
                         Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink byte cap: {UDPRecvRate.ByteRate} BpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkBpTCap} cap BpS");
@@ -427,16 +452,25 @@ namespace Celeste.Mod.CelesteNet.Server {
                             DataType packet = Server.Data.Read(reader);
 
                             // Update metrics
-                            UDPRecvRate.UpdateRate(0, 1);
+                            UDPRecvRate.UpdateMetric(0, 1);
                             if (UDPRecvRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap) {
                                 Server.PacketDumper.DumpPacket(this, PacketDumper.TransportType.UDP, "Downlink packet cap hit", buffer, 0, dgSize);
                                 Logger.Log(LogLevel.WRN, "tcpudpcon", $"Connection {this} hit UDP downlink packet cap: {UDPRecvRate.PacketRate} PpS {Server.CurrentTickRate * Server.Settings.PlayerUDPDownlinkPpTCap} cap PpS");
                                 goto closeConnection;
                             }
 
+                            // Handle the packet
                             if (packet.TryGet<MetaOrderedUpdate>(Server.Data, out MetaOrderedUpdate? orderedUpdate))
                                 orderedUpdate.UpdateID = containerID;
-                            Receive(packet);
+
+                            switch (packet) {
+                                case DataLowLevelPingReply pingReply: {
+                                    _UDPPingMs = (int) (Server.ThreadPool.RuntimeWatch.ElapsedMilliseconds - pingReply.PingTime);
+                                } break;
+                                default: {
+                                    Receive(packet);
+                                } break;
+                            }
                         }
                     }
 

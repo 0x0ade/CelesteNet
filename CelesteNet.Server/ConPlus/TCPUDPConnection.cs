@@ -117,6 +117,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 TCPSendBufferOff = TCPSendBufferNumBytes = TCPSendBufferNumPackets = 0;
 
                 // Initialize UDP receiving
+                OnUDPDeath += (_, _) => _UDPPingMs = 0;
                 udpReceiver.AddConnection(this);
             }
         }

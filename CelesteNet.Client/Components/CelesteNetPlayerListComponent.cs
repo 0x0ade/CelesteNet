@@ -64,6 +64,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public LocationModes LocationMode => Settings.ShowPlayerListLocations;
         private LocationModes LastLocationMode;
 
+        public bool ShowPing => Settings.PlayerListShowPing;
+        private bool LastShowPing;
+
         private float? SpaceWidth;
         private float? LocationSeparatorWidth;
         private float? IdleIconWidth;
@@ -465,6 +468,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataConnectionInfo info) {
             RunOnMainThread(() => {
+                if (!ShowPing)
+                    return;
+
                 // Don't rebuild the entire list
                 // Try to find the player's blob
                 BlobPlayer playerBlob = (BlobPlayer) List?.First(b => b is BlobPlayer pb && pb.Player == info.Player);
@@ -515,9 +521,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (LastListMode != ListMode ||
                 LastLocationMode != LocationMode ||
+                LastShowPing != ShowPing ||
                 ShouldRebuild) {
                 LastListMode = ListMode;
                 LastLocationMode = LocationMode;
+                LastShowPing = ShowPing;
                 ShouldRebuild = false;
                 RebuildList();
             }
@@ -690,7 +698,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         PingBlob.Name = $"{ping}ms";
                     else
                         PingBlob.Name = "SPOOFED!"; // Someone messed with the packets
-                }
+                } else
+                    PingBlob.Name = string.Empty;
 
                 // If the player blob was forced to regenerate its text, forward that to the location and ping blobs too.
                 PingBlob.Generate();

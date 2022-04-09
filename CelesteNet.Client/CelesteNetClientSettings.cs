@@ -89,6 +89,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore]
 #endif
         public bool PlayerListAllowSplit { get; set; } = true;
+        public bool PlayerListShowPing { get; set; } = true;
 
         public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }
 

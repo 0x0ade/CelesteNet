@@ -205,7 +205,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             TCPQueue.Enqueue(pingRequest);
 
             lock (UDPLock) {
-                if (UDPEndpoint != null && UDPConnectionID >= 0) UDPQueue.Enqueue(pingRequest);
+                if (UDPEndpoint != null && UDPConnectionID >= 0)
+                    UDPQueue.Enqueue(pingRequest);
             }
         }
 

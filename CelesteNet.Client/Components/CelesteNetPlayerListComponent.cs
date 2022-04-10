@@ -64,6 +64,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public LocationModes LocationMode => Settings.ShowPlayerListLocations;
         private LocationModes LastLocationMode;
 
+        public bool ShowPing => Settings.PlayerListShowPing;
+        private bool LastShowPing;
+
         private float? SpaceWidth;
         private float? LocationSeparatorWidth;
         private float? IdleIconWidth;
@@ -142,6 +145,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     continue;
 
                 BlobPlayer blob = new() {
+                    Player = player,
                     Name = player.DisplayName,
                     ScaleFactor = 0.75f
                 };
@@ -375,6 +379,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private DataPlayerInfo ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo player, LocationModes locationMode) {
             if (player != null) {
+                blob.Player = player;
                 blob.Name = player.DisplayName;
 
                 blob.LocationMode = locationMode;
@@ -461,9 +466,49 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             RunOnMainThread(() => RebuildList());
         }
 
+        public void Handle(CelesteNetConnection con, DataConnectionInfo info) {
+            RunOnMainThread(() => {
+                if (!ShowPing)
+                    return;
+
+                // Don't rebuild the entire list
+                // Try to find the player's blob
+                BlobPlayer playerBlob = (BlobPlayer) List?.First(b => b is BlobPlayer pb && pb.Player == info.Player);
+                if (playerBlob == null)
+                    return;
+
+                // Update the player's ping
+                playerBlob.PingMs = info.UDPPingMs ?? info.TCPPingMs;
+
+                // Regenerate the player blob
+                playerBlob.Generate();
+
+                // Re-measure the list
+                // This doesn't handle line splitting/etc, but is good enough
+                if (!SpaceWidth.HasValue || !LocationSeparatorWidth.HasValue || !IdleIconWidth.HasValue) {
+                    // This should never happen, as the list has already been rendered at least once
+                    // Still check just in case
+                    Logger.Log(LogLevel.WRN, "playerlist", "!!!DEAD CODE REACHED!!! Player list layout values still uninitalized in ping update code!");
+                    return;
+                }
+
+                Vector2 sizeAll = Vector2.Zero;
+                foreach (Blob blob in List) {
+                    Vector2 size = blob.Measure(SpaceWidth.Value, LocationSeparatorWidth.Value, IdleIconWidth.Value);
+                    sizeAll.X = Math.Max(sizeAll.X, size.X);
+                    sizeAll.Y += size.Y + 10f * Scale;
+                }
+                SizeAll = sizeAll;
+                SizeUpper = sizeAll;
+                SizeColumn = Vector2.Zero;
+            });
+        }
+
         public void Handle(CelesteNetConnection con, DataChannelList channels) {
-            Channels = channels;
-            RebuildList();
+            RunOnMainThread(() => {
+                Channels = channels;
+                RebuildList();
+            });
         }
         
         public void Handle(CelesteNetConnection con, DataNetEmoji netemoji) {
@@ -476,9 +521,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (LastListMode != ListMode ||
                 LastLocationMode != LocationMode ||
+                LastShowPing != ShowPing ||
                 ShouldRebuild) {
                 LastListMode = ListMode;
                 LastLocationMode = LocationMode;
+                LastShowPing = ShowPing;
                 ShouldRebuild = false;
                 RebuildList();
             }
@@ -630,7 +677,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             public const string IdleIconCode = ":celestenet_idle:";
 
+            public DataPlayerInfo Player;
             public BlobLocation Location = new();
+
+            public int? PingMs = null;
+            public Blob PingBlob = new() {
+                Color = Color.Gray
+            };
 
             public bool Idle;
 
@@ -639,15 +692,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (Idle)
                     sb.Append(" ").Append(IdleIconCode);
 
-                // If the player blob was forced to regenerate its text, forward that to the location blob too.
+                if (PingMs.HasValue) {
+                    int ping = PingMs.Value;
+                    if (0 < ping)
+                        PingBlob.Name = $"{ping}ms";
+                    else
+                        PingBlob.Name = "SPOOFED!"; // Someone messed with the packets
+                } else
+                    PingBlob.Name = string.Empty;
+
+                // If the player blob was forced to regenerate its text, forward that to the location and ping blobs too.
+                PingBlob.Generate();
                 Location.LocationMode = LocationMode;
                 Location.Generate();
             }
 
             public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
-                Location.Dyn.Y = Dyn.Y;
-                Location.DynScale = DynScale;
-                Location.LocationMode = LocationMode;
 
                 Vector2 size = base.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
 
@@ -655,6 +715,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!Idle)
                     size.X += idleIconWidth * DynScale;
 
+                // update nested blobs
+                PingBlob.Dyn.X = Dyn.X + size.X;
+                PingBlob.Dyn.Y = Dyn.Y;
+                PingBlob.DynScale = DynScale;
+                Location.Dyn.Y = Dyn.Y;
+                Location.DynScale = DynScale;
+                Location.LocationMode = LocationMode;
+
+                // insert space for ping and location
+                size.X += PingBlob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth).X;
                 size.X += Location.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth).X;
 
                 return size;
@@ -662,6 +732,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha) {
                 base.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
+                PingBlob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
                 Location.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
             }
 

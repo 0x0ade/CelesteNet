@@ -49,7 +49,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public readonly HashSet<CelesteNetPlayerSession> Sessions = new();
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new();
         public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new();
-        private readonly System.Timers.Timer HeartbeatTimer;
+        private readonly System.Timers.Timer HeartbeatTimer, PingRequestTimer;
 
         public float CurrentTickRate { get; private set; }
         private float NextTickRate;
@@ -139,6 +139,9 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             HeartbeatTimer = new(Settings.HeartbeatInterval);
             HeartbeatTimer.Elapsed += (_, _) => DoHeartbeatTick();
+
+            PingRequestTimer = new(Settings.PingRequestInterval);
+            PingRequestTimer.Elapsed += (_, _) => SendPingRequests();
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
@@ -189,6 +192,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!, tcpUdpConSettings));
 
             HeartbeatTimer.Start();
+            PingRequestTimer.Start();
             CurrentTickRate = NextTickRate = Settings.MaxTickRate;
             ThreadPool.Scheduler.OnPreScheduling += AdjustTickRate;
 
@@ -398,6 +402,38 @@ namespace Celeste.Mod.CelesteNet.Server {
             BroadcastAsync(new DataTickRate {
                 TickRate = NextTickRate
             });
+        }
+
+        private void SendPingRequests() {
+            using (ConLock.R()) {
+                // Send ping requests for supported connections
+                foreach (CelesteNetConnection con in Connections) {
+                    switch (con) {
+                        case ConPlusTCPUDPConnection tcpUdpCon: {
+                            tcpUdpCon.SendPingRequest();
+                            break;
+                        }
+                    }
+                }
+
+                // Send connection info packets
+                foreach (CelesteNetPlayerSession ses in Sessions) {
+                    switch (ses.Con) {
+                        case ConPlusTCPUDPConnection tcpUdpCon: {
+                            DataInternalBlob conInfoPacket = DataInternalBlob.For(Data, new DataConnectionInfo() {
+                                Player = ses.PlayerInfo,
+                                TCPPingMs = tcpUdpCon.TCPPingMs,
+                                UDPPingMs = tcpUdpCon.UDPPingMs
+                            });
+
+                            foreach (CelesteNetPlayerSession other in Sessions)
+                                other.Con.Send(conInfoPacket);
+
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         #region Handlers

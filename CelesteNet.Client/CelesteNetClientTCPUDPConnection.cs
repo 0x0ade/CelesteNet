@@ -151,7 +151,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         throw new InvalidDataException("Peer sent packet over maximum size");
                     ReadCount(2, packetSize);
 
-                    // Let the connection now we got a TCP heartbeat
+                    // Let the connection know we got a TCP heartbeat
                     TCPHeartbeat();
 
                     // Read the packet
@@ -165,6 +165,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                     // Handle the packet
                     switch (packet) {
+                        case DataLowLevelPingRequest pingReq: {
+                            TCPQueue.Enqueue(new DataLowLevelPingReply() {
+                                PingTime = pingReq.PingTime
+                            });
+                            break;
+                        }
                         case DataLowLevelUDPInfo udpInfo: {
                             HandleUDPInfo(udpInfo);
                             break;
@@ -239,7 +245,20 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 DataType packet = Data.Read(reader);
                                 if (packet.TryGet<MetaOrderedUpdate>(Data, out MetaOrderedUpdate orderedUpdate))
                                     orderedUpdate.UpdateID = containerID;
-                                Receive(packet);
+
+                                // Handle packet
+                                switch (packet) {
+                                    case DataLowLevelPingRequest pingReq: {
+                                        UDPQueue.Enqueue(new DataLowLevelPingReply() {
+                                            PingTime = pingReq.PingTime
+                                        });
+                                        break;
+                                    }
+                                    default: {
+                                        Receive(packet);
+                                        break;
+                                    }
+                                }
                             }
                         }
 

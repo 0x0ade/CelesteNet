@@ -376,6 +376,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     Connection = auth ? p.Con.ID : null,
                     ConnectionUID = auth ? p.Con.UID : null,
 
+                    TCPPingMs = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPPingMs : null,
+                    UDPPingMs = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPPingMs : null,
+
                     TCPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.ByteRate : null,
                     TCPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.PacketRate : null,
                     TCPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.ByteRate : null,

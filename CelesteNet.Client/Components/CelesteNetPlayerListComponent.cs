@@ -694,10 +694,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (PingMs.HasValue) {
                     int ping = PingMs.Value;
-                    if (0 < ping)
+                    if (ping > 0)
                         PingBlob.Name = $"{ping}ms";
                     else
-                        PingBlob.Name = "SPOOFED!"; // Someone messed with the packets
+                        PingBlob.Name = "???ms"; // Someone messed with the packets, or server has no data yet
                 } else
                     PingBlob.Name = string.Empty;
 

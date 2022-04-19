@@ -67,6 +67,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public bool ShowPing => Settings.PlayerListShowPing;
         private bool LastShowPing;
 
+        public bool AllowSplit => Settings.PlayerListAllowSplit;
+        private bool LastAllowSplit;
+
         private float? SpaceWidth;
         private float? LocationSeparatorWidth;
         private float? IdleIconWidth;
@@ -79,7 +82,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private bool _splitViewPartially = false;
         private bool SplitViewPartially {
             get {
-                if (ListMode != ListModes.Channels || !Settings.PlayerListAllowSplit)
+                if (ListMode != ListModes.Channels || !AllowSplit)
                     return _splitViewPartially = false;
                 // only flip value after passing threshold to prevent flipping on +1/-1s at threshold
                 if (!_splitViewPartially && SplittablePlayerCount > SplitThresholdUpper)
@@ -91,7 +94,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
         private bool SplitSuccessfully = false;
-        private bool LastAllowSplit;
 
         public enum ListModes {
             Channels,
@@ -520,12 +522,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (LastListMode != ListMode ||
                 LastLocationMode != LocationMode ||
                 LastShowPing != ShowPing ||
-                LastAllowSplit != Settings.PlayerListAllowSplit ||
+                LastAllowSplit != AllowSplit ||
                 ShouldRebuild) {
                 LastListMode = ListMode;
                 LastLocationMode = LocationMode;
                 LastShowPing = ShowPing;
-                LastAllowSplit = Settings.PlayerListAllowSplit;
+                LastAllowSplit = AllowSplit;
                 ShouldRebuild = false;
                 RebuildList();
             }

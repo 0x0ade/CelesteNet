@@ -25,6 +25,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public string PromptMessage = "";
         public Color PromptMessageColor = Color.White;
 
+        public float? RenderPositionY { get; private set; } = null;
+
         protected Overlay _DummyOverlay = new PauseUpdateOverlay();
 
         public List<DataChat> Log = new();
@@ -532,6 +534,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             float scale = Scale;
             Vector2 fontScale = Vector2.One * scale;
 
+            RenderPositionY = null;
+
             lock (Log) {
                 List<DataChat> log = Mode switch {
                     ChatMode.Special => LogSpecial,
@@ -623,6 +627,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             lineFontScale,
                             msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)
                         );
+
+                        RenderPositionY = y;
 
                         if (renderedCount >= logLength) {
                             break;

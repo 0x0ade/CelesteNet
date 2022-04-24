@@ -26,9 +26,35 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private static readonly char[] RandomizerEndTrimChars = "_0123456789".ToCharArray();
 
         public bool Active;
+        public bool ShouldRebuild = false;
 
         private List<Blob> List = new();
+
         private Vector2 SizeAll;
+        private Vector2 SizeUpper;
+        private Vector2 SizeColumn;
+
+        /*
+         SizeAll - outer dimensions
+        +------------------------------------+
+        |                                    |
+        |            own channel             |
+        |                                    |
+        |             SizeUpper              |
+        |                                    |
+        +-----------------+------------------+
+        |                 |                  |
+        |                 |                  |
+        |   SizeColumn    |  (calculated     |
+        |                 |   from other     |
+        |                 |   three sizes)   |
+        |                 |                  |
+        |(extends all ->  |                  |
+        | the way right   |                  |
+        | if single-col)  |                  |
+        +-----------------+------------------+
+        When not in Channel Mode, only SizeAll gets used.
+         */
 
         public DataChannelList Channels;
 
@@ -38,9 +64,33 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public LocationModes LocationMode => Settings.ShowPlayerListLocations;
         private LocationModes LastLocationMode;
 
+        public bool ShowPing => Settings.PlayerListShowPing;
+        private bool LastShowPing;
+
         private float? SpaceWidth;
         private float? LocationSeparatorWidth;
         private float? IdleIconWidth;
+
+        private int SplittablePlayerCount = 0;
+
+        private readonly int SplitThresholdLower = 10;
+        private readonly int SplitThresholdUpper = 12;
+
+        private bool _splitViewPartially = false;
+        private bool SplitViewPartially {
+            get {
+                if (ListMode != ListModes.Channels || !Settings.PlayerListAllowSplit)
+                    return _splitViewPartially = false;
+                // only flip value after passing threshold to prevent flipping on +1/-1s at threshold
+                if (!_splitViewPartially && SplittablePlayerCount > SplitThresholdUpper)
+                    return _splitViewPartially = true;
+                if (_splitViewPartially && SplittablePlayerCount < SplitThresholdLower)
+                    return _splitViewPartially = false;
+
+                return _splitViewPartially;
+            }
+        }
+        private bool SplitSuccessfully = false;
 
         public enum ListModes {
             Channels,
@@ -78,79 +128,42 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             switch (ListMode) {
                 case ListModes.Classic:
-                    foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
-                        if (string.IsNullOrWhiteSpace(player.DisplayName))
-                            continue;
-
-                        BlobPlayer blob = new() {
-                            Name = player.DisplayName,
-                            ScaleFactor = 0.75f
-                        };
-
-                        DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
-                        if (channel != null && !string.IsNullOrEmpty(channel.Name))
-                            blob.Name += $" #{channel.Name}";
-
-                        if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                            GetState(blob, state);
-
-                        list.Add(blob);
-                    }
-
+                    RebuildListClassic(ref list, ref all);
                     break;
 
                 case ListModes.Channels:
-                    HashSet<DataPlayerInfo> listed = new();
-
-                    void AddChannel(DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor) {
-                        list.Add(new() {
-                            Name = channel.Name,
-                            Color = ColorChannelHeader,
-                            ScaleFactor = scaleFactorHeader
-                        });
-
-                        foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
-                            BlobPlayer blob = new() { ScaleFactor = scaleFactor };
-                            listed.Add(ListPlayerUnderChannel(blob, player));
-                            list.Add(blob);
-                        }
-                    }
-
-                    DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
-                    if (own != null)
-                        AddChannel(own, ColorChannelHeaderOwn, 0.25f, 0.5f);
-
-                    foreach (DataChannelList.Channel channel in Channels.List)
-                        if (channel != own)
-                            AddChannel(channel, ColorChannelHeader, 0.75f, 1f);
-
-                    bool wrotePrivate = false;
-                    foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
-                        if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
-                            continue;
-
-                        if (!wrotePrivate) {
-                            wrotePrivate = true;
-                            list.Add(new() {
-                                Name = "!<private>",
-                                Color = ColorChannelHeaderPrivate,
-                                ScaleFactor = 0.75f
-                            });
-                        }
-
-                        list.Add(new() {
-                            Name = player.DisplayName,
-                            ScaleFactor = 1f
-                        });
-                    }
-
+                    RebuildListChannels(ref list, ref all);
                     break;
+            }
+
+            List = list;
+        }
+
+        public void RebuildListClassic(ref List<Blob> list, ref DataPlayerInfo[] all) {
+            foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
+                if (string.IsNullOrWhiteSpace(player.DisplayName))
+                    continue;
+
+                BlobPlayer blob = new() {
+                    Player = player,
+                    Name = player.DisplayName,
+                    ScaleFactor = 0.75f
+                };
+
+                DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
+                if (channel != null && !string.IsNullOrEmpty(channel.Name))
+                    blob.Name += $" #{channel.Name}";
+
+                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
+                    GetState(blob, state);
+
+                list.Add(blob);
             }
 
             PrepareRenderLayout(out float scale, out _, out _, out float spaceWidth, out float locationSeparatorWidth, out float idleIconWidth);
 
             foreach (Blob blob in list)
-                blob.Generate(LocationMode);
+                blob.Generate();
 
             int textScaleTry = 0;
             float textScale = scale;
@@ -160,7 +173,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             foreach (Blob blob in list) {
                 blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
-                blob.DynY = sizeAll.Y;
+                blob.Dyn.Y = sizeAll.Y;
 
                 Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
                 sizeAll.X = Math.Max(sizeAll.X, size.X);
@@ -173,8 +186,179 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
-            List = list;
             SizeAll = sizeAll;
+            SizeUpper = sizeAll;
+            SizeColumn = Vector2.Zero;
+        }
+
+        public void RebuildListChannels(ref List<Blob> list, ref DataPlayerInfo[] all) {
+            // this value gets updated at every blob that we could split at
+            // i.e. every channel header besides our own.
+            int lastPossibleSplit = 0;
+
+            HashSet<DataPlayerInfo> listed = new();
+            DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+
+            void AddChannel(ref List<Blob> list, DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor, LocationModes locationMode) {
+                list.Add(new() {
+                    Name = channel.Name,
+                    Color = ColorChannelHeader,
+                    ScaleFactor = scaleFactorHeader,
+                    CanSplit = channel != own
+                });
+                if (channel != own)
+                    lastPossibleSplit = list.Count - 1;
+
+                foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
+                    BlobPlayer blob = new() { ScaleFactor = scaleFactor };
+                    listed.Add(ListPlayerUnderChannel(blob, player, locationMode));
+                    list.Add(blob);
+                }
+            }
+
+            SplittablePlayerCount = all.Length;
+
+            if (own != null) {
+                SplittablePlayerCount -= own.Players.Length;
+                AddChannel(ref list, own, ColorChannelHeaderOwn, 0.25f, 0.5f, LocationMode);
+            }
+            // this is the index of the first element relevant for splitting,
+            // i.e. first blob after our own channel is fully listed.
+            int splitStartsAt = list.Count - 1;
+
+            foreach (DataChannelList.Channel channel in Channels.List)
+                if (channel != own)
+                    AddChannel(ref list, channel, ColorChannelHeader, 0.75f, 1f, LocationModes.OFF);
+
+            bool wrotePrivate = false;
+            foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
+                if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
+                    continue;
+
+                if (!wrotePrivate) {
+                    wrotePrivate = true;
+                    list.Add(new() {
+                        Name = "!<private>",
+                        Color = ColorChannelHeaderPrivate,
+                        ScaleFactor = 0.75f,
+                        CanSplit = true
+                    });
+                    lastPossibleSplit = list.Count - 1;
+                }
+
+                list.Add(new() {
+                    Name = player.DisplayName,
+                    ScaleFactor = 1f
+                });
+            }
+
+            // if nothing was actually added after recording splitStartsAt, reset it to 0 (nothing to split up)
+            splitStartsAt = list.Count > splitStartsAt + 1 ? splitStartsAt + 1 : 0;
+
+            PrepareRenderLayout(out float scale, out _, out _, out float spaceWidth, out float locationSeparatorWidth, out float idleIconWidth);
+
+            foreach (Blob blob in list)
+                blob.Generate();
+
+            int textScaleTry = 0;
+            float textScale = scale;
+            RetryLineScale:
+
+            Vector2 sizeAll = Vector2.Zero;
+            Vector2 sizeToSplit = Vector2.Zero;
+            Vector2 sizeUpper = Vector2.Zero;
+
+            for (int i = 0; i < list.Count; i++) {
+                Blob blob = list[i];
+                blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
+                blob.Dyn.Y = sizeAll.Y;
+
+                // introducing gap after own channel
+                if (splitStartsAt > 0 && i == splitStartsAt) {
+                    sizeUpper = sizeAll;
+                    blob.Dyn.Y += 30f * scale;
+                    sizeAll.Y += 30f * scale;
+                }
+
+                Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
+                // proceed as we usually did if not splitting or before split starts
+                if (!SplitViewPartially || splitStartsAt == 0 || i < splitStartsAt) {
+                    sizeAll.X = Math.Max(sizeAll.X, size.X);
+                    sizeAll.Y += size.Y + 10f * scale;
+                } else {
+                    // ... otherwise we record the sizes seperately
+                    sizeToSplit.X = Math.Max(sizeToSplit.X, size.X);
+                    sizeToSplit.Y += size.Y + 10f * scale;
+                }
+
+                if (((Math.Max(sizeAll.X, sizeToSplit.X) + 100f * scale) > UI_WIDTH * 0.7f || (sizeAll.Y + sizeToSplit.Y / 2f + 90f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 5) {
+                    textScaleTry++;
+                    textScale -= scale * 0.1f;
+                    goto RetryLineScale;
+                }
+            }
+
+            if (splitStartsAt == 0)
+                sizeUpper = sizeAll;
+
+            int forceSplitAt = -1;
+            RetryPartialSplit:
+            bool splitSuccessfully = false;
+            Vector2 sizeColumn = Vector2.Zero;
+            float maxColumnY = 0f;
+            
+            int switchedSidesAt = 0;
+            if (SplitViewPartially && splitStartsAt > 0) {
+                for (int i = splitStartsAt; i < list.Count; i++) {
+                    Blob blob = list[i];
+
+                    Vector2 size = blob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
+                    sizeColumn.X = Math.Max(sizeColumn.X, size.X);
+
+                    // have we reached half the splittable height or enforced a split?
+                    if (!splitSuccessfully && (sizeColumn.Y > sizeToSplit.Y / 2f + 10f || forceSplitAt == i)) {
+                        if (blob.CanSplit) {
+                            switchedSidesAt = i;
+                            maxColumnY = sizeColumn.Y;
+                            sizeColumn.Y = 0f;
+                            splitSuccessfully = true;
+                        } else if (lastPossibleSplit > splitStartsAt && i > lastPossibleSplit && forceSplitAt == -1) {
+                            // this is for cases where the last possible split was before the half-way point in height; forcing with a "goto retry"
+                            forceSplitAt = lastPossibleSplit;
+                            list[lastPossibleSplit].CanSplit = true;
+                            goto RetryPartialSplit;
+                        }
+                    }
+                    blob.Dyn.Y = sizeAll.Y + sizeColumn.Y;
+                    sizeColumn.Y += size.Y + 10f * scale;
+                }
+
+                if (splitSuccessfully) {
+
+                    if (sizeColumn.X * 2f < sizeAll.X) {
+                        sizeColumn.X = sizeAll.X / 2f;
+                    } else {
+                        // some padding for when the individual rects get drawn later
+                        sizeColumn.X += 30f * scale;
+                    }
+
+
+                    // move all the right column's elements to the right via Dyn.X
+                    for (int i = switchedSidesAt; i < list.Count; i++)
+                        list[i].Dyn.X = sizeColumn.X + 15f;
+                }
+
+                if (sizeColumn.Y > maxColumnY)
+                    maxColumnY = sizeColumn.Y;
+
+                sizeAll.Y += maxColumnY;
+                sizeAll.X = Math.Max(sizeAll.X, sizeColumn.X * 2f);
+            }
+
+            SizeAll = sizeAll;
+            SizeUpper = sizeUpper;
+            SizeColumn = new(sizeColumn.X, maxColumnY);
+            SplitSuccessfully = splitSuccessfully;
         }
 
         private string GetOrderKey(DataPlayerInfo player) {
@@ -182,7 +366,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return "9";
 
             if (Client.Data.TryGetBoundRef(player, out DataPlayerState state) && !string.IsNullOrEmpty(state?.SID))
-                return $"0 {"0" + state.SID + (int) state.Mode} {player.FullName}";
+                return $"0 {(state.SID.StartsWith("Celeste/") ? "0" : "1") + state.SID + (int) state.Mode} {player.FullName}";
 
             return $"8 {player.FullName}";
         }
@@ -193,17 +377,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return null;
         }
 
-        private DataPlayerInfo ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo player) {
+        private DataPlayerInfo ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo player, LocationModes locationMode) {
             if (player != null) {
+                blob.Player = player;
                 blob.Name = player.DisplayName;
 
-                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
+                blob.LocationMode = locationMode;
+                if (locationMode != LocationModes.OFF && Client.Data.TryGetBoundRef(player, out DataPlayerState state))
                     GetState(blob, state);
 
                 return player;
 
             } else {
                 blob.Name = "?";
+                blob.LocationMode = LocationModes.OFF;
                 return null;
             }
         }
@@ -279,18 +466,67 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             RunOnMainThread(() => RebuildList());
         }
 
+        public void Handle(CelesteNetConnection con, DataConnectionInfo info) {
+            RunOnMainThread(() => {
+                if (!ShowPing)
+                    return;
+
+                // Don't rebuild the entire list
+                // Try to find the player's blob
+                BlobPlayer playerBlob = (BlobPlayer) List?.First(b => b is BlobPlayer pb && pb.Player == info.Player);
+                if (playerBlob == null)
+                    return;
+
+                // Update the player's ping
+                playerBlob.PingMs = info.UDPPingMs ?? info.TCPPingMs;
+
+                // Regenerate the player blob
+                playerBlob.Generate();
+
+                // Re-measure the list
+                // This doesn't handle line splitting/etc, but is good enough
+                if (!SpaceWidth.HasValue || !LocationSeparatorWidth.HasValue || !IdleIconWidth.HasValue) {
+                    // This should never happen, as the list has already been rendered at least once
+                    // Still check just in case
+                    Logger.Log(LogLevel.WRN, "playerlist", "!!!DEAD CODE REACHED!!! Player list layout values still uninitalized in ping update code!");
+                    return;
+                }
+
+                Vector2 sizeAll = Vector2.Zero;
+                foreach (Blob blob in List) {
+                    Vector2 size = blob.Measure(SpaceWidth.Value, LocationSeparatorWidth.Value, IdleIconWidth.Value);
+                    sizeAll.X = Math.Max(sizeAll.X, size.X);
+                    sizeAll.Y += size.Y + 10f * Scale;
+                }
+                SizeAll = sizeAll;
+                SizeUpper = sizeAll;
+                SizeColumn = Vector2.Zero;
+            });
+        }
+
         public void Handle(CelesteNetConnection con, DataChannelList channels) {
-            Channels = channels;
-            RebuildList();
+            RunOnMainThread(() => {
+                Channels = channels;
+                RebuildList();
+            });
+        }
+        
+        public void Handle(CelesteNetConnection con, DataNetEmoji netemoji) {
+            if (!netemoji.MoreFragments)
+                ShouldRebuild = true;
         }
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
             if (LastListMode != ListMode ||
-                LastLocationMode != LocationMode) {
+                LastLocationMode != LocationMode ||
+                LastShowPing != ShowPing ||
+                ShouldRebuild) {
                 LastListMode = ListMode;
                 LastLocationMode = LocationMode;
+                LastShowPing = ShowPing;
+                ShouldRebuild = false;
                 RebuildList();
             }
 
@@ -333,11 +569,62 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected override void Render(GameTime gameTime, bool toBuffer) {
             PrepareRenderLayout(out float scale, out float y, out Vector2 sizeAll, out float spaceWidth, out float locationSeparatorWidth, out _);
 
-            Context.RenderHelper.Rect(25f * scale, y - 25f * scale, sizeAll.X + 50f * scale, sizeAll.Y + 40f * scale, Color.Black * 0.8f);
+            float x = 25f * scale;
+            float sizeAllXPadded = sizeAll.X + 50f * scale;
+            float chatStartY = (Context?.Chat?.RenderPositionY ?? UI_HEIGHT) - 5f;
+            Color colorFull = Color.Black * 0.8f;
+            Color colorFaded = Color.Black * 0.5f;
 
-            foreach (Blob blob in List)
-                blob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth);
+            switch (ListMode) {
+                case ListModes.Classic:
+                    SplitRectAbsolute(x, y - 25f * scale, sizeAllXPadded, sizeAll.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                    break;
 
+                case ListModes.Channels:
+                    // own channel box always there
+                    SplitRectAbsolute(x, y - 25f * scale, sizeAllXPadded, SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+
+                    if (SplitViewPartially && SplitSuccessfully) {
+                        // two rects for the two columns
+                        float sizeColXPadded = SizeColumn.X + 25f * scale;
+                        SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                        x += sizeColXPadded + 5f * scale;
+                        SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded - sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                    } else {
+                        // single rect below the other, nothing was split after all
+                        SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                    }
+                    break;
+            }
+
+            float alpha;
+            foreach (Blob blob in List) {
+                alpha = (y + blob.Dyn.Y < chatStartY) ? 1f : 0.5f;
+                blob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
+            }
+
+        }
+
+        private void SplitRectAbsolute(float x, float y, float width, float height, float splitAtY, Color colorA, Color colorB) {
+            if (splitAtY > y + height) {
+                Context.RenderHelper.Rect(x, y, width, height, colorA);
+            }
+            else if (splitAtY < y) {
+                Context.RenderHelper.Rect(x, y, width, height, colorB);
+            }
+            else {
+                SplitRect(x, y, width, height, splitAtY - y, colorA, colorB);
+            }
+        }
+
+        private void SplitRect(float x, float y, float width, float height, float splitheight, Color colorA, Color colorB) {
+            if (splitheight >= height) {
+                Context.RenderHelper.Rect(x, y, width, height, colorA);
+                return;
+            }
+
+            Context.RenderHelper.Rect(x, y, width, splitheight, colorA);
+            Context.RenderHelper.Rect(x, y + splitheight, width, height - splitheight, colorB);
         }
 
         public class Blob {
@@ -349,21 +636,24 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public Color Color = Color.White;
 
             public float ScaleFactor = 0f;
-            public float DynY;
+            public Vector2 Dyn = Vector2.Zero;
             public float DynScale;
+            public bool CanSplit = false;
 
-            public virtual void Generate(LocationModes locationMode) {
+            public LocationModes LocationMode = LocationModes.ON;
+
+            public virtual void Generate() {
                 if (GetType() == typeof(Blob)) {
                     TextCached = Name;
                     return;
                 }
 
                 StringBuilder sb = new();
-                Generate(sb, locationMode);
+                Generate(sb);
                 TextCached = sb.ToString();
             }
 
-            protected virtual void Generate(StringBuilder sb, LocationModes locationMode) {
+            protected virtual void Generate(StringBuilder sb) {
                 sb.Append(Name);
             }
 
@@ -371,13 +661,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return CelesteNetClientFont.Measure(TextCached) * DynScale;
             }
 
-            public virtual void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
+            public virtual void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha) {
                 CelesteNetClientFont.Draw(
                     TextCached,
-                    new(50f * scale, y + DynY),
+                    new(50f * scale + Dyn.X, y + Dyn.Y),
                     Vector2.Zero,
                     new(DynScale),
-                    Color
+                    Color * alpha
                 );
             }
 
@@ -387,22 +677,37 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             public const string IdleIconCode = ":celestenet_idle:";
 
+            public DataPlayerInfo Player;
             public BlobLocation Location = new();
+
+            public int? PingMs = null;
+            public Blob PingBlob = new() {
+                Color = Color.Gray
+            };
 
             public bool Idle;
 
-            protected override void Generate(StringBuilder sb, LocationModes locationMode) {
+            protected override void Generate(StringBuilder sb) {
                 sb.Append(Name);
                 if (Idle)
                     sb.Append(" ").Append(IdleIconCode);
 
-                // If the player blob was forced to regenerate its text, forward that to the location blob too.
-                Location.Generate(locationMode);
+                if (PingMs.HasValue) {
+                    int ping = PingMs.Value;
+                    if (0 < ping)
+                        PingBlob.Name = $"{ping}ms";
+                    else
+                        PingBlob.Name = "SPOOFED!"; // Someone messed with the packets
+                } else
+                    PingBlob.Name = string.Empty;
+
+                // If the player blob was forced to regenerate its text, forward that to the location and ping blobs too.
+                PingBlob.Generate();
+                Location.LocationMode = LocationMode;
+                Location.Generate();
             }
 
             public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
-                Location.DynY = DynY;
-                Location.DynScale = DynScale;
 
                 Vector2 size = base.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
 
@@ -410,14 +715,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!Idle)
                     size.X += idleIconWidth * DynScale;
 
+                // update nested blobs
+                PingBlob.Dyn.X = Dyn.X + size.X;
+                PingBlob.Dyn.Y = Dyn.Y;
+                PingBlob.DynScale = DynScale;
+                Location.Dyn.Y = Dyn.Y;
+                Location.DynScale = DynScale;
+                Location.LocationMode = LocationMode;
+
+                // insert space for ping and location
+                size.X += PingBlob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth).X;
                 size.X += Location.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth).X;
 
                 return size;
             }
 
-            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
-                base.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth);
-                Location.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth);
+            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha) {
+                base.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
+                PingBlob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
+                Location.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
             }
 
         }
@@ -448,14 +764,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Color = DefaultLevelColor;
             }
 
-            public override void Generate(LocationModes locationMode) {
-                GuiIconCached = (locationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(Icon) ? GFX.Gui[Icon] : null;
-                if ((locationMode & LocationModes.Text) == 0)
+            public override void Generate() {
+                GuiIconCached = (LocationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(Icon) ? GFX.Gui[Icon] : null;
+                if ((LocationMode & LocationModes.Text) == 0)
                     Name = "";
             }
 
             public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
-                if (string.IsNullOrEmpty(Name))
+                if (string.IsNullOrEmpty(Name) || (LocationMode & LocationModes.Text) == 0)
                     return new(GuiIconCached != null ? IconSize * DynScale : 0f);
 
                 float space = spaceWidth * DynScale;
@@ -469,7 +785,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             private void DrawTextPart(string text, float textWidthScaled, Color color, float y, float scale, ref float x) {
                 CelesteNetClientFont.Draw(
                     text,
-                    new(50f * scale + x, y + DynY),
+                    new(50f * scale + x, y + Dyn.Y),
                     Vector2.UnitX, // Rendering location bits right-to-left
                     new(DynScale),
                     color
@@ -477,28 +793,28 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 x -= textWidthScaled;
             }
 
-            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth) {
+            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha) {
                 if (!string.IsNullOrEmpty(Name)) {
                     float space = spaceWidth * DynScale;
-                    float x = sizeAll.X;
+                    float x = sizeAll.X + Dyn.X;
                     // Rendering location bits right-to-left
                     if (GuiIconCached != null) {
                         x -= IconSize * DynScale;
                         x -= space;
                     }
-                    DrawTextPart(Side, SideWidthScaled, AccentColor, y, scale, ref x);
+                    DrawTextPart(Side, SideWidthScaled, AccentColor * alpha, y, scale, ref x);
                     x -= space;
-                    DrawTextPart(Name, NameWidthScaled, TitleColor, y, scale, ref x);
+                    DrawTextPart(Name, NameWidthScaled, TitleColor * alpha, y, scale, ref x);
                     x -= space;
-                    DrawTextPart(LocationSeparator, locationSeparatorWidth * DynScale, Color.Lerp(Color, Color.Black, 0.5f), y, scale, ref x);
+                    DrawTextPart(LocationSeparator, locationSeparatorWidth * DynScale, Color.Lerp(Color, Color.Black, 0.5f) * alpha, y, scale, ref x);
                     x -= space;
-                    DrawTextPart(Level, LevelWidthScaled, Color, y, scale, ref x);
+                    DrawTextPart(Level, LevelWidthScaled, Color * alpha, y, scale, ref x);
                 }
 
                 GuiIconCached?.Draw(
-                    new(50f * scale + sizeAll.X - IconSize * DynScale, y + DynY),
+                    new(50f * scale + sizeAll.X + Dyn.X - IconSize * DynScale, y + Dyn.Y),
                     Vector2.Zero,
-                    Color.White,
+                    Color.White * alpha,
                     new Vector2(IconScale * DynScale)
                 );
             }

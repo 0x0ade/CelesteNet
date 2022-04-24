@@ -53,6 +53,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public float MergeWindow { get; set; } = 15;
         public int MaxHeartbeatDelay { get; set; } = 20;
         public float HeartbeatInterval { get; set; } = 250f;
+        public float PingRequestInterval { get; set; } = 1500f;
 
         public string PacketDumperDirectory { get; set; } = "packetDump";
         public int PacketDumperMaxDumps { get; set; } = 64;

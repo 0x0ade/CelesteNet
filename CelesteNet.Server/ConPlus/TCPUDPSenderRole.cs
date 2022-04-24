@@ -130,7 +130,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                 bufOff = 1;
 
                                 // Update connection metrics and check if we hit the connection cap
-                                con.UDPSendRate.UpdateRate(bufOff, 1);
+                                con.UDPSendRate.UpdateMetric(bufOff, 1);
                                 if (con.UDPSendCapped)
                                     break;
                             }
@@ -148,7 +148,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                         // Send the last container
                         if (bufOff > 1) {
                             Role.UDPSocket.SendTo(UDPBuffer, bufOff, SocketFlags.None, remoteEP);
-                            con.UDPSendRate.UpdateRate(bufOff, 1);
+                            con.UDPSendRate.UpdateMetric(bufOff, 1);
                         }
 
                         // Signal the queue that it's flushed

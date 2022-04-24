@@ -102,9 +102,11 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public override NetPlusThreadRole.RoleWorker CreateWorker(NetPlusThread thread) => new Worker(this, thread);
 
-        protected override Socket CreateSocket() {
+        protected override (Socket sock, bool ownsSocket) CreateSocket() {
             Socket? sock = Interlocked.Exchange(ref initialSock, null);
-            return sock ?? base.CreateSocket();
+            if (sock != null)
+                return (sock, false);
+            return base.CreateSocket();
         }
 
         public void AddConnection(ConPlusTCPUDPConnection con) {

@@ -23,7 +23,7 @@ namespace Celeste.Mod.CelesteNet.Client {
     public static class CelesteNetClientFontMono {
 
         // English is always loaded. Other language fonts must be loaded manually. Load only loads once.
-        public static PixelFont Font => Fonts.Load(Dialog.Languages["japanese"].FontFace);
+        public static PixelFont Font => Fonts.Get(Dialog.Languages["japanese"].FontFace);
 
         public static PixelFontSize FontSize => Font.Get(BaseSize);
 

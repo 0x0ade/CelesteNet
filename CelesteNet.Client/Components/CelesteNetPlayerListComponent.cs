@@ -473,7 +473,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 // Don't rebuild the entire list
                 // Try to find the player's blob
-                BlobPlayer playerBlob = (BlobPlayer) List?.First(b => b is BlobPlayer pb && pb.Player == info.Player);
+                BlobPlayer playerBlob = (BlobPlayer) List?.FirstOrDefault(b => b is BlobPlayer pb && pb.Player == info.Player);
                 if (playerBlob == null)
                     return;
 

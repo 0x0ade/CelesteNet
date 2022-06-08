@@ -114,7 +114,11 @@ export class FrontendChatPanel extends FrontendBasicPanel {
       // Conditions to DROP this message:
       // it's sent in a channel, AND it has Targets AND the player sending it is not such a Target.
       // this predicate is meant to drop all the repeat channel messages that are akin to whispering each recipient individually
-      return data.Tag.startsWith("channel ") && data.Targets && data.Targets.indexOf(data.PlayerID) == -1
+      let isRedundant = data.Tag.startsWith("channel ") && data.Targets && data.Targets.indexOf(data.PlayerID) == -1;
+
+      // not 100% sure if we want to drop command responses too, all they show us/the client that the command was received?...
+      isRedundant ||= data.Text.startsWith("/") && data.Targets && data.Targets.indexOf(data.PlayerID) > -1;
+      return isRedundant;
     }
 
   render(el) {
@@ -191,8 +195,8 @@ export class FrontendChatPanel extends FrontendBasicPanel {
     return el => {
       let opts = [];
       let name = "";
-        let targets = [];
-        let tag = "";
+      let targets = [];
+      let tag = "";
 
       if (data) {
         opts = [
@@ -202,40 +206,40 @@ export class FrontendChatPanel extends FrontendBasicPanel {
             Color: "#ee2233",
             Text: "*deleted*"
           }) ]
-          ];
+        ];
 
-          if (data.Tag)
-              tag = "[" + data.Tag + "] ";
+        if (data.Tag)
+          tag = "[" + data.Tag + "] ";
 
-          if (data.PlayerID) {
-              if (data.PlayerID !== this.frontend.MAX_INT) {
-                  const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == data.PlayerID);
-                  // TODO: Rerender el on missing player only once! Otherwise render -> refresh -> render -> refresh...
-                  if (!player)
-                      FrontendPlayersPanel["instance"].refresh();
-                  name = player && player.FullName || ("#" + data.PlayerID);
+        if (data.PlayerID) {
+          if (data.PlayerID !== this.frontend.MAX_INT) {
+            const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == data.PlayerID);
+            // TODO: Rerender el on missing player only once! Otherwise render -> refresh -> render -> refresh...
+            if (!player)
+              FrontendPlayersPanel["instance"].refresh();
+            name = player && player.FullName || ("#" + data.PlayerID);
 
-                  opts = [
-                      ...opts,
-                      ["error_outline", `Kick ${name}`, () => this.frontend.dialog.kick(data.PlayerID)],
-                      ["gavel", `Ban ${name}`, () => this.frontend.dialog.ban(player && player.UID, player && player.ConnectionUID)]
-                  ];
-              } else {
-                  name = " ** SERVER ** ";
-              }
+            opts = [
+              ...opts,
+              ["error_outline", `Kick ${name}`, () => this.frontend.dialog.kick(data.PlayerID)],
+              ["gavel", `Ban ${name}`, () => this.frontend.dialog.ban(player && player.UID, player && player.ConnectionUID)]
+            ];
+          } else {
+            name = " ** SERVER ** ";
           }
+        }
 
-          if (data.Targets && data.Targets.length > 0 && !data.Tag.startsWith("channel ")) {
-              for (var targetID in data.Targets) {
-                  const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == targetID);
-                  if (player)
-                      targets.push(player && player.FullName || ("#" + targetID));
-              }
+        if (data.Targets && data.Targets.length > 0 && !data.Tag.startsWith("channel ")) {
+          for (let targetID of data.Targets) {
+            const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == targetID);
+            if (player)
+              targets.push(player && player.FullName || ("#" + targetID));
           }
+        }
 
       }
 
-        let chatText = `[${new Date(data.DateTime).toLocaleTimeString("de-DE")}] ${tag}${name}${(targets.length > 0 ? " @" + targets.join(",") : "")}:${(data.Text.indexOf('\n') != -1 ? "\n" : " ")}${data.Text}`;
+      let chatText = `[${new Date(data.DateTime).toLocaleTimeString("de-DE")}] ${tag}${name}${(targets.length > 0 ? " @" + targets.join(",") : "")}:${(data.Text.indexOf('\n') != -1 ? "\n" : " ")}${data.Text}`;
 
       el = mdcrd.list.item(chatText)(el);
       if (color && color.toLowerCase() !== "#ffffff")

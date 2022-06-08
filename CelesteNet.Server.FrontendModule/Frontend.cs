@@ -144,12 +144,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         private bool OnChatReceive(ChatModule chat, DataChat msg) {
-            BroadcastCMD(msg.Targets != null, "chat", msg.ToFrontendChat());
+            BroadcastCMD(msg.Targets != null, "chat", msg.ToDetailedFrontendChat());
             return true;
         }
 
         private void OnForceSend(ChatModule chat, DataChat msg) {
-            BroadcastCMD(msg.Targets != null, "chat", msg.ToFrontendChat());
+            BroadcastCMD(msg.Targets != null, "chat", msg.ToDetailedFrontendChat());
         }
 
         private string? GetContentType(string path) {

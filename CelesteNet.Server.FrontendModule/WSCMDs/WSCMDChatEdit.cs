@@ -29,7 +29,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 msg.Text = (string) input.Text;
 
             chat.ForceSend(msg);
-            return msg.ToFrontendChat();
+            return msg.ToDetailedFrontendChat();
         }
     }
 }

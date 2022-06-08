@@ -14,8 +14,10 @@ const mdc = window["mdc"]; // mdc
 @typedef {{
   ID: number,
   PlayerID: number,
-  Targeted: boolean,
+  Targets: number[] | null,
   Color: string,
+  DateTime: number,
+  Tag: string,
   Text: string
 }} ChatData
  */
@@ -99,10 +101,21 @@ export class FrontendChatPanel extends FrontendBasicPanel {
   async update() {
     if (this.paused)
       return;
-    this.data = await fetch(this.ep + "?count=100").then(r => r.json());
+    this.data = await fetch(this.ep + "?count=100&detailed=true").then(r => r.json());
     // @ts-ignore
-    this.list = this.data.map(data => this.createEntry(data.Text, data.Color, data));
+    this.list = this.data.filter(data => !this.dropExtraChannelChats(data)).map(data => this.createEntry(data.Text, data.Color, data));
   }
+
+    /**
+     * @param {ChatData} [data]
+     * @returns boolean
+     */
+    dropExtraChannelChats(data) {
+      // Conditions to DROP this message:
+      // it's sent in a channel, AND it has Targets AND the player sending it is not such a Target.
+      // this predicate is meant to drop all the repeat channel messages that are akin to whispering each recipient individually
+      return data.Tag.startsWith("channel ") && data.Targets && data.Targets.indexOf(data.PlayerID) == -1
+    }
 
   render(el) {
     return this.el = rd$(el || this.el)`
@@ -176,13 +189,10 @@ export class FrontendChatPanel extends FrontendBasicPanel {
    */
   createEntry(text, color, data) {
     return el => {
-      el = mdcrd.list.item(text)(el);
-      if (color && color.toLowerCase() !== "#ffffff")
-        el.style.color = color;
-      else
-        el.style.color = "#000000";
-
       let opts = [];
+      let name = "";
+        let targets = [];
+        let tag = "";
 
       if (data) {
         opts = [
@@ -192,32 +202,57 @@ export class FrontendChatPanel extends FrontendBasicPanel {
             Color: "#ee2233",
             Text: "*deleted*"
           }) ]
-        ];
-
-        if (data.PlayerID && data.PlayerID !== this.frontend.MAX_INT) {
-          const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == data.PlayerID);
-          // TODO: Rerender el on missing player only once! Otherwise render -> refresh -> render -> refresh...
-          if (!player)
-            FrontendPlayersPanel["instance"].refresh();
-          const name = player && player.FullName || ("#" + data.PlayerID);
-
-          opts = [
-            ...opts,
-            [ "error_outline", `Kick ${name}`, () => this.frontend.dialog.kick(data.PlayerID) ],
-            [ "gavel", `Ban ${name}`, () => this.frontend.dialog.ban(player && player.UID, player && player.ConnectionUID) ]
           ];
-        }
+
+          if (data.Tag)
+              tag = "[" + data.Tag + "] ";
+
+          if (data.PlayerID) {
+              if (data.PlayerID !== this.frontend.MAX_INT) {
+                  const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == data.PlayerID);
+                  // TODO: Rerender el on missing player only once! Otherwise render -> refresh -> render -> refresh...
+                  if (!player)
+                      FrontendPlayersPanel["instance"].refresh();
+                  name = player && player.FullName || ("#" + data.PlayerID);
+
+                  opts = [
+                      ...opts,
+                      ["error_outline", `Kick ${name}`, () => this.frontend.dialog.kick(data.PlayerID)],
+                      ["gavel", `Ban ${name}`, () => this.frontend.dialog.ban(player && player.UID, player && player.ConnectionUID)]
+                  ];
+              } else {
+                  name = " ** SERVER ** ";
+              }
+          }
+
+          if (data.Targets && data.Targets.length > 0 && !data.Tag.startsWith("channel ")) {
+              for (var targetID in data.Targets) {
+                  const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == targetID);
+                  if (player)
+                      targets.push(player && player.FullName || ("#" + targetID));
+              }
+          }
+
       }
+
+        let chatText = `[${new Date(data.DateTime).toLocaleTimeString("de-DE")}] ${tag}${name}${(targets.length > 0 ? " @" + targets.join(",") : "")}:${(data.Text.indexOf('\n') != -1 ? "\n" : " ")}${data.Text}`;
+
+      el = mdcrd.list.item(chatText)(el);
+      if (color && color.toLowerCase() !== "#ffffff")
+        el.style.color = color;
+      else
+        el.style.color = "#000000";
+
 
       this.frontend.dom.setContext(el, ...opts);
 
-      if (data.Targeted && !this.frontend.settings.sensitive)
+      if (data.Targets && !this.frontend.settings.sensitive)
         el.classList.add("hidden");
       else
         el.classList.remove("hidden");
 
       if (this.frontend.settings.minimizeServerMsgs)
-        if (data.Targeted && color && (color.toLowerCase() == "#9e24f5" || color.toLowerCase() == "#e39dcc"))
+        if (data.Targets && color && (color.toLowerCase() == "#9e24f5" || color.toLowerCase() == "#e39dcc"))
           el.classList.add("minimized");
 
       return el;
@@ -230,6 +265,8 @@ export class FrontendChatPanel extends FrontendBasicPanel {
    * @param {ChatData} [data]
    */
   log(text, color, data) {
+    if (this.dropExtraChannelChats(data))
+      return;
     // @ts-ignore
     this.list.push(this.createEntry(text, color, data));
     if (this.list.length > 100) {

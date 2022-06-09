@@ -117,7 +117,7 @@ export class FrontendChatPanel extends FrontendBasicPanel {
       let isRedundant = data.Tag.startsWith("channel ") && data.Targets && data.Targets.indexOf(data.PlayerID) == -1;
 
       // not 100% sure if we want to drop command responses too, all they show us/the client that the command was received?...
-      isRedundant ||= data.Text.startsWith("/") && data.Targets && data.Targets.indexOf(data.PlayerID) > -1;
+      isRedundant ||= data.Text.startsWith("/") && !data.Targets;
       return isRedundant;
     }
 

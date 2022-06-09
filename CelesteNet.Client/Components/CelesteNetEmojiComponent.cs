@@ -47,7 +47,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Format = "png";
                 PathVirtual = $"emoji/{ID}";
                 Emoji.Register(ID, GFX.Misc["whiteCube"]);
-                //Logger.Log(LogLevel.DEV, "emoji", $"Calling Fill from new NetEmojiAsset(): {ID}");
                 Emoji.Fill(CelesteNetClientFont.Font);
             }
 
@@ -55,7 +54,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Buffer.Dispose();
                 if (!Pending) {
                     Emoji.Register(ID, GFX.Misc["whiteCube"]);
-                    //Logger.Log(LogLevel.DEV, "emoji", $"Calling Fill from Dispose(): {ID}");
                     Emoji.Fill(CelesteNetClientFont.Font);
                 }
             }
@@ -126,7 +124,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             MTexture tex = new(vtex);
                             Content.Registered.Add(asset.ID);
                             Emoji.Register(asset.ID, tex);
-                            //Logger.Log(LogLevel.DEV, "emoji", $"Calling Fill from Handle(..., DataNetEmoji): {netemoji.ID}");
                             Emoji.Fill(CelesteNetClientFont.Font);
                         });
                     } catch (ObjectDisposedException) {

@@ -15,6 +15,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public readonly List<ChatCMD> All = new();
         public readonly Dictionary<string, ChatCMD> ByID = new();
         public readonly Dictionary<Type, ChatCMD> ByType = new();
+        public readonly DataCommandList DataAll = new DataCommandList();
 
         public ChatCommands(ChatModule chat) {
             foreach (Type type in CelesteNetUtils.GetTypes()) {
@@ -29,9 +30,13 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 ByID[cmd.ID.ToLowerInvariant()] = cmd;
                 ByType[type] = cmd;
             }
+            DataAll.List = new DataCommandList.Command[All.Count];
 
-            foreach (ChatCMD cmd in All)
+            int i = 0;
+            foreach (ChatCMD cmd in All) {
                 cmd.Init(chat);
+                DataAll.List[i++] = new DataCommandList.Command() {ID = cmd.ID};
+            }
 
             All = All.OrderBy(cmd => cmd.HelpOrder).ToList();
         }

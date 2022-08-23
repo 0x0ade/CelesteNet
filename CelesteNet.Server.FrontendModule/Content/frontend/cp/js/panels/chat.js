@@ -258,6 +258,8 @@ export class FrontendChatPanel extends FrontendBasicPanel {
       if (this.frontend.settings.minimizeServerMsgs)
         if (data.Targets && color && (color.toLowerCase() == "#9e24f5" || color.toLowerCase() == "#e39dcc"))
           el.classList.add("minimized");
+        else
+          el.classList.remove("minimized");
 
       return el;
     };

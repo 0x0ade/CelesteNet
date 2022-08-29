@@ -103,7 +103,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Wheel == null)
                 level.Add(Wheel = new(Player));
 
-            if (!level.Paused && Settings.EmoteWheel && !Player.Dead) {
+            // TimeRate check is for Prologue Dash prompt freeze
+            if (!level.Paused && Settings.EmoteWheel && !Player.Dead && Engine.TimeRate > 0.05f) {
                 Wheel.Shown = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f;
                 int selected = Wheel.Selected;
                 if (Wheel.Shown && selected != -1 && CelesteNetClientModule.Instance.ButtonEmoteSend.Pressed) {
@@ -148,7 +149,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private void OnHeartGemCollect(On.Celeste.HeartGem.orig_Collect orig, HeartGem self, Player player) {
             orig(self, player);
-            Wheel?.TimeRateSkip.Add("HeartGem");
+            Wheel?.TimeRateSkip.Add(self.IsFake ? "EmptySpaceHeart" : "HeartGem");
         }
 
         private void OnHeartGemEndCutscene(On.Celeste.HeartGem.orig_EndCutscene orig, HeartGem self) {

@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Mod.CelesteNet.Client.Components;
+using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections.Generic;
@@ -48,7 +49,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Update() {
             // Update only runs while the level is "alive" (scene not paused or frozen).
 
-            if (TimeRateSkip.Count == 0 || ForceSetTimeRate) {
+            if (TimeRateSkip.Contains("EmptySpaceHeart") && Tracking?.Scene.Tracker.GetEntity<Player>() is Player p && p.StateMachine.State != Player.StDummy)
+                TimeRateSkip.Remove("EmptySpaceHeart");
+
+            // TimeRate check is for Prologue Dash prompt freeze
+            if (Engine.TimeRate > 0.05f && (TimeRateSkip.Count == 0 || ForceSetTimeRate)) {
                 if (Shown && !timeRateSet) {
                     Engine.TimeRate = 0.25f;
                     timeRateSet = true;

@@ -50,7 +50,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             foreach (string uid in uids)
                 Frontend.Server.UserData.Save(uid, ban);
-            Frontend.BroadcastCMD(true, "update", "/userinfos");
+            Frontend.BroadcastCMD(true, "update", Frontend.Settings.APIPrefix + "/userinfos");
 
             return null;
         }

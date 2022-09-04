@@ -774,7 +774,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
             }
             PlayerNameTag.Alpha = Settings.ShowOwnName ? 1f : 0f;
-            PlayerNameTag.Name = $"{Engine.TimeRate} {level.Frozen}  {level.FrozenOrPaused} {(level.Tracker == null ? "no tr" : Context?.Get<CelesteNetEmoteComponent>() is CelesteNetEmoteComponent e ? e.Wheel?.TimeRateSkip.FirstOrDefault() : "no eco")} {level.InCutscene} {Player.StateMachine.State}";
         }
 
         public override void Tick() {

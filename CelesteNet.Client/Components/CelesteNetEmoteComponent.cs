@@ -150,6 +150,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private void OnHeartGemCollect(On.Celeste.HeartGem.orig_Collect orig, HeartGem self, Player player) {
             orig(self, player);
             Wheel?.TimeRateSkip.Add(self.IsFake ? "EmptySpaceHeart" : "HeartGem");
+            if (self.IsFake && Wheel != null)
+                Wheel.timeSkipForcedDelay = 10f;
         }
 
         private void OnHeartGemEndCutscene(On.Celeste.HeartGem.orig_EndCutscene orig, HeartGem self) {

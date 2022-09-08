@@ -77,7 +77,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             session.Remove<SpamContext>(this)?.Dispose();
         }
 
-        public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg, bool invokleReceive = true) {
+        public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg, bool invokeReceive = true) {
             lock (ChatLog)
                 msg.ID = NextID++;
             msg.Date = DateTime.UtcNow;
@@ -132,7 +132,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (!msg.CreatedByServer)
                 Logger.Log(LogLevel.INF, "chatmsg", msg.ToString(false, true));
 
-            if (invokleReceive)
+            if (invokeReceive)
                 OnReceive?.Invoke(this, msg);
 
             return msg;

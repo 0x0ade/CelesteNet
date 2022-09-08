@@ -77,7 +77,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             session.Remove<SpamContext>(this)?.Dispose();
         }
 
-        public DataChat? VerifyMessage(CelesteNetConnection? from, DataChat msg) {
+        public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg, bool invokleReceive = true) {
             lock (ChatLog)
                 msg.ID = NextID++;
             msg.Date = DateTime.UtcNow;
@@ -129,17 +129,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 ChatBuffer.Set(msg).Move(1);
             }
 
-            return msg;
-        }
-
-        public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg) {
-            if (VerifyMessage(from, msg) == null)
-                return null;
-
             if (!msg.CreatedByServer)
                 Logger.Log(LogLevel.INF, "chatmsg", msg.ToString(false, true));
 
-            OnReceive?.Invoke(this, msg);
+            if (invokleReceive)
+                OnReceive?.Invoke(this, msg);
 
             return msg;
         }
@@ -147,7 +141,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public event Action<ChatModule, DataChat>? OnReceive;
 
         public void Handle(CelesteNetConnection? con, DataChat msg) {
-            if (VerifyMessage(con, msg) == null)
+            if (PrepareAndLog(con, msg, false) == null)
                 return;
 
             if ((!msg.CreatedByServer || msg.Player == null) && msg.Text.StartsWith(Settings.CommandPrefix)) {

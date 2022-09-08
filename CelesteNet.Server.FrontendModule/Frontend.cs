@@ -143,9 +143,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             BroadcastCMD(false, "update", "/channels");
         }
 
-        private bool OnChatReceive(ChatModule chat, DataChat msg) {
+        private void OnChatReceive(ChatModule chat, DataChat msg) {
             BroadcastCMD(msg.Targets != null, "chat", msg.ToFrontendChat());
-            return true;
         }
 
         private void OnForceSend(ChatModule chat, DataChat msg) {

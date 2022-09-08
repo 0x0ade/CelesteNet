@@ -132,13 +132,13 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (!msg.CreatedByServer)
                 Logger.Log(LogLevel.INF, "chatmsg", msg.ToString(false, true));
 
-            if (!(OnReceive?.InvokeWhileTrue(this, msg) ?? true))
-                return null;
+            if (msg.CreatedByServer && msg.Targets == null)
+                OnReceive?.Invoke(this, msg);
 
             return msg;
         }
 
-        public event Func<ChatModule, DataChat, bool>? OnReceive;
+        public event Action<ChatModule, DataChat>? OnReceive;
 
         public void Handle(CelesteNetConnection? con, DataChat msg) {
             if (PrepareAndLog(con, msg) == null)
@@ -185,6 +185,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 Commands.Get<ChatCMDChannelChat>().ParseAndRun(new ChatCMDEnv(this, msg));
                 return;
             }
+
+            OnReceive?.Invoke(this, msg);
 
             Server.BroadcastAsync(msg);
         }

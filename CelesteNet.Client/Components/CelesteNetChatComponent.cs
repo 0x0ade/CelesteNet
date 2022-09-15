@@ -142,6 +142,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataChat msg) {
+            if (Client == null)
+                return;
+
             lock (Log) {
                 if (msg.Player?.ID == Client.PlayerInfo?.ID) {
                     foreach (DataChat pending in Pending.Values) {
@@ -176,6 +179,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
+
+            if (Client == null) {
+                Active = false;
+                return;
+            }
 
             _Time += Engine.RawDeltaTime;
             _TimeSinceCursorMove += Engine.RawDeltaTime;

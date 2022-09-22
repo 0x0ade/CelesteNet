@@ -269,7 +269,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (ghost == null) {
                 if (!Client.Data.TryGetBoundRef<DataPlayerInfo, DataPlayerGraphics>(frame.Player, out DataPlayerGraphics graphics) || graphics == null)
                     return;
-                Logger.Log("HAIR", $"Creating ghost for {frame.Player.Name}: {graphics.HairCount}");
                 ghost = CreateGhost(level, frame.Player, graphics);
             }
 
@@ -738,11 +737,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
-            if (Player != null && Player.Sprite != null && SentHairLength != Player.Sprite.HairCount) {
-                Logger.Log("HAIR", $"Resending graphics because: {SentHairLength} != {Player.Sprite.HairCount}");
+            if (Player != null && Player.Sprite != null && SentHairLength != Player.Sprite.HairCount)
                 SendGraphics();
-            }
-
 
             bool idle = level.FrozenOrPaused || level.Overlay != null;
             if (WasIdle != idle) {
@@ -782,8 +778,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
             }
             PlayerNameTag.Alpha = Settings.ShowOwnName ? 1f : 0f;
-            if (Player.Hair != null)
-                PlayerNameTag.Name = $"{Player.Hair.SimulateMotion} {Player.Hair.Active} {Player.Sprite.Active} {Player.Active}";
         }
 
         public override void Tick() {

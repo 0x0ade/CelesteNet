@@ -404,6 +404,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 blob.Location.TitleColor = Color.Lerp(area?.TitleBaseColor ?? Color.White, DefaultLevelColor, 0.5f);
                 blob.Location.AccentColor = Color.Lerp(area?.TitleAccentColor ?? Color.White, DefaultLevelColor, 0.8f);
 
+                blob.Location.SID = state.SID;
                 blob.Location.Name = chapter;
                 blob.Location.Side = ((char) ('A' + (int) state.Mode)).ToString();
                 blob.Location.Level = state.Level;
@@ -463,7 +464,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
-            RunOnMainThread(() => RebuildList());
+            RunOnMainThread(() => {
+                // Don't rebuild the entire list
+                // Try to find the player's blob
+                BlobPlayer playerBlob = (BlobPlayer) List?.FirstOrDefault(b => b is BlobPlayer pb && pb.Player == state.Player);
+                if (playerBlob == null || playerBlob.Location.SID.IsNullOrEmpty() || playerBlob.Location.SID != state.SID) {
+                    RebuildList();
+                    return;
+                }
+
+                // just update blob state, since SID hasn't changed
+                GetState(playerBlob, state);
+                playerBlob.Generate();
+            });
+
         }
 
         public void Handle(CelesteNetConnection con, DataConnectionInfo info) {
@@ -754,6 +768,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public string Level = "";
             private float LevelWidthScaled;
             public string Icon = "";
+
+            public string SID = "";
 
             public bool IsRandomizer;
 

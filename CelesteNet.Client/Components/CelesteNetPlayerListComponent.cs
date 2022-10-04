@@ -468,7 +468,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 // Don't rebuild the entire list
                 // Try to find the player's blob
                 BlobPlayer playerBlob = (BlobPlayer) List?.FirstOrDefault(b => b is BlobPlayer pb && pb.Player == state.Player);
-                if (playerBlob == null || playerBlob.Location.SID.IsNullOrEmpty() || playerBlob.Location.SID != state.SID) {
+                if (playerBlob == null || playerBlob.Location.SID.IsNullOrEmpty() || playerBlob.Location.SID != state.SID || playerBlob.Location.Level.Length < state.Level.Length - 1) {
                     RebuildList();
                     return;
                 }

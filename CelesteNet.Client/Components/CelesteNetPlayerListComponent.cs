@@ -67,6 +67,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public bool ShowPing => Settings.PlayerListShowPing;
         private bool LastShowPing;
 
+        public bool AllowSplit => Settings.PlayerListAllowSplit;
+        private bool LastAllowSplit;
+
         private float? SpaceWidth;
         private float? LocationSeparatorWidth;
         private float? IdleIconWidth;
@@ -79,7 +82,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private bool _splitViewPartially = false;
         private bool SplitViewPartially {
             get {
-                if (ListMode != ListModes.Channels || !Settings.PlayerListAllowSplit)
+                if (ListMode != ListModes.Channels || !AllowSplit)
                     return _splitViewPartially = false;
                 // only flip value after passing threshold to prevent flipping on +1/-1s at threshold
                 if (!_splitViewPartially && SplittablePlayerCount > SplitThresholdUpper)
@@ -156,6 +159,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
                     GetState(blob, state);
+
+                if (ShowPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo conInfo))
+                    blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
 
                 list.Add(blob);
             }
@@ -386,6 +392,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (locationMode != LocationModes.OFF && Client.Data.TryGetBoundRef(player, out DataPlayerState state))
                     GetState(blob, state);
 
+                if (ShowPing && locationMode != LocationModes.OFF && Client.Data.TryGetBoundRef(player, out DataConnectionInfo conInfo))
+                    blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
+
                 return player;
 
             } else {
@@ -404,6 +413,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 blob.Location.TitleColor = Color.Lerp(area?.TitleBaseColor ?? Color.White, DefaultLevelColor, 0.5f);
                 blob.Location.AccentColor = Color.Lerp(area?.TitleAccentColor ?? Color.White, DefaultLevelColor, 0.8f);
 
+                blob.Location.SID = state.SID;
                 blob.Location.Name = chapter;
                 blob.Location.Side = ((char) ('A' + (int) state.Mode)).ToString();
                 blob.Location.Level = state.Level;
@@ -463,7 +473,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
-            RunOnMainThread(() => RebuildList());
+            RunOnMainThread(() => {
+                // Don't rebuild the entire list
+                // Try to find the player's blob
+                BlobPlayer playerBlob = (BlobPlayer) List?.FirstOrDefault(b => b is BlobPlayer pb && pb.Player == state.Player);
+                if (playerBlob == null || playerBlob.Location.SID.IsNullOrEmpty() || playerBlob.Location.SID != state.SID || playerBlob.Location.Level.Length < state.Level.Length - 1) {
+                    RebuildList();
+                    return;
+                }
+
+                // just update blob state, since SID hasn't changed
+                GetState(playerBlob, state);
+                playerBlob.Generate();
+            });
+
         }
 
         public void Handle(CelesteNetConnection con, DataConnectionInfo info) {
@@ -473,9 +496,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 // Don't rebuild the entire list
                 // Try to find the player's blob
-                BlobPlayer playerBlob = (BlobPlayer) List?.First(b => b is BlobPlayer pb && pb.Player == info.Player);
+                BlobPlayer playerBlob = (BlobPlayer) List?.FirstOrDefault(b => b is BlobPlayer pb && pb.Player == info.Player);
                 if (playerBlob == null)
                     return;
+
+                DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+                if (ListMode == ListModes.Channels && !own.Players.Contains(info.Player.ID))
+                    return;
+
+                PrepareRenderLayout(out float scale, out float y, out Vector2 sizeAll, out float spaceWidth, out float locationSeparatorWidth, out float idleIconWidth);
 
                 // Update the player's ping
                 playerBlob.PingMs = info.UDPPingMs ?? info.TCPPingMs;
@@ -483,24 +512,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 // Regenerate the player blob
                 playerBlob.Generate();
 
-                // Re-measure the list
-                // This doesn't handle line splitting/etc, but is good enough
-                if (!SpaceWidth.HasValue || !LocationSeparatorWidth.HasValue || !IdleIconWidth.HasValue) {
-                    // This should never happen, as the list has already been rendered at least once
-                    // Still check just in case
-                    Logger.Log(LogLevel.WRN, "playerlist", "!!!DEAD CODE REACHED!!! Player list layout values still uninitalized in ping update code!");
-                    return;
-                }
+                Vector2 size = playerBlob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
 
-                Vector2 sizeAll = Vector2.Zero;
-                foreach (Blob blob in List) {
-                    Vector2 size = blob.Measure(SpaceWidth.Value, LocationSeparatorWidth.Value, IdleIconWidth.Value);
-                    sizeAll.X = Math.Max(sizeAll.X, size.X);
-                    sizeAll.Y += size.Y + 10f * Scale;
-                }
-                SizeAll = sizeAll;
-                SizeUpper = sizeAll;
-                SizeColumn = Vector2.Zero;
+                SizeAll.X = Math.Max(size.X, SizeAll.X);
             });
         }
 
@@ -522,10 +536,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (LastListMode != ListMode ||
                 LastLocationMode != LocationMode ||
                 LastShowPing != ShowPing ||
+                LastAllowSplit != AllowSplit ||
                 ShouldRebuild) {
                 LastListMode = ListMode;
                 LastLocationMode = LocationMode;
                 LastShowPing = ShowPing;
+                LastAllowSplit = AllowSplit;
                 ShouldRebuild = false;
                 RebuildList();
             }
@@ -694,10 +710,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (PingMs.HasValue) {
                     int ping = PingMs.Value;
-                    if (0 < ping)
+                    if (ping > 0)
                         PingBlob.Name = $"{ping}ms";
                     else
-                        PingBlob.Name = "SPOOFED!"; // Someone messed with the packets
+                        PingBlob.Name = "???ms"; // Someone messed with the packets, or server has no data yet
                 } else
                     PingBlob.Name = string.Empty;
 
@@ -754,6 +770,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public string Level = "";
             private float LevelWidthScaled;
             public string Icon = "";
+
+            public string SID = "";
 
             public bool IsRandomizer;
 

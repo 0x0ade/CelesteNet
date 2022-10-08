@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             string colorStr = (string?) input.Color ?? "";
             Color color = !colorStr.IsNullOrEmpty() ? Calc.HexToColor(colorStr) : chat.Settings.ColorBroadcast;
 
-            return chat.Broadcast(text, tag, color).ToFrontendChat();
+            return chat.Broadcast(text, tag, color).ToDetailedFrontendChat();
         }
     }
 }

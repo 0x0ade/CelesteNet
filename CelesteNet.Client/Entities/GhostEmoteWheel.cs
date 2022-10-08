@@ -2,9 +2,6 @@
 using Monocle;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     // TODO: This is taken mostly as is from GhostNet and can be improved.
@@ -22,6 +19,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected bool timeRateSet = false;
 
         public HashSet<string> TimeRateSkip = new();
+        public float timeSkipForcedDelay = -1f;
         public bool ForceSetTimeRate;
 
         public float Angle = 0f;
@@ -48,7 +46,18 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Update() {
             // Update only runs while the level is "alive" (scene not paused or frozen).
 
-            if (TimeRateSkip.Count == 0 || ForceSetTimeRate) {
+            if (TimeRateSkip.Contains("EmptySpaceHeart") &&
+                timeSkipForcedDelay <= 0f &&
+                Engine.Scene is Level l && !l.InCutscene) {
+                TimeRateSkip.Remove("EmptySpaceHeart");
+            }
+
+            if (timeSkipForcedDelay >= 0f) {
+                timeSkipForcedDelay -= Engine.RawDeltaTime;
+            }
+
+            // TimeRate check is for Prologue Dash prompt freeze
+            if (Engine.TimeRate > 0.05f && (TimeRateSkip.Count == 0 || ForceSetTimeRate)) {
                 if (Shown && !timeRateSet) {
                     Engine.TimeRate = 0.25f;
                     timeRateSet = true;

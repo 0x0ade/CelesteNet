@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         From = DateTime.UtcNow
                     });
                     userData.Save(uid, kicks);
-                    Frontend.BroadcastCMD(true, "update", "/userinfos");
+                    Frontend.BroadcastCMD(true, "update", Frontend.Settings.APIPrefix + "/userinfos");
                 }
 
                 return null;

@@ -18,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return null;
 
             Frontend.Server.UserData.Delete<BanInfo>(uid);
-            Frontend.BroadcastCMD(true, "update", "/userinfos");
+            Frontend.BroadcastCMD(true, "update", Frontend.Settings.APIPrefix + "/userinfos");
 
             return null;
         }

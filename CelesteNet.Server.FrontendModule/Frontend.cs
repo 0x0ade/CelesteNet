@@ -120,27 +120,27 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         private void OnConnect(CelesteNetServer server, CelesteNetConnection con) {
-            BroadcastCMD(false, "update", "/status");
+            BroadcastCMD(false, "update", Settings.APIPrefix + "/status");
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
-            BroadcastCMD(false, "update", "/status");
-            BroadcastCMD(false, "update", "/players");
+            BroadcastCMD(false, "update", Settings.APIPrefix + "/status");
+            BroadcastCMD(false, "update", Settings.APIPrefix + "/players");
             session.OnEnd += OnSessionEnd;
         }
 
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
-            BroadcastCMD(false, "update", "/status");
-            BroadcastCMD(false, "update", "/players");
+            BroadcastCMD(false, "update", Settings.APIPrefix + "/status");
+            BroadcastCMD(false, "update", Settings.APIPrefix + "/players");
         }
 
         private void OnDisconnect(CelesteNetServer server, CelesteNetConnection con, CelesteNetPlayerSession? session) {
             if (session == null)
-                BroadcastCMD(false, "update", "/status");
+                BroadcastCMD(false, "update", Settings.APIPrefix + "/status");
         }
 
         private void OnBroadcastChannels(Channels obj) {
-            BroadcastCMD(false, "update", "/channels");
+            BroadcastCMD(false, "update", Settings.APIPrefix + "/channels");
         }
 
         private bool OnChatReceive(ChatModule chat, DataChat msg) {

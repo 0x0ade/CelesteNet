@@ -126,7 +126,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     tokenSrc.CancelAfter(TeapotTimeout);
                     tokenSrc.Token.Register(() => sock.Close());
                     try {
-                        (IConnectionFeature[] conFeatures, string playerUID, string playerName, CelesteNetClientOptions clientOptions)? teapotRes =
+                        (IConnectionFeature[], string, string, CelesteNetClientOptions)? teapotRes =
                             await TeapotHandshake(
                                 sock, conToken, settings,
                                 ConPlusTCPUDPConnection.GetConnectionUID(remoteEP)
@@ -366,6 +366,12 @@ Who wants some tea?"
                 if (playerUID != null && Server.UserData.TryLoad(playerUID, out BasicUserInfo info))
                     playerName = info.Name;
                 else
+                    return string.Format(Server.Settings.MessageInvalidKey, nameKey);
+            } else if (nameKey.Length == 16 && nameKey.All("0123456789abcdefABCDEF".Contains) && (playerUID = Server.UserData.GetUID(nameKey)) != null) {
+                // this is for people who entered 16 hex-digits and probably forgot the # and we don't want to leak their key
+                if (Server.UserData.TryLoad(playerUID, out BasicUserInfo info)) {
+                    playerName = info.Name;
+                } else
                     return string.Format(Server.Settings.MessageInvalidKey, nameKey);
             } else if (!Server.Settings.AuthOnly) {
                 playerName = nameKey;

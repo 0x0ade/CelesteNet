@@ -42,20 +42,5 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             }
         }
 
-        public class CommandInfo {
-            public string ID = "";
-            public string AliasTo = "";
-            public bool Auth = false;
-            public bool AuthExec = false;
-            public CompletionType FirstArg = CompletionType.None;
-        }
-
-        public enum CompletionType : byte {
-            None = 0,
-            Command = 1,
-            Channel = 2,
-            Player = 3
-        }
-
     }
 }

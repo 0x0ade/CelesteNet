@@ -15,7 +15,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public static event Action<BlobPlayer, DataPlayerState> OnGetState;
 
-        public float Scale => Settings.UIScalePlayerList;
+        public float Scale => Settings.UIScale;
 
         public readonly Color ColorCountHeader = Calc.HexToColor("FFFF77");
         public readonly Color ColorChannelHeader = Calc.HexToColor("DDDD88");

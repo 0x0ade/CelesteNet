@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static Celeste.Mod.CelesteNet.DataTypes.DataCommandList;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -38,11 +37,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         /*
          * I was using these to debug on live server which doesn't send me command list yet
         {
-            new() { ID = "tp" },
-            new() { ID = "whisper" },
-            new() { ID = "join" },
-            new() { ID = "channel" },
-            new() { ID = "tpon" }
+            new() { ID = "tp", FirstArg = CompletionType.Player },
+            new() { ID = "whisper", FirstArg = CompletionType.Player },
+            new() { ID = "join", FirstArg = CompletionType.Channel },
+            new() { ID = "channel", FirstArg = CompletionType.Channel },
+            new() { ID = "tpon", FirstArg = CompletionType.None }
         };
         */
 

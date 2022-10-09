@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
-using static Celeste.Mod.CelesteNet.DataTypes.DataCommandList;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCommands : IDisposable {

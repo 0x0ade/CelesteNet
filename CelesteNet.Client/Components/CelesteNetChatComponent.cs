@@ -16,7 +16,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         protected float _Time;
 
-        public float Scale => Settings.UIScale;
+        public float Scale => Settings.UIScaleChat;
+        protected int ScrolledFromIndex = 0;
+        protected float ScrolledDistance = 0f;
+        protected int skippedMsgCount = 0;
+
+        public string PromptMessage = "";
+        public Color PromptMessageColor = Color.White;
 
         public float? RenderPositionY { get; private set; } = null;
 
@@ -27,12 +33,36 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Dictionary<string, DataChat> Pending = new();
         public string Typing = "";
 
+        public List<CommandInfo> CommandList = new();
+        /*
+         * I was using these to debug on live server which doesn't send me command list yet
+        {
+            new() { ID = "tp", FirstArg = CompletionType.Player },
+            new() { ID = "whisper", FirstArg = CompletionType.Player },
+            new() { ID = "join", FirstArg = CompletionType.Channel },
+            new() { ID = "channel", FirstArg = CompletionType.Channel },
+            new() { ID = "tpon", FirstArg = CompletionType.None }
+        };
+        */
+
         public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 
         public enum ChatMode {
             All,
             Special,
             Off
+        }
+
+        protected Vector2 ScrollPromptSize = new Vector2(
+                                GFX.Gui["controls/directions/0x-1"].Width + GFX.Gui["controls/keyboard/PageUp"].Width,
+                                Math.Max(GFX.Gui["controls/directions/0x-1"].Height, GFX.Gui["controls/keyboard/PageUp"].Height)
+                            );
+        public float ScrollFade => (int) Settings.ChatScrollFading / 2f;
+
+        public enum ChatScrollFade {
+            None = 0,
+            Fast = 1,
+            Smooth = 2
         }
 
         public List<string> Repeat = new() {
@@ -89,6 +119,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             set {
                 if (_Active == value)
                     return;
+                ScrolledDistance = 0f;
+                ScrolledFromIndex = 0;
+                SetPromptMessage(PromptMessageTypes.None);
 
                 if (value) {
                     _SceneWasPaused = Engine.Scene.Paused;
@@ -100,10 +133,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     _RepeatIndex = 0;
                     _Time = 0;
                     TextInput.OnInput += OnTextInput;
-
                 } else {
                     Typing = "";
                     CursorIndex = 0;
+                    CompletionPartial = "";
                     Engine.Scene.Paused = _SceneWasPaused;
                     _ConsumeInput = 2;
                     if (Engine.Scene is Level level && level.Overlay == _DummyOverlay)
@@ -115,11 +148,39 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        protected List<string> Completion = new() {};
+        public string CompletionPartial { get; private set; } = "";
+        private int _CompletionSelected = -1;
+        public int CompletionSelected { 
+            get => _CompletionSelected; 
+            private set {
+                if (value == _CompletionSelected)
+                    return;
+
+                if (value < -1)
+                    value = Completion.Count - 1;
+
+                if (value >= Completion.Count)
+                    value = -1;
+
+                _CompletionSelected = value;
+            }
+        }
+        protected CompletionType CompletionArgType;
+        private PromptMessageTypes PromptMessageType;
+
+        public enum PromptMessageTypes {
+            None = 0,
+            Scroll
+        }
+
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;
             DrawOrder = 10100;
+
+            Persistent = true;
         }
 
         public void Send(string text) {
@@ -174,6 +235,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        public void Handle(CelesteNetConnection con, DataCommandList commands) {
+            CommandList.Clear();
+            foreach (CommandInfo cmd in commands.List) {
+                Logger.Log(LogLevel.INF, "chat", $"Learned about server command: {cmd.ID}{(!cmd.AliasTo.IsNullOrEmpty() ? $" (alias of {cmd.AliasTo})" : "")} ({cmd.FirstArg})");
+                CommandList.Add(cmd);
+            }
+        }
+
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
@@ -195,6 +264,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             } else if (Active) {
                 Engine.Commands.Open = false;
+
+                ScrolledDistance = Math.Max(0f, ScrolledDistance + (MInput.Keyboard.CurrentState[Keys.PageUp] - MInput.Keyboard.CurrentState[Keys.PageDown]) * 2f * Settings.ChatScrollSpeed);
+                if (ScrolledDistance < 10f) {
+                    ScrolledFromIndex = Log.Count;
+                }
 
                 _ControlHeld = MInput.Keyboard.Check(Keys.LeftControl) || MInput.Keyboard.Check(Keys.RightControl);
 
@@ -221,12 +295,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Send(Typing);
                     Active = false;
 
-                } else if (MInput.Keyboard.Pressed(Keys.Down) && RepeatIndex > 0) {
-                    RepeatIndex--;
-
-                } else if (MInput.Keyboard.Pressed(Keys.Up) && RepeatIndex < Repeat.Count - 1) {
-                    RepeatIndex++;
-
+                } else if (MInput.Keyboard.Pressed(Keys.Down)) {
+                    if (Completion.Count > 0) {
+                        CompletionSelected--;
+                    } else if (RepeatIndex > 0) {
+                            RepeatIndex--;
+                    }
+                } else if (MInput.Keyboard.Pressed(Keys.Up)) {
+                    if (Completion.Count > 0) {
+                        CompletionSelected++;
+                    } else if (RepeatIndex < Repeat.Count - 1) {
+                        RepeatIndex++;
+                    }
                 } else if (MInput.Keyboard.Check(Keys.Left) && _cursorCanMove && CursorIndex > 0) {
                     if (_ControlHeld) {
                         // skip over space right before the cursor, if there is one
@@ -260,10 +340,35 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (MInput.Keyboard.Pressed(Keys.End)) {
                     CursorIndex = Typing.Length;
 
-                } else if (Input.ESC.Pressed) {
+                } else if (Input.ESC.Released) {
                     Active = false;
                 }
+
+                int spaceBeforeCursor = -1;
+                string completable = "";
+                if (_CursorIndex > 0) {
+                    spaceBeforeCursor = Typing.LastIndexOf(" ", _CursorIndex - 1) + 1;
+                    if (spaceBeforeCursor < _CursorIndex) {
+                        completable = Typing.Substring(0, _CursorIndex).Substring(spaceBeforeCursor);
+                    }
+                }
+
+                if (Typing.StartsWith("/") && !completable.IsNullOrEmpty()) {
+                    if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
+                        UpdateCompletion(CompletionType.Command, completable.Substring(1));
+                    } else if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
+                        int firstSpace = Typing.IndexOf(" ");
+                        CommandInfo cmd = CommandList.Where(c => c.ID == Typing.Substring(1, firstSpace - 1)).FirstOrDefault();
+                        if (cmd != null)
+                            UpdateCompletion(cmd.FirstArg, completable);
+                    }
+                } else {
+                    UpdateCompletion(CompletionType.None);
+                }
             }
+
+            if (CompletionSelected >= Completion.Count)
+                CompletionSelected = Completion.Count - 1;
 
             // Prevent menus from reacting to player input after exiting chat.
             if (_ConsumeInput > 0) {
@@ -331,7 +436,37 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
                 _RepeatIndex = 0;
                 _Time = 0;
+            } else if (c == (char) 9) {
+                // Tab - completion
+                string accepted = "";
+                if (Completion.Count == 1) {
+                    accepted = Completion[0];
+                } else if (Completion.Count > 1 && CompletionSelected >= 0 && CompletionSelected < Completion.Count) {
+                    accepted = Completion[CompletionSelected];
+                }
 
+                if (!accepted.IsNullOrEmpty()) {
+                    // remove the thing being completed, since we're inserting the accepted one
+                    // and if "Name" matches for "na" we want to end up with "Name", not "name".
+                    _CursorIndex -= CompletionPartial.Length;
+                    Typing = Typing.Remove(_CursorIndex, CompletionPartial.Length);
+
+                    if (CompletionArgType == CompletionType.Command) {
+                        string aliased = CommandList.Where(cmd => cmd.AliasTo == accepted).Select(c => c.ID).FirstOrDefault();
+                        if (!aliased.IsNullOrEmpty())
+                            accepted = aliased;
+                    }
+
+                    if (CursorIndex == Typing.Length) {
+                        Typing += accepted + " ";
+                    } else {
+                        // insert into string if cursor is not at the end
+                        Typing = Typing.Insert(_CursorIndex, accepted + (Typing[_CursorIndex] == ' ' ? "" : " "));
+                    }
+
+                    _CursorIndex += accepted.Length + 1;
+                    UpdateCompletion(CompletionType.None);
+                }
             } else if (!char.IsControl(c)) {
                 if (CursorIndex == Typing.Length) {
                     // Any other character - append.
@@ -343,60 +478,60 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 _CursorIndex++;
                 _RepeatIndex = 0;
                 _Time = 0;
+
+                if (c == ' ')
+                    UpdateCompletion(CompletionType.None);
+            }
+        }
+
+        public void SetPromptMessage(PromptMessageTypes type, string msg = "", Color? color = null) {
+            PromptMessageType = type;
+            PromptMessage = msg;
+            PromptMessageColor = color ?? Color.White;
+        }
+
+        public void UpdateCompletion(CompletionType type, string partial = "") {
+            if (partial == CompletionPartial && type == CompletionArgType && Completion.Count == 0)
+                return;
+
+            partial = partial.Trim();
+            CompletionPartial = partial;
+            CompletionArgType = type;
+
+            if (type == CompletionType.None) {
+                Completion.Clear();
+                CompletionPartial = "";
+                CompletionSelected = -1;
+            } else {
+                switch (type) {
+                    case CompletionType.Command:
+                        if (string.IsNullOrWhiteSpace(partial)) {
+                            Completion = CommandList.Where(cmd => cmd.AliasTo == "").Select(cmd => cmd.ID).ToList();
+                        }
+                        else {
+                            IEnumerable<string> commands = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo == "").Select(cmd => cmd.ID);
+                            IEnumerable<string> aliased = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo != "").Select(cmd => cmd.AliasTo);
+                            Completion = commands.Union(aliased).ToList();
+                        }
+
+                        break;
+                    case CompletionType.Player:
+                        DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
+
+                        Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                        break;
+                    case CompletionType.Channel:
+                        CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
+                        Completion = playerlist?.Channels?.List?.Select(channel => channel.Name).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
+
+                        break;
+                }
             }
         }
 
         protected override void Render(GameTime gameTime, bool toBuffer) {
             float scale = Scale;
             Vector2 fontScale = Vector2.One * scale;
-
-            if (Active) {
-                Context.RenderHelper.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
-
-                CelesteNetClientFont.Draw(
-                    ">",
-                    new(50f * scale, UI_HEIGHT - 105f * scale),
-                    Vector2.Zero,
-                    fontScale * new Vector2(0.5f, 1f),
-                    Color.White * 0.5f
-                );
-                float offs = CelesteNetClientFont.Measure(">").X * scale;
-
-                string text = Typing;
-                CelesteNetClientFont.Draw(
-                    text,
-                    new(50f * scale + offs, UI_HEIGHT - 105f * scale),
-                    Vector2.Zero,
-                    fontScale,
-                    Color.White
-                );
-
-                if (!Calc.BetweenInterval(_Time, 0.5f)) {
-
-                    if (CursorIndex == Typing.Length) {
-                        offs += CelesteNetClientFont.Measure(text).X * scale;
-                        CelesteNetClientFont.Draw(
-                            "_",
-                            new(50f * scale + offs, UI_HEIGHT - 105f * scale),
-                            Vector2.Zero,
-                            fontScale,
-                            Color.White * 0.5f
-                        );
-                    } else {
-                        // draw cursor at correct location, but move back half a "." width to not overlap following char
-                        offs += CelesteNetClientFont.Measure(Typing.Substring(0, CursorIndex)).X * scale;
-                        offs -= CelesteNetClientFont.Measure(".").X / 2f * scale;
-
-                        CelesteNetClientFont.Draw(
-                               "|",
-                               new(50f * scale + offs, UI_HEIGHT - 110f * scale),
-                               Vector2.Zero,
-                               fontScale * new Vector2(.5f, 1.2f),
-                               Color.White * 0.6f
-                           );
-                    }
-                }
-            }
 
             RenderPositionY = null;
 
@@ -407,16 +542,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     _ => Log,
                 };
 
-                int count = log.Count;
-                if (count > 0) {
+                if (log.Count > 0) {
                     DateTime now = DateTime.UtcNow;
 
                     float y = UI_HEIGHT - 50f * scale;
                     if (Active)
                         y -= 105f * scale;
 
+                    float scrollOffset = ScrolledDistance;
                     float logLength = Settings.ChatLogLength;
-                    for (int i = 0; i < count && i < logLength; i++) {
+                    int renderedCount = 0;
+                    skippedMsgCount = 0;
+                    int count = ScrolledFromIndex > 0 ? ScrolledFromIndex : log.Count;
+                    for (int i = 0; i < count; i++) {
                         DataChat msg = log[count - 1 - i];
 
                         float alpha = 1f;
@@ -429,7 +567,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         string time = msg.Date.ToLocalTime().ToLongTimeString();
 
                         string text = msg.ToString(true, false);
-                        logLength -= Math.Max(0, text.Count(c => c == '\n') - 1) * 0.75f;
 
                         int lineScaleTry = 0;
                         float lineScale = scale;
@@ -448,9 +585,33 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                         float height = 50f * scale + size.Y;
 
+                        float cutoff = 0f;
+                        if (renderedCount == 0) {
+                            if (scrollOffset <= height) {
+                                y += scrollOffset;
+                                cutoff = scrollOffset;
+                                logLength += cutoff / height;
+                            } else {
+                                skippedMsgCount++;
+                                scrollOffset -= height;
+                                continue;
+                            }
+                        }
+                        int msgExtraLines = Math.Max(0, text.Count(c => c == '\n') - 1 - (int) (cutoff / sizeText.Y));
+                        renderedCount++;
+
                         y -= height;
 
-                        Context.RenderHelper.Rect(25f * scale, y, size.X + 50f * scale, height, Color.Black * 0.8f * alpha);
+                        // fade at the bottom
+                        alpha -= ScrollFade * cutoff / height;
+
+                        // fade at the top
+                        if (renderedCount >= logLength)
+                            alpha -= ScrollFade * Math.Max(0, renderedCount - logLength);
+                        
+                        logLength -= msgExtraLines * 0.75f * (cutoff > 0f ? 1f - cutoff / height : 1f);
+
+                        Context.RenderHelper.Rect(25f * scale, y, size.X + 50f * scale, height - cutoff, Color.Black * 0.8f * alpha);
                         CelesteNetClientFontMono.Draw(
                             time,
                             new(50f * scale, y + 20f * scale),
@@ -465,10 +626,217 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             lineFontScale,
                             msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)
                         );
+
+                        RenderPositionY = y;
+
+                        if (renderedCount >= logLength) {
+                            break;
+                        }
                     }
 
-                    RenderPositionY = y;
+                    if (Active && renderedCount <= 1) {
+                        ScrolledDistance -= scrollOffset;
+                    }
+
+                    if (Active) {
+                        float x = 25f * scale;
+                        y -= 2 * ScrollPromptSize.Y * scale;
+
+                        bool scrollingUp = MInput.Keyboard.CurrentState[Keys.PageUp] == KeyState.Down && renderedCount > 1;
+                        bool scrollingDown = MInput.Keyboard.CurrentState[Keys.PageDown] == KeyState.Down && ScrolledDistance > 0f;
+
+                        RenderScrollPrompt(new(x, y), scale, scrollingUp, scrollingDown);
+                    }
                 }
+            }
+
+            if (Active) {
+                RenderInputPrompt(
+                    new(25f * scale, UI_HEIGHT - 125f * scale),
+                    new(UI_WIDTH - 50f * scale, 100f * scale),
+                    scale,
+                    fontScale,
+                    out float promptWidth
+                );
+
+                if (ScrolledFromIndex > 0)
+                    skippedMsgCount += Log.Count - ScrolledFromIndex;
+
+                if (Typing.Length > 0 && skippedMsgCount > 0) {
+                    SetPromptMessage(
+                        PromptMessageTypes.Scroll,
+                        $"({skippedMsgCount} newer message{(skippedMsgCount > 1 ? "s" : "")} off-screen!)",
+                        Color.Orange * .9f
+                    );
+                } else if (ScrolledFromIndex > 0 && ScrolledFromIndex < Log.Count) {
+                    SetPromptMessage(
+                        PromptMessageTypes.Scroll,
+                        $"({Log.Count - ScrolledFromIndex} new message{(Log.Count - ScrolledFromIndex > 1 ? "s" : "")} since you scrolled up!)",
+                        Color.GreenYellow
+                    );
+                } else if (PromptMessageType == PromptMessageTypes.Scroll) {
+                    SetPromptMessage(PromptMessageTypes.None);
+                }
+
+                CelesteNetClientFont.Draw(
+                    PromptMessage,
+                    new(200f * scale + CelesteNetClientFont.Measure(Typing).X * scale, UI_HEIGHT - 105f * scale),
+                    Vector2.Zero,
+                    fontScale,
+                    PromptMessageColor
+                );
+
+                RenderCompletions(new(25f * scale + promptWidth, UI_HEIGHT - 125f * scale), scale, fontScale);
+            }
+        }
+
+        protected void RenderInputPrompt(Vector2 pos, Vector2 size, float scale, Vector2 fontScale, out float promptWidth) {
+            Context.RenderHelper.Rect(pos.X, pos.Y, size.X, size.Y, Color.Black * 0.8f);
+            pos.X += 25f * scale;
+            pos.Y += 20f * scale;
+
+            CelesteNetClientFont.Draw(
+                ">",
+                pos,
+                Vector2.Zero,
+                fontScale * new Vector2(0.5f, 1f),
+                Color.White * 0.5f
+            );
+            promptWidth = CelesteNetClientFont.Measure(">").X * scale;
+            pos.X += promptWidth;
+
+            string text = Typing;
+            CelesteNetClientFont.Draw(
+                text,
+                pos,
+                Vector2.Zero,
+                fontScale,
+                Color.White
+            );
+
+            if (!Calc.BetweenInterval(_Time, 0.5f)) {
+                if (CursorIndex == Typing.Length) {
+                    pos.X += CelesteNetClientFont.Measure(text).X * scale;
+                    CelesteNetClientFont.Draw(
+                        "_",
+                        pos,
+                        Vector2.Zero,
+                        fontScale,
+                        Color.White * 0.5f
+                    );
+                } else {
+                    // draw cursor at correct location, but move back half a "." width to not overlap following char
+                    pos.X += CelesteNetClientFont.Measure(Typing.Substring(0, CursorIndex)).X * scale;
+                    pos.X -= CelesteNetClientFont.Measure(".").X / 2f * scale;
+                    pos.Y += 5f * scale;
+
+                    CelesteNetClientFont.Draw(
+                        "|",
+                        pos,
+                        Vector2.Zero,
+                        fontScale * new Vector2(.5f, 1.2f),
+                        Color.White * 0.6f
+                    );
+                }
+            }
+        }
+
+        protected void RenderScrollPrompt(Vector2 pos, float scale, bool upActive, bool downActive) {
+            Context.RenderHelper.Rect(pos.X, pos.Y, 50f * scale + ScrollPromptSize.X * scale, 2 * ScrollPromptSize.Y * scale, Color.Black * 0.8f);
+            pos.X += 25f * scale;
+
+            float oldPosX = pos.X;
+
+            // top
+            GFX.Gui["controls/keyboard/PageUp"].Draw(
+                pos,
+                Vector2.Zero,
+                upActive ? Color.Goldenrod : Color.White,
+                scale
+            );
+            pos.X += GFX.Gui["controls/keyboard/PageUp"].Width * scale;
+
+            GFX.Gui["controls/directions/0x-1"].Draw(
+                pos,
+                Vector2.Zero,
+                Color.White * (upActive ? 1f : .7f),
+                scale
+            );
+
+            pos.X = oldPosX;
+            pos.Y += ScrollPromptSize.Y * scale;
+
+            // bottom
+            GFX.Gui["controls/keyboard/PageDown"].Draw(
+                pos,
+                Vector2.Zero,
+                downActive ? Color.Goldenrod : Color.White,
+                scale
+            );
+            pos.X += GFX.Gui["controls/keyboard/PageDown"].Width * scale;
+
+            GFX.Gui["controls/directions/0x1"].Draw(
+                pos,
+                Vector2.Zero,
+                Color.White * (downActive ? 1f : .7f),
+                scale
+            );
+        }
+
+        protected void RenderCompletions(Vector2 pos, float scale, Vector2 fontScale) {
+            Vector2 curPos = pos;
+
+            for (int i = 0; i < Completion.Count; i++) {
+                string match = Completion[i];
+
+                string typed = "", suggestion = "";
+                if (match.StartsWith(CompletionPartial, StringComparison.InvariantCultureIgnoreCase)) {
+                    typed = match.Substring(0, CompletionPartial.Length);
+                    suggestion = match.Substring(CompletionPartial.Length);
+                } else {
+                    suggestion = match;
+                }
+
+                string padding = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
+                Vector2 sizePadding = CelesteNetClientFont.Measure(padding);
+                Vector2 sizeTyped = CelesteNetClientFont.Measure(typed);
+                Vector2 sizeSuggestion = CelesteNetClientFont.Measure(suggestion);
+
+                float width = sizePadding.X + sizeTyped.X + sizeSuggestion.X + 50f;
+                float height = 5f + Math.Max(sizeTyped.Y, sizeSuggestion.Y);
+
+                curPos.X = pos.X;
+                curPos.Y -= height * scale;
+
+                Context.RenderHelper.Rect(curPos.X, curPos.Y, width * scale, height * scale, Color.Black * 0.8f);
+                curPos.X += 25f * scale;
+
+                CelesteNetClientFont.Draw(
+                    padding,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    Color.Gray
+                );
+                curPos.X += sizePadding.X * scale;
+
+                CelesteNetClientFont.Draw(
+                    typed,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    CompletionSelected == i ? Color.LightGray : Color.Gray
+                );
+                curPos.X += sizeTyped.X * scale;
+
+                CelesteNetClientFont.Draw(
+                    suggestion,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    CompletionSelected == i ? Color.GreenYellow :
+                    (CompletionSelected == -1 ? Color.Gold : Color.Lerp(Color.Gold, Color.LightGray, .5f))
+                );
             }
         }
 

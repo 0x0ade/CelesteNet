@@ -56,11 +56,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             Rectangle rect = new(xi, yi, wi, hi);
 
-            MDraw.SpriteBatch.Draw(
-                BlurRT,
-                rect, rect,
-                Color.White * Math.Min(1f, color.A / 255f * 2f)
-            );
+            if (BlurRT != null) {
+                MDraw.SpriteBatch.Draw(
+                    BlurRT,
+                    rect, rect,
+                    Color.White * Math.Min(1f, color.A / 255f * 2f)
+                );
+            } else {
+                Logger.LogDetailed("cnet-rndrhlp", "BlurRT is null!");
+            }
 
             MDraw.Rect(xi, yi, wi, hi, color);
         }

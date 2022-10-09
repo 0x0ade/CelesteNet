@@ -203,6 +203,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataChat msg) {
+            if (Client == null)
+                return;
+
             lock (Log) {
                 if (msg.Player?.ID == Client.PlayerInfo?.ID) {
                     foreach (DataChat pending in Pending.Values) {
@@ -246,12 +249,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
+            if (Client == null) {
+                Active = false;
+                return;
+            }
+
             _Time += Engine.RawDeltaTime;
             _TimeSinceCursorMove += Engine.RawDeltaTime;
 
+            Overworld overworld = Engine.Scene as Overworld;
             bool isRebinding = Engine.Scene == null ||
                 Engine.Scene.Entities.FindFirst<KeyboardConfigUI>() != null ||
-                Engine.Scene.Entities.FindFirst<ButtonConfigUI>() != null;
+                Engine.Scene.Entities.FindFirst<ButtonConfigUI>() != null ||
+                ((overworld?.Current ?? overworld?.Next) is OuiFileNaming naming && naming.UseKeyboardInput) ||
+                ((overworld?.Current ?? overworld?.Next) is UI.OuiModOptionString stringInput && stringInput.UseKeyboardInput);
 
             if (!(Engine.Scene?.Paused ?? true) || isRebinding) {
                 string typing = Typing;

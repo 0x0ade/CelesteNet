@@ -38,6 +38,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private AreaKey? MapEditorArea;
         private bool WasIdle;
         private bool WasInteractive;
+        private int SentHairLength = 0;
 
         public HashSet<string> ForceIdle = new();
         public bool StateUpdated;
@@ -219,6 +220,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     ghost == null)
                     return;
 
+                if (Settings.Interactions != state.Interactive && ghost == GrabbedBy)
+                    SendReleaseMe();
+
                 Session session = Session;
                 if (session != null && (state.SID != session.Area.SID || state.Mode != session.Area.Mode || state.Level == LevelDebugMap)) {
                     ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
@@ -278,7 +282,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
                 ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, frame.Facing, frame.Speed);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
-                ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion);
+                ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion && !state.Idle);
                 ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
                 ghost.UpdateDead(frame.Dead && state.Level == session.Level);
                 ghost.UpdateFollowers((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
@@ -447,8 +451,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataPlayerGrabPlayer grab) {
             Player player = Player;
-            if (Engine.Scene is not Level level || level.Paused || player == null || !Settings.Interactions)
+            if (player != null && !Settings.Interactions && (grab.Player.ID == Client.PlayerInfo.ID || grab.Grabbing.ID == Client.PlayerInfo.ID))
                 goto Release;
+
+            if (Engine.Scene is not Level level || level.Paused || player == null || !Settings.Interactions)
+                return;
 
             if (grab.Player.ID != Client.PlayerInfo.ID && grab.Grabbing.ID == Client.PlayerInfo.ID) {
                 if (GrabCooldown > 0f) {
@@ -736,6 +743,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
+            if (Player != null && Player.Sprite != null && SentHairLength != Player.Sprite.HairCount)
+                SendGraphics();
+
             bool idle = level.FrozenOrPaused || level.Overlay != null;
             if (WasIdle != idle) {
                 WasIdle = idle;
@@ -966,6 +976,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     HairScales = hairScales,
                     HairTextures = hairTextures
                 });
+                SentHairLength = hairCount;
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendGraphics:\n{e}");
                 Context.DisposeSafe();

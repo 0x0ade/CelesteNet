@@ -22,8 +22,10 @@ namespace Celeste.Mod.CelesteNet.Client {
     // Copy of ActiveFont that always uses a font with monospace Latin characters / Arabic numbers.
     public static class CelesteNetClientFontMono {
 
-        // English is always loaded. Other language fonts must be loaded manually. Load only loads once.
-        public static PixelFont Font => Fonts.Load(Dialog.Languages["japanese"].FontFace);
+        private static string FontFace => Dialog.Languages["japanese"].FontFace;
+
+        // English is always loaded. Other language fonts must be loaded manually. Only load once.
+        public static PixelFont Font => Fonts.Get(FontFace) ?? Fonts.Load(FontFace);
 
         public static PixelFontSize FontSize => Font.Get(BaseSize);
 

@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             int i = 0;
             foreach (ChatCMD cmd in All) {
                 cmd.Init(chat);
-                DataAll.List[i++] = new DataCommandList.Command() {ID = cmd.ID};
+                DataAll.List[i++] = new DataCommandList.Command() {ID = cmd.ID, Auth = cmd.MustAuth, AuthExec = cmd.MustAuthExec };
             }
 
             All = All.OrderBy(cmd => cmd.HelpOrder).ToList();

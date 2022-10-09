@@ -58,7 +58,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.DisplayName ?? "???"));
                 SendTo(session, Settings.MessageMOTD);
             }
-            session.Con.SendCommandList(Commands.DataAll);
+            session.SendCommandList(Commands.DataAll);
 
             SpamContext spam = session.Set(this, new SpamContext(this));
             spam.OnSpam += (msg, timeout) => {

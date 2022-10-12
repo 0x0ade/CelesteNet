@@ -33,9 +33,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Dictionary<string, DataChat> Pending = new();
         public string Typing = "";
 
-        public List<CommandInfo> CommandList = new()/*;
-        / *
-         * I was using these to debug on live server which doesn't send me command list yet*/
+        public List<CommandInfo> CommandList = new();
+        /*
+         * I was using these to debug on live server which doesn't send me command list yet * /
         {
             new() { ID = "tp", FirstArg = CompletionType.Player },
             new() { ID = "whisper", FirstArg = CompletionType.Player },
@@ -45,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             new() { ID = "e", FirstArg = CompletionType.Emote, AliasTo = "emote" },
             new() { ID = "tpon", FirstArg = (CompletionType) 5 }
         };
-        //* /
+        */
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 
@@ -574,8 +574,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                         string prefix = lastSpace == -1 ? "" : partial.Substring(0, lastSpace + 1);
                         string subpartial = lastSpace == -1 ? partial : partial.Substring(lastSpace + 1);
-
-                        SetPromptMessage(PromptMessageTypes.Info, CompletionPartial + "_/_" + partial + "_/_" + subpartial);
 
                         Completion = new();
                         foreach (string key in CompletionEmoteAtlas.GetTextures().Keys) {

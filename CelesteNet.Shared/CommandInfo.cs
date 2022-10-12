@@ -12,6 +12,7 @@
         None = 0,
         Command = 1,
         Channel = 2,
-        Player = 3
+        Player = 3,
+        Emote = 4
     }
 }

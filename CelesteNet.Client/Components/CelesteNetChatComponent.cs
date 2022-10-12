@@ -33,17 +33,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Dictionary<string, DataChat> Pending = new();
         public string Typing = "";
 
-        public List<CommandInfo> CommandList = new();
-        /*
-         * I was using these to debug on live server which doesn't send me command list yet
+        public List<CommandInfo> CommandList = new()/*;
+        / *
+         * I was using these to debug on live server which doesn't send me command list yet*/
         {
             new() { ID = "tp", FirstArg = CompletionType.Player },
             new() { ID = "whisper", FirstArg = CompletionType.Player },
             new() { ID = "join", FirstArg = CompletionType.Channel },
             new() { ID = "channel", FirstArg = CompletionType.Channel },
-            new() { ID = "tpon", FirstArg = CompletionType.None }
+            new() { ID = "emote", FirstArg = CompletionType.Emote },
+            new() { ID = "e", FirstArg = CompletionType.Emote, AliasTo = "emote" },
+            new() { ID = "tpon", FirstArg = (CompletionType) 5 }
         };
-        */
+        //* /
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 
@@ -136,7 +138,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else {
                     Typing = "";
                     CursorIndex = 0;
-                    CompletionPartial = "";
+                    UpdateCompletion(CompletionType.None);
                     Engine.Scene.Paused = _SceneWasPaused;
                     _ConsumeInput = 2;
                     if (Engine.Scene is Level level && level.Overlay == _DummyOverlay)
@@ -167,11 +169,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
         protected CompletionType CompletionArgType;
+        protected Atlas CompletionEmoteAtlas;
         private PromptMessageTypes PromptMessageType;
 
         public enum PromptMessageTypes {
             None = 0,
-            Scroll
+            Scroll,
+            Info
         }
 
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
@@ -355,26 +359,32 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Active = false;
                 }
 
-                int spaceBeforeCursor = -1;
-                string completable = "";
-                if (_CursorIndex > 0) {
-                    spaceBeforeCursor = Typing.LastIndexOf(" ", _CursorIndex - 1) + 1;
-                    if (spaceBeforeCursor < _CursorIndex) {
-                        completable = Typing.Substring(0, _CursorIndex).Substring(spaceBeforeCursor);
+                if (Active) {
+                    int spaceBeforeCursor = -1;
+                    string completable = "";
+                    if (_CursorIndex > 0) {
+                        spaceBeforeCursor = Typing.LastIndexOf(" ", _CursorIndex - 1) + 1;
+                        if (spaceBeforeCursor < _CursorIndex) {
+                            completable = Typing.Substring(0, _CursorIndex).Substring(spaceBeforeCursor);
+                        }
                     }
-                }
 
-                if (Typing.StartsWith("/") && !completable.IsNullOrEmpty()) {
-                    if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
-                        UpdateCompletion(CompletionType.Command, completable.Substring(1));
-                    } else if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
+                    if (Typing.StartsWith("/") && !completable.IsNullOrEmpty()) {
                         int firstSpace = Typing.IndexOf(" ");
-                        CommandInfo cmd = CommandList.Where(c => c.ID == Typing.Substring(1, firstSpace - 1)).FirstOrDefault();
-                        if (cmd != null)
-                            UpdateCompletion(cmd.FirstArg, completable);
+                        CommandInfo cmd = firstSpace == -1 ? null : CommandList.Where(c => c.ID == Typing.Substring(1, firstSpace - 1)).FirstOrDefault();
+
+                        if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
+                            UpdateCompletion(CompletionType.Command, completable.Substring(1));
+                        } else if (cmd != null) {
+                            if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
+                                UpdateCompletion(cmd.FirstArg, completable);
+                            } else if (cmd.FirstArg == CompletionType.Emote) {
+                                UpdateCompletion(CompletionType.Emote, Typing.Substring(0, _CursorIndex).Substring(firstSpace + 1));
+                            }
+                        }
+                    } else {
+                        UpdateCompletion(CompletionType.None);
                     }
-                } else {
-                    UpdateCompletion(CompletionType.None);
                 }
             }
 
@@ -468,14 +478,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             accepted = aliased;
                     }
 
-                    if (CursorIndex == Typing.Length) {
-                        Typing += accepted + " ";
-                    } else {
-                        // insert into string if cursor is not at the end
-                        Typing = Typing.Insert(_CursorIndex, accepted + (Typing[_CursorIndex] == ' ' ? "" : " "));
+                    int skipSpace = 0;
+                    if (CompletionArgType != CompletionType.Emote || !accepted.EndsWith("/")) {
+                        if (CursorIndex == Typing.Length || Typing[_CursorIndex] != ' ')
+                            accepted += ' ';
+                        else if (Typing[_CursorIndex] == ' ')
+                            skipSpace = 1;
                     }
 
-                    _CursorIndex += accepted.Length + 1;
+                    if (CursorIndex == Typing.Length) {
+                        Typing += accepted;
+                    } else {
+                        // insert into string if cursor is not at the end
+                        Typing = Typing.Insert(_CursorIndex, accepted);
+                    }
+
+                    _CursorIndex += accepted.Length + skipSpace;
                     UpdateCompletion(CompletionType.None);
                 }
             } else if (!char.IsControl(c)) {
@@ -513,30 +531,72 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Completion.Clear();
                 CompletionPartial = "";
                 CompletionSelected = -1;
-            } else {
-                switch (type) {
-                    case CompletionType.Command:
-                        if (string.IsNullOrWhiteSpace(partial)) {
-                            Completion = CommandList.Where(cmd => cmd.AliasTo == "").Select(cmd => cmd.ID).ToList();
+                CompletionEmoteAtlas = null;
+                return;
+            }
+
+            switch (type) {
+                case CompletionType.Command:
+                    if (string.IsNullOrWhiteSpace(partial)) {
+                        Completion = CommandList.Where(cmd => cmd.AliasTo == "").Select(cmd => cmd.ID).ToList();
+                    }
+                    else {
+                        IEnumerable<string> commands = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo == "").Select(cmd => cmd.ID);
+                        IEnumerable<string> aliased = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo != "").Select(cmd => cmd.AliasTo);
+                        Completion = commands.Union(aliased).ToList();
+                    }
+
+                    break;
+                case CompletionType.Player:
+                    DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
+
+                    Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                    break;
+                case CompletionType.Channel:
+                    CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
+                    Completion = playerlist?.Channels?.List?.Select(channel => channel.Name).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).Distinct().ToList() ?? Completion;
+
+                    break;
+
+                case CompletionType.Emote:
+                    if (partial.Length < 2)
+                        CompletionEmoteAtlas = null;
+
+                    if (CompletionEmoteAtlas == null) {
+                        CompletionEmoteAtlas = GhostEmote.GetIconAtlas(ref partial);
+                        partial = partial.Trim();
+                    } else {
+                        partial = partial.Substring(2).Trim();
+                    }
+
+                    if (CompletionEmoteAtlas != null) {
+                        int lastSpace = partial.LastIndexOf(GhostEmote.IconPathsSeperator);
+
+                        string prefix = lastSpace == -1 ? "" : partial.Substring(0, lastSpace + 1);
+                        string subpartial = lastSpace == -1 ? partial : partial.Substring(lastSpace + 1);
+
+                        SetPromptMessage(PromptMessageTypes.Info, CompletionPartial + "_/_" + partial + "_/_" + subpartial);
+
+                        Completion = new();
+                        foreach (string key in CompletionEmoteAtlas.GetTextures().Keys) {
+                            string basename = key.TrimEnd("0123456789".ToCharArray());
+                            string subkey = subpartial.Length == basename.Length ? key : basename;
+
+                            int i = -1;
+                            if (subpartial.Length < key.Length)
+                                i = key.IndexOf('/', subpartial.Length);
+
+                            if (i != -1)
+                                subkey = key.Substring(0, i + 1);
+
+                            subkey = subkey.Trim();
+
+                            string full_completion = CompletionPartial.Substring(0, 2) + " " + prefix + subkey;
+                            if (!Completion.Contains(full_completion) && subkey.StartsWith(subpartial))
+                                Completion.Add(full_completion);
                         }
-                        else {
-                            IEnumerable<string> commands = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo == "").Select(cmd => cmd.ID);
-                            IEnumerable<string> aliased = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo != "").Select(cmd => cmd.AliasTo);
-                            Completion = commands.Union(aliased).ToList();
-                        }
-
-                        break;
-                    case CompletionType.Player:
-                        DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
-
-                        Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList();
-                        break;
-                    case CompletionType.Channel:
-                        CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
-                        Completion = playerlist?.Channels?.List?.Select(channel => channel.Name).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
-
-                        break;
-                }
+                    }
+                    break;
             }
         }
 

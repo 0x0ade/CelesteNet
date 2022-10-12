@@ -554,7 +554,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     break;
                 case CompletionType.Channel:
                     CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
-                    Completion = playerlist?.Channels?.List?.Select(channel => channel.Name).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).Distinct().ToList() ?? Completion;
+                    Completion = playerlist?.Channels?.List?.Select(channel => channel.Name).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
 
                     break;
 

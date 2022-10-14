@@ -109,7 +109,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 ScrolledDistance = 0f;
                 ScrolledFromIndex = 0;
-                SetPromptMessage("");
+                SetPromptMessage(PromptMessageTypes.None);
 
                 if (value) {
                     _SceneWasPaused = Engine.Scene.Paused;
@@ -133,6 +133,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 _Active = value;
             }
+        }
+
+        private PromptMessageTypes PromptMessageType;
+        public enum PromptMessageTypes {
+            None = 0,
+            Scroll
         }
 
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
@@ -298,7 +304,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (MInput.Keyboard.Pressed(Keys.End)) {
                     CursorIndex = Typing.Length;
 
-                } else if (Input.ESC.Pressed) {
+                } else if (Input.ESC.Released) {
                     Active = false;
                 }
             }
@@ -384,7 +390,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
-        public void SetPromptMessage(string msg, Color? color = null) {
+        public void SetPromptMessage(PromptMessageTypes type, string msg = "", Color? color = null) {
+            PromptMessageType = type;
             PromptMessage = msg;
             PromptMessageColor = color ?? Color.White;
         }
@@ -497,114 +504,148 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     }
 
                     if (Active) {
-                        float x = 50f * scale;
+                        float x = 25f * scale;
                         y -= 2 * ScrollPromptSize.Y * scale;
 
-                        Context.RenderHelper.Rect(x - 25f * scale, y, 50f * scale + ScrollPromptSize.X * scale, 2 * ScrollPromptSize.Y * scale, Color.Black * 0.8f);
+                        bool scrollingUp = MInput.Keyboard.CurrentState[Keys.PageUp] == KeyState.Down && renderedCount > 1;
+                        bool scrollingDown = MInput.Keyboard.CurrentState[Keys.PageDown] == KeyState.Down && ScrolledDistance > 0f;
 
-                        GFX.Gui["controls/keyboard/PageUp"].Draw(
-                            new(x, y),
-                            Vector2.Zero,
-                            MInput.Keyboard.CurrentState[Keys.PageUp] == KeyState.Down && renderedCount > 1 ? Color.Goldenrod : Color.White,
-                            scale
-                        );
-
-                        GFX.Gui["controls/keyboard/PageDown"].Draw(
-                            new(x, y + ScrollPromptSize.Y * scale),
-                            Vector2.Zero,
-                            MInput.Keyboard.CurrentState[Keys.PageDown] == KeyState.Down && ScrolledDistance > 0f ? Color.Goldenrod : Color.White,
-                            scale
-                        );
-
-                        GFX.Gui["controls/directions/0x-1"].Draw(
-                            new(x + GFX.Gui["controls/keyboard/PageUp"].Width * scale, y),
-                            Vector2.Zero,
-                            Color.White * (MInput.Keyboard.CurrentState[Keys.PageUp] == KeyState.Down && renderedCount > 1 ? 1f : .7f),
-                            scale
-                        );
-                        GFX.Gui["controls/directions/0x1"].Draw(
-                            new(x + GFX.Gui["controls/keyboard/PageDown"].Width * scale, y + ScrollPromptSize.Y * scale),
-                            Vector2.Zero,
-                            Color.White * (MInput.Keyboard.CurrentState[Keys.PageDown] == KeyState.Down && ScrolledDistance > 0f ? 1f : .7f),
-                            scale
-                        );
+                        RenderScrollPrompt(new(x, y), scale, scrollingUp, scrollingDown);
                     }
-
-                    RenderPositionY = y;
                 }
             }
 
             if (Active) {
-                Context.RenderHelper.Rect(25f * scale, UI_HEIGHT - 125f * scale, UI_WIDTH - 50f * scale, 100f * scale, Color.Black * 0.8f);
-
-                CelesteNetClientFont.Draw(
-                    ">",
-                    new(50f * scale, UI_HEIGHT - 105f * scale),
-                    Vector2.Zero,
-                    fontScale * new Vector2(0.5f, 1f),
-                    Color.White * 0.5f
-                );
-                float offs = CelesteNetClientFont.Measure(">").X * scale;
-
-                string text = Typing;
-                CelesteNetClientFont.Draw(
-                    text,
-                    new(50f * scale + offs, UI_HEIGHT - 105f * scale),
-                    Vector2.Zero,
+                RenderInputPrompt(
+                    new(25f * scale, UI_HEIGHT - 125f * scale),
+                    new(UI_WIDTH - 50f * scale, 100f * scale),
+                    scale,
                     fontScale,
-                    Color.White
+                    out float promptWidth
                 );
-
-                if (!Calc.BetweenInterval(_Time, 0.5f)) {
-
-                    if (CursorIndex == Typing.Length) {
-                        offs += CelesteNetClientFont.Measure(text).X * scale;
-                        CelesteNetClientFont.Draw(
-                            "_",
-                            new(50f * scale + offs, UI_HEIGHT - 105f * scale),
-                            Vector2.Zero,
-                            fontScale,
-                            Color.White * 0.5f
-                        );
-                    } else {
-                        // draw cursor at correct location, but move back half a "." width to not overlap following char
-                        offs += CelesteNetClientFont.Measure(Typing.Substring(0, CursorIndex)).X * scale;
-                        offs -= CelesteNetClientFont.Measure(".").X / 2f * scale;
-
-                        CelesteNetClientFont.Draw(
-                            "|",
-                            new(50f * scale + offs, UI_HEIGHT - 110f * scale),
-                            Vector2.Zero,
-                            fontScale * new Vector2(.5f, 1.2f),
-                            Color.White * 0.6f
-                        );
-                    }
-                }
 
                 if (ScrolledFromIndex > 0)
                     skippedMsgCount += Log.Count - ScrolledFromIndex;
 
                 if (Typing.Length > 0 && skippedMsgCount > 0) {
                     SetPromptMessage(
+                        PromptMessageTypes.Scroll,
                         $"({skippedMsgCount} newer message{(skippedMsgCount > 1 ? "s" : "")} off-screen!)",
-                        Color.OrangeRed
+                        Color.Orange * .9f
                     );
                 } else if (ScrolledFromIndex > 0 && ScrolledFromIndex < Log.Count) {
                     SetPromptMessage(
+                        PromptMessageTypes.Scroll,
                         $"({Log.Count - ScrolledFromIndex} new message{(Log.Count - ScrolledFromIndex > 1 ? "s" : "")} since you scrolled up!)",
                         Color.GreenYellow
                     );
+                } else if (PromptMessageType == PromptMessageTypes.Scroll) {
+                    SetPromptMessage(PromptMessageTypes.None);
                 }
 
                 CelesteNetClientFont.Draw(
                     PromptMessage,
-                    new(200f * scale + CelesteNetClientFont.Measure(text).X * scale, UI_HEIGHT - 105f * scale),
+                    new(200f * scale + CelesteNetClientFont.Measure(Typing).X * scale, UI_HEIGHT - 105f * scale),
                     Vector2.Zero,
                     fontScale,
                     PromptMessageColor
                 );
 
+                RenderPositionY = y;
             }
+        }
+
+        protected void RenderInputPrompt(Vector2 pos, Vector2 size, float scale, Vector2 fontScale, out float promptWidth) {
+            Context.RenderHelper.Rect(pos.X, pos.Y, size.X, size.Y, Color.Black * 0.8f);
+            pos.X += 25f * scale;
+            pos.Y += 20f * scale;
+
+            CelesteNetClientFont.Draw(
+                ">",
+                pos,
+                Vector2.Zero,
+                fontScale * new Vector2(0.5f, 1f),
+                Color.White * 0.5f
+            );
+            promptWidth = CelesteNetClientFont.Measure(">").X * scale;
+            pos.X += promptWidth;
+
+            string text = Typing;
+            CelesteNetClientFont.Draw(
+                text,
+                pos,
+                Vector2.Zero,
+                fontScale,
+                Color.White
+            );
+
+            if (!Calc.BetweenInterval(_Time, 0.5f)) {
+                if (CursorIndex == Typing.Length) {
+                    pos.X += CelesteNetClientFont.Measure(text).X * scale;
+                    CelesteNetClientFont.Draw(
+                        "_",
+                        pos,
+                        Vector2.Zero,
+                        fontScale,
+                        Color.White * 0.5f
+                    );
+                } else {
+                    // draw cursor at correct location, but move back half a "." width to not overlap following char
+                    pos.X += CelesteNetClientFont.Measure(Typing.Substring(0, CursorIndex)).X * scale;
+                    pos.X -= CelesteNetClientFont.Measure(".").X / 2f * scale;
+                    pos.Y += 5f * scale;
+
+                    CelesteNetClientFont.Draw(
+                        "|",
+                        pos,
+                        Vector2.Zero,
+                        fontScale * new Vector2(.5f, 1.2f),
+                        Color.White * 0.6f
+                    );
+                }
+            }
+        }
+
+        protected void RenderScrollPrompt(Vector2 pos, float scale, bool upActive, bool downActive) {
+            Context.RenderHelper.Rect(pos.X, pos.Y, 50f * scale + ScrollPromptSize.X * scale, 2 * ScrollPromptSize.Y * scale, Color.Black * 0.8f);
+            pos.X += 25f * scale;
+
+            float oldPosX = pos.X;
+
+            // top
+            GFX.Gui["controls/keyboard/PageUp"].Draw(
+                pos,
+                Vector2.Zero,
+                upActive ? Color.Goldenrod : Color.White,
+                scale
+            );
+            pos.X += GFX.Gui["controls/keyboard/PageUp"].Width * scale;
+
+            GFX.Gui["controls/directions/0x-1"].Draw(
+                pos,
+                Vector2.Zero,
+                Color.White * (upActive ? 1f : .7f),
+                scale
+            );
+
+            pos.X = oldPosX;
+            pos.Y += ScrollPromptSize.Y * scale;
+
+            // bottom
+            GFX.Gui["controls/keyboard/PageDown"].Draw(
+                pos,
+                Vector2.Zero,
+                downActive ? Color.Goldenrod : Color.White,
+                scale
+            );
+            pos.X += GFX.Gui["controls/keyboard/PageDown"].Width * scale;
+
+            GFX.Gui["controls/directions/0x1"].Draw(
+                pos,
+                Vector2.Zero,
+                Color.White * (downActive ? 1f : .7f),
+                scale
+            );
         }
 
 

@@ -45,12 +45,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                                 GFX.Gui["controls/directions/0x-1"].Width + GFX.Gui["controls/keyboard/PageUp"].Width,
                                 Math.Max(GFX.Gui["controls/directions/0x-1"].Height, GFX.Gui["controls/keyboard/PageUp"].Height)
                             );
-        public float ScrollFade => (int) Settings.ChatScrollFade / 2f;
+        public float ScrollFade => (int) Settings.ChatScrollFading / 2f;
 
         public enum ChatScrollFade {
             None = 0,
-            Low = 1,
-            High = 2
+            Fast = 1,
+            Smooth = 2
         }
 
         public List<string> Repeat = new() {

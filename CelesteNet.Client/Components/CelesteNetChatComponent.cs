@@ -192,6 +192,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             UpdateOrder = 10000;
             DrawOrder = 10100;
+
+            Persistent = true;
         }
 
         public void Send(string text) {
@@ -448,8 +450,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     float logLength = Settings.ChatLogLength;
                     int renderedCount = 0;
                     skippedMsgCount = 0;
-                    for (int i = 0; i < ScrolledFromIndex; i++) {
-                        DataChat msg = log[ScrolledFromIndex - 1 - i];
+                    int count = ScrolledFromIndex > 0 ? ScrolledFromIndex : log.Count;
+                    for (int i = 0; i < count; i++) {
+                        DataChat msg = log[count - 1 - i];
 
                         float alpha = 1f;
                         float delta = (float) (now - msg.ReceivedDate).TotalSeconds;

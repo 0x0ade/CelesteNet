@@ -107,7 +107,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         [SettingRange(1, 5)]
         public int ChatScrollSpeed { get; set; } = 2;
-        public CelesteNetChatComponent.ChatScrollFade ChatScrollFade { get; set; } = CelesteNetChatComponent.ChatScrollFade.Low;
+        public CelesteNetChatComponent.ChatScrollFade ChatScrollFading { get; set; } = CelesteNetChatComponent.ChatScrollFade.Fast;
 
         public const int UISizeMin = 1;
         public const int UISizeMax = 4;

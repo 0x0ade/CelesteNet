@@ -190,7 +190,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region Helpers
 
-        private float CalcUIScale(int uisize) {
+        public float CalcUIScale(int uisize) {
             if (UIScaleOverride > 0f)
                 return UIScaleOverride;
             return uisize switch

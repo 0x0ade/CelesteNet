@@ -15,8 +15,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public static event Action<BlobPlayer, DataPlayerState> OnGetState;
 
-        public float Scale => Settings.UIScalePlayerList;
-
         public readonly Color ColorCountHeader = Calc.HexToColor("FFFF77");
         public readonly Color ColorChannelHeader = Calc.HexToColor("DDDD88");
         public readonly Color ColorChannelHeaderOwn = Calc.HexToColor("FFFF77");
@@ -57,6 +55,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
          */
 
         public DataChannelList Channels;
+
+        private int UISize => Settings.UISizePlayerList;
+        private int LastUISize;
+
+        public float Scale => Settings.CalcUIScale(UISize);
 
         public ListModes ListMode => Settings.PlayerListMode;
         private ListModes LastListMode;
@@ -537,11 +540,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 LastLocationMode != LocationMode ||
                 LastShowPing != ShowPing ||
                 LastAllowSplit != AllowSplit ||
+                LastUISize != UISize ||
                 ShouldRebuild) {
                 LastListMode = ListMode;
                 LastLocationMode = LocationMode;
                 LastShowPing = ShowPing;
                 LastAllowSplit = AllowSplit;
+                LastUISize = UISize;
                 ShouldRebuild = false;
                 RebuildList();
             }

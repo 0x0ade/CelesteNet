@@ -141,14 +141,14 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         [SettingRange(UISizeMin, UISizeMax)]
-        public int UISizeChat { get; set; }
+        public int UISizeChat { get; set; } = 2;
 
         [SettingIgnore]
         [YamlIgnore]
         public TextMenu.Slider UISizeChatSlider { get; protected set; }
 
         [SettingRange(UISizeMin, UISizeMax)]
-        public int UISizePlayerList { get; set; }
+        public int UISizePlayerList { get; set; } = 2;
 
         [SettingIgnore]
         [YamlIgnore]

@@ -17,6 +17,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected float _Time;
 
         public float Scale => Settings.UIScale;
+        protected int ScrolledFromIndex = 0;
+        protected float ScrolledDistance = 0f;
+        protected int skippedMsgCount = 0;
+
+        public string PromptMessage = "";
+        public Color PromptMessageColor = Color.White;
 
         public float? RenderPositionY { get; private set; } = null;
 
@@ -33,6 +39,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             All,
             Special,
             Off
+        }
+
+        protected Vector2 ScrollPromptSize = new Vector2(
+                                GFX.Gui["controls/directions/0x-1"].Width + GFX.Gui["controls/keyboard/PageUp"].Width,
+                                Math.Max(GFX.Gui["controls/directions/0x-1"].Height, GFX.Gui["controls/keyboard/PageUp"].Height)
+                            );
+        public float ScrollFade => (int) Settings.ChatScrollFade / 2f;
+
+        public enum ChatScrollFade {
+            None = 0,
+            Low = 1,
+            High = 2
         }
 
         public List<string> Repeat = new() {
@@ -141,6 +159,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             set {
                 if (_Active == value)
                     return;
+                ScrolledDistance = 0f;
+                ScrolledFromIndex = 0;
+                SetPromptMessage("");
 
                 if (value) {
                     _SceneWasPaused = Engine.Scene.Paused;
@@ -152,7 +173,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     _RepeatIndex = 0;
                     _Time = 0;
                     TextInput.OnInput += OnTextInput;
-
                 } else {
                     Typing = "";
                     CursorIndex = 0;
@@ -257,6 +277,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             } else if (Active) {
                 Engine.Commands.Open = false;
+
+                ScrolledDistance = Math.Max(0f, ScrolledDistance + (MInput.Keyboard.CurrentState[Keys.PageUp] - MInput.Keyboard.CurrentState[Keys.PageDown]) * 3f * (CelesteNetClientSettings.UISizeMax - Settings.UISize)/2f);
+                if (ScrolledDistance < 10f) {
+                    ScrolledFromIndex = Log.Count;
+                }
 
                 _ControlHeld = MInput.Keyboard.Check(Keys.LeftControl) || MInput.Keyboard.Check(Keys.RightControl);
 
@@ -394,6 +419,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        public void SetPromptMessage(string msg, Color? color = null) {
+            PromptMessage = msg;
+            PromptMessageColor = color ?? Color.White;
+        }
+
         protected override void Render(GameTime gameTime, bool toBuffer) {
             float scale = Scale;
             Vector2 fontScale = Vector2.One * scale;
@@ -407,17 +437,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     _ => Log,
                 };
 
-                int count = log.Count;
-                if (count > 0) {
+                if (log.Count > 0) {
                     DateTime now = DateTime.UtcNow;
 
                     float y = UI_HEIGHT - 50f * scale;
                     if (Active)
                         y -= 105f * scale;
 
+                    float scrollOffset = ScrolledDistance;
                     float logLength = Settings.ChatLogLength;
-                    for (int i = 0; i < count && i < logLength; i++) {
-                        DataChat msg = log[count - 1 - i];
+                    int renderedCount = 0;
+                    skippedMsgCount = 0;
+                    for (int i = 0; i < ScrolledFromIndex; i++) {
+                        DataChat msg = log[ScrolledFromIndex - 1 - i];
 
                         float alpha = 1f;
                         float delta = (float) (now - msg.ReceivedDate).TotalSeconds;
@@ -429,7 +461,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         string time = msg.Date.ToLocalTime().ToLongTimeString();
 
                         string text = msg.ToString(true, false);
-                        logLength -= Math.Max(0, text.Count(c => c == '\n') - 1) * 0.75f;
 
                         int lineScaleTry = 0;
                         float lineScale = scale;
@@ -448,9 +479,33 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                         float height = 50f * scale + size.Y;
 
+                        float cutoff = 0f;
+                        if (renderedCount == 0) {
+                            if (scrollOffset <= height) {
+                                y += scrollOffset;
+                                cutoff = scrollOffset;
+                                logLength += cutoff / height;
+                            } else {
+                                skippedMsgCount++;
+                                scrollOffset -= height;
+                                continue;
+                            }
+                        }
+                        int msgExtraLines = Math.Max(0, text.Count(c => c == '\n') - 1 - (int) (cutoff / sizeText.Y));
+                        renderedCount++;
+
                         y -= height;
 
-                        Context.RenderHelper.Rect(25f * scale, y, size.X + 50f * scale, height, Color.Black * 0.8f * alpha);
+                        // fade at the bottom
+                        alpha -= ScrollFade * cutoff / height;
+
+                        // fade at the top
+                        if (renderedCount >= logLength)
+                            alpha -= ScrollFade * Math.Max(0, renderedCount - logLength);
+                        
+                        logLength -= msgExtraLines * 0.75f * (cutoff > 0f ? 1f - cutoff / height : 1f);
+
+                        Context.RenderHelper.Rect(25f * scale, y, size.X + 50f * scale, height - cutoff, Color.Black * 0.8f * alpha);
                         CelesteNetClientFontMono.Draw(
                             time,
                             new(50f * scale, y + 20f * scale),
@@ -464,6 +519,48 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             Vector2.Zero,
                             lineFontScale,
                             msg.Color * alpha * (msg.ID == uint.MaxValue ? 0.8f : 1f)
+                        );
+
+                        if (renderedCount >= logLength) {
+                            break;
+                        }
+                    }
+
+                    if (Active && renderedCount <= 1) {
+                        ScrolledDistance -= scrollOffset;
+                    }
+
+                    if (Active) {
+                        float x = 50f * scale;
+                        y -= 2 * ScrollPromptSize.Y * scale;
+
+                        Context.RenderHelper.Rect(x - 25f * scale, y, 50f * scale + ScrollPromptSize.X * scale, 2 * ScrollPromptSize.Y * scale, Color.Black * 0.8f);
+
+                        GFX.Gui["controls/keyboard/PageUp"].Draw(
+                            new(x, y),
+                            Vector2.Zero,
+                            MInput.Keyboard.CurrentState[Keys.PageUp] == KeyState.Down && renderedCount > 1 ? Color.Goldenrod : Color.White,
+                            scale
+                        );
+
+                        GFX.Gui["controls/keyboard/PageDown"].Draw(
+                            new(x, y + ScrollPromptSize.Y * scale),
+                            Vector2.Zero,
+                            MInput.Keyboard.CurrentState[Keys.PageDown] == KeyState.Down && ScrolledDistance > 0f ? Color.Goldenrod : Color.White,
+                            scale
+                        );
+
+                        GFX.Gui["controls/directions/0x-1"].Draw(
+                            new(x + GFX.Gui["controls/keyboard/PageUp"].Width * scale, y),
+                            Vector2.Zero,
+                            Color.White * (MInput.Keyboard.CurrentState[Keys.PageUp] == KeyState.Down && renderedCount > 1 ? 1f : .7f),
+                            scale
+                        );
+                        GFX.Gui["controls/directions/0x1"].Draw(
+                            new(x + GFX.Gui["controls/keyboard/PageDown"].Width * scale, y + ScrollPromptSize.Y * scale),
+                            Vector2.Zero,
+                            Color.White * (MInput.Keyboard.CurrentState[Keys.PageDown] == KeyState.Down && ScrolledDistance > 0f ? 1f : .7f),
+                            scale
                         );
                     }
 
@@ -516,6 +613,27 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                                Color.White * 0.6f
                            );
                     }
+                }
+
+                if (ScrolledFromIndex > 0)
+                    skippedMsgCount += Log.Count - ScrolledFromIndex;
+
+                if (Typing.Length > 0 && skippedMsgCount > 0) {
+                    CelesteNetClientFont.Draw(
+                        $"({skippedMsgCount} newer message{(skippedMsgCount > 1 ? "s" : "")} off-screen!)",
+                        new(200f * scale + CelesteNetClientFont.Measure(text).X * scale, UI_HEIGHT - 105f * scale),
+                        Vector2.Zero,
+                        fontScale,
+                        Color.OrangeRed
+                    );
+                } else if (ScrolledFromIndex > 0 && ScrolledFromIndex < Log.Count) {
+                    CelesteNetClientFont.Draw(
+                        $"({Log.Count - ScrolledFromIndex} new message{(Log.Count - ScrolledFromIndex > 1 ? "s" : "")} since you scrolled up!)",
+                        new(200f * scale + CelesteNetClientFont.Measure(text).X * scale, UI_HEIGHT - 105f * scale),
+                        Vector2.Zero,
+                        fontScale,
+                        Color.GreenYellow
+                    );
                 }
             }
         }

@@ -572,12 +572,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         offs -= CelesteNetClientFont.Measure(".").X / 2f * scale;
 
                         CelesteNetClientFont.Draw(
-                               "|",
-                               new(50f * scale + offs, UI_HEIGHT - 110f * scale),
-                               Vector2.Zero,
-                               fontScale * new Vector2(.5f, 1.2f),
-                               Color.White * 0.6f
-                           );
+                            "|",
+                            new(50f * scale + offs, UI_HEIGHT - 110f * scale),
+                            Vector2.Zero,
+                            fontScale * new Vector2(.5f, 1.2f),
+                            Color.White * 0.6f
+                        );
                     }
                 }
 
@@ -585,24 +585,28 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     skippedMsgCount += Log.Count - ScrolledFromIndex;
 
                 if (Typing.Length > 0 && skippedMsgCount > 0) {
-                    CelesteNetClientFont.Draw(
+                    SetPromptMessage(
                         $"({skippedMsgCount} newer message{(skippedMsgCount > 1 ? "s" : "")} off-screen!)",
-                        new(200f * scale + CelesteNetClientFont.Measure(text).X * scale, UI_HEIGHT - 105f * scale),
-                        Vector2.Zero,
-                        fontScale,
                         Color.OrangeRed
                     );
                 } else if (ScrolledFromIndex > 0 && ScrolledFromIndex < Log.Count) {
-                    CelesteNetClientFont.Draw(
+                    SetPromptMessage(
                         $"({Log.Count - ScrolledFromIndex} new message{(Log.Count - ScrolledFromIndex > 1 ? "s" : "")} since you scrolled up!)",
-                        new(200f * scale + CelesteNetClientFont.Measure(text).X * scale, UI_HEIGHT - 105f * scale),
-                        Vector2.Zero,
-                        fontScale,
                         Color.GreenYellow
                     );
                 }
+
+                CelesteNetClientFont.Draw(
+                    PromptMessage,
+                    new(200f * scale + CelesteNetClientFont.Measure(text).X * scale, UI_HEIGHT - 105f * scale),
+                    Vector2.Zero,
+                    fontScale,
+                    PromptMessageColor
+                );
+
             }
         }
+
 
         protected override void Dispose(bool disposing) {
             if (Active)

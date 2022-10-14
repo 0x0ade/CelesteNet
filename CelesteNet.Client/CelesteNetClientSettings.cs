@@ -105,6 +105,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingRange(4, 16)]
         public int ChatLogLength { get; set; } = 8;
 
+        [SettingRange(1, 5)]
+        public int ChatScrollSpeed { get; set; } = 2;
         public CelesteNetChatComponent.ChatScrollFade ChatScrollFade { get; set; } = CelesteNetChatComponent.ChatScrollFade.Low;
 
         public const int UISizeMin = 1;

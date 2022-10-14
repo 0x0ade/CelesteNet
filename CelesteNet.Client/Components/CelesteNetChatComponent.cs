@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         protected float _Time;
 
-        public float Scale => Settings.UIScale;
+        public float Scale => Settings.UIScaleChat;
 
         public float? RenderPositionY { get; private set; } = null;
 
@@ -100,7 +100,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     _RepeatIndex = 0;
                     _Time = 0;
                     TextInput.OnInput += OnTextInput;
-
                 } else {
                     Typing = "";
                     CursorIndex = 0;

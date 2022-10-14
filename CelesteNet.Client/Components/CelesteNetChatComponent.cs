@@ -235,7 +235,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             } else if (Active) {
                 Engine.Commands.Open = false;
 
-                ScrolledDistance = Math.Max(0f, ScrolledDistance + (MInput.Keyboard.CurrentState[Keys.PageUp] - MInput.Keyboard.CurrentState[Keys.PageDown]) * 3f * (CelesteNetClientSettings.UISizeMax - Settings.UISize)/2f);
+                ScrolledDistance = Math.Max(0f, ScrolledDistance + (MInput.Keyboard.CurrentState[Keys.PageUp] - MInput.Keyboard.CurrentState[Keys.PageDown]) * 2f * Settings.ChatScrollSpeed);
                 if (ScrolledDistance < 10f) {
                     ScrolledFromIndex = Log.Count;
                 }
@@ -503,6 +503,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         ScrolledDistance -= scrollOffset;
                     }
 
+                    RenderPositionY = y;
+
                     if (Active) {
                         float x = 25f * scale;
                         y -= 2 * ScrollPromptSize.Y * scale;
@@ -550,8 +552,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     fontScale,
                     PromptMessageColor
                 );
-
-                RenderPositionY = y;
             }
         }
 

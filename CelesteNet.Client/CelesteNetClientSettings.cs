@@ -131,8 +131,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                         UISizePlayerListSlider.RightPressed();
                     }
 
-                    UISizeChatSlider.Index = (value < UISizeMin ? UISizeMin : value > UISizeMax ? UISizeMax : value) - 1;
-                    UISizePlayerListSlider.Index = (value < UISizeMin ? UISizeMin : value > UISizeMax ? UISizeMax : value) - 1;
+                    UISizeChatSlider.Index = Calc.Clamp(value, UISizeMin, UISizeMax) - 1;
+                    UISizePlayerListSlider.Index = UISizeChatSlider.Index;
                     UISizeChatSlider.OnValueChange.Invoke(value);
                     UISizePlayerListSlider.OnValueChange.Invoke(value);
                 }
@@ -140,15 +140,18 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
+        // these two are deliberately set to "illegal" values as their default,
+        // the reasoning being that players only had "UISize" set before this update
+        // and when these show up as zero, they can be set to the current UISize value accordingly
         [SettingRange(UISizeMin, UISizeMax)]
-        public int UISizeChat { get; set; } = 2;
+        public int UISizeChat { get; set; } = UISizeMin - 1;
 
         [SettingIgnore]
         [YamlIgnore]
         public TextMenu.Slider UISizeChatSlider { get; protected set; }
 
         [SettingRange(UISizeMin, UISizeMax)]
-        public int UISizePlayerList { get; set; } = 2;
+        public int UISizePlayerList { get; set; } = UISizeMin - 1;
 
         [SettingIgnore]
         [YamlIgnore]
@@ -298,6 +301,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateUISizeChatEntry(TextMenu menu, bool inGame)
         {
+            if (UISizeChat < UISizeMin || UISizeChat > UISizeMax)
+                UISizeChat = UISize;
+
             menu.Add(
                 (UISizeChatSlider = new TextMenu.Slider("modoptions_celestenetclient_uisizechat".DialogClean(), i => i.ToString(), UISizeMin, UISizeMax, UISizeChat))
                             .Change(v => UISizeChat = v)
@@ -306,6 +312,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateUISizePlayerListEntry(TextMenu menu, bool inGame)
         {
+            if (UISizePlayerList < UISizeMin || UISizePlayerList > UISizeMax)
+                UISizePlayerList = UISize;
+
             menu.Add(
                 (UISizePlayerListSlider = new TextMenu.Slider("modoptions_celestenetclient_uisizeplayerlist".DialogClean(), i => i.ToString(), UISizeMin, UISizeMax, UISizePlayerList))
                             .Change(v => UISizePlayerList = v)

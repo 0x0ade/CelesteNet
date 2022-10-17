@@ -116,7 +116,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void RebuildList() {
-            if (MDraw.DefaultFont == null || Client == null || Channels == null)
+            if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Channels == null)
                 return;
 
             DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
@@ -474,6 +474,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
             RunOnMainThread(() => {
+                if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Channels == null)
+                    return;
+
                 // Don't rebuild the entire list
                 // Try to find the player's blob
                 BlobPlayer playerBlob = (BlobPlayer) List?.FirstOrDefault(b => b is BlobPlayer pb && pb.Player == state.Player);
@@ -492,6 +495,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Handle(CelesteNetConnection con, DataConnectionInfo info) {
             RunOnMainThread(() => {
                 if (!ShowPing)
+                    return;
+
+                if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Channels == null)
                     return;
 
                 // Don't rebuild the entire list

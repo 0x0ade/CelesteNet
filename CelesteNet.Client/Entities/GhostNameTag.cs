@@ -45,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             float scale = level.GetScreenScale();
 
-            Vector2 pos = Tracking?.Position ?? Position;
+            Vector2 pos = Tracking?.BottomCenter ?? Position;
             pos.Y -= 16f;
 
             pos = level.WorldToScreen(pos);

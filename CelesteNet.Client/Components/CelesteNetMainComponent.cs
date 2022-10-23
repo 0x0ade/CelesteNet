@@ -129,15 +129,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Cleanup() {
-            Player = null;
-            PlayerBody = null;
-            Session = null;
-            WasIdle = false;
-            WasInteractive = false;
-
-            foreach (Ghost ghost in Ghosts.Values)
-                ghost?.RemoveSelf();
-            Ghosts.Clear();
+            ResetState();
 
             if (IsGrabbed && Player.StateMachine.State == Player.StFrozen)
                 Player.StateMachine.State = Player.StNormal;
@@ -169,8 +161,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             if (string.IsNullOrEmpty(player.DisplayName)) {
-                ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
-                Ghosts.TryRemove(player.ID, out _);
+                RemoveGhost(player);
                 LastFrames.TryRemove(player.ID, out _);
                 Client.Data.FreeOrder<DataPlayerFrame>(player.ID);
                 return;
@@ -194,12 +185,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
 
             } else {
-                if (!Ghosts.TryGetValue(move.Player.ID, out Ghost ghost) ||
-                    ghost == null)
+                if (!RemoveGhost(move.Player))
                     return;
-
-                ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
-                Ghosts.TryRemove(move.Player.ID, out _);
 
                 foreach (DataType data in Client.Data.GetBoundRefs(move.Player))
                     if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
@@ -225,8 +212,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 Session session = Session;
                 if (session != null && (state.SID != session.Area.SID || state.Mode != session.Area.Mode || state.Level == LevelDebugMap)) {
-                    ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
-                    Ghosts.TryRemove(id, out _);
+                    RemoveGhost(state.Player); // If we get here, id must belong to a valid ghost, so it can't be uint.MaxValue and state.Player mustn't be null
                     return;
                 }
 
@@ -604,9 +590,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return ghost;
         }
 
-        protected void RemoveGhost(DataPlayerInfo info) {
-            Ghosts.TryRemove(info.ID, out Ghost ghost);
+        protected bool RemoveGhost(DataPlayerInfo player) {
+            if (!Ghosts.TryRemove(player.ID, out Ghost ghost))
+                return false;
             ghost?.RunOnUpdate(g => g.NameTag.Name = "");
+            return true;
         }
 
         public void UpdateIdleTag(Entity target, ref GhostEmote idleTag, bool idle) {
@@ -677,25 +665,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 GrabbedBy = null;
 
                 if (ready && Engine.Scene is MapEditor) {
-                    Player = null;
-                    PlayerBody = null;
-                    Session = null;
-                    WasIdle = false;
-                    WasInteractive = false;
+                    ResetState();
                     AreaKey area = (AreaKey) f_MapEditor_area.GetValue(null);
 
                     if (MapEditorArea == null || MapEditorArea.Value.SID != area.SID || MapEditorArea.Value.Mode != area.Mode) {
                         MapEditorArea = area;
+                        // FIXME: NOTE BEFORE MERGING: can we move the ResetState() call here, which would be more inline with the below if?
                         SendState();
                     }
                 }
 
                 if (Player != null && MapEditorArea == null) {
-                    Player = null;
-                    PlayerBody = null;
-                    Session = null;
-                    WasIdle = false;
-                    WasInteractive = false;
+                    ResetState();
                     SendState();
                 }
                 return;
@@ -732,12 +713,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             if (Player == null || Player.Scene != level) {
-                Player = level.Tracker.GetEntity<Player>();
-                if (Player != null) {
-                    PlayerBody = Player;
-                    Session = level.Session;
-                    WasIdle = false;
-                    WasInteractive = false;
+                Player player = level.Tracker.GetEntity<Player>();
+                if (player != null) {
+                    ResetState(player, level.Session);
                     StateUpdated |= true;
                     SendGraphics();
                 }
@@ -807,17 +785,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void OnLoadLevel(On.Celeste.Level.orig_LoadLevel orig, Level level, Player.IntroTypes playerIntro, bool isFromLoader = false) {
             orig(level, playerIntro, isFromLoader);
 
-            Session = level.Session;
-            WasIdle = false;
-            WasInteractive = false;
+            Player player = null;
+            if (Client != null)
+                player = level.Tracker.GetEntity<Player>();
 
-            if (Client == null)
-                return;
+            ResetState(player, level.Session);
 
-            Player = level.Tracker.GetEntity<Player>();
-            PlayerBody = Player;
-
-            SendState();
+            if (Client != null)
+                SendState();
         }
 
         public void OnExitLevel(Level level, LevelExit exit, LevelExit.Mode mode, Session session, HiresSnow snow) {
@@ -842,17 +817,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private void OnPlayerAdded(On.Celeste.Player.orig_Added orig, Player self, Scene scene) {
             orig(self, scene);
 
-            Session = (scene as Level)?.Session;
-            WasIdle = false;
-            WasInteractive = false;
-            Player = self;
-            PlayerBody = self;
-
+            ResetState(self, (scene as Level)?.Session);
             SendState();
             SendGraphics();
 
-            foreach (DataPlayerFrame frame in LastFrames.Values.ToArray())
-                Handle(null, frame);
+            // We can't directly handle the frames here, as then ghost creation logic could fail if we're currently loading a level in OnEndOfFrame
+            scene.OnEndOfFrame += () => {
+                foreach (DataPlayerFrame frame in LastFrames.Values.ToArray())
+                    Handle(null, frame);
+            };
         }
 
         private PlayerDeadBody OnPlayerDie(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats) {
@@ -918,6 +891,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         #endregion
 
+        public void ResetState(Player player = null, Session ses = null) {
+            // Clear ghosts if the scene changed
+            if (player?.Scene != Player?.Scene) {
+                lock (Ghosts) {
+                    foreach (Ghost ghost in Ghosts.Values)
+                        ghost?.RemoveSelf();
+                    Ghosts.Clear();
+                }
+            }
+
+            Player = player;
+            PlayerBody = player;
+            Session = ses;
+            WasIdle = false;
+            WasInteractive = false;
+        }
 
         #region Send
 

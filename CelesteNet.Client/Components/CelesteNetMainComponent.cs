@@ -10,7 +10,6 @@ using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
-using Steamworks;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

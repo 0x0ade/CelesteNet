@@ -587,7 +587,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         UnsupportedSpriteModes.Add(graphics.SpriteMode);
                     RunOnMainThread(() => {
                         level.Add(ghost);
-                        level.OnEndOfFrame += () => ghost.Active = true;
                         ghost.UpdateGraphics(graphics);
                     });
                     ghost.UpdateGraphics(graphics);
@@ -672,6 +671,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
+
+            foreach (Ghost g in Ghosts.Values)
+                if (g != null)
+                    g.Active = true;
 
             bool ready = Client != null && Client.IsReady && Client.PlayerInfo != null;
             if (Engine.Scene is not Level level || !ready) {
@@ -831,8 +834,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             SendState();
             SendGraphics();
 
-            foreach (DataPlayerFrame frame in LastFrames.Values.ToArray())
-                Handle(null, frame);
+            scene.OnEndOfFrame += () => {
+                foreach (DataPlayerFrame frame in LastFrames.Values.ToArray())
+                    Handle(null, frame);
+            };
         }
 
         private PlayerDeadBody OnPlayerDie(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats) {
@@ -899,6 +904,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #endregion
 
         public void ResetState(Player player = null, Session ses = null) {
+            // Clear ghosts if the scene changed
+            if (player != null && player?.Scene != Player?.Scene)
+                RemoveAllGhosts();
             Player = player;
             PlayerBody = player;
             Session = ses;

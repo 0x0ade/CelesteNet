@@ -730,7 +730,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Player == null || Player.Scene != level) {
                 Player player = level.Tracker.GetEntity<Player>();
                 if (player != Player) {
-                    ResetState(player, level.Session);
+                    ResetState(player, level.Session, keepGhosts: Player != null && Player.Scene == null);
                     StateUpdated |= true;
                     SendGraphics();
                 }
@@ -903,9 +903,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         #endregion
 
-        public void ResetState(Player player = null, Session ses = null) {
+        public void ResetState(Player player = null, Session ses = null, bool keepGhosts = false) {
             // Clear ghosts if the scene changed
-            if (player != null && player?.Scene != Player?.Scene)
+            if (!keepGhosts && player?.Scene != Player?.Scene)
                 RemoveAllGhosts();
             Player = player;
             PlayerBody = player;

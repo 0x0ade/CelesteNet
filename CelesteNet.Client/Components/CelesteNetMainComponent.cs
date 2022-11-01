@@ -185,11 +185,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
 
             } else {
-                if (!Ghosts.TryGetValue(move.Player.ID, out Ghost ghost) ||
-                    ghost == null)
+                if (!RemoveGhost(move.Player))
                     return;
-
-                RemoveGhost(move.Player);
 
                 foreach (DataType data in Client.Data.GetBoundRefs(move.Player))
                     if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
@@ -598,9 +595,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return ghost;
         }
 
-        protected void RemoveGhost(DataPlayerInfo info) {
-            Ghosts.TryRemove(info.ID, out Ghost ghost);
+        protected bool RemoveGhost(DataPlayerInfo info) {
+            if (!Ghosts.TryRemove(info.ID, out Ghost ghost))
+                return false;
             ghost?.RunOnUpdate(g => g.NameTag.Name = "");
+            return true;
         }
 
         protected void RemoveAllGhosts() {

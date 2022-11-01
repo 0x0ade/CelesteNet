@@ -595,8 +595,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return ghost;
         }
 
-        protected bool RemoveGhost(DataPlayerInfo info) {
-            if (!Ghosts.TryRemove(info.ID, out Ghost ghost))
+        protected bool RemoveGhost(DataPlayerInfo player) {
+            if (!Ghosts.TryRemove(player.ID, out Ghost ghost))
                 return false;
             ghost?.RunOnUpdate(g => g.NameTag.Name = "");
             return true;

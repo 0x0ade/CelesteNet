@@ -264,6 +264,27 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     _TimeSinceCursorMove = 0;
                     _CursorMoveFast = _directionHeldLast;
                     _Time = 0;
+                } else if (MInput.Keyboard.Pressed(Keys.Delete) && CursorIndex < Typing.Length) {
+                    // Delete - remove character after cursor.
+                    // TODO: this needs timer logic like Left/Right has now... for holding it down.
+
+                    if (_ControlHeld && Typing[_CursorIndex] != ' ') {
+                        int nextWord = Typing.IndexOf(" ", _CursorIndex);
+                        // if control is held and a space is found, remove from cursor to space
+                        if (nextWord >= 0) {
+                            // include the found space in removal
+                            nextWord++;
+                            Typing = Typing.Remove(_CursorIndex, nextWord - _CursorIndex);
+                        } else {
+                            // otherwise remove everything after cursor
+                            Typing = Typing.Substring(0, _CursorIndex);
+                        }
+                    } else {
+                        // just remove single char
+                        Typing = Typing.Remove(_CursorIndex, 1);
+                    }
+                    _RepeatIndex = 0;
+                    _Time = 0;
 
                 } else if (MInput.Keyboard.Pressed(Keys.Home)) {
                     CursorIndex = 0;
@@ -319,26 +340,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     // remove <trim> amount of characters before cursor
                     Typing = Typing.Remove(_CursorIndex - trim, trim);
                     _CursorIndex -= trim;
-                }
-                _RepeatIndex = 0;
-                _Time = 0;
-
-            } else if (c == (char) 127 && CursorIndex < Typing.Length) {
-                // Delete - remove character after cursor.
-                if (_ControlHeld && Typing[_CursorIndex] != ' ') {
-                    int nextWord = Typing.IndexOf(" ", _CursorIndex);
-                    // if control is held and a space is found, remove from cursor to space
-                    if (nextWord >= 0) {
-                        // include the found space in removal
-                        nextWord++;
-                        Typing = Typing.Remove(_CursorIndex, nextWord - _CursorIndex);
-                    } else {
-                        // otherwise remove everything after cursor
-                        Typing = Typing.Substring(0, _CursorIndex);
-                    }
-                } else {
-                    // just remove single char
-                    Typing = Typing.Remove(_CursorIndex, 1);
                 }
                 _RepeatIndex = 0;
                 _Time = 0;

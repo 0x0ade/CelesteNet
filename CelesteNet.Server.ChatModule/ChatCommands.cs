@@ -92,6 +92,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 index + 1 < raw.Length &&
                 (index = raw.IndexOf(' ', index + 1)) >= 0
             ) {
+                if (index + 1 < raw.Length && raw[index + 1] == ' ')
+                    continue;
+
                 int next = index + 1 < raw.Length ? raw.IndexOf(' ', index + 1) : -2;
                 if (next < 0)
                     next = raw.Length;

@@ -422,7 +422,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             lock (buffer) {
                 for (int i = Math.Max(-buffer.Moved, -count); i < 0; i++) {
                     DataChat? msg = buffer[i];
-                    if (msg != null && (msg.Target == null || auth))
+                    if (msg != null && ((msg.Targets?.Length ?? 0) == 0 || auth))
                         log.Add(detailed ? msg.ToDetailedFrontendChat() : msg.ToFrontendChat());
                 }
             }

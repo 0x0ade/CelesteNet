@@ -277,14 +277,15 @@ window["dialog"] = dialog;
 	function animCanvasStart() {
 		elClipsVideo.removeEventListener("canplay", animCanvasStart);
 		animCanvasFrame = requestAnimationFrame(() => {
-			elClipsVideo.currentTime = Math.floor((Math.random() * 0.8 + 0.1) * elClipsVideo.duration * 10) / 10;
+			if (!Number.isNaN(elClipsVideo.duration))
+				elClipsVideo.currentTime = Math.floor((Math.random() * 0.8 + 0.1) * elClipsVideo.duration * 10) / 10;
 			elClipsVideo.playbackRate = 0.5;
 			elClipsVideo.classList.add("disabled");
 			animCanvas();
 		});
 	}
 
-	if (elClipsVideo.duration == NaN) {
+	if (Number.isNaN(elClipsVideo.duration)) {
 		elClipsVideo.addEventListener("canplay", animCanvasStart);
 	} else {
 		animCanvasStart();

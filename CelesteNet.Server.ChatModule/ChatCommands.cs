@@ -92,6 +92,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 index + 1 < raw.Length &&
                 (index = raw.IndexOf(' ', index + 1)) >= 0
             ) {
+                if (index + 1 < raw.Length && raw[index + 1] == ' ')
+                    continue;
+
                 int next = index + 1 < raw.Length ? raw.IndexOf(' ', index + 1) : -2;
                 if (next < 0)
                     next = raw.Length;
@@ -151,7 +154,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
                 using (Env.Chat.Server.ConLock.R())
                     return
-                        Env.Chat.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName == String) ??
+                        Env.Chat.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.Equals(String, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
                         Env.Chat.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String, StringComparison.InvariantCultureIgnoreCase) ?? false);
             }
         }

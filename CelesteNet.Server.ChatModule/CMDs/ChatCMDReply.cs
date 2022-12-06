@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.CMDs {
 
         public override string Help =>
 $@"Reply to the most recent whisper.
-Sends a whisper to the most recent person who whispered to you, or who you whispered to.";
+Sends a whisper to recipient or sender of the most recent whisper.";
 
         public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
             if (env.Session == null)

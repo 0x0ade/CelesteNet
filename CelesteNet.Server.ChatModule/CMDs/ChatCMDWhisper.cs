@@ -60,7 +60,7 @@ To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID
                 env.Msg.Text = text;
                 env.Msg.Color = Chat.Settings.ColorWhisper;
                 Chat.ForceSend(env.Msg);
-                // remember the last session whisper
+                // remember the last whisper recipient/sender's session
                 // env.Player is not null, therefore env.Session must not be null
                 env.Session!.LastWhisperSessionID = other.SessionID;
                 other.LastWhisperSessionID = env.Session!.SessionID;

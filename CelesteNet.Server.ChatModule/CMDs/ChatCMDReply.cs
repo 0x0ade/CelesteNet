@@ -34,7 +34,12 @@ Sends a whisper to the most recent person who whispered to you, or who you whisp
             if (args.Count == 0)
                 throw new Exception("No text.");
 
-            args.Insert(0, new ChatCMDArg(env).Parse(env.Session.LastWhisperSessionID.ToString(), 0));
+            ChatCMDArg sessionArg = new ChatCMDArg(env).Parse(env.Session.LastWhisperSessionID.ToString(), 0);
+
+            if (sessionArg.Session == null)
+                throw new Exception("The player has disconnected from the server.");
+
+            args.Insert(0, sessionArg);
 
             Chat.Commands.Get<ChatCMDWhisper>().Run(env, args);
         }

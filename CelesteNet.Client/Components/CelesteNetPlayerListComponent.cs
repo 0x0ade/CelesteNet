@@ -1,13 +1,10 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -677,11 +674,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return CelesteNetClientFont.Measure(TextCached) * DynScale;
             }
 
-            public virtual void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha) {
+            public virtual void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha, Vector2? justify = null) {
                 CelesteNetClientFont.Draw(
                     TextCached,
                     new(50f * scale + Dyn.X, y + Dyn.Y),
-                    Vector2.Zero,
+                    justify ?? Vector2.Zero,
                     new(DynScale),
                     Color * alpha
                 );
@@ -692,6 +689,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public class BlobPlayer : Blob {
 
             public const string IdleIconCode = ":celestenet_idle:";
+            public const string NoPingData = "???";
 
             public DataPlayerInfo Player;
             public BlobLocation Location = new();
@@ -700,6 +698,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public Blob PingBlob = new() {
                 Color = Color.Gray
             };
+            protected static float PingPadWidth = 0;
 
             public bool Idle;
 
@@ -710,12 +709,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 if (PingMs.HasValue) {
                     int ping = PingMs.Value;
-                    if (ping > 0)
-                        PingBlob.Name = $"{ping}ms";
-                    else
-                        PingBlob.Name = "???ms"; // Someone messed with the packets, or server has no data yet
-                } else
+                    PingBlob.Name = $"{(ping > 0 ? ping : NoPingData)}ms";
+                } else {
                     PingBlob.Name = string.Empty;
+                    PingPadWidth = 0;
+                }
 
                 // If the player blob was forced to regenerate its text, forward that to the location and ping blobs too.
                 PingBlob.Generate();
@@ -731,44 +729,102 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!Idle)
                     size.X += idleIconWidth * DynScale;
 
-                // update nested blobs
-                PingBlob.Dyn.X = Dyn.X + size.X;
+                // update ping blob
                 PingBlob.Dyn.Y = Dyn.Y;
                 PingBlob.DynScale = DynScale;
+
+                // insert space for ping first, because it offsets location
+                float pingWidth = PingBlob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth).X;
+                PingPadWidth = Math.Max(PingPadWidth, pingWidth);
+                size.X += PingPadWidth;
+
+                // update & insert space for location
+                Location.Offset = -PingPadWidth;
                 Location.Dyn.Y = Dyn.Y;
                 Location.DynScale = DynScale;
                 Location.LocationMode = LocationMode;
-
-                // insert space for ping and location
-                size.X += PingBlob.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth).X;
                 size.X += Location.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth).X;
 
                 return size;
             }
 
-            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha) {
-                base.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
-                PingBlob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
+            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha, Vector2? justify = null) {
+                base.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha, justify);
                 Location.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha);
+                // right-justify ping
+                PingBlob.Dyn.X = Dyn.X + sizeAll.X;
+                PingBlob.Render(y, scale, ref sizeAll, spaceWidth, locationSeparatorWidth, alpha, Vector2.UnitX);
             }
 
         }
 
-        public class BlobLocation : Blob {
+        public class BlobRightToLeft : Blob {
+
+            protected class TextPart {
+                public string Text;
+                public Color Color;
+                public float widthScaled;
+            }
+
+            protected List<TextPart> parts = new ();
+
+            public float Offset = 0;
+
+            protected void AddTextPart(string content, Color color) {
+                parts.Add(new TextPart { Text = content, Color = color });
+            }
+
+            public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
+                Vector2 size = new();
+
+                foreach (TextPart p in parts) {
+                    Vector2 measurement = CelesteNetClientFont.Measure(p.Text);
+                    p.widthScaled = measurement.X * DynScale;
+                    size.X += p.widthScaled;
+                    if (measurement.Y > size.Y)
+                        size.Y = measurement.Y;
+                }
+                size.X += spaceWidth * DynScale * parts.Count;
+
+                return size;
+            }
+
+            protected void DrawTextPart(string text, float textWidthScaled, Color color, float y, float scale, ref float x) {
+                CelesteNetClientFont.Draw(
+                    text,
+                    new(50f * scale + x, y + Dyn.Y),
+                    Vector2.UnitX, // Rendering bits right-to-left
+                    new(DynScale),
+                    color
+                );
+                x -= textWidthScaled;
+            }
+
+            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha, Vector2? justify = null) {
+                float x = sizeAll.X + Dyn.X + Offset;
+
+                for (int i = parts.Count - 1; i >= 0; i--) {
+                    TextPart p = parts[i];
+                    DrawTextPart(p.Text, p.widthScaled, p.Color * alpha, y, scale, ref x);
+                    x -= spaceWidth * DynScale;
+                }
+            }
+
+        }
+
+
+        public class BlobLocation : BlobRightToLeft {
 
             public const string LocationSeparator = ":";
 
-            public MTexture GuiIconCached;
+            protected MTexture GuiIconCached;
 
             public float IconSize => GuiIconCached != null ? 64f : 0f;
             public Vector2 IconOrigSize => GuiIconCached != null ? new Vector2(GuiIconCached.Width, GuiIconCached.Height) : new();
             public float IconScale => GuiIconCached != null ? Math.Min(IconSize / GuiIconCached.Width, IconSize / GuiIconCached.Height) : 1f;
 
-            private float NameWidthScaled;
             public string Side = "";
-            private float SideWidthScaled;
             public string Level = "";
-            private float LevelWidthScaled;
             public string Icon = "";
 
             public string SID = "";
@@ -786,6 +842,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 GuiIconCached = (LocationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(Icon) ? GFX.Gui[Icon] : null;
                 if ((LocationMode & LocationModes.Text) == 0)
                     Name = "";
+                if (parts.Count < 4) {
+                    parts.Clear();
+                    AddTextPart(Level, Color);
+                    AddTextPart(LocationSeparator, Color.Lerp(Color, Color.Black, 0.5f));
+                    AddTextPart(Name, TitleColor);
+                    AddTextPart(Side, AccentColor);
+                } else {
+                    parts[0].Text = Level;
+                    parts[2].Text = Name;
+                    parts[3].Text = Side;
+                }
             }
 
             public override Vector2 Measure(float spaceWidth, float locationSeparatorWidth, float idleIconWidth) {
@@ -793,44 +860,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return new(GuiIconCached != null ? IconSize * DynScale : 0f);
 
                 float space = spaceWidth * DynScale;
-                Vector2 size = CelesteNetClientFont.Measure(Name) * DynScale;
-                NameWidthScaled = size.X;
-                SideWidthScaled = CelesteNetClientFont.Measure(Side).X * DynScale;
-                LevelWidthScaled = CelesteNetClientFont.Measure(Level).X * DynScale;
-                return new(LevelWidthScaled + space + locationSeparatorWidth + space + NameWidthScaled + space + SideWidthScaled + (GuiIconCached != null ? space + IconSize * DynScale : 0f));
+                Vector2 size = base.Measure(spaceWidth, locationSeparatorWidth, idleIconWidth);
+                if (GuiIconCached != null)
+                    size.X += space + IconSize * DynScale;
+                return size;
             }
 
-            private void DrawTextPart(string text, float textWidthScaled, Color color, float y, float scale, ref float x) {
-                CelesteNetClientFont.Draw(
-                    text,
-                    new(50f * scale + x, y + Dyn.Y),
-                    Vector2.UnitX, // Rendering location bits right-to-left
-                    new(DynScale),
-                    color
-                );
-                x -= textWidthScaled;
-            }
-
-            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha) {
+            public override void Render(float y, float scale, ref Vector2 sizeAll, float spaceWidth, float locationSeparatorWidth, float alpha, Vector2? justify = null) {
                 if (!string.IsNullOrEmpty(Name)) {
                     float space = spaceWidth * DynScale;
-                    float x = sizeAll.X + Dyn.X;
-                    // Rendering location bits right-to-left
+                    Vector2 size = new(sizeAll.X + Dyn.X, sizeAll.Y);
                     if (GuiIconCached != null) {
-                        x -= IconSize * DynScale;
-                        x -= space;
+                        size.X -= IconSize * DynScale;
+                        size.X -= space;
                     }
-                    DrawTextPart(Side, SideWidthScaled, AccentColor * alpha, y, scale, ref x);
-                    x -= space;
-                    DrawTextPart(Name, NameWidthScaled, TitleColor * alpha, y, scale, ref x);
-                    x -= space;
-                    DrawTextPart(LocationSeparator, locationSeparatorWidth * DynScale, Color.Lerp(Color, Color.Black, 0.5f) * alpha, y, scale, ref x);
-                    x -= space;
-                    DrawTextPart(Level, LevelWidthScaled, Color * alpha, y, scale, ref x);
+
+                    base.Render(y, scale, ref size, spaceWidth, locationSeparatorWidth, alpha, justify);
                 }
 
                 GuiIconCached?.Draw(
-                    new(50f * scale + sizeAll.X + Dyn.X - IconSize * DynScale, y + Dyn.Y),
+                    new(50f * scale + sizeAll.X + Dyn.X - IconSize * DynScale + Offset, y + Dyn.Y),
                     Vector2.Zero,
                     Color.White * alpha,
                     new Vector2(IconScale * DynScale)

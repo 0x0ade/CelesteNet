@@ -116,6 +116,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (MDraw.DefaultFont == null || Client == null || Channels == null)
                 return;
 
+            BlobPlayer.PingPadWidth = 0;
+
             DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
 
             List<Blob> list = new() {
@@ -698,7 +700,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public Blob PingBlob = new() {
                 Color = Color.Gray
             };
-            protected static float PingPadWidth = 0;
+            public static float PingPadWidth = 0;
 
             public bool Idle;
 
@@ -712,7 +714,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     PingBlob.Name = $"{(ping > 0 ? ping : NoPingData)}ms";
                 } else {
                     PingBlob.Name = string.Empty;
-                    PingPadWidth = 0;
                 }
 
                 // If the player blob was forced to regenerate its text, forward that to the location and ping blobs too.

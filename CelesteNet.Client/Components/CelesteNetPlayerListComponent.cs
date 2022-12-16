@@ -216,7 +216,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
                     BlobPlayer blob = new() { ScaleFactor = scaleFactor };
-                    listed.Add(ListPlayerUnderChannel(blob, player, locationMode));
+                    listed.Add(ListPlayerUnderChannel(blob, player, locationMode, channel == own));
                     list.Add(blob);
                 }
             }
@@ -382,7 +382,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return null;
         }
 
-        private DataPlayerInfo ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo player, LocationModes locationMode) {
+        private DataPlayerInfo ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo player, LocationModes locationMode, bool withPing) {
             if (player != null) {
                 blob.Player = player;
                 blob.Name = player.DisplayName;
@@ -391,7 +391,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (locationMode != LocationModes.OFF && Client.Data.TryGetBoundRef(player, out DataPlayerState state))
                     GetState(blob, state);
 
-                if (ShowPing && locationMode != LocationModes.OFF && Client.Data.TryGetBoundRef(player, out DataConnectionInfo conInfo))
+                if (ShowPing && withPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo conInfo))
                     blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
 
                 return player;

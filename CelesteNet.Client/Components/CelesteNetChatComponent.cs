@@ -339,6 +339,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Input.ESC.ConsumePress();
                 Input.Pause.ConsumeBuffer();
                 Input.Pause.ConsumePress();
+                Input.QuickRestart.ConsumeBuffer();
+                Input.QuickRestart.ConsumePress();
                 _ConsumeInput--;
             }
 

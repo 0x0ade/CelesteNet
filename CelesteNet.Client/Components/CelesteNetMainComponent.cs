@@ -129,6 +129,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Cleanup() {
+            if (IsGrabbed && Player?.StateMachine.State == Player.StFrozen)
+                Player.StateMachine.State = Player.StNormal;
+
             Player = null;
             PlayerBody = null;
             Session = null;
@@ -138,9 +141,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             foreach (Ghost ghost in Ghosts.Values)
                 ghost?.RemoveSelf();
             Ghosts.Clear();
-
-            if (IsGrabbed && Player.StateMachine.State == Player.StFrozen)
-                Player.StateMachine.State = Player.StNormal;
 
             if (PlayerNameTag != null)
                 PlayerNameTag.Name = "";

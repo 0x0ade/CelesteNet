@@ -247,8 +247,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (ghost == null && !IsGhostOutside(Session, level, graphics.Player, out _))
                 ghost = CreateGhost(level, graphics.Player, graphics);
 
-            if (ghost != null)
-                ghost.UpdateGraphics(graphics);
+            if (ghost != null) {
+                ghost.RunOnUpdate(ghost => {
+                    ghost.UpdateGraphics(graphics);
+                });
+            }
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {

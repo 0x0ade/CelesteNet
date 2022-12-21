@@ -108,7 +108,7 @@ namespace Celeste.Mod.CelesteNet {
                         throw new ArgumentException("Cannot use reserved control strings.");
                     if (text.Length > 1)
                         throw new ArgumentException("Control strings cannot be used to start a string.");
-                    Write((byte) text[0]);
+                    Write(text[0]);
                     return;
                 }
 
@@ -132,7 +132,7 @@ namespace Celeste.Mod.CelesteNet {
                 return;
             }
 
-            Write((byte) NetStringCtrl.Mapped);
+            Write(NetStringCtrl.Mapped);
             Write7BitEncodedInt(id);
         }
 

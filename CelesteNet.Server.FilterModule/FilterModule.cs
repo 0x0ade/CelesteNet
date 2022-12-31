@@ -23,6 +23,9 @@ namespace Celeste.Mod.CelesteNet.Server.Filter {
         public override void Init(CelesteNetServerModuleWrapper wrapper) {
             base.Init(wrapper);
 
+            if (!Settings.Enabled)
+                return;
+
             Server.OnConnect += OnConnect;
             using (Server.ConLock.R())
                 foreach (CelesteNetConnection con in Server.Connections)
@@ -31,6 +34,9 @@ namespace Celeste.Mod.CelesteNet.Server.Filter {
 
         public override void Dispose() {
             base.Dispose();
+
+            if (!Settings.Enabled)
+                return;
 
             Server.OnConnect -= OnConnect;
             using (Server.ConLock.R())
@@ -45,7 +51,7 @@ namespace Celeste.Mod.CelesteNet.Server.Filter {
 
         private void OnDisconnect(CelesteNetConnection con) {
             con.OnSendFilter -= ConSendFilter;
-            if (Settings.PrintSessionStatsOnEnd) {
+            if (Settings.Enabled && Settings.PrintSessionStatsOnEnd) {
                 CelesteNetConnection c;
                 string type;
                 foreach (var kv in Counts) {
@@ -83,6 +89,9 @@ namespace Celeste.Mod.CelesteNet.Server.Filter {
         }
 
         public bool Filter(CelesteNetConnection con, DataType data) {
+            if (!Settings.Enabled)
+                return true;
+
             string type = data.GetTypeID(Server.Data);
 
             PacketCounts? counts = null;
@@ -103,7 +112,7 @@ namespace Celeste.Mod.CelesteNet.Server.Filter {
             return FilterInner(ref filter, ref key, ref counts);
         }
 
-        public bool FilterInner(ref FilterSettings.FilterDef filter, ref Tuple<CelesteNetConnection, string> key, ref PacketCounts? counts) {
+        private bool FilterInner(ref FilterSettings.FilterDef filter, ref Tuple<CelesteNetConnection, string> key, ref PacketCounts? counts) {
 
             if (counts == null) {
                 counts = Counts.GetOrAdd(key, new PacketCounts());
@@ -125,6 +134,9 @@ namespace Celeste.Mod.CelesteNet.Server.Filter {
         }
 
         public bool ConSendFilter(CelesteNetConnection con, DataType data) {
+            if (!Settings.Enabled)
+                return true;
+
             string type = data.GetTypeID(Server.Data);
 
             PacketCounts? counts = null;
@@ -145,7 +157,7 @@ namespace Celeste.Mod.CelesteNet.Server.Filter {
             return ConSendFilterInner(ref filter, ref key, ref counts);
         }
 
-        public bool ConSendFilterInner(ref FilterSettings.FilterDef filter, ref Tuple<CelesteNetConnection, string> key, ref PacketCounts? counts) {
+        private bool ConSendFilterInner(ref FilterSettings.FilterDef filter, ref Tuple<CelesteNetConnection, string> key, ref PacketCounts? counts) {
 
             if (counts == null) {
                 counts = Counts.GetOrAdd(key, new PacketCounts());

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 namespace Celeste.Mod.CelesteNet.Server.Filter {
     public class FilterSettings : CelesteNetServerModuleSettings {
 
+        public bool Enabled { get; set; } = false;
         public bool PrintSessionStatsOnEnd { get; set; } = false;
         public bool CollectAllSessionStats { get; set; } = false;
         public bool PrintAllSessionStats { get; set; } = false;

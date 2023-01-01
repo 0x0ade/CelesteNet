@@ -123,7 +123,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 MainThreadQueue.Clear();
             }
 
-            if (Client?.SafeDisposeTriggered ?? false)
+            if ((Client?.SafeDisposeTriggered ?? false) && (Client?.IsAlive ?? false))
                 Client.Dispose();
         }
 

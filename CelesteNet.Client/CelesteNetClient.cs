@@ -224,8 +224,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
             }
 
-            // Wait until the server sent the ready packet
-            _ReadyEvent.Wait(token);
+            // Wait until the server sent the ready packet, or run into timeout
+            if (!_ReadyEvent.Wait(5000, token))
+                throw new Exception($"Client startup timed out while waiting for Ready event.");
             SendFilterList();
 
             Logger.Log(LogLevel.INF, "main", "Ready");

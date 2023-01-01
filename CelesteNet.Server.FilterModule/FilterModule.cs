@@ -46,11 +46,13 @@ namespace Celeste.Mod.CelesteNet.Server.Filter {
 
         private void OnConnect(CelesteNetServer server, CelesteNetConnection con) {
             con.OnSendFilter += ConSendFilter;
+            ((ConPlusTCPUDPConnection) con).OnDequeueFilter += ConSendFilter;
             con.OnDisconnect += OnDisconnect;
         }
 
         private void OnDisconnect(CelesteNetConnection con) {
             con.OnSendFilter -= ConSendFilter;
+            ((ConPlusTCPUDPConnection) con).OnDequeueFilter -= ConSendFilter;
             if (Settings.Enabled && Settings.PrintSessionStatsOnEnd) {
                 CelesteNetConnection c;
                 string type;

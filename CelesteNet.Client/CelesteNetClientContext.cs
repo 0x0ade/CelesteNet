@@ -146,7 +146,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // FIXME: Make sure that nothing tries to make use of the dead connection until the restart.
                         if (Status.Spin)
                             Status.Set("Disconnected", 3f, false);
-                        QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 1D, () => {
+                        QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 2D, () => {
                             if (CelesteNetClientModule.Instance.Context == this)
                                 CelesteNetClientModule.Instance.Start();
                         });

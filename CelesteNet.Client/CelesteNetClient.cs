@@ -63,7 +63,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 try {
                     if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
                         continue;
-                } catch {
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.VVV, "main", $"CelesteNetClient - conFeature threw {e.Message}");
                     continue;
                 }
 
@@ -224,9 +225,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
             }
 
-            // Wait until the server sent the ready packet, or run into timeout
-            if (!_ReadyEvent.Wait(5000, token))
-                throw new Exception($"Client startup timed out while waiting for Ready event.");
+            Logger.Log(LogLevel.VVV, "main", $"Client Start: Waiting for Ready");
+            // Wait until the server sent the ready packet
+            _ReadyEvent.Wait(token);
             SendFilterList();
 
             Logger.Log(LogLevel.INF, "main", "Ready");

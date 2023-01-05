@@ -41,6 +41,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public RenderTarget2D BlurLowRT;
         public RenderTarget2D BlurRT;
 
+        private bool _disconnected = false;
+
         public CelesteNetRenderHelperComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
@@ -72,19 +74,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Initialize() {
             base.Initialize();
 
-            MainThreadHelper.Do(() => {
+            Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"initializing Render Helper...");
+            RunOnMainThread(() => {
+                Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"Main thread initializing Render Helper");
                 BlurRT = new(GraphicsDevice, UI_WIDTH, UI_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
 
                 IL.Celeste.Level.Render += ILRenderLevel;
                 IL.Monocle.Engine.RenderCore += ILRenderCore;
-            });
+            }, true);
         }
 
-        protected override void Dispose(bool disposing) {
-            base.Dispose(disposing);
-
+        public override void Disconnect(bool forceDispose = false) {
             try {
-                MainThreadHelper.Do(() => {
+                Context?._RunOnMainThread(() => {
+                    Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"Main thread disposing Render Helper");
                     IL.Celeste.Level.Render -= ILRenderLevel;
                     IL.Monocle.Engine.RenderCore -= ILRenderCore;
 
@@ -95,9 +98,37 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     BlurYRT?.Dispose();
                     BlurLowRT?.Dispose();
                     FakeRT = null;
-                });
+                    _disconnected = true;
+                }, true);
             } catch (ObjectDisposedException) {
                 // It might already be too late to tell the main thread to do anything.
+            }
+            base.Disconnect(forceDispose);
+        }
+
+        protected override void Dispose(bool disposing) {
+            base.Dispose(disposing);
+
+            Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"disposing Render Helper...");
+
+            if (!_disconnected) {
+                try {
+                    MainThreadHelper.Do(() => {
+                        Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"Main thread disposing Render Helper");
+                        IL.Celeste.Level.Render -= ILRenderLevel;
+                        IL.Monocle.Engine.RenderCore -= ILRenderCore;
+
+                        FakeRT?.Dispose();
+                        BlurRT?.Dispose();
+                        BlurRT = null;
+                        BlurXRT?.Dispose();
+                        BlurYRT?.Dispose();
+                        BlurLowRT?.Dispose();
+                        FakeRT = null;
+                    });
+                } catch (ObjectDisposedException) {
+                    // It might already be too late to tell the main thread to do anything.
+                }
             }
         }
 

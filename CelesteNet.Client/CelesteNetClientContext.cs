@@ -133,7 +133,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             // This must happen at the very end, as XNA / FNA won't update their internal lists, causing "dead" components to update.
 
             if (SafeDisposeTriggered) {
-                Dispose();
+                if (!IsDisposed)
+                    Dispose();
                 return;
             }
 

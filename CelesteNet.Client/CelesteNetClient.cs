@@ -52,6 +52,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             Settings = settings;
             Options = options;
 
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient created");
+
             Data = new();
             Data.RegisterHandlersIn(this);
 
@@ -63,7 +65,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 try {
                     if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
                         continue;
-                } catch {
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient: conFeature threw '{e.Message}'");
                     continue;
                 }
 
@@ -77,13 +80,17 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Start(CancellationToken token) {
-            if (IsAlive)
+            if (IsAlive) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient: Start called but IsAlive already");
                 return;
+            }
             IsAlive = true;
 
             lock (StartStopLock) {
-                if (IsReady)
+                if (IsReady) {
+                    Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient: Start called but IsReady already");
                     return;
+                }
                 Logger.Log(LogLevel.CRI, "main", $"Startup");
 
                 switch (Settings.ConnectionType) {
@@ -156,7 +163,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                                         continue;
                                     try {
                                         sockTry.Close();
-                                    } catch {
+                                    } catch (Exception e) {
+                                        Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient Start: sock close caught '{e.Message}'");
                                     }
                                     sockTry.Dispose();
                                 }
@@ -204,12 +212,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                             Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
 
                             Con = con;
-                        } catch {
+                        } catch (Exception e) {
+                            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient Start: Caught exception, will throw: '{e.Message}'");
                             Con?.Dispose();
                             foreach (Socket sockTry in sockAll) {
                                 try {
                                     sockTry.Close();
-                                } catch {
+                                } catch (Exception se) {
+                                    Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient Start: sock close caught '{se.Message}'");
                                 }
                                 sockTry.Dispose();
                             }
@@ -224,6 +234,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
             }
 
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient Start: Waiting for Ready");
             // Wait until the server sent the ready packet
             _ReadyEvent.Wait(token);
             SendFilterList();
@@ -233,8 +244,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Dispose() {
-            if (!IsAlive)
+            if (!IsAlive) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient Dispose called but not alive");
                 return;
+            }
             IsAlive = false;
 
             lock (StartStopLock) {

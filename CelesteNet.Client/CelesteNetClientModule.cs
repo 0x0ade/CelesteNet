@@ -223,7 +223,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     context.Status.Set("Interrupted", 3f, false);
 
                 } catch (ThreadAbortException) {
-                    Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule StartThread: ThreadAbortException caught");
+                    Logger.Log(LogLevel.VVV, "main", $"Client Start thread: ThreadAbortException caught");
                     _StartThread = null;
                     Stop();
 

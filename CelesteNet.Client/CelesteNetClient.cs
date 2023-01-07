@@ -66,7 +66,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
                         continue;
                 } catch (Exception e) {
-                    Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient: conFeature threw '{e.Message}'");
+                    Logger.Log(LogLevel.VVV, "main", $"CelesteNetClient - conFeature threw {e.Message}");
                     continue;
                 }
 
@@ -234,7 +234,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
             }
 
-            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient Start: Waiting for Ready");
+            Logger.Log(LogLevel.VVV, "main", $"Client Start: Waiting for Ready");
             // Wait until the server sent the ready packet
             _ReadyEvent.Wait(token);
             SendFilterList();

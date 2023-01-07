@@ -74,9 +74,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Initialize() {
             base.Initialize();
 
-            Logger.Log(LogLevel.DEV, "lifecycle", $"initializing Render Helper...");
+            Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"initializing Render Helper...");
             RunOnMainThread(() => {
-                Logger.Log(LogLevel.DEV, "lifecycle", $"Main thread initializing Render Helper");
+                Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"Main thread initializing Render Helper");
                 BlurRT = new(GraphicsDevice, UI_WIDTH, UI_HEIGHT, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.DiscardContents);
 
                 IL.Celeste.Level.Render += ILRenderLevel;
@@ -87,7 +87,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Disconnect(bool forceDispose = false) {
             try {
                 Context?._RunOnMainThread(() => {
-                    Logger.Log(LogLevel.DEV, "lifecycle", $"Main thread disposing Render Helper");
+                    Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"Main thread disposing Render Helper");
                     IL.Celeste.Level.Render -= ILRenderLevel;
                     IL.Monocle.Engine.RenderCore -= ILRenderCore;
 
@@ -109,12 +109,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected override void Dispose(bool disposing) {
             base.Dispose(disposing);
 
-            Logger.Log(LogLevel.DEV, "lifecycle", $"disposing Render Helper...");
+            Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"disposing Render Helper...");
 
             if (!_disconnected) {
                 try {
                     MainThreadHelper.Do(() => {
-                        Logger.Log(LogLevel.DEV, "lifecycle", $"Main thread disposing Render Helper");
+                        Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"Main thread disposing Render Helper");
                         IL.Celeste.Level.Render -= ILRenderLevel;
                         IL.Monocle.Engine.RenderCore -= ILRenderCore;
 

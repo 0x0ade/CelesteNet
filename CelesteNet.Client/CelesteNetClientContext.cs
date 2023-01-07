@@ -123,7 +123,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 MainThreadQueue.Clear();
             }
 
-            if (Client?.SafeDisposeTriggered ?? false)
+            if ((Client?.SafeDisposeTriggered ?? false) && (Client?.IsAlive ?? false))
                 Client.Dispose();
         }
 
@@ -133,7 +133,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             // This must happen at the very end, as XNA / FNA won't update their internal lists, causing "dead" components to update.
 
             if (SafeDisposeTriggered) {
-                Dispose();
+                if (!IsDisposed)
+                    Dispose();
                 return;
             }
 
@@ -145,7 +146,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // FIXME: Make sure that nothing tries to make use of the dead connection until the restart.
                         if (Status.Spin)
                             Status.Set("Disconnected", 3f, false);
-                        QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 1D, () => {
+                        QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 2D, () => {
                             if (CelesteNetClientModule.Instance.Context == this)
                                 CelesteNetClientModule.Instance.Start();
                         });

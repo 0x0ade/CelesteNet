@@ -159,9 +159,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             try {
                 _StartTokenSource?.Cancel();
             } catch (ObjectDisposedException) {}
-            
+
             if (_StartThread?.IsAlive ?? false)
                 _StartThread.Join();
+            _StartTokenSource?.Dispose();
 
             lock (ClientLock) {
                 CelesteNetClientContext oldCtx = Context;
@@ -186,12 +187,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                 CelesteNetClientContext context = Context;
                 try {
                     // This shouldn't ever happen but it has happened once.
-                    if (context == null)
+                    if (context == null) {
+                        Logger.Log(LogLevel.VVV, "main", $"Client Start thread: 'This shouldn't ever happen but it has happened once.'");
                         return;
+                    }
 
                     context.Init(Settings);
                     context.Status.Set("Connecting...");
-                    using (_StartTokenSource = new())
+                    using (_StartTokenSource)
                         context.Start(_StartTokenSource.Token);
                     if (context.Status.Spin)
                         context.Status.Set("Connected", 1f);
@@ -203,6 +206,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     context.Status.Set("Interrupted", 3f, false);
 
                 } catch (ThreadAbortException) {
+                    Logger.Log(LogLevel.VVV, "main", $"Client Start thread: ThreadAbortException caught");
                     _StartThread = null;
                     Stop();
 
@@ -235,6 +239,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Name = "CelesteNet Client Start",
                 IsBackground = true
             };
+            _StartTokenSource = new();
             _StartThread.Start();
         }
 
@@ -248,6 +253,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             if (_StartThread?.IsAlive ?? false)
                 _StartThread.Join();
+            _StartTokenSource?.Dispose();
 
             lock (ClientLock) {
                 if (Context == null)

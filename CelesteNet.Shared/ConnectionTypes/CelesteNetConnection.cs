@@ -186,7 +186,7 @@ namespace Celeste.Mod.CelesteNet {
                     Logger.Log(LogLevel.WRN, "sendqueue", $"Connection {Con}'s send queue '{Name}' is at maximum size");
                     if (Logger.Level >= LogLevel.VVV) {
                         try {
-                            while (BackQueue.TryDequeue(out DataType? packet)) {
+                            while (_FrontQueue.TryDequeue(out DataType? packet)) {
                                 Logger.Log(LogLevel.VVV, "sendqueue", $"Packet on '{Name}': {packet.GetType()} = {packet}");
                             }
                         } catch { }

@@ -553,6 +553,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (!(Engine.Scene?.Paused ?? false) && Settings.ButtonPlayerList.Button.Pressed)
                 Active = !Active;
+
         }
 
         public override void Draw(GameTime gameTime) {

@@ -50,6 +50,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override void Load() {
             Logger.LogCelesteNetTag = true;
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Load");
 
             // Dirty hackfix for Everest not reloading Monocle debug commands at runtime.
             if (Engine.Commands != null) {
@@ -66,13 +67,16 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public override void LoadContent(bool firstLoad) {
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule LoadContent ({firstLoad})");
             MainThreadHelper.Do(() => {
                 UIRenderTarget?.Dispose();
                 UIRenderTarget = VirtualContent.CreateRenderTarget("celestenet-hud-target", 1922, 1082, false, true, 0);
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule LoadContent created RT");
             });
         }
 
         public override void Unload() {
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Unload");
             CelesteNetClientRC.Shutdown();
             Everest.Events.Celeste.OnShutdown -= CelesteNetClientRC.Shutdown;
 
@@ -153,26 +157,36 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void Start() {
             // Cancel pending reconnect requests.
-            if (Context != null)
+            if (Context != null) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: Context wasn't null");
                 QueuedTaskHelper.Cancel(new Tuple<object, string>(Context, "CelesteNetAutoReconnect"));
+            }
 
             try {
                 _StartTokenSource?.Cancel();
-            } catch (ObjectDisposedException) {}
+            } catch (ObjectDisposedException) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: STS was disposed");
+            }
 
-            if (_StartThread?.IsAlive ?? false)
+            if (_StartThread?.IsAlive ?? false) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: StartThread.Join...");
                 _StartThread.Join();
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: StartThread Join done");
+            }
             _StartTokenSource?.Dispose();
 
             lock (ClientLock) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: old ctx: {Context} {Context?.IsDisposed}");
                 CelesteNetClientContext oldCtx = Context;
                 if (oldCtx?.IsDisposed ?? false)
                     oldCtx = null;
                 Context = new(Celeste.Instance, oldCtx);
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: old ctx: {oldCtx} / new {Context}");
                 oldCtx?.DisposeSafe(true);
 
                 oldCtx = ContextLast;
                 if (oldCtx != null) {
+                    Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: ContextLast wasn't null");
                     MainThreadHelper.Do(() => {
                         foreach (CelesteNetGameComponent comp in oldCtx.Components.Values)
                             comp.Disconnect(true);
@@ -183,19 +197,22 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Context.Status.Set("Initializing...");
             }
 
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: Creating StartThread...");
             _StartThread = new(() => {
                 CelesteNetClientContext context = Context;
                 try {
                     // This shouldn't ever happen but it has happened once.
                     if (context == null) {
-                        Logger.Log(LogLevel.VVV, "main", $"Client Start thread: 'This shouldn't ever happen but it has happened once.'");
+                        Logger.Log(LogLevel.WRN, "main", $"CelesteNetClientModule StartThread: 'This shouldn't ever happen but it has happened once.'");
                         return;
                     }
 
                     context.Init(Settings);
                     context.Status.Set("Connecting...");
-                    using (_StartTokenSource)
+                    using (_StartTokenSource) {
+                        Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule StartThread: Going into context Start...");
                         context.Start(_StartTokenSource.Token);
+                    }
                     if (context.Status.Spin)
                         context.Status.Set("Connected", 1f);
 
@@ -241,23 +258,33 @@ namespace Celeste.Mod.CelesteNet.Client {
             };
             _StartTokenSource = new();
             _StartThread.Start();
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: done");
         }
 
         public void Stop() {
-            if (Context != null)
+            if (Context != null) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Stop: Context wasn't null");
                 QueuedTaskHelper.Cancel(new Tuple<object, string>(Context, "CelesteNetAutoReconnect"));
+            }
 
             try {
                 _StartTokenSource?.Cancel();
-            } catch (ObjectDisposedException) {}
+            } catch (ObjectDisposedException) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Stop: StartTokenSource was disposed");
+            }
 
-            if (_StartThread?.IsAlive ?? false)
+            if (_StartThread?.IsAlive ?? false) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Stop: Joining StartThread...");
                 _StartThread.Join();
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Stop: Joining done");
+            }
             _StartTokenSource?.Dispose();
 
             lock (ClientLock) {
-                if (Context == null)
+                if (Context == null) {
+                    Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Stop: Context was null already, returning");
                     return;
+                }
 
                 ContextLast = Context;
                 Context.DisposeSafe();

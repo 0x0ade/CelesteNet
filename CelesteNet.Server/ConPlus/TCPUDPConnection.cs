@@ -301,8 +301,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                                         Buffer.BlockCopy(TCPRecvBuffer, 2 + packetLen, TCPRecvBuffer, 0, TCPRecvBufferOff);
                                         continue;
                                     }
-                                } else {
-                                    Logger.Log(LogLevel.VVV, "tcprecv", $"HandleTCPData: TCPRecvBufferOff was {TCPRecvBufferOff} < 2");
                                 }
                                 break;
                             }

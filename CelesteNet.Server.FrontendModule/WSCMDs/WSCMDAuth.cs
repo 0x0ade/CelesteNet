@@ -13,19 +13,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public override bool MustAuth => false;
         public override object? Run(string data) {
             if (data == Frontend.Settings.PasswordExec) {
-                do {
-                    data = Guid.NewGuid().ToString();
-                } while (!Frontend.CurrentSessionKeys.Add(data) || !Frontend.CurrentSessionExecKeys.Add(data));
-                WS.SessionKey = data;
-                return data;
+                WS.SessionKey = Frontend.GetNewKey(execAuth: true);
+                return WS.SessionKey;
             }
             if (data == Frontend.Settings.Password) {
-                do {
-                    data = Guid.NewGuid().ToString();
-                } while (!Frontend.CurrentSessionKeys.Add(data));
-                Frontend.CurrentSessionKeys.Add(data);
-                WS.SessionKey = data;
-                return data;
+                WS.SessionKey = Frontend.GetNewKey();
+                return WS.SessionKey;
             }
             return "";
         }

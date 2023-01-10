@@ -304,6 +304,7 @@ main {
 .panel-cmd > .panel-input,
 .panel-chat > .panel-input {
     display: flex;
+    align-items: center;
 }
 
 .panel-notes > .panel-text > .mdc-text-field,

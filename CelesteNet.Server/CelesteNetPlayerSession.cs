@@ -98,6 +98,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         internal void Start() {
             Logger.Log(LogLevel.INF, "playersession", $"Startup #{SessionID} {Con} (Session UID: {UID}; Connection UID: {Con.UID})");
+            Logger.Log(LogLevel.VVV, "playersession", $"Startup #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Startup");
 
             // Resolver player name conflicts
             string nameSpace = Name;
@@ -161,6 +162,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Data.SetRef(playerInfo);
 
             Logger.Log(LogLevel.INF, "playersession", $"Session #{SessionID} PlayerInfo: {playerInfo}");
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond}");
 
             // Send packets to players
             DataInternalBlob blobPlayerInfo = DataInternalBlob.For(Server.Data, playerInfo);
@@ -193,6 +195,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ResendPlayerStates();
 
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
             Con.Send(new DataReady());
         }
 

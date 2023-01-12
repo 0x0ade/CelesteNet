@@ -367,7 +367,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     }
                 }
             foreach ((CelesteNetConnection con, string reason) in disposeCons) {
-                Logger.Log(LogLevel.WRN, "main", reason);
+                Logger.Log(LogLevel.WRN, "heartbeat", reason);
                 try {
                     con.Dispose();
                 } catch (Exception e) {

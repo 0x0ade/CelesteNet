@@ -38,6 +38,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         private readonly object RequestNextIDLock = new();
         private uint RequestNextID = 0;
 
+        private DataNetFilterList? FilterList = null;
+
         internal CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint sesId, string uid, string name, CelesteNetClientOptions clientOptions) {
             Server = server;
             Con = con;
@@ -209,7 +211,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} - Done using ConLock -- blobSendsNew/avaSendsNew {blobSendsNew}/{avaSendsNew} - blobSendsOut/avaSendsOut {blobSendsOut}/{avaSendsOut} - boundSends {boundSends}");
 
-            ResendPlayerStates();
+            if (!Server.Channels.SessionStartupMove(this))
+                ResendPlayerStates();
 
             Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
             Con.Send(new DataReady());
@@ -310,9 +313,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 otherState.Mode == state.Mode;
 
         public bool ConSendFilter(CelesteNetConnection con, DataType data) {
-            if (Server.Data.TryGetBoundRef(PlayerInfo, out DataNetFilterList? list) && list != null) {
+            if (FilterList != null) {
                 string source = data.GetSource(Server.Data);
-                return string.IsNullOrEmpty(source) || list.Contains(source);
+                return string.IsNullOrEmpty(source) || FilterList.Contains(source);
             }
 
             return true;
@@ -423,6 +426,12 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     other.Con.Send(blob);
                 }
+        }
+        public void Handle(CelesteNetConnection con, DataNetFilterList list) {
+            if (con != Con)
+                return;
+
+            FilterList = list;
         }
 
         public void Handle(CelesteNetConnection con, DataType data) {

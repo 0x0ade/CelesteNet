@@ -350,7 +350,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     // move all the right column's elements to the right via Dyn.X
                     for (int i = switchedSidesAt; i < list.Count; i++)
-                        list[i].Dyn.X = sizeColumn.X + 15f;
+                        list[i].Dyn.X = sizeColumn.X + scale * 30f;
                 }
 
                 if (sizeColumn.Y > maxColumnY)

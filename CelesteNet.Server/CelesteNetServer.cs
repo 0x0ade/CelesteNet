@@ -70,6 +70,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     ShutdownTokenSrc.Cancel();
             }
         }
+        private bool _disposed = false;
 
         public CelesteNetServer()
             : this(new()) {
@@ -200,18 +201,23 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public void Wait() {
-            foreach (CelesteNetConnection con in SafeDisposeQueue.GetConsumingEnumerable(ShutdownTokenSrc.Token)) {
-                if (con.IsAlive) {
-                    Logger.Log("main", $"Safe dispose triggered for connection {con}");
-                    con.Dispose();
+            try {
+                foreach (CelesteNetConnection con in SafeDisposeQueue.GetConsumingEnumerable(ShutdownTokenSrc.Token)) {
+                    if (con.IsAlive) {
+                        Logger.Log("main", $"Safe dispose triggered for connection {con}");
+                        con.Dispose();
+                    }
                 }
+            } catch (OperationCanceledException) {
+                Logger.Log(LogLevel.CRI, "main", "ShutdownTokenSrc canceled, shutting down.");
             }
+
             ShutdownTokenSrc.Dispose();
             SafeDisposeQueue.Dispose();
         }
 
         public void Dispose() {
-            if (!IsAlive)
+            if (_disposed)
                 return;
 
             Logger.Log(LogLevel.CRI, "main", "Shutdown");
@@ -234,6 +240,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             UserData.Dispose();
 
             Data.Dispose();
+            _disposed = true;
         }
 
 

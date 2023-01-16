@@ -138,6 +138,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             using CelesteNetServer server = Server = new(settings);
             server.Start();
             server.Wait();
+            server.Dispose();
             Server = null;
         }
 

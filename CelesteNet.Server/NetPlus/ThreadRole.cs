@@ -32,8 +32,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             public virtual void Dispose() {
-                using (Role.WorkerLock.W())
-                    Role.Workers.Remove(this);
+                if (Role.Workers.Contains(this))
+                    using (Role.WorkerLock.W())
+                        Role.Workers.Remove(this);
                 ActivityLock.Dispose();
             }
 
@@ -84,8 +85,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             using (WorkerLock.W()) {
                 Workers.Clear();
-                WorkerLock.Dispose();
             }
+            WorkerLock.Dispose();
         }
 
         public virtual void InvokeSchedular() {}

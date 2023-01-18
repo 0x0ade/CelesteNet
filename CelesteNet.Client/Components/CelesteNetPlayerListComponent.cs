@@ -207,7 +207,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             void AddChannel(ref List<Blob> list, DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor, LocationModes locationMode) {
                 list.Add(new() {
                     Name = channel.Name,
-                    Color = ColorChannelHeader,
+                    Color = color,
                     ScaleFactor = scaleFactorHeader,
                     CanSplit = channel != own
                 });

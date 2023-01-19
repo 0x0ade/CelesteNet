@@ -38,6 +38,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         private readonly object RequestNextIDLock = new();
         private uint RequestNextID = 0;
 
+        private DataNetFilterList? FilterList = null;
+
         internal CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint sesId, string uid, string name, CelesteNetClientOptions clientOptions) {
             Server = server;
             Con = con;
@@ -98,6 +100,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         internal void Start() {
             Logger.Log(LogLevel.INF, "playersession", $"Startup #{SessionID} {Con} (Session UID: {UID}; Connection UID: {Con.UID})");
+            Logger.Log(LogLevel.VVV, "playersession", $"Startup #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Startup");
 
             // Resolver player name conflicts
             string nameSpace = Name;
@@ -161,14 +164,21 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Data.SetRef(playerInfo);
 
             Logger.Log(LogLevel.INF, "playersession", $"Session #{SessionID} PlayerInfo: {playerInfo}");
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond}");
 
             // Send packets to players
             DataInternalBlob blobPlayerInfo = DataInternalBlob.For(Server.Data, playerInfo);
 
             Con.Send(playerInfo);
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} - Sent own PlayerInfo");
+
             foreach (DataInternalBlob fragBlob in AvatarFragments)
                 Con.Send(fragBlob);
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} - Sent own Avatar frags");
 
+            int blobSendsNew = 0, avaSendsNew = 0;
+            int blobSendsOut = 0, avaSendsOut = 0;
+            int boundSends = 0;
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession other in Server.Sessions) {
                     if (other == this)
@@ -179,20 +189,32 @@ namespace Celeste.Mod.CelesteNet.Server {
                         continue;
 
                     other.Con.Send(blobPlayerInfo);
-                    foreach (DataInternalBlob fragBlob in AvatarFragments)
+                    blobSendsOut++;
+                    foreach (DataInternalBlob fragBlob in AvatarFragments) {
                         other.Con.Send(fragBlob);
+                        avaSendsOut++;
+                    }
 
                     Con.Send(otherInfo);
-                    foreach (DataInternalBlob fragBlob in other.AvatarFragments)
+                    blobSendsNew++;
+                    foreach (DataInternalBlob fragBlob in other.AvatarFragments) {
                         Con.Send(fragBlob);
+                        avaSendsNew++;
+                    }
 
                     foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || other.Channel.ID == 0)
+                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || other.Channel.ID == 0) {
                             Con.Send(bound);
+                            boundSends++;
+                        }
                 }
 
-            ResendPlayerStates();
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} - Done using ConLock -- blobSendsNew/avaSendsNew {blobSendsNew}/{avaSendsNew} - blobSendsOut/avaSendsOut {blobSendsOut}/{avaSendsOut} - boundSends {boundSends}");
 
+            if (!Server.Channels.SessionStartupMove(this))
+                ResendPlayerStates();
+
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
             Con.Send(new DataReady());
         }
 
@@ -247,25 +269,36 @@ namespace Celeste.Mod.CelesteNet.Server {
             IEnumerable<DataInternalBlob> boundAllPublic = boundAll[false];
             IEnumerable<DataInternalBlob> boundAllPrivate = boundAll[true];
 
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} - Doing player state resends");
+            int boundPrivOut = 0, boundPublicOut = 0, boundPrivNew = 0;
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession other in Server.Sessions) {
                     if (other == this)
                         continue;
 
-                    foreach (DataType bound in boundAllPublic)
+                    foreach (DataType bound in boundAllPublic) {
                         other.Con.Send(bound);
-                    foreach (DataType bound in boundAllPrivate)
-                        if (channel == other.Channel)
+                        boundPublicOut++;
+                    }
+                    foreach (DataType bound in boundAllPrivate) {
+                        if (channel == other.Channel) {
                             other.Con.Send(bound);
+                            boundPrivOut++;
+                        }
+                    }
 
                     DataPlayerInfo? otherInfo = other.PlayerInfo;
                     if (otherInfo == null)
                         continue;
 
                     foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || channel == other.Channel)
+                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || channel == other.Channel) {
                             Con.Send(bound);
+                            boundPrivNew++;
+                        }
                 }
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} - Done resends -- boundPrivOut/boundPublicOut {boundPrivOut}/{boundPublicOut} - boundPrivNew {boundPrivNew}");
+
         }
 
         public bool IsSameArea(CelesteNetPlayerSession other)
@@ -280,9 +313,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 otherState.Mode == state.Mode;
 
         public bool ConSendFilter(CelesteNetConnection con, DataType data) {
-            if (Server.Data.TryGetBoundRef(PlayerInfo, out DataNetFilterList? list) && list != null) {
+            if (FilterList != null) {
                 string source = data.GetSource(Server.Data);
-                return string.IsNullOrEmpty(source) || list.Contains(source);
+                return string.IsNullOrEmpty(source) || FilterList.Contains(source);
             }
 
             return true;
@@ -393,6 +426,12 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     other.Con.Send(blob);
                 }
+        }
+        public void Handle(CelesteNetConnection con, DataNetFilterList list) {
+            if (con != Con)
+                return;
+
+            FilterList = list;
         }
 
         public void Handle(CelesteNetConnection con, DataType data) {

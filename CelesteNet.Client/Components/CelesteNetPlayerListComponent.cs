@@ -56,6 +56,27 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public DataChannelList Channels;
 
+        // UI Constants
+
+        public static readonly float Margin = 25f;
+
+        public static readonly float PaddingX = 25f;
+        public static readonly float PaddingY = 15f;
+
+        public static readonly float SplitGap = 10f;
+        public static readonly float BlobSpacing = 10f;
+
+        public static readonly float ChatOffset = 5f;
+
+        public static readonly float TextScaleSizeThreshold = 0.7f;
+
+        // Refers to the main timer, where the IL/File time is located.
+        public static readonly float MainTimerOffset = 104f;
+
+        // Refers to the sub timer, where the IL time is located when the
+        // Speedrun Clock is set to File.
+        public static readonly float SubTimerOffset = 24f;
+
         public ListModes ListMode => Settings.PlayerListMode;
         private ListModes LastListMode;
 
@@ -198,14 +219,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 Vector2 size = blob.Measure();
                 sizeAll.X = Math.Max(sizeAll.X, size.X);
-                sizeAll.Y += size.Y + 10f * scale;
+                sizeAll.Y += size.Y + BlobSpacing * scale;
 
-                if (((sizeAll.X + 100f * scale) > UI_WIDTH * 0.7f || (sizeAll.Y + 90f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 5) {
+                if ((
+                    (sizeAll.X + 2 * (Margin + PaddingX) * scale) >  UI_WIDTH * TextScaleSizeThreshold ||
+                    (sizeAll.Y + 2 * (Margin + PaddingY) * scale) > UI_HEIGHT * TextScaleSizeThreshold
+                    ) && textScaleTry < 5) {
                     textScaleTry++;
                     textScale -= scale * 0.1f;
                     goto RetryLineScale;
                 }
             }
+
+            // remove the stray spacing once we reach the end
+            sizeAll.Y -= BlobSpacing * scale;
 
             SizeAll = sizeAll;
             SizeUpper = sizeAll;
@@ -296,23 +323,31 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 // introducing gap after own channel
                 if (splitStartsAt > 0 && i == splitStartsAt) {
+                    // remove the blob spacing and replace it with y padding
+                    sizeAll.Y -= BlobSpacing * scale;
+                    sizeAll.Y += PaddingY * scale;
                     sizeUpper = sizeAll;
-                    blob.Dyn.Y += 30f * scale;
-                    sizeAll.Y += 30f * scale;
+                    blob.Dyn.Y += (2 * PaddingY + SplitGap) * scale;
+                    //we already added 1 padding before
+                    sizeAll.Y += (PaddingY + SplitGap) * scale;
                 }
 
                 Vector2 size = blob.Measure();
+
                 // proceed as we usually did if not splitting or before split starts
                 if (!SplitViewPartially || splitStartsAt == 0 || i < splitStartsAt) {
                     sizeAll.X = Math.Max(sizeAll.X, size.X);
-                    sizeAll.Y += size.Y + 10f * scale;
+                    sizeAll.Y += size.Y + BlobSpacing * scale;
                 } else {
                     // ... otherwise we record the sizes seperately
                     sizeToSplit.X = Math.Max(sizeToSplit.X, size.X);
-                    sizeToSplit.Y += size.Y + 10f * scale;
+                    sizeToSplit.Y += size.Y + BlobSpacing * scale;
                 }
 
-                if (((Math.Max(sizeAll.X, sizeToSplit.X) + 100f * scale) > UI_WIDTH * 0.7f || (sizeAll.Y + sizeToSplit.Y / 2f + 90f * scale) > UI_HEIGHT * 0.7f) && textScaleTry < 5) {
+                if ((
+                    (Math.Max(sizeAll.X, sizeToSplit.X) + 2 * (Margin + PaddingX) * scale) > UI_WIDTH * TextScaleSizeThreshold ||
+                    (sizeAll.Y + sizeToSplit.Y / 2f + 2 * (Margin + PaddingY) * scale) > UI_HEIGHT * TextScaleSizeThreshold
+                    ) && textScaleTry < 5) {
                     textScaleTry++;
                     textScale -= scale * 0.1f;
                     goto RetryLineScale;
@@ -337,9 +372,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     sizeColumn.X = Math.Max(sizeColumn.X, size.X);
 
                     // have we reached half the splittable height or enforced a split?
-                    if (!splitSuccessfully && (sizeColumn.Y > sizeToSplit.Y / 2f + 10f || forceSplitAt == i)) {
+                    if (!splitSuccessfully && (sizeColumn.Y > sizeToSplit.Y / 2f + BlobSpacing * scale || forceSplitAt == i)) {
                         if (blob.CanSplit) {
                             switchedSidesAt = i;
+                            // remove the stray blob spacing so that there isn't any blank space below
+                            sizeColumn.Y -= BlobSpacing * scale;
                             maxColumnY = sizeColumn.Y;
                             sizeColumn.Y = 0f;
                             splitSuccessfully = true;
@@ -350,23 +387,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             goto RetryPartialSplit;
                         }
                     }
-                    blob.Dyn.Y = sizeAll.Y + sizeColumn.Y;
-                    sizeColumn.Y += size.Y + 10f * scale;
+                    blob.Dyn.Y = sizeAll.Y + sizeColumn.Y + PaddingY * scale;
+                    sizeColumn.Y += size.Y + BlobSpacing * scale;
                 }
+
+                // remove the stray blob spacing so that there isn't any blank space below
+                sizeColumn.Y -= BlobSpacing * scale;
 
                 if (splitSuccessfully) {
 
-                    if (sizeColumn.X * 2f < sizeAll.X) {
-                        sizeColumn.X = sizeAll.X / 2f;
+                    if (sizeColumn.X * 2 < sizeAll.X) {
+                        sizeColumn.X = sizeAll.X / 2;
                     } else {
                         // some padding for when the individual rects get drawn later
-                        sizeColumn.X += 30f * scale;
+                        sizeColumn.X += PaddingX * scale;
                     }
 
 
                     // move all the right column's elements to the right via Dyn.X
                     for (int i = switchedSidesAt; i < list.Count; i++)
-                        list[i].Dyn.X = sizeColumn.X + scale * 30f;
+                        list[i].Dyn.X = sizeColumn.X + PaddingX * scale + SplitGap * scale;
                 }
 
                 if (sizeColumn.Y > maxColumnY)
@@ -579,7 +619,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         protected void PrepareRenderLayout(out float scale, out float y, out Vector2 sizeAll) {
             scale = Scale;
-            y = 50f * scale;
+            y = Margin * scale;
             sizeAll = SizeAll;
 
             SpeedrunTimerDisplay timer = Engine.Scene?.Entities.FindFirst<SpeedrunTimerDisplay>();
@@ -590,12 +630,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     case SpeedrunType.Chapter:
                         if (timer.CompleteTimer < 3f)
-                            y += 104f;
+                            y += MainTimerOffset;
                         break;
 
                     case SpeedrunType.File:
                     default:
-                        y += 104f + 24f;
+                        y += MainTimerOffset + SubTimerOffset;
                         break;
                 }
             }
@@ -604,33 +644,66 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected override void Render(GameTime gameTime, bool toBuffer) {
             PrepareRenderLayout(out float scale, out float y, out Vector2 sizeAll);
 
-            float x = 25f * scale;
-            float sizeAllXPadded = sizeAll.X + 50f * scale;
-            float chatStartY = (Context?.Chat?.RenderPositionY ?? UI_HEIGHT) - 5f;
+            float x = Margin * scale;
+            float sizeAllXPadded = sizeAll.X + 2 * PaddingX * scale;
+            float chatStartY = (Context?.Chat?.RenderPositionY ?? UI_HEIGHT) - ChatOffset;
             Color colorFull = Color.Black * 0.8f;
             Color colorFaded = Color.Black * 0.5f;
 
             switch (ListMode) {
                 case ListModes.Classic:
-                    SplitRectAbsolute(x, y - 25f * scale, sizeAllXPadded, sizeAll.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                    SplitRectAbsolute(
+                        x, y,
+                        sizeAllXPadded, sizeAll.Y + 2 * PaddingY * scale,
+                        chatStartY,
+                        colorFull, colorFaded
+                    );
                     break;
 
                 case ListModes.Channels:
                     // own channel box always there
-                    SplitRectAbsolute(x, y - 25f * scale, sizeAllXPadded, SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                    SplitRectAbsolute(
+                        x, y,
+                        sizeAllXPadded, SizeUpper.Y + 2 * PaddingY * scale,
+                        chatStartY,
+                        colorFull, colorFaded
+                    );
+
+                    // skip below the drawn rect and include a gap
+                    float columnY = y + SizeUpper.Y + 2 * PaddingY * scale + SplitGap * scale;
 
                     if (SplitViewPartially && SplitSuccessfully) {
                         // two rects for the two columns
-                        float sizeColXPadded = SizeColumn.X + 25f * scale;
-                        SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
-                        x += sizeColXPadded + 5f * scale;
-                        SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded - sizeColXPadded - 5f * scale, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                        float sizeColXPadded = SizeColumn.X + PaddingX * scale;
+                        SplitRectAbsolute(
+                            x, columnY,
+                            sizeColXPadded, sizeAll.Y - SizeUpper.Y + 2 * PaddingY * scale,
+                            chatStartY,
+                            colorFull, colorFaded
+                        );
+
+                        //skip past the left column and include the gap
+                        float rightColumnX = x + sizeColXPadded + SplitGap * scale;
+
+                        SplitRectAbsolute(
+                            rightColumnX, columnY,
+                            sizeAllXPadded - sizeColXPadded - SplitGap * scale, sizeAll.Y - SizeUpper.Y + 2 * PaddingY * scale,
+                            chatStartY,
+                            colorFull, colorFaded
+                        );
                     } else {
                         // single rect below the other, nothing was split after all
-                        SplitRectAbsolute(x, y + SizeUpper.Y + 15f * scale, sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 30f * scale, chatStartY, colorFull, colorFaded);
+                        SplitRectAbsolute(
+                            x, columnY,
+                            sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 2 * PaddingY * scale,
+                            chatStartY,
+                            colorFull, colorFaded
+                        );
                     }
                     break;
             }
+
+            y += PaddingY * scale;
 
             float alpha;
             foreach (Blob blob in List) {
@@ -699,7 +772,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public virtual void Render(float y, float scale, ref Vector2 sizeAll, float alpha, Vector2? justify = null) {
                 CelesteNetClientFont.Draw(
                     TextCached,
-                    new(50f * scale + Dyn.X, y + Dyn.Y),
+                    new((Margin + PaddingX) * scale + Dyn.X, y + Dyn.Y),
                     justify ?? Vector2.Zero,
                     new(DynScale),
                     Color * alpha

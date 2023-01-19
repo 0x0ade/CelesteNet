@@ -524,8 +524,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (ListMode == ListModes.Channels && !own.Players.Contains(info.Player.ID))
                     return;
 
-                PrepareRenderLayout(out float scale, out float y, out Vector2 sizeAll);
-
                 // Update the player's ping
                 playerBlob.PingMs = info.UDPPingMs ?? info.TCPPingMs;
 

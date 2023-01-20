@@ -646,6 +646,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             float x = Margin * scale;
             float sizeAllXPadded = sizeAll.X + 2 * PaddingX * scale;
+            float sizeAllXBlobs = sizeAll.X;
             float chatStartY = (Context?.Chat?.RenderPositionY ?? UI_HEIGHT) - ChatOffset;
             Color colorFull = Color.Black * 0.8f;
             Color colorFaded = Color.Black * 0.5f;
@@ -661,6 +662,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     break;
 
                 case ListModes.Channels:
+                    if (SplitViewPartially && SplitSuccessfully) {
+                        sizeAllXPadded += SplitGap * scale;
+                        sizeAllXBlobs += SplitGap * scale;
+                    }
+
                     // own channel box always there
                     SplitRectAbsolute(
                         x, y,
@@ -704,6 +710,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             y += PaddingY * scale;
+            // Blobs need to use this width because there's a chance the split list padded its entire
+            // width to account for the bottom split (start of case ListModes.Channels above)
+            sizeAll.X = sizeAllXBlobs;
 
             float alpha;
             foreach (Blob blob in List) {

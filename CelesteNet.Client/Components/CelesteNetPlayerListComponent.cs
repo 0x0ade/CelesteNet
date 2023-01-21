@@ -323,13 +323,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 // introducing gap after own channel
                 if (splitStartsAt > 0 && i == splitStartsAt) {
-                    // remove the blob spacing and replace it with y padding
+                    // remove the blob spacing, that's all the blobs for sizeUpper
                     sizeAll.Y -= BlobSpacing * scale;
-                    sizeAll.Y += PaddingY * scale;
                     sizeUpper = sizeAll;
                     blob.Dyn.Y += (2 * PaddingY + SplitGap) * scale;
-                    //we already added 1 padding before
-                    sizeAll.Y += (PaddingY + SplitGap) * scale;
+                    sizeAll.Y += (2 * PaddingY + SplitGap) * scale;
                 }
 
                 Vector2 size = blob.Measure();
@@ -387,7 +385,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             goto RetryPartialSplit;
                         }
                     }
-                    blob.Dyn.Y = sizeAll.Y + sizeColumn.Y + PaddingY * scale;
+                    blob.Dyn.Y = sizeAll.Y + sizeColumn.Y;
                     sizeColumn.Y += size.Y + BlobSpacing * scale;
                 }
 

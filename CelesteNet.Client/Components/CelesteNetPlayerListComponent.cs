@@ -319,16 +319,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             for (int i = 0; i < list.Count; i++) {
                 Blob blob = list[i];
                 blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
-                blob.Dyn.Y = sizeAll.Y;
 
                 // introducing gap after own channel
                 if (splitStartsAt > 0 && i == splitStartsAt) {
                     // remove the blob spacing, that's all the blobs for sizeUpper
                     sizeAll.Y -= BlobSpacing * scale;
                     sizeUpper = sizeAll;
-                    blob.Dyn.Y += (2 * PaddingY + SplitGap) * scale;
                     sizeAll.Y += (2 * PaddingY + SplitGap) * scale;
                 }
+                blob.Dyn.Y = sizeAll.Y;
 
                 Vector2 size = blob.Measure();
 

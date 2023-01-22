@@ -906,7 +906,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             protected void DrawTextPart(string text, float textWidthScaled, Color color, float y, float scale, ref float x) {
                 CelesteNetClientFont.Draw(
                     text,
-                    new(50f * scale + x, y + Dyn.Y),
+                    new((Margin + PaddingX) * scale + x, y + Dyn.Y),
                     Vector2.UnitX, // Rendering bits right-to-left
                     new(DynScale),
                     color
@@ -991,7 +991,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
 
                 GuiIconCached?.Draw(
-                    new(50f * scale + sizeAll.X + Dyn.X - IconSize * DynScale + Offset, y + Dyn.Y),
+                    new((Margin + PaddingX) * scale + sizeAll.X + Dyn.X - IconSize * DynScale + Offset, y + Dyn.Y),
                     Vector2.Zero,
                     Color.White * alpha,
                     new Vector2(IconScale * DynScale)

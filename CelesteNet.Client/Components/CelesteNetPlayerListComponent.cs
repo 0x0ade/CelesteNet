@@ -129,6 +129,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private bool SplitSuccessfully = false;
 
+        private int SplitStartsAt;
+
         public enum ListModes {
             Channels,
             Classic,
@@ -417,6 +419,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             SizeUpper = sizeUpper;
             SizeColumn = new(sizeColumn.X, maxColumnY);
             SplitSuccessfully = splitSuccessfully;
+            SplitStartsAt = splitStartsAt;
         }
 
         private string GetOrderKey(DataPlayerInfo player) {
@@ -694,7 +697,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             chatStartY,
                             colorFull, colorFaded
                         );
-                    } else {
+                    } else if (SplitStartsAt > 0) {
                         // single rect below the other, nothing was split after 
                         SplitRectAbsolute(
                             x, columnY,
@@ -708,6 +711,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         // therefore, (sizeAll.Y - SizeUpper.Y - SplitGap * scale) is exactly what we need:
                         // bottom blobs + 2 pads
                     }
+                    // else no other channels, don't draw any rects
                     break;
             }
 

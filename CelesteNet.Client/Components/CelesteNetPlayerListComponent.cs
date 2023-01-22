@@ -704,7 +704,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             colorFull, colorFaded
                         );
                     } else if (SplitStartsAt > 0) {
-                        // single rect below the other, nothing was split after 
+                        // single rect below the other, nothing was split after all
                         SplitRectAbsolute(
                             x, columnY,
                             sizeAllXPadded, sizeAll.Y - SizeUpper.Y - SplitGap * scale,

@@ -680,7 +680,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         float sizeColXPadded = SizeColumn.X + PaddingX * scale;
                         SplitRectAbsolute(
                             x, columnY,
-                            sizeColXPadded, sizeAll.Y - SizeUpper.Y + 2 * PaddingY * scale,
+                            sizeColXPadded, SizeColumn.Y + 2 * PaddingY * scale,
                             chatStartY,
                             colorFull, colorFaded
                         );
@@ -690,18 +690,23 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                         SplitRectAbsolute(
                             rightColumnX, columnY,
-                            sizeAllXPadded - sizeColXPadded - SplitGap * scale, sizeAll.Y - SizeUpper.Y + 2 * PaddingY * scale,
+                            sizeAllXPadded - sizeColXPadded - SplitGap * scale, SizeColumn.Y + 2 * PaddingY * scale,
                             chatStartY,
                             colorFull, colorFaded
                         );
                     } else {
-                        // single rect below the other, nothing was split after all
+                        // single rect below the other, nothing was split after 
                         SplitRectAbsolute(
                             x, columnY,
-                            sizeAllXPadded, sizeAll.Y - SizeUpper.Y + 2 * PaddingY * scale,
+                            sizeAllXPadded, sizeAll.Y - SizeUpper.Y - SplitGap * scale,
                             chatStartY,
                             colorFull, colorFaded
                         );
+                        // NO Y PADDING??
+                        // sizeAll.Y   => top blobs + padding + split gap + padding + bottom blobs
+                        // SizeUpper.Y => top blobs
+                        // therefore, (sizeAll.Y - SizeUpper.Y - SplitGap * scale) is exactly what we need:
+                        // bottom blobs + 2 pads
                     }
                     break;
             }

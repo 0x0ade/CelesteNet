@@ -372,7 +372,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     if (!splitSuccessfully && (sizeColumn.Y > sizeToSplit.Y / 2f + BlobSpacing * scale || forceSplitAt == i)) {
                         if (blob.CanSplit) {
                             switchedSidesAt = i;
-                            // remove the stray blob spacing so that there isn't any blank space below
+                            // trim the excess blob spacing below
                             sizeColumn.Y -= BlobSpacing * scale;
                             maxColumnY = sizeColumn.Y;
                             sizeColumn.Y = 0f;
@@ -388,7 +388,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     sizeColumn.Y += size.Y + BlobSpacing * scale;
                 }
 
-                // remove the stray blob spacing so that there isn't any blank space below
+                // trim the excess blob spacing below
                 sizeColumn.Y -= BlobSpacing * scale;
 
                 if (splitSuccessfully) {

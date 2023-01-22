@@ -318,6 +318,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Vector2 sizeToSplit = Vector2.Zero;
             Vector2 sizeUpper = Vector2.Zero;
 
+            bool trimmedExcessSpacing = false;
+
             for (int i = 0; i < list.Count; i++) {
                 Blob blob = list[i];
                 blob.DynScale = Calc.LerpClamp(scale, textScale, blob.ScaleFactor);
@@ -326,6 +328,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (splitStartsAt > 0 && i == splitStartsAt) {
                     // remove the blob spacing, that's all the blobs for sizeUpper
                     sizeAll.Y -= BlobSpacing * scale;
+                    trimmedExcessSpacing = true;
                     sizeUpper = sizeAll;
                     sizeAll.Y += (2 * PaddingY + SplitGap) * scale;
                 }
@@ -352,6 +355,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     goto RetryLineScale;
                 }
             }
+
+            if (!trimmedExcessSpacing)
+                sizeAll.Y -= BlobSpacing * scale;
 
             if (splitStartsAt == 0)
                 sizeUpper = sizeAll;

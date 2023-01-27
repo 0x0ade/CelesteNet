@@ -11,16 +11,14 @@
 
 (we're in `#celestenet` on the "Mt. Celeste Climbing Association" Discord server)
 
-[![CelesteNet Website](CelesteNet.Server.FrontendModule/Content/website_button.png)](https://celestenet.0x0a.de/)
-
 ## What is CelesteNet?
+
+[![CelesteNet Website](CelesteNet.Server.FrontendModule/Content/website_button.png)](https://celestenet.0x0a.de/) [![CelesteNet Download](CelesteNet.Server.FrontendModule/Content/download_button.png)][celestenet-download]
 
 CelesteNet is an online multiplayer mod for [Celeste][celeste-game], using the [Everest mod loader][everest-site], made with a lot of love.
 It lets you join levels together with your friends or complete strangers, even jumping on others' heads and throwing them across pits if you want to! There even are some multiplayer-exclusive maps and custom game modes for you to experience already, and more in development by the community.
 
 ## How do I play on CelesteNet?
-
-[![CelesteNet Download](CelesteNet.Server.FrontendModule/Content/download_button.png)][celestenet-download]
 
 First, make sure that you've installed [Everest (mod loader) via Olympus (mod manager)][everest-site].
 Click on the "Download CelesteNet" button above, then click the "1-CLICK INSTALL" button on the latest version.

@@ -119,6 +119,12 @@ html, body, #body {
     height: calc(min(50vw, 50vh));
     min-height: 600px;
     margin: -32px -32px 32px -32px;
+    padding: 0 10vw;
+}
+
+#front.rules-front {
+    min-height: 220px;
+    height: calc(min(20vw, 20vh));
 }
 
 #front-clips-wrap {
@@ -178,8 +184,8 @@ html, body, #body {
     position: absolute;
     top: calc(50% - 96px);
     left: 50%;
-    width: 50%;
-    height: 50%;
+    width: 90%;
+    height: 90%;
     max-width: calc(2197px / 4);
     max-height: calc(428px / 4);
     transform: translate(-50%, -50%);
@@ -190,6 +196,18 @@ html, body, #body {
     filter: drop-shadow(0 0 16px rgba(15, 0, 34, 0.8));
 }
 
+#front-title {
+    position: absolute;
+    top: calc(50% - .2em);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 0 16px rgba(15, 0, 34, 0.8));
+    font-size: min(max(4vw, 2.5em), 4em);
+    font-weight: bold;
+    color: white;
+    white-space: nowrap;
+}
+
 #front-text {
     position: relative;
     top: calc(50%);
@@ -198,11 +216,29 @@ html, body, #body {
     color: white;
 }
 
+.rules-front #front-text {
+    top: calc(50% + 1.8em);
+}
+
 #main  {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap-reverse;
     gap: 48px;
+}
+
+.rules-main {
+    max-width: calc(2197px / 2);
+    margin: 0 auto;
+}
+
+.rules-main #content div:nth-child(1) {
+    padding-top:0px;
+}
+
+.back-link {
+    padding: 0px;
+    margin-left: -4px;
 }
 
 #content {
@@ -249,6 +285,7 @@ a:hover, a:focus, a:active {
     color: rgba(107, 216, 250, 0.87);
     text-decoration-color: rgba(107, 216, 250, 0.87);
 }
+
 #front-text  a:hover, #front-text  a:focus, #front-text  a:active {
     color: rgba(0, 162, 211, 0.94);
     text-decoration-color: rgba(0, 162, 211, 0.94);
@@ -375,6 +412,10 @@ a.button:hover, a.button:focus, a.button:active {
     background-size: cover;
 }
 
+#rules li {
+    margin: 16px;
+}
+
 #toplink-auto .toplink-icon {
     background-image: url("./everest.png");
 }
@@ -428,6 +469,8 @@ a.button:hover, a.button:focus, a.button:active {
 #baked {
     text-align: center;
     padding-bottom: 24px;
+    background: #0c090f;
+    color: #ffffff;
 }
 
 .berry {

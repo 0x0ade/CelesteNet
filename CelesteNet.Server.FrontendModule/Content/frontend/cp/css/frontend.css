@@ -297,11 +297,17 @@ main {
     font-size: 11px;
 }
 .panel-cmd > .panel-input > .mdc-text-field,
+.panel-players > .panel-input > .mdc-text-field,
 .panel-chat > .panel-input > .mdc-text-field {
     width: 100%;
 }
 
+.panel-players > .panel-input > .mdc-text-field {
+    height: 36px;
+}
+
 .panel-cmd > .panel-input,
+.panel-players > .panel-input,
 .panel-chat > .panel-input {
     display: flex;
     align-items: center;

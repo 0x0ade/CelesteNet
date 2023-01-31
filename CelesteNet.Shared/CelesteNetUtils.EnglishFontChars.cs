@@ -18,6 +18,13 @@ namespace Celeste.Mod.CelesteNet {
 
         // Yes, this is better than trying to find the original font file and parsing it.
 
+        /* 2022-12-18 - RedFlames
+         * I went over the "stranger" looking ones here (i.e. I skipped the
+         * big chunk in the middle that "look like letters" and all that...)
+         * and commented out some like 0xAD (soft-hyphen) that don't render
+         * properly.
+         */
+
         public static readonly char[] EnglishFontChars = new int[] {
             0x0020, //  
             0x0021, // !
@@ -114,7 +121,7 @@ namespace Celeste.Mod.CelesteNet {
             0x007C, // |
             0x007D, // }
             0x007E, // ~
-            0x00A0, //  
+          //0x00A0, //   - see comment at top
             0x00A1, // ¡
             0x00A2, // ¢
             0x00A3, // £
@@ -126,7 +133,7 @@ namespace Celeste.Mod.CelesteNet {
             0x00AA, // ª
             0x00AB, // «
             0x00AC, // ¬
-            0x00AD, // ­
+          //0x00AD, // ­  - see comment at top
             0x00AE, // ®
             0x00AF, // ¯
             0x00B0, // °

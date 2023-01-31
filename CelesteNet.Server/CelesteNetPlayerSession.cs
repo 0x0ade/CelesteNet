@@ -321,6 +321,26 @@ namespace Celeste.Mod.CelesteNet.Server {
             return true;
         }
 
+        public void SendCommandList(DataCommandList commands) {
+            if (commands == null || commands.List.Length == 0) {
+                return;
+            }
+
+            // I almost made this a member variable of this class, but there's no point rn because it's only sent once at session start
+            DataCommandList filteredCommands = new();
+
+            bool auth = false;
+            bool authExec = false;
+            if (!(UID?.IsNullOrEmpty() ?? true) && Server.UserData.TryLoad(UID, out BasicUserInfo info)) {
+                auth = info.Tags.Contains(BasicUserInfo.TAG_AUTH);
+                authExec = info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC);
+            }
+
+            filteredCommands.List = commands.List.Where(cmd => (!cmd.Auth || auth) && (!cmd.AuthExec || authExec)).ToArray();
+
+            Con.Send(filteredCommands);
+        }
+
         public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;
 
         public void Dispose() {

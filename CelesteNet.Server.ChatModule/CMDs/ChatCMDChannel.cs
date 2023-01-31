@@ -14,11 +14,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDChannel>().ID}";
 
+        public override bool InternalAliasing => true;
+
     }
 
     public class ChatCMDChannel : ChatCMD {
 
         public override string Args => "[page] | [channel]";
+
+        public override CompletionType Completion => CompletionType.Channel;
 
         public override string Info => "Switch to a different channel.";
         public override string Help =>

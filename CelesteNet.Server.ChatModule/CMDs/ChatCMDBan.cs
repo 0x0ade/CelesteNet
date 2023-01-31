@@ -14,6 +14,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Args => "<user> <text>";
 
+        public override CompletionType Completion => CompletionType.Player;
+
         public override string Info => "Ban a player from the server with a given reason.";
 
         public override bool MustAuth => true;

@@ -16,6 +16,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Info => "Kick a player from the server.";
 
+        public override CompletionType Completion => CompletionType.Player;
+
         public override bool MustAuth => true;
 
         public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {

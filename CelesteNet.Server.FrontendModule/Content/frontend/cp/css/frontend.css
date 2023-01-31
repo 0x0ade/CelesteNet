@@ -300,6 +300,13 @@ main {
 .panel-chat > .panel-input > .mdc-text-field {
     width: 100%;
 }
+
+.panel-cmd > .panel-input,
+.panel-chat > .panel-input {
+    display: flex;
+    align-items: center;
+}
+
 .panel-notes > .panel-text > .mdc-text-field,
 .panel-notes > .panel-text > .mdc-text-field > .mdc-text-field__resizer,
 .panel-notes > .panel-text > .mdc-text-field > .mdc-text-field__resizer > textarea {

@@ -31,7 +31,7 @@ Sends a whisper to recipient or sender of the most recent whisper.";
                 return;
 
             if (env.Session.LastWhisperSessionID == uint.MaxValue)
-                throw new Exception("You have not sent or received any whispers.");
+                throw new Exception("You have not sent or received any whispers since you last connected.");
 
             if (args.Count == 0)
                 throw new Exception("No text.");

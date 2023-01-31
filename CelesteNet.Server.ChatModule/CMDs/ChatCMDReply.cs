@@ -24,6 +24,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.CMDs {
 $@"Reply to the most recent whisper.
 Sends a whisper to recipient or sender of the most recent whisper.";
 
+        public override CompletionType Completion => CompletionType.Player;
+
         public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
             if (env.Session == null)
                 return;

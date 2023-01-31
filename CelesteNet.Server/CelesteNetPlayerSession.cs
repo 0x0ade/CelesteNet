@@ -38,7 +38,6 @@ namespace Celeste.Mod.CelesteNet.Server {
         private readonly object RequestNextIDLock = new();
         private uint RequestNextID = 0;
 
-        public DataCommandList Commands = new();
         internal CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint sesId, string uid, string name, CelesteNetClientOptions clientOptions) {
             Server = server;
             Con = con;
@@ -294,6 +293,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return;
             }
 
+            // I almost made this a member variable of this class, but there's no point rn because it's only sent once at session start
+            DataCommandList filteredCommands = new();
+
             bool auth = false;
             bool authExec = false;
             if (!(UID?.IsNullOrEmpty() ?? true) && Server.UserData.TryLoad(UID, out BasicUserInfo info)) {
@@ -301,9 +303,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 authExec = info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC);
             }
 
-            Commands.List = commands.List.Where(cmd => (!cmd.Auth || auth) && (!cmd.AuthExec || authExec)).ToArray();
+            filteredCommands.List = commands.List.Where(cmd => (!cmd.Auth || auth) && (!cmd.AuthExec || authExec)).ToArray();
 
-            Con.Send(Commands);
+            Con.Send(filteredCommands);
         }
 
         public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;

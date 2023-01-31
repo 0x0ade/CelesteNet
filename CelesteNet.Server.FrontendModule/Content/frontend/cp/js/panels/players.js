@@ -66,9 +66,9 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
 
     // @ts-ignore
     this.input = this.elInput.getElementsByTagName("input")[0];
-    let filter = this.input.value.trim();
+    let filter = this.input.value.trim().toLowerCase();
 
-    this.list = this.data.filter(p => filter == "" || p.FullName.indexOf(filter) >= 0).map(p => el => {
+    this.list = this.data.filter(p => filter == "" || p.FullName.toLowerCase().indexOf(filter) >= 0).map(p => el => {
       el = mdcrd.list.item(el => rd$(el)`
         <span>
         <b>${p.FullName}</b> <i>(#${p.ID})</i><br>

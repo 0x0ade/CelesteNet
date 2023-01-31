@@ -46,15 +46,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Type = typeof(Texture2D);
                 Format = "png";
                 PathVirtual = $"emoji/{ID}";
-                Emoji.Register(ID, GFX.Misc["whiteCube"]);
-                Emoji.Fill(CelesteNetClientFont.Font);
+                MainThreadHelper.Do(() => {
+                    Emoji.Register(ID, GFX.Misc["whiteCube"]);
+                    Emoji.Fill(CelesteNetClientFont.Font);
+                });
             }
 
             public void Dispose() {
                 Buffer.Dispose();
                 if (!Pending) {
-                    Emoji.Register(ID, GFX.Misc["whiteCube"]);
-                    Emoji.Fill(CelesteNetClientFont.Font);
+                    MainThreadHelper.Do(() => {
+                        Emoji.Register(ID, GFX.Misc["whiteCube"]);
+                        Emoji.Fill(CelesteNetClientFont.Font);
+                    });
                 }
             }
 

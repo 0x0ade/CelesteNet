@@ -15,6 +15,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Args => "<player>";
 
+        public override CompletionType Completion => CompletionType.Player;
+
         public override string Info => "Teleport to another player.";
 
         public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {

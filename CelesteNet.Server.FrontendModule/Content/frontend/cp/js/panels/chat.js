@@ -158,7 +158,8 @@ export class FrontendChatPanel extends FrontendBasicPanel {
           this.send();
         }
       })}
-    </div>`
+      ${mdcrd.iconButton("Send", "send", () => { this.send(); })}
+    </div>`;
   }
 
   send(text) {

@@ -13,6 +13,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Args => "[page] | [command]";
 
+        public override CompletionType Completion => CompletionType.Command;
+
         public override string Info => "Get help on how to use commands.";
 
         public override int HelpOrder => int.MinValue;

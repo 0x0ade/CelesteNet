@@ -28,6 +28,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetClientTCPUDPConnection(CelesteNetClient client, uint token, Settings settings, Socket tcpSock) : base(client.Data, token, settings, tcpSock) {
             Client = client;
 
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientTCPUDPConnection created");
+
             // Initialize networking
             TCPNetStream = new NetworkStream(tcpSock);
             TCPReadStream = new BufferedStream(TCPNetStream);
@@ -63,10 +65,14 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         protected override void Dispose(bool disposing) {
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientTCPUDPConnection Dispose called");
+
             // Wait for threads
             TokenSrc.Cancel();
             TCPSocket.ShutdownSafe(SocketShutdown.Both);
             UDPSocket.Close();
+
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientTCPUDPConnection Dispose: Sockets done");
 
             if (Thread.CurrentThread != TCPRecvThread)
                 TCPRecvThread.Join();
@@ -76,6 +82,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 TCPSendThread.Join();
             if (Thread.CurrentThread != UDPSendThread)
                 UDPSendThread.Join();
+
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientTCPUDPConnection Dispose: Threads joined");
 
             base.Dispose(disposing);
 
@@ -95,11 +103,13 @@ namespace Celeste.Mod.CelesteNet.Client {
             UDPSocket.Dispose();
             TCPSendQueue.Dispose();
             UDPSendQueue.Dispose();
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientTCPUDPConnection Dispose: Streams & Queues disposed");
         }
 
         public override void DisposeSafe() {
             if (!IsAlive || SafeDisposeTriggered)
                 return;
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientTCPUDPConnection DisposeSafe set");
             Client.SafeDisposeTriggered = SafeDisposeTriggered = true;
         }
 

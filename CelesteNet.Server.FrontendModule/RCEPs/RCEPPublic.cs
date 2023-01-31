@@ -24,9 +24,6 @@ using System.Runtime.Loader;
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public static partial class RCEndpoints {
 
-        public static readonly string COOKIE_DISCORDAUTH = "celestenet-discordauth";
-        public static readonly string COOKIE_KEY = "celestenet-key";
-
         [RCEndpoint(false, "/discordauth", "", "", "Discord OAuth2", "User auth using Discord.")]
         public static void DiscordOAuth(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
@@ -44,8 +41,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (args["error"] == "access_denied") {
                 c.Response.StatusCode = (int) HttpStatusCode.Redirect;
                 c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/");
-                c.Response.SetCookie(new(COOKIE_KEY, "", "/"));
-                c.Response.SetCookie(new(COOKIE_DISCORDAUTH, "", "/"));
+                f.UnsetKeyCookie(c);
+                f.UnsetDiscordAuthCookie(c);
                 f.RespondJSON(c, new {
                     Info = "Denied - redirecting to /"
                 });
@@ -168,8 +165,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             c.Response.StatusCode = (int) HttpStatusCode.Redirect;
             c.Response.Headers.Set("Location", $"http://{c.Request.UserHostName}/");
-            c.Response.SetCookie(new(COOKIE_KEY, key, "/"));
-            c.Response.SetCookie(new(COOKIE_DISCORDAUTH, code, "/"));
+            f.SetKeyCookie(c, key);
+            f.SetDiscordAuthCookie(c, code);
             f.RespondJSON(c, new {
                 Info = "Success - redirecting to /"
             });
@@ -185,7 +182,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (uid.IsNullOrEmpty()) {
                 string? key = args["key"];
                 if (key.IsNullOrEmpty())
-                    key = c.Request.Cookies[COOKIE_KEY]?.Value ?? "";
+                    key = f.TryGetKeyCookie(c) ?? "";
                 if (key.IsNullOrEmpty()) {
                     c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                     f.RespondJSON(c, new {
@@ -231,7 +228,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             string? key = args["key"];
             if (key.IsNullOrEmpty())
-                key = c.Request.Cookies[COOKIE_KEY]?.Value ?? "";
+                key = f.TryGetKeyCookie(c) ?? "";
             if (key.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                 f.RespondJSON(c, new {

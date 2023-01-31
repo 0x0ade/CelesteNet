@@ -31,8 +31,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Data.RegisterHandlersIn(this);
 
             Default = new(this, NameDefault, 0);
-
-            Server.OnSessionStart += OnSessionStart;
         }
 
         public void Start() {
@@ -43,14 +41,16 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "channels", "Shutdown");
         }
 
-        private void OnSessionStart(CelesteNetPlayerSession session) {
+        public bool SessionStartupMove(CelesteNetPlayerSession session) {
             if (Server.UserData.TryLoad(session.UID, out LastChannelUserInfo last) &&
                 last.Name != NameDefault) {
-                Move(session, last.Name);
+                (Channel curr, Channel prev) = Move(session, last.Name);
+                return curr != prev;
             } else {
                 Default.Add(session);
                 BroadcastList();
             }
+            return false;
         }
 
         public void SendListTo(CelesteNetPlayerSession session) {

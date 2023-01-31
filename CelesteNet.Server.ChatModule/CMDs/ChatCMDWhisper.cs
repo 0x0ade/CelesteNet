@@ -20,6 +20,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Args => "<user> <text>";
 
+        public override CompletionType Completion => CompletionType.Player;
+
         public override string Info => "Send a whisper to someone else or toggle whispers.";
 
         public override string Help =>

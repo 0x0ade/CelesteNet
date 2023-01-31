@@ -129,6 +129,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Cleanup() {
+            if (IsGrabbed && Player?.StateMachine.State == Player.StFrozen)
+                Player.StateMachine.State = Player.StNormal;
+
             Player = null;
             PlayerBody = null;
             Session = null;
@@ -138,9 +141,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             foreach (Ghost ghost in Ghosts.Values)
                 ghost?.RemoveSelf();
             Ghosts.Clear();
-
-            if (IsGrabbed && Player.StateMachine.State == Player.StFrozen)
-                Player.StateMachine.State = Player.StNormal;
 
             if (PlayerNameTag != null)
                 PlayerNameTag.Name = "";
@@ -247,8 +247,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (ghost == null && !IsGhostOutside(Session, level, graphics.Player, out _))
                 ghost = CreateGhost(level, graphics.Player, graphics);
 
-            if (ghost != null)
-                ghost.UpdateGraphics(graphics);
+            if (ghost != null) {
+                ghost.RunOnUpdate(ghost => {
+                    ghost.UpdateGraphics(graphics);
+                });
+            }
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {

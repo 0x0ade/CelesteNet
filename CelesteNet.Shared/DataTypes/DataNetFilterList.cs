@@ -18,19 +18,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override DataFlags DataFlags => DataFlags.Taskable;
 
-        public DataPlayerInfo? Player;
-
         public string[] List = Dummy<string>.EmptyArray;
         private HashSet<string>? Set;
-
-        public override MetaType[] GenerateMeta(DataContext ctx)
-            => new MetaType[] {
-                new MetaBoundRef(DataPlayerInfo.DataID, Player?.ID ?? uint.MaxValue, true)
-            };
-
-        public override void FixupMeta(DataContext ctx) {
-            Player = ctx.GetRef<DataPlayerInfo>(Get<MetaBoundRef>(ctx).ID);
-        }
 
         protected override void Read(CelesteNetBinaryReader reader) {
             List = new string[reader.ReadUInt16()];

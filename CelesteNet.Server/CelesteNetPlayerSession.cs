@@ -31,6 +31,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(SessionID, out DataPlayerInfo? value) ? value : null;
 
+        public uint LastWhisperSessionID;
+
         public Channel Channel;
 
         public DataInternalBlob[] AvatarFragments = Dummy<DataInternalBlob>.EmptyArray;
@@ -49,6 +51,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             _Alive = 1;
             UID = uid;
             Name = name;
+
+            LastWhisperSessionID = uint.MaxValue;
 
             Channel = server.Channels.Default;
 

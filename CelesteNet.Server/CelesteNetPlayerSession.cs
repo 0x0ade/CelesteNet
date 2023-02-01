@@ -205,12 +205,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                         Con.Send(fragBlob);
                         avaSendsNew++;
                     }
-
-                    foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || other.Channel.ID == 0) {
-                            Con.Send(bound);
-                            boundSends++;
-                        }
                 }
 
             Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} - Done using ConLock -- blobSendsNew/avaSendsNew {blobSendsNew}/{avaSendsNew} - blobSendsOut/avaSendsOut {blobSendsOut}/{avaSendsOut} - boundSends {boundSends}");

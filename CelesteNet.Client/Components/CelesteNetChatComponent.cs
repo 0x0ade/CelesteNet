@@ -797,7 +797,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     // draw cursor at correct location, but move back half a "." width to not overlap following char
                     pos.X += CelesteNetClientFont.Measure(Typing.Substring(0, CursorIndex)).X * scale;
                     pos.X -= CelesteNetClientFont.Measure(".").X / 2f * scale;
-                    pos.Y += 5f * scale;
+                    pos.Y -= 5f * scale;
 
                     CelesteNetClientFont.Draw(
                         "|",

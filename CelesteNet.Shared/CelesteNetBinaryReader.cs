@@ -83,7 +83,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         public virtual string ReadNetString() {
-            char c = (char) ReadByte();
+            char c = ReadChar();
             if (c == NetStringCtrl.Mapped)
                 throw new Exception("Trying to read a mapped string as a non-mapped string!");
 
@@ -103,7 +103,7 @@ namespace Celeste.Mod.CelesteNet {
         public virtual string ReadNetMappedString() {
             string value;
 
-            char c = (char) ReadByte();
+            char c = ReadChar();
             if (c == NetStringCtrl.Mapped) {
                 if (Strings == null)
                     throw new Exception("Trying to read a mapped string without a string map!");

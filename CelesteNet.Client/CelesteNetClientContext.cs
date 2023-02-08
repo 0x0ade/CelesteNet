@@ -89,19 +89,26 @@ namespace Celeste.Mod.CelesteNet.Client {
         public static event Action<CelesteNetClientContext> OnInit;
 
         public void Init(CelesteNetClientSettings settings) {
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Init: Creating client");
             Client = new(settings, new() {
                 IsReconnect = IsReconnect
             });
-            foreach (CelesteNetGameComponent component in Components.Values)
+            foreach (CelesteNetGameComponent component in Components.Values) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Init: Init comp {component.GetType()}");
                 component.Init();
+            }
             OnInit?.Invoke(this);
         }
 
         public static event Action<CelesteNetClientContext> OnStart;
 
         public void Start(CancellationToken token) {
-            if (Client == null)
+            Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Start: ");
+
+            if (Client == null) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Start: Client was null, returning");
                 return;
+            }
 
             Started = true;
 
@@ -123,8 +130,10 @@ namespace Celeste.Mod.CelesteNet.Client {
                 MainThreadQueue.Clear();
             }
 
-            if (Client?.SafeDisposeTriggered ?? false)
+            if ((Client?.SafeDisposeTriggered ?? false) && (Client?.IsAlive ?? false)) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Update: Disposing client because Client.SafeDisposeTriggered");
                 Client.Dispose();
+            }
         }
 
         public override void Draw(GameTime gameTime) {
@@ -133,24 +142,31 @@ namespace Celeste.Mod.CelesteNet.Client {
             // This must happen at the very end, as XNA / FNA won't update their internal lists, causing "dead" components to update.
 
             if (SafeDisposeTriggered) {
-                Dispose();
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Draw: Disposing because SafeDisposeTriggered");
+                if (!IsDisposed)
+                    Dispose();
                 return;
             }
 
             if (Started && !(Client?.IsAlive ?? false)) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Draw: Client is dead? {Client} {Client?.IsAlive}");
                 // The connection died.
                 if (CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected) {
                     if (!Reconnecting) {
+                        Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Draw: Initiating auto-reconnect");
                         Reconnecting = true;
                         // FIXME: Make sure that nothing tries to make use of the dead connection until the restart.
                         if (Status.Spin)
                             Status.Set("Disconnected", 3f, false);
-                        QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 1D, () => {
-                            if (CelesteNetClientModule.Instance.Context == this)
+                        QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 2D, () => {
+                            if (CelesteNetClientModule.Instance.Context == this) {
+                                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext - QueueTask: Calling instance Start");
                                 CelesteNetClientModule.Instance.Start();
+                            }
                         });
                     }
                 } else {
+                    Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Draw: No auto-recon - disposing");
                     Dispose();
                 }
             }
@@ -188,6 +204,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (CoreDisposed)
                     return;
                 CoreDisposed = true;
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext DisposeCore called");
 
                 if (CelesteNetClientModule.Instance.Context == this) {
                     Status.Set("Disconnected", 3f, false);
@@ -204,6 +221,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             lock (DisposeLock) {
                 if (IsDisposed)
                     return;
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext DisposeSafe called");
 
                 SafeDisposeForceDispose |= forceDispose;
                 SafeDisposeTriggered = true;
@@ -219,6 +237,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (IsDisposed)
                     return;
                 IsDisposed = true;
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Dispose called");
 
                 base.Dispose(disposing);
 

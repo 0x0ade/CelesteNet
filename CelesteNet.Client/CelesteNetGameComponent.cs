@@ -77,6 +77,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             } else if (!IsDrawingUI && ((Context?.IsDisposed ?? true) || CelesteNetClientModule.Instance.UIRenderTarget == null)) {
                 RenderContentWrap(gameTime, false);
             }
+            if (CelesteNetClientModule.Instance.UIRenderTarget == null)
+                Logger.Log(LogLevel.VVV, "gamecomp", $"CelesteNetGameComponent Draw UI RT is null");
         }
 
         public virtual void Disconnect(bool forceDispose = false) {

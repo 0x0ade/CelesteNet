@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/auth", null, null, "Authenticate", "Basic POST authentication endpoint.")]
         public static void Auth(Frontend f, HttpRequestEventArgs c) {
-            string? key = c.Request.Cookies[Frontend.COOKIE_SESSION]?.Value;
+            string? key = f.TryGetSessionAuthCookie(c);
             string? pass;
 
             try {
@@ -53,32 +53,24 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 }
             }
 
-            key = c.Request.Cookies[COOKIE_KEY]?.Value;
+            key = f.TryGetKeyCookie(c);
+            string sessionkey;
             if (!key.IsNullOrEmpty() &&
                 f.Server.UserData.GetUID(key) is string uid && !uid.IsNullOrEmpty() &&
                 f.Server.UserData.TryLoad(uid, out BasicUserInfo info)) {
+                    sessionkey = "";
                     if (info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC)) {
-                        do {
-                            key = Guid.NewGuid().ToString();
-                        } while (!f.CurrentSessionKeys.Add(key) || !f.CurrentSessionExecKeys.Add(key));
-                        c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key, "/"));
-                        f.RespondJSON(c, new {
-                            Key = key,
-                            Info = $"Welcome, {info.Name}#{info.Discrim}"
-                        });
-                        return;
-
+                        sessionkey = f.GetNewKey(execAuth: true);
                     } else if (info.Tags.Contains(BasicUserInfo.TAG_AUTH)) {
-                        do {
-                            key = Guid.NewGuid().ToString();
-                        } while (!f.CurrentSessionKeys.Add(key));
-                        c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key, "/"));
+                        sessionkey = f.GetNewKey();
+                    } 
+                    if (!sessionkey.IsNullOrEmpty()) {
+                        f.SetSessionAuthCookie(c, sessionkey);
                         f.RespondJSON(c, new {
-                            Key = key,
+                            Key = sessionkey,
                             Info = $"Welcome, {info.Name}#{info.Discrim}"
                         });
                         return;
-
                     } else {
                         // Fall through to "previous session" / password checks.
                     }
@@ -100,24 +92,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
+            sessionkey = "";
             if (pass == f.Settings.PasswordExec) {
-                do {
-                    key = Guid.NewGuid().ToString();
-                } while (!f.CurrentSessionKeys.Add(key) || !f.CurrentSessionExecKeys.Add(key));
-                c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key, "/"));
-                f.RespondJSON(c, new {
-                    Key = key
-                });
-                return;
+                sessionkey = f.GetNewKey(execAuth: true);
+            } else if (pass == f.Settings.Password) {
+                sessionkey = f.GetNewKey();
             }
 
-            if (pass == f.Settings.Password) {
-                do {
-                    key = Guid.NewGuid().ToString();
-                } while (!f.CurrentSessionKeys.Add(key));
-                c.Response.SetCookie(new(Frontend.COOKIE_SESSION, key, "/"));
+            if (!sessionkey.IsNullOrEmpty()) {
+                f.SetSessionAuthCookie(c, sessionkey);
                 f.RespondJSON(c, new {
-                    Key = key
+                    Key = sessionkey
                 });
                 return;
             }
@@ -353,7 +338,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             // Gate the players endpoint behind control panel auth or player auth, as exposing online player names is a bit eh.
             if (!auth && (
-                    c.Request.Cookies[COOKIE_KEY]?.Value is not string key || key.IsNullOrEmpty() ||
+                    f.TryGetKeyCookie(c) is not string key || key.IsNullOrEmpty() ||
                     f.Server.UserData.GetUID(key) is not string uid || uid.IsNullOrEmpty()
             )) {
                 c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
@@ -422,7 +407,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             lock (buffer) {
                 for (int i = Math.Max(-buffer.Moved, -count); i < 0; i++) {
                     DataChat? msg = buffer[i];
-                    if (msg != null && (msg.Target == null || auth))
+                    if (msg != null && ((msg.Targets?.Length ?? 0) == 0 || auth))
                         log.Add(detailed ? msg.ToDetailedFrontendChat() : msg.ToFrontendChat());
                 }
             }

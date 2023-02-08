@@ -36,13 +36,39 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
     this.ep = "/api/players";
     /** @type {PlayerData[]} */
     this.data = [];
+    this.input = null;
+  }
+
+  render(el) {
+    return this.el = rd$(el || this.el)`
+    <div class="panel" ${rd.toggleClass("panelType", "panel-" + this.id)}=${true}>
+      ${el => this.renderHeader(el)}
+      ${mdcrd.progress(this.progress)}
+      ${el => this.renderInput(el)}
+      ${el => this.renderBody(el)}
+    </div>`;
+  }
+
+  renderInput(el) {
+    // Render input only once.
+    if (this.elInput)
+      return this.elInput;
+
+    return this.elInput = rd$(el || this.elInput)`
+      <div class="panel-input">
+      ${mdcrd.textField("", "", null, () => { this.refresh(); })}
+      ${mdcrd.iconButton("Clear", "clear", () => { this.input.value = ""; this.refresh(); })}
+      </div>`;
   }
 
   async update() {
     this.data = await fetch(this.ep).then(r => r.json());
 
     // @ts-ignore
-    this.list = this.data.map(p => el => {
+    this.input = this.elInput.getElementsByTagName("input")[0];
+    let filter = this.input.value.trim().toLowerCase();
+
+    this.list = this.data.filter(p => filter == "" || p.FullName.toLowerCase().indexOf(filter) >= 0).map(p => el => {
       el = mdcrd.list.item(el => rd$(el)`
         <span>
         <b>${p.FullName}</b> <i>(#${p.ID})</i><br>

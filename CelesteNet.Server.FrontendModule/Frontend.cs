@@ -22,6 +22,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : CelesteNetServerModule<FrontendSettings> {
 
         public static readonly string COOKIE_SESSION = "celestenet-session";
+        public static readonly string COOKIE_DISCORDAUTH = "celestenet-discordauth";
+        public static readonly string COOKIE_KEY = "celestenet-key";
 
         public readonly List<RCEndpoint> EndPoints = new();
         public readonly HashSet<string> CurrentSessionKeys = new();
@@ -255,22 +257,68 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             c.Response.Headers.Set("Cache-Control", "no-store, max-age=0, s-maxage=0, no-cache, no-transform");
 
-            if (endpoint.Auth && !IsAuthorized(c)) {
-                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
-                RespondJSON(c, new {
-                    Error = "Unauthorized."
-                });
-                return;
+            if (endpoint.Auth) {
+                if (TryGetSessionAuthCookie(c) is string session && IsAuthorized(c)) {
+                    // refresh this with a new expiry date
+                    SetSessionAuthCookie(c, session);
+                } else {
+                    c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                    RespondJSON(c, new {
+                        Error = "Unauthorized."
+                    });
+                    return;
+                }
             }
 
             endpoint.Handle(this, c);
         }
 
+        public void SetCookie(HttpRequestEventArgs c, string name, string value, string path = "/", DateTime? expires = null) {
+            c.Response.SetCookie(new(name, value, path) {
+                Expires = expires ?? DateTime.MinValue,
+                HttpOnly= true
+            });
+        }
+
+        public void SetSessionAuthCookie(HttpRequestEventArgs c, string value, DateTime? expires = null) =>
+            SetCookie(c, COOKIE_SESSION, value, "/", expires ?? DateTime.Now.AddDays(30));
+
+        public void UnsetSessionAuthCookie(HttpRequestEventArgs c) => SetSessionAuthCookie(c, "");
+
+        public void SetDiscordAuthCookie(HttpRequestEventArgs c, string value, DateTime? expires = null) =>
+            SetCookie(c, COOKIE_DISCORDAUTH, value, "/", expires ?? DateTime.Now.AddMonths(6));
+
+        public void UnsetDiscordAuthCookie(HttpRequestEventArgs c) => SetDiscordAuthCookie(c, "");
+
+        public void SetKeyCookie(HttpRequestEventArgs c, string key, DateTime? expires = null) =>
+            SetCookie(c, COOKIE_KEY, key, "/", expires ?? DateTime.Now.AddDays(90));
+
+        public void UnsetKeyCookie(HttpRequestEventArgs c) => SetKeyCookie(c, "");
+
+        public void UnsetAllCookies(HttpRequestEventArgs c) {
+            UnsetDiscordAuthCookie(c);
+            UnsetSessionAuthCookie(c);
+            UnsetKeyCookie(c);
+        }
+
+        public string? TryGetCookie(HttpRequestEventArgs c, string name) => c.Request.Cookies[name]?.Value;
+        public string? TryGetSessionAuthCookie(HttpRequestEventArgs c) => c.Request.Cookies[COOKIE_SESSION]?.Value;
+        public string? TryGetDiscordAuthCookie(HttpRequestEventArgs c) => c.Request.Cookies[COOKIE_DISCORDAUTH]?.Value;
+        public string? TryGetKeyCookie(HttpRequestEventArgs c) => c.Request.Cookies[COOKIE_KEY]?.Value;
+
         public bool IsAuthorized(HttpRequestEventArgs c)
-            => c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionKeys.Contains(session);
+            => TryGetSessionAuthCookie(c) is string session && CurrentSessionKeys.Contains(session);
 
         public bool IsAuthorizedExec(HttpRequestEventArgs c)
-            => c.Request.Cookies[COOKIE_SESSION]?.Value is string session && CurrentSessionExecKeys.Contains(session);
+            => TryGetSessionAuthCookie(c) is string session && CurrentSessionExecKeys.Contains(session);
+
+        public string GetNewKey(bool execAuth = false) {
+            string key;
+            do {
+                key = Guid.NewGuid().ToString();
+            } while (!CurrentSessionKeys.Add(key) || (execAuth && !CurrentSessionExecKeys.Add(key)));
+            return key;
+        }
 
         public void BroadcastRawString(bool authOnly, string data) {
             if (WSHost == null)

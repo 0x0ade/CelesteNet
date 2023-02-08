@@ -21,7 +21,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 int dgSize;
 
                 EnterActiveZone();
-                token.Register(() => socket.Close());
+                token.Register(() => socket.ShutdownSafe(SocketShutdown.Receive));
                 while (!token.IsCancellationRequested) {
                     EndPoint dgramSender = socket.LocalEndPoint!;
                     ExitActiveZone();
@@ -33,6 +33,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                             return;
                         throw;
                     }
+                    if (dgSize == 0)
+                        break;
                     EnterActiveZone();
                     ConPlusTCPUDPConnection? con;
 

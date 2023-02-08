@@ -413,7 +413,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 } catch (SocketException e) {
                     if (e.SocketErrorCode == SocketError.TryAgain || e.SocketErrorCode == SocketError.WouldBlock) {
                         if (++TCPSendBufferRetries < Server.Settings.TCPSendMaxRetries) {
-                            Logger.Log(LogLevel.WRN, "tcpudpcon", $"Couldn't flush connection {this} TCP buffer!");
+                            Logger.Log(LogLevel.WRN, "tcpudpcon", $"Couldn't flush connection {this} TCP buffer! (Error Code: {e.SocketErrorCode})");
                             TCPTriggerSendBufferFlush = true;
                         } else
                             throw;

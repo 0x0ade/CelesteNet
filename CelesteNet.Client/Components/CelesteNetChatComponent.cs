@@ -902,12 +902,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     suggestion = match;
                 }
 
-                string padding = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
-                Vector2 sizePadding = CelesteNetClientFont.Measure(padding);
+                string prefix = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
+                Vector2 sizePrefix = CelesteNetClientFont.Measure(prefix);
                 Vector2 sizeTyped = CelesteNetClientFont.Measure(typed);
                 Vector2 sizeSuggestion = CelesteNetClientFont.Measure(suggestion);
 
-                float width = sizePadding.X + sizeTyped.X + sizeSuggestion.X + 50f;
+                float width = sizePrefix.X + sizeTyped.X + sizeSuggestion.X + 50f;
                 float height = 5f + Math.Max(sizeTyped.Y, sizeSuggestion.Y);
 
                 curPos.X = pos.X;
@@ -916,21 +916,32 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Context.RenderHelper.Rect(curPos.X, curPos.Y, width * scale, height * scale, Color.Black * 0.8f);
                 curPos.X += 25f * scale;
 
+                Color colorPrefix = Color.DarkGray;
+                Color colorTyped = Color.Gray;
+                Color colorSuggestion = Color.Gold;
+
+                if (CompletionSelected > -1) {
+                    colorSuggestion = Color.Lerp(Color.Gold, Color.Gray, .66f);
+                }
+                if (CompletionSelected == i) {
+                    colorTyped = colorSuggestion = Color.Lerp(Color.Gold, Color.GreenYellow, .66f);
+                }
+
                 CelesteNetClientFont.Draw(
-                    padding,
+                    prefix,
                     curPos,
                     Vector2.Zero,
                     fontScale,
-                    Color.Gray
+                    colorPrefix
                 );
-                curPos.X += sizePadding.X * scale;
+                curPos.X += sizePrefix.X * scale;
 
                 CelesteNetClientFont.Draw(
                     typed,
                     curPos,
                     Vector2.Zero,
                     fontScale,
-                    CompletionSelected == i ? Color.LightGray : Color.Gray
+                    colorTyped
                 );
                 curPos.X += sizeTyped.X * scale;
 
@@ -939,8 +950,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     curPos,
                     Vector2.Zero,
                     fontScale,
-                    CompletionSelected == i ? Color.GreenYellow :
-                    (CompletionSelected == -1 ? Color.Gold : Color.Lerp(Color.Gold, Color.LightGray, .5f))
+                    colorSuggestion
                 );
             }
         }

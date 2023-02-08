@@ -945,49 +945,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
-        protected void RenderScrollPrompt(Vector2 pos, float scale, bool upActive, bool downActive) {
-            Context.RenderHelper.Rect(pos.X, pos.Y, 50f * scale + ScrollPromptSize.X * scale, 2 * ScrollPromptSize.Y * scale, Color.Black * 0.8f);
-            pos.X += 25f * scale;
-
-            float oldPosX = pos.X;
-
-            // top
-            GFX.Gui["controls/keyboard/PageUp"].Draw(
-                pos,
-                Vector2.Zero,
-                upActive ? Color.Goldenrod : Color.White,
-                scale
-            );
-            pos.X += GFX.Gui["controls/keyboard/PageUp"].Width * scale;
-
-            GFX.Gui["controls/directions/0x-1"].Draw(
-                pos,
-                Vector2.Zero,
-                Color.White * (upActive ? 1f : .7f),
-                scale
-            );
-
-            pos.X = oldPosX;
-            pos.Y += ScrollPromptSize.Y * scale;
-
-            // bottom
-            GFX.Gui["controls/keyboard/PageDown"].Draw(
-                pos,
-                Vector2.Zero,
-                downActive ? Color.Goldenrod : Color.White,
-                scale
-            );
-            pos.X += GFX.Gui["controls/keyboard/PageDown"].Width * scale;
-
-            GFX.Gui["controls/directions/0x1"].Draw(
-                pos,
-                Vector2.Zero,
-                Color.White * (downActive ? 1f : .7f),
-                scale
-            );
-        }
-
-
         protected override void Dispose(bool disposing) {
             if (Active)
                 Active = false;

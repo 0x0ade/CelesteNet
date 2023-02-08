@@ -334,7 +334,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             } else {
                 scale.X = Calc.Clamp(scale.X, -0.5f, -1.5f);
             }
-            scale.Y = Calc.Clamp(scale.Y, 0.5f, 1.5f);
+            if (scale.Y > 0.0f) {
+                scale.Y = Calc.Clamp(scale.Y, 0.5f, 1.5f);
+            } else {
+                scale.Y = Calc.Clamp(scale.Y, -0.5f, -1.5f);
+            }
             Sprite.Scale = scale;
             Sprite.Scale.X *= (float) facing;
             Sprite.Color = color * Alpha;

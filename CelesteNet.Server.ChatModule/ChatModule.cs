@@ -143,7 +143,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public event Action<ChatModule, DataChat>? OnReceive;
 
         public void Handle(CelesteNetConnection? con, DataChat msg) {
-            msg.Text = msg.Text.Sanitize(null, true);
+            // don't dedupe the text messages, they should repeat very rarely
+            msg.Text = msg.Text.Sanitize(null, true, false);
             if (PrepareAndLog(con, msg, false) == null)
                 return;
 

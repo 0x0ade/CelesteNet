@@ -119,40 +119,62 @@ namespace Celeste.Mod.CelesteNet.Client {
         public int UISize {
             get => _UISize;
             set {
-                if (UISizeChatSlider != null && UISizePlayerListSlider != null && value != _UISize)
-                {
-                    UISizeChat = value;
-                    UISizePlayerList = value;
-
-                    if (value < _UISize)
-                    {
-                        UISizeChatSlider.LeftPressed();
-                        UISizePlayerListSlider.LeftPressed();
-                    }
-                    else
-                    {
-                        UISizeChatSlider.RightPressed();
-                        UISizePlayerListSlider.RightPressed();
-                    }
-
-                    UISizeChatSlider.Index = (value < UISizeMin ? UISizeMin : value > UISizeMax ? UISizeMax : value) - 1;
-                    UISizePlayerListSlider.Index = (value < UISizeMin ? UISizeMin : value > UISizeMax ? UISizeMax : value) - 1;
-                    UISizeChatSlider.OnValueChange.Invoke(value);
-                    UISizePlayerListSlider.OnValueChange.Invoke(value);
+                if (value != _UISize) {
+                    // update both chat and player UI size properties to the same value
+                    UISizeChat = UISizePlayerList = value;
                 }
                 _UISize = value;
             }
         }
 
+        [SettingIgnore]
+        [YamlIgnore]
+        public int _UISizeChat { get; private set; }
         [SettingRange(UISizeMin, UISizeMax)]
-        public int UISizeChat { get; set; }
+        public int UISizeChat {
+            get => _UISizeChat;
+            set {
+                if (UISizeChatSlider != null && value != _UISizeChat) {
+                    // all this is to make the OUI elements update and "react" properly (and visually)
+                    if (value < _UISizeChat) {
+                        UISizeChatSlider.LeftPressed();
+                    } else {
+                        UISizeChatSlider.RightPressed();
+                    }
+
+                    UISizeChatSlider.Index = Calc.Clamp(value, UISizeMin, UISizeMax) - 1;
+                    UISizeChatSlider.OnValueChange.Invoke(value);
+                }
+                _UISizeChat = value;
+            }
+        }
 
         [SettingIgnore]
         [YamlIgnore]
         public TextMenu.Slider UISizeChatSlider { get; protected set; }
 
+        [SettingIgnore]
+        [YamlIgnore]
+        public int _UISizePlayerList { get; private set; }
         [SettingRange(UISizeMin, UISizeMax)]
-        public int UISizePlayerList { get; set; }
+        public int UISizePlayerList {
+            get => _UISizePlayerList;
+            set {
+                if (UISizePlayerListSlider != null && value != _UISizePlayerList) {
+                    // all this is to make the OUI elements update and "react" properly (and visually)
+                    if (value < _UISizePlayerList) {
+                        UISizePlayerListSlider.LeftPressed();
+                    } else {
+                        UISizePlayerListSlider.RightPressed();
+                    }
+
+                    UISizePlayerListSlider.Index = Calc.Clamp(value, UISizeMin, UISizeMax) - 1;
+                    UISizePlayerListSlider.OnValueChange.Invoke(value);
+                }
+                _UISizePlayerList = value;
+            }
+        }
+
 
         [SettingIgnore]
         [YamlIgnore]
@@ -302,17 +324,21 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateUISizeChatEntry(TextMenu menu, bool inGame)
         {
+            if (UISizeChat < UISizeMin || UISizeChat > UISizeMax)
+                UISizeChat = UISize;
             menu.Add(
                 (UISizeChatSlider = new TextMenu.Slider("modoptions_celestenetclient_uisizechat".DialogClean(), i => i.ToString(), UISizeMin, UISizeMax, UISizeChat))
-                            .Change(v => UISizeChat = v)
+                            .Change(v => _UISizeChat = v)
             );
         }
 
         public void CreateUISizePlayerListEntry(TextMenu menu, bool inGame)
         {
+            if (UISizePlayerList < UISizeMin || UISizePlayerList > UISizeMax)
+                UISizePlayerList = UISize;
             menu.Add(
                 (UISizePlayerListSlider = new TextMenu.Slider("modoptions_celestenetclient_uisizeplayerlist".DialogClean(), i => i.ToString(), UISizeMin, UISizeMax, UISizePlayerList))
-                            .Change(v => UISizePlayerList = v)
+                            .Change(v => _UISizePlayerList = v)
             );
         }
         #endregion

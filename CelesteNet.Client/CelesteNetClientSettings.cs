@@ -225,7 +225,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 2 => 0.4f,
                 3 => 0.6f,
                 4 => 0.75f,
-                _ => 0.5f + 0.5f * ((UISize - 1f) / (UISizeMax - 1f)),
+                _ => 0.5f + 0.5f * ((uisize - 1f) / (UISizeMax - 1f)),
             };
         }
 

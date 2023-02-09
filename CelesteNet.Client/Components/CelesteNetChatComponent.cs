@@ -380,7 +380,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 _RepeatIndex = 0;
                 _Time = 0;
 
-            } else if (!char.IsControl(c)) {
+            } else if (!char.IsControl(c) && CelesteNetUtils.EnglishFontCharsSet.Contains(c)) {
                 if (CursorIndex == Typing.Length) {
                     // Any other character - append.
                     Typing += c;

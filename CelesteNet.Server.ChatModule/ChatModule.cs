@@ -143,6 +143,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public event Action<ChatModule, DataChat>? OnReceive;
 
         public void Handle(CelesteNetConnection? con, DataChat msg) {
+            msg.Text = msg.Text.Sanitize(null, true);
             if (PrepareAndLog(con, msg, false) == null)
                 return;
 

@@ -34,18 +34,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public string Typing = "";
 
         public List<CommandInfo> CommandList = new();
-        /*
-         * I was using these to debug on live server which doesn't send me command list yet * /
-        {
-            new() { ID = "tp", FirstArg = CompletionType.Player },
-            new() { ID = "whisper", FirstArg = CompletionType.Player },
-            new() { ID = "join", FirstArg = CompletionType.Channel },
-            new() { ID = "channel", FirstArg = CompletionType.Channel },
-            new() { ID = "emote", FirstArg = CompletionType.Emote },
-            new() { ID = "e", FirstArg = CompletionType.Emote, AliasTo = "emote" },
-            new() { ID = "tpon", FirstArg = (CompletionType) 5 }
-        };
-        */
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 

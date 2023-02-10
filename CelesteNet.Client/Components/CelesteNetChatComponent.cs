@@ -431,9 +431,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
-            if (CompletionSelected >= Completion.Count)
-                CompletionSelected = Completion.Count - 1;
-
             // Prevent menus from reacting to player input after exiting chat.
             if (_ConsumeInput > 0) {
                 Input.MenuConfirm.ConsumeBuffer();

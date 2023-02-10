@@ -13,6 +13,7 @@
         Command = 1,
         Channel = 2,
         Player = 3,
-        Emote = 4
+        Emote = 4,
+        Emoji = 5
     }
 }

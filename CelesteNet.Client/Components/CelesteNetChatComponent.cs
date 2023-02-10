@@ -34,6 +34,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public string Typing = "";
 
         public List<CommandInfo> CommandList = new();
+        public Dictionary<string, string> CommandAliasLookup = new();
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 
@@ -190,7 +191,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
-        protected List<string> Completion = new() {};
+        protected List<string> Completion = new();
+
         public string CompletionPartial { get; private set; } = "";
         private int _CompletionSelected = -1;
         public int CompletionSelected { 
@@ -284,8 +286,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataCommandList commands) {
             CommandList.Clear();
+            CommandAliasLookup.Clear();
             foreach (CommandInfo cmd in commands.List) {
                 Logger.Log(LogLevel.INF, "chat", $"Learned about server command: {cmd.ID}{(!cmd.AliasTo.IsNullOrEmpty() ? $" (alias of {cmd.AliasTo})" : "")} ({cmd.FirstArg})");
+
+                if (!cmd.AliasTo.IsNullOrEmpty())
+                    CommandAliasLookup[cmd.AliasTo] = cmd.ID;
+
                 CommandList.Add(cmd);
             }
         }
@@ -412,21 +419,31 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         }
                     }
 
-                    if (Typing.StartsWith("/") && !completable.IsNullOrEmpty()) {
-                        int firstSpace = Typing.IndexOf(" ");
-                        CommandInfo cmd = firstSpace == -1 ? null : CommandList.Where(c => c.ID == Typing.Substring(1, firstSpace - 1)).FirstOrDefault();
+                    if (completable.IsNullOrEmpty()) {
+                        UpdateCompletion(CompletionType.None);
+                    } else {
+                        if (Typing.StartsWith("/")) {
+                            // completions for commands or their first parameter
 
-                        if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
-                            UpdateCompletion(CompletionType.Command, completable.Substring(1));
-                        } else if (cmd != null) {
-                            if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
-                                UpdateCompletion(cmd.FirstArg, completable);
-                            } else if (cmd.FirstArg == CompletionType.Emote) {
-                                UpdateCompletion(CompletionType.Emote, Typing.Substring(0, _CursorIndex).Substring(firstSpace + 1));
+                            int firstSpace = Typing.IndexOf(" ");
+                            CommandInfo cmd = firstSpace == -1 ? null : CommandList.Where(c => c.ID == Typing.Substring(1, firstSpace - 1)).FirstOrDefault();
+
+                            if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
+                                UpdateCompletion(CompletionType.Command, completable.Substring(1));
+                            } else if (cmd != null) {
+                                if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
+                                    if (cmd.FirstArg != CompletionType.None)
+                                        UpdateCompletion(cmd.FirstArg, completable);
+                                } else if (cmd.FirstArg == CompletionType.Emote) {
+                                    UpdateCompletion(CompletionType.Emote, Typing.Substring(0, _CursorIndex).Substring(firstSpace + 1));
+                                }
                             }
                         }
-                    } else {
-                        UpdateCompletion(CompletionType.None);
+
+                        if (completable.StartsWith(":") && completable.IndexOf(':', 1) == -1 && (CompletionArgType == CompletionType.None || CompletionArgType == CompletionType.Emoji)) {
+                            // purely client-side completions for chat-emotes
+                            UpdateCompletion(CompletionType.Emoji, completable.Substring(1));
+                        }
                     }
                 }
             }
@@ -500,12 +517,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             accepted = aliased;
                     }
 
-                    int skipSpace = 0;
+                    int moveCursor = 0;
+
+                    if (CompletionArgType == CompletionType.Emoji) {
+                        if (CursorIndex == Typing.Length || Typing[_CursorIndex] != ':') {
+                            accepted += ':';
+                        } else if (Typing[_CursorIndex] == ':') {
+                            moveCursor += 1;
+                        }
+                    }
+
                     if (CompletionArgType != CompletionType.Emote || !accepted.EndsWith("/")) {
                         if (CursorIndex == Typing.Length || Typing[_CursorIndex] != ' ')
                             accepted += ' ';
                         else if (Typing[_CursorIndex] == ' ')
-                            skipSpace = 1;
+                            moveCursor += 1;
                     }
 
                     if (CursorIndex == Typing.Length) {
@@ -515,7 +541,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         Typing = Typing.Insert(_CursorIndex, accepted);
                     }
 
-                    _CursorIndex += accepted.Length + skipSpace;
+                    _CursorIndex += accepted.Length + moveCursor;
                     UpdateCompletion(CompletionType.None);
                 }
             } else if (!char.IsControl(c)) {
@@ -577,6 +603,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case CompletionType.Channel:
                     CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
                     Completion = playerlist?.Channels?.List?.Select(channel => channel.Name).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
+
+                    break;
+
+                case CompletionType.Emoji:
+                    IEnumerable<string> filter_emotes = Emoji.Registered.Where(name => !name.StartsWith("celestenet_avatar_"));
+
+                    if (string.IsNullOrWhiteSpace(partial)) {
+                        Completion = filter_emotes.ToList();
+                    } else {
+                        Completion = filter_emotes.Where(name => name.StartsWith(partial)).ToList();
+                    }
 
                     break;
 
@@ -878,8 +915,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             for (int i = 0; i < Completion.Count; i++) {
                 string match = Completion[i];
+                string alias = "";
+                if (CompletionArgType == CompletionType.Command)
+                    CommandAliasLookup.TryGetValue(match, out alias);
 
-                string typed = "", suggestion = "";
+                string typed = "", suggestion = "", suggestionPrefix = "", suggestionSuffix = "";
+
                 if (match.StartsWith(CompletionPartial, StringComparison.InvariantCultureIgnoreCase)) {
                     typed = match.Substring(0, CompletionPartial.Length);
                     suggestion = match.Substring(CompletionPartial.Length);
@@ -887,39 +928,71 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     suggestion = match;
                 }
 
+                if (!alias.IsNullOrEmpty())
+                    suggestionSuffix = " -> /" + alias;
+
+                if (CompletionArgType == CompletionType.Emoji) {
+                    if (Emoji.TryGet(match, out char emoji))
+                        suggestionPrefix = $"{emoji} :";
+                    else
+                        suggestionPrefix = ":";
+                    suggestion += ":";
+                }
+
                 string prefix = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
                 Vector2 sizePrefix = CelesteNetClientFont.Measure(prefix);
                 Vector2 sizeTyped = CelesteNetClientFont.Measure(typed);
+                Vector2 sizeSuggestionPrefix = CelesteNetClientFont.Measure(suggestionPrefix);
                 Vector2 sizeSuggestion = CelesteNetClientFont.Measure(suggestion);
+                Vector2 sizeSuggestionSuffix = CelesteNetClientFont.Measure(suggestionSuffix);
 
-                float width = sizePrefix.X + sizeTyped.X + sizeSuggestion.X + 50f;
+                float width = sizeSuggestionPrefix.X + sizeTyped.X + sizeSuggestion.X + sizeSuggestionSuffix.X + 50f;
                 float height = 5f + Math.Max(sizeTyped.Y, sizeSuggestion.Y);
 
-                curPos.X = pos.X;
+                curPos.X = pos.X - sizeSuggestionPrefix.X * scale;
                 curPos.Y -= height * scale;
+
+                if (CompletionArgType != CompletionType.Emoji) {
+                    width += sizePrefix.X;
+                } else {
+                    curPos.X += sizePrefix.X * scale;
+                }
 
                 Context.RenderHelper.Rect(curPos.X, curPos.Y, width * scale, height * scale, Color.Black * 0.8f);
                 curPos.X += 25f * scale;
 
                 Color colorPrefix = Color.DarkGray;
                 Color colorTyped = Color.Gray;
+                Color colorSuggestionPrefix = Color.White;
                 Color colorSuggestion = Color.Gold;
+                Color colorSuggestionSuffix = Color.DarkGray * 0.8f;
 
                 if (CompletionSelected > -1) {
                     colorSuggestion = Color.Lerp(Color.Gold, Color.Gray, .66f);
                 }
-                if (CompletionSelected == i) {
+                if (CompletionSelected == i || Completion.Count == 1) {
                     colorTyped = colorSuggestion = Color.Lerp(Color.Gold, Color.GreenYellow, .66f);
                 }
 
+                if (CompletionArgType != CompletionType.Emoji) {
+                    CelesteNetClientFont.Draw(
+                        prefix,
+                        curPos,
+                        Vector2.Zero,
+                        fontScale,
+                        colorPrefix
+                    );
+                    curPos.X += sizePrefix.X * scale;
+                }
+
                 CelesteNetClientFont.Draw(
-                    prefix,
+                    suggestionPrefix,
                     curPos,
                     Vector2.Zero,
                     fontScale,
-                    colorPrefix
+                    colorSuggestionPrefix
                 );
-                curPos.X += sizePrefix.X * scale;
+                curPos.X += sizeSuggestionPrefix.X * scale;
 
                 CelesteNetClientFont.Draw(
                     typed,
@@ -936,6 +1009,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Vector2.Zero,
                     fontScale,
                     colorSuggestion
+                );
+                curPos.X += sizeSuggestion.X * scale;
+
+                CelesteNetClientFont.Draw(
+                    suggestionSuffix,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    colorSuggestionSuffix
                 );
             }
         }

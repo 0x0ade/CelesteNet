@@ -597,6 +597,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         Completion = CommandList.Where(cmd => cmd.AliasTo == "").Select(cmd => cmd.ID).ToList();
                     }
                     else {
+                        // I thought I could be smart and make the Where() only do the StartsWith() and then have a ternary (?:) in the Select() with the AliasTo condition
+                        // but then I get duplicates from the same command names being one's ID and another's AliasTo, so this is probably still the best I got
                         IEnumerable<string> commands = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo == "").Select(cmd => cmd.ID);
                         IEnumerable<string> aliased = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo != "").Select(cmd => cmd.AliasTo);
                         Completion = commands.Union(aliased).ToList();

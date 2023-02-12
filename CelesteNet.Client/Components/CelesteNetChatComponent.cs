@@ -422,14 +422,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     if (completable.IsNullOrEmpty()) {
                         UpdateCompletion(CompletionType.None);
                     } else {
+                        // completions for commands or their first parameter
                         if (Typing.StartsWith("/")) {
-                            // completions for commands or their first parameter
-
                             int firstSpace = Typing.IndexOf(" ");
                             CommandInfo cmd = firstSpace == -1 ? null : CommandList.FirstOrDefault(c => c.ID == Typing.Substring(1, firstSpace - 1));
 
                             if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
-                                UpdateCompletion(CompletionType.Command, completable.Substring(1));
+                                UpdateCompletion(CompletionType.Command, completable.Substring(1).ToLowerInvariant());
                             } else if (cmd != null) {
                                 if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
                                     if (cmd.FirstArg != CompletionType.None) {
@@ -521,6 +520,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             accepted = aliased;
                     }
 
+                    // This "cursor adjustment" stuff is so that when you have typed
+                    // e.g. ":glad|: hi" (where | is the cursor position) my assumption is
+                    // that the cursor should just move to before the "hi" instead of inserting
+                    // a duplicate ": " to complete the emote.
                     int adjustedCursor = CursorIndex;
 
                     if (CompletionArgType == CompletionType.Emoji) {
@@ -590,7 +593,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             switch (type) {
                 case CompletionType.Command:
-                    if (string.IsNullOrWhiteSpace(partial)) {
+                    if (string.IsNullOrEmpty(partial)) {
                         Completion = CommandList.Where(cmd => cmd.AliasTo == "").Select(cmd => cmd.ID).ToList();
                     }
                     else {
@@ -614,7 +617,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case CompletionType.Emoji:
                     IEnumerable<string> filter_emotes = Emoji.Registered.Where(name => !name.StartsWith("celestenet_avatar_"));
 
-                    if (string.IsNullOrWhiteSpace(partial)) {
+                    if (string.IsNullOrEmpty(partial)) {
                         Completion = filter_emotes.ToList();
                     } else {
                         Completion = filter_emotes.Where(name => name.StartsWith(partial)).ToList();
@@ -623,10 +626,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     break;
 
                 case CompletionType.Emote:
-                    if (partial.Length < 2)
+                    if (partial.Length < 2) {
                         CompletionEmoteAtlas = null;
+                        break;
+                    }
 
                     if (CompletionEmoteAtlas == null) {
+                        // NOTE: GetIconAtlas actually strips the "i:" / "g:" / "p:" prefix off the ref string parameter
                         CompletionEmoteAtlas = GhostEmote.GetIconAtlas(ref partial);
                         partial = partial.Trim();
                     } else {
@@ -636,24 +642,32 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     if (CompletionEmoteAtlas != null) {
                         int lastSpace = partial.LastIndexOf(GhostEmote.IconPathsSeperator);
 
+                        // if completing e.g. "madeline/angry ghost/a" then
+                        // prefix = "madeline/angry " (not used to find matches)
+                        // subpartial = "ghost/a"
                         string prefix = lastSpace == -1 ? "" : partial.Substring(0, lastSpace + 1);
                         string subpartial = lastSpace == -1 ? partial : partial.Substring(lastSpace + 1);
 
-                        foreach (string key in CompletionEmoteAtlas.GetTextures().Keys) {
-                            string basename = key.TrimEnd("0123456789".ToCharArray());
-                            string subkey = subpartial.Length == basename.Length ? key : basename;
+                        // throw the "i:" / "g:" / "p:" back into prefix
+                        prefix = CompletionPartial.Substring(0, 2) + " " + prefix;
 
-                            int i = -1;
-                            if (subpartial.Length < key.Length)
-                                i = key.IndexOf('/', subpartial.Length);
+                        foreach (string key in CompletionEmoteAtlas.GetTextures().Keys) {
+                            if (!key.StartsWith(subpartial))
+                                continue;
+
+                            string basename = key.TrimEnd("0123456789".ToCharArray());
+                            string subkey = subpartial.Length >= basename.Length ? key : basename;
+
+                            // if partial input is shorter than this key, try to find a '/' later in the key
+                            int i = subpartial.Length < key.Length ? key.IndexOf('/', subpartial.Length) : -1;
 
                             if (i != -1)
                                 subkey = key.Substring(0, i + 1);
 
                             subkey = subkey.Trim();
 
-                            string full_completion = CompletionPartial.Substring(0, 2) + " " + prefix + subkey;
-                            if (!Completion.Contains(full_completion) && subkey.StartsWith(subpartial))
+                            string full_completion = prefix + subkey;
+                            if (!Completion.Contains(full_completion))
                                 Completion.Add(full_completion);
                         }
                     }
@@ -923,7 +937,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (CompletionArgType == CompletionType.Command)
                     CommandAliasLookup.TryGetValue(match, out alias);
 
+                /* An example input prompt with suggestion:
+                 *   /w RedFlames   (what we're rendering)
+                 * > /w R           (input prompt)
+                 * 
+                 * prefix = "/w ", match = "RedFlames", typed = "R", suggestion = "edFlames"
+                 */
                 string typed = "", suggestion = "", suggestionPrefix = "", suggestionSuffix = "";
+                string prefix = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
 
                 if (match.StartsWith(CompletionPartial, StringComparison.InvariantCultureIgnoreCase)) {
                     typed = match.Substring(0, CompletionPartial.Length);
@@ -932,9 +953,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     suggestion = match;
                 }
 
+                // since e.g. typing /channelcha + [Tab] gets you /cc, it will look like "/channelchat -> /cc"
                 if (!alias.IsNullOrEmpty())
                     suggestionSuffix = " -> /" + alias;
 
+                // prefix "emoji" completions with a preview of the actual emoji, and surround with ":"
                 if (CompletionArgType == CompletionType.Emoji) {
                     if (Emoji.TryGet(match, out char emoji))
                         suggestionPrefix = $"{emoji} :";
@@ -943,37 +966,42 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     suggestion += ":";
                 }
 
-                string prefix = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
                 Vector2 sizePrefix = CelesteNetClientFont.Measure(prefix);
                 Vector2 sizeTyped = CelesteNetClientFont.Measure(typed);
                 Vector2 sizeSuggestionPrefix = CelesteNetClientFont.Measure(suggestionPrefix);
                 Vector2 sizeSuggestion = CelesteNetClientFont.Measure(suggestion);
                 Vector2 sizeSuggestionSuffix = CelesteNetClientFont.Measure(suggestionSuffix);
 
+                // these are mainly for the background rect
                 float width = sizeSuggestionPrefix.X + sizeTyped.X + sizeSuggestion.X + sizeSuggestionSuffix.X + 50f;
                 float height = 5f + Math.Max(sizeTyped.Y, sizeSuggestion.Y);
 
                 curPos.X = pos.X - sizeSuggestionPrefix.X * scale;
                 curPos.Y -= height * scale;
 
-                if (CompletionArgType != CompletionType.Emoji) {
-                    width += sizePrefix.X;
-                } else {
+                // "emoji" completion doesn't render "prefix", only suggestion
+                if (CompletionArgType == CompletionType.Emoji) {
                     curPos.X += sizePrefix.X * scale;
+                } else {
+                    width += sizePrefix.X;
                 }
 
                 Context.RenderHelper.Rect(curPos.X, curPos.Y, width * scale, height * scale, Color.Black * 0.8f);
                 curPos.X += 25f * scale;
 
+                // default colors of the text parts
                 Color colorPrefix = Color.DarkGray;
                 Color colorTyped = Color.Gray;
                 Color colorSuggestionPrefix = Color.White;
                 Color colorSuggestion = Color.Gold;
                 Color colorSuggestionSuffix = Color.DarkGray * 0.8f;
 
-                if (CompletionSelected > -1) {
+                // fade all other suggestions if one is selected
+                if (CompletionSelected > -1 && CompletionSelected != i) {
                     colorSuggestion = Color.Lerp(Color.Gold, Color.Gray, .66f);
                 }
+
+                // give green-ish color to selected, or if only one exists (Tab completes without having to select)
                 if (CompletionSelected == i || Completion.Count == 1) {
                     colorTyped = colorSuggestion = Color.Lerp(Color.Gold, Color.GreenYellow, .66f);
                 }

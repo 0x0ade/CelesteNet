@@ -426,21 +426,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             // completions for commands or their first parameter
 
                             int firstSpace = Typing.IndexOf(" ");
-                            CommandInfo cmd = firstSpace == -1 ? null : CommandList.Where(c => c.ID == Typing.Substring(1, firstSpace - 1)).FirstOrDefault();
+                            CommandInfo cmd = firstSpace == -1 ? null : CommandList.FirstOrDefault(c => c.ID == Typing.Substring(1, firstSpace - 1));
 
                             if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
                                 UpdateCompletion(CompletionType.Command, completable.Substring(1));
                             } else if (cmd != null) {
                                 if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
-                                    if (cmd.FirstArg != CompletionType.None)
+                                    if (cmd.FirstArg != CompletionType.None) {
                                         UpdateCompletion(cmd.FirstArg, completable);
+                                    }
                                 } else if (cmd.FirstArg == CompletionType.Emote) {
                                     UpdateCompletion(CompletionType.Emote, Typing.Substring(0, _CursorIndex).Substring(firstSpace + 1));
                                 }
                             }
                         }
 
-                        if (completable.StartsWith(":") && completable.IndexOf(':', 1) == -1 && (CompletionArgType == CompletionType.None || CompletionArgType == CompletionType.Emoji)) {
+                        if (completable.StartsWith(":") && completable.IndexOf(':', 1) == -1
+                            && (CompletionArgType == CompletionType.None
+                            || CompletionArgType == CompletionType.Emoji
+                            || (CompletionArgType == CompletionType.Emote && Completion.Count == 0))) {
                             // purely client-side completions for chat-emotes
                             UpdateCompletion(CompletionType.Emoji, completable.Substring(1));
                         }
@@ -517,31 +521,32 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             accepted = aliased;
                     }
 
-                    int moveCursor = 0;
+                    int adjustedCursor = CursorIndex;
 
                     if (CompletionArgType == CompletionType.Emoji) {
                         if (CursorIndex == Typing.Length || Typing[_CursorIndex] != ':') {
                             accepted += ':';
                         } else if (Typing[_CursorIndex] == ':') {
-                            moveCursor += 1;
+                            adjustedCursor += 1;
                         }
                     }
 
                     if (CompletionArgType != CompletionType.Emote || !accepted.EndsWith("/")) {
-                        if (CursorIndex == Typing.Length || Typing[_CursorIndex] != ' ')
+                        if (adjustedCursor == Typing.Length || Typing[adjustedCursor] != ' ')
                             accepted += ' ';
-                        else if (Typing[_CursorIndex] == ' ')
-                            moveCursor += 1;
+                        else if (Typing[adjustedCursor] == ' ')
+                            adjustedCursor += 1;
                     }
 
                     if (CursorIndex == Typing.Length) {
                         Typing += accepted;
+                        CursorIndex += accepted.Length;
                     } else {
                         // insert into string if cursor is not at the end
                         Typing = Typing.Insert(_CursorIndex, accepted);
+                        CursorIndex = adjustedCursor + accepted.Length;
                     }
 
-                    _CursorIndex += accepted.Length + moveCursor;
                     UpdateCompletion(CompletionType.None);
                 }
             } else if (!char.IsControl(c)) {
@@ -575,8 +580,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             CompletionPartial = partial;
             CompletionArgType = type;
 
+            Completion.Clear();
             if (type == CompletionType.None) {
-                Completion.Clear();
                 CompletionPartial = "";
                 CompletionSelected = -1;
                 CompletionEmoteAtlas = null;
@@ -634,7 +639,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         string prefix = lastSpace == -1 ? "" : partial.Substring(0, lastSpace + 1);
                         string subpartial = lastSpace == -1 ? partial : partial.Substring(lastSpace + 1);
 
-                        Completion = new();
                         foreach (string key in CompletionEmoteAtlas.GetTextures().Keys) {
                             string basename = key.TrimEnd("0123456789".ToCharArray());
                             string subkey = subpartial.Length == basename.Length ? key : basename;

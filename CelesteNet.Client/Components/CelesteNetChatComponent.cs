@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         protected float _Time;
 
-        public float Scale => Settings.UIScale;
+        public float Scale => Settings.UIScaleChat;
         protected int ScrolledFromIndex = 0;
         protected float ScrolledDistance = 0f;
         protected int skippedMsgCount = 0;
@@ -32,6 +32,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public List<DataChat> LogSpecial = new();
         public Dictionary<string, DataChat> Pending = new();
         public string Typing = "";
+
+        public List<CommandInfo> CommandList = new();
+        public Dictionary<string, string> CommandAliasLookup = new();
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 
@@ -176,6 +179,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else {
                     Typing = "";
                     CursorIndex = 0;
+                    UpdateCompletion(CompletionType.None);
                     Engine.Scene.Paused = _SceneWasPaused;
                     _ConsumeInput = 2;
                     if (Engine.Scene is Level level && level.Overlay == _DummyOverlay)
@@ -187,10 +191,33 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        protected List<string> Completion = new();
+
+        public string CompletionPartial { get; private set; } = "";
+        private int _CompletionSelected = -1;
+        public int CompletionSelected { 
+            get => _CompletionSelected; 
+            private set {
+                if (value == _CompletionSelected)
+                    return;
+
+                if (value < -1)
+                    value = Completion.Count - 1;
+
+                if (value >= Completion.Count)
+                    value = -1;
+
+                _CompletionSelected = value;
+            }
+        }
+        protected CompletionType CompletionArgType;
+        protected Atlas CompletionEmoteAtlas;
         private PromptMessageTypes PromptMessageType;
+
         public enum PromptMessageTypes {
             None = 0,
-            Scroll
+            Scroll,
+            Info
         }
 
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
@@ -257,6 +284,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        public void Handle(CelesteNetConnection con, DataCommandList commands) {
+            CommandList.Clear();
+            CommandAliasLookup.Clear();
+            foreach (CommandInfo cmd in commands.List) {
+                Logger.Log(LogLevel.INF, "chat", $"Learned about server command: {cmd.ID}{(!cmd.AliasTo.IsNullOrEmpty() ? $" (alias of {cmd.AliasTo})" : "")} ({cmd.FirstArg})");
+
+                if (!cmd.AliasTo.IsNullOrEmpty())
+                    CommandAliasLookup[cmd.AliasTo] = cmd.ID;
+
+                CommandList.Add(cmd);
+            }
+        }
+
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
 
@@ -302,12 +342,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Send(Typing);
                     Active = false;
 
-                } else if (MInput.Keyboard.Pressed(Keys.Down) && RepeatIndex > 0) {
-                    RepeatIndex--;
-
-                } else if (MInput.Keyboard.Pressed(Keys.Up) && RepeatIndex < Repeat.Count - 1) {
-                    RepeatIndex++;
-
+                } else if (MInput.Keyboard.Pressed(Keys.Down)) {
+                    if (Completion.Count > 0) {
+                        CompletionSelected--;
+                    } else if (RepeatIndex > 0) {
+                            RepeatIndex--;
+                    }
+                } else if (MInput.Keyboard.Pressed(Keys.Up)) {
+                    if (Completion.Count > 0) {
+                        CompletionSelected++;
+                    } else if (RepeatIndex < Repeat.Count - 1) {
+                        RepeatIndex++;
+                    }
                 } else if (LeftRightRepeatDelay.Check(Keys.Left) && CursorIndex > 0) {
                     if (_ControlHeld) {
                         // skip over space right before the cursor, if there is one
@@ -362,6 +408,47 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (Input.ESC.Released) {
                     Active = false;
                 }
+
+                if (Active) {
+                    int spaceBeforeCursor = -1;
+                    string completable = "";
+                    if (_CursorIndex > 0) {
+                        spaceBeforeCursor = Typing.LastIndexOf(" ", _CursorIndex - 1) + 1;
+                        if (spaceBeforeCursor < _CursorIndex) {
+                            completable = Typing.Substring(0, _CursorIndex).Substring(spaceBeforeCursor);
+                        }
+                    }
+
+                    if (completable.IsNullOrEmpty()) {
+                        UpdateCompletion(CompletionType.None);
+                    } else {
+                        // completions for commands or their first parameter
+                        if (Typing.StartsWith("/")) {
+                            int firstSpace = Typing.IndexOf(" ");
+                            CommandInfo cmd = firstSpace == -1 ? null : CommandList.FirstOrDefault(c => c.ID == Typing.Substring(1, firstSpace - 1));
+
+                            if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
+                                UpdateCompletion(CompletionType.Command, completable.Substring(1).ToLowerInvariant());
+                            } else if (cmd != null) {
+                                if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
+                                    if (cmd.FirstArg != CompletionType.None) {
+                                        UpdateCompletion(cmd.FirstArg, completable);
+                                    }
+                                } else if (cmd.FirstArg == CompletionType.Emote) {
+                                    UpdateCompletion(CompletionType.Emote, Typing.Substring(0, _CursorIndex).Substring(firstSpace + 1));
+                                }
+                            }
+                        }
+
+                        if (completable.StartsWith(":") && completable.IndexOf(':', 1) == -1
+                            && (CompletionArgType == CompletionType.None
+                            || CompletionArgType == CompletionType.Emoji
+                            || (CompletionArgType == CompletionType.Emote && Completion.Count == 0))) {
+                            // purely client-side completions for chat-emotes
+                            UpdateCompletion(CompletionType.Emoji, completable.Substring(1));
+                        }
+                    }
+                }
             }
 
             // Prevent menus from reacting to player input after exiting chat.
@@ -412,7 +499,59 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
                 _RepeatIndex = 0;
                 _Time = 0;
+            } else if (c == (char) 9) {
+                // Tab - completion
+                string accepted = "";
+                if (Completion.Count == 1) {
+                    accepted = Completion[0];
+                } else if (Completion.Count > 1 && CompletionSelected >= 0 && CompletionSelected < Completion.Count) {
+                    accepted = Completion[CompletionSelected];
+                }
 
+                if (!accepted.IsNullOrEmpty()) {
+                    // remove the thing being completed, since we're inserting the accepted one
+                    // and if "Name" matches for "na" we want to end up with "Name", not "name".
+                    _CursorIndex -= CompletionPartial.Length;
+                    Typing = Typing.Remove(_CursorIndex, CompletionPartial.Length);
+
+                    if (CompletionArgType == CompletionType.Command) {
+                        string aliased = CommandList.Where(cmd => cmd.AliasTo == accepted).Select(c => c.ID).FirstOrDefault();
+                        if (!aliased.IsNullOrEmpty())
+                            accepted = aliased;
+                    }
+
+                    // This "cursor adjustment" stuff is so that when you have typed
+                    // e.g. ":glad|: hi" (where | is the cursor position) my assumption is
+                    // that the cursor should just move to before the "hi" instead of inserting
+                    // a duplicate ": " to complete the emote.
+                    int adjustedCursor = CursorIndex;
+
+                    if (CompletionArgType == CompletionType.Emoji) {
+                        if (CursorIndex == Typing.Length || Typing[_CursorIndex] != ':') {
+                            accepted += ':';
+                        } else if (Typing[_CursorIndex] == ':') {
+                            adjustedCursor += 1;
+                        }
+                    }
+
+                    if (CompletionArgType != CompletionType.Emote || !accepted.EndsWith("/")) {
+                        if (adjustedCursor == Typing.Length || Typing[adjustedCursor] != ' ')
+                            accepted += ' ';
+                        else if (Typing[adjustedCursor] == ' ')
+                            adjustedCursor += 1;
+                    }
+
+                    if (CursorIndex == Typing.Length) {
+                        Typing += accepted;
+                        CursorIndex += accepted.Length;
+                    } else {
+                        // insert into string if cursor is not at the end
+                        Typing = Typing.Insert(_CursorIndex, accepted);
+                        CursorIndex = adjustedCursor + accepted.Length;
+                    }
+
+                    UpdateCompletion(CompletionType.None);
+                }
             } else if (!char.IsControl(c)) {
                 if (CursorIndex == Typing.Length) {
                     // Any other character - append.
@@ -424,6 +563,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 _CursorIndex++;
                 _RepeatIndex = 0;
                 _Time = 0;
+
+                if (c == ' ')
+                    UpdateCompletion(CompletionType.None);
             }
         }
 
@@ -431,6 +573,108 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             PromptMessageType = type;
             PromptMessage = msg;
             PromptMessageColor = color ?? Color.White;
+        }
+
+        public void UpdateCompletion(CompletionType type, string partial = "") {
+            if (partial == CompletionPartial && type == CompletionArgType && Completion.Count == 0)
+                return;
+
+            partial = partial.Trim();
+            CompletionPartial = partial;
+            CompletionArgType = type;
+
+            Completion.Clear();
+            if (type == CompletionType.None) {
+                CompletionPartial = "";
+                CompletionSelected = -1;
+                CompletionEmoteAtlas = null;
+                return;
+            }
+
+            switch (type) {
+                case CompletionType.Command:
+                    if (string.IsNullOrEmpty(partial)) {
+                        Completion = CommandList.Where(cmd => cmd.AliasTo == "").Select(cmd => cmd.ID).ToList();
+                    }
+                    else {
+                        // I thought I could be smart and make the Where() only do the StartsWith() and then have a ternary (?:) in the Select() with the AliasTo condition
+                        // but then I get duplicates from the same command names being one's ID and another's AliasTo, so this is probably still the best I got
+                        IEnumerable<string> commands = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo == "").Select(cmd => cmd.ID);
+                        IEnumerable<string> aliased = CommandList.Where(cmd => cmd.ID.StartsWith(partial) && cmd.AliasTo != "").Select(cmd => cmd.AliasTo);
+                        Completion = commands.Union(aliased).ToList();
+                    }
+
+                    break;
+                case CompletionType.Player:
+                    DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
+
+                    Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                    break;
+                case CompletionType.Channel:
+                    CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
+                    Completion = playerlist?.Channels?.List?.Select(channel => channel.Name).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
+
+                    break;
+
+                case CompletionType.Emoji:
+                    IEnumerable<string> filter_emotes = Emoji.Registered.Where(name => !name.StartsWith("celestenet_avatar_"));
+
+                    if (string.IsNullOrEmpty(partial)) {
+                        Completion = filter_emotes.ToList();
+                    } else {
+                        Completion = filter_emotes.Where(name => name.StartsWith(partial)).ToList();
+                    }
+
+                    break;
+
+                case CompletionType.Emote:
+                    if (partial.Length < 2) {
+                        CompletionEmoteAtlas = null;
+                        break;
+                    }
+
+                    if (CompletionEmoteAtlas == null) {
+                        // NOTE: GetIconAtlas actually strips the "i:" / "g:" / "p:" prefix off the ref string parameter
+                        CompletionEmoteAtlas = GhostEmote.GetIconAtlas(ref partial);
+                        partial = partial.Trim();
+                    } else {
+                        partial = partial.Substring(2).Trim();
+                    }
+
+                    if (CompletionEmoteAtlas != null) {
+                        int lastSpace = partial.LastIndexOf(GhostEmote.IconPathsSeperator);
+
+                        // if completing e.g. "madeline/angry ghost/a" then
+                        // prefix = "madeline/angry " (not used to find matches)
+                        // subpartial = "ghost/a"
+                        string prefix = lastSpace == -1 ? "" : partial.Substring(0, lastSpace + 1);
+                        string subpartial = lastSpace == -1 ? partial : partial.Substring(lastSpace + 1);
+
+                        // throw the "i:" / "g:" / "p:" back into prefix
+                        prefix = CompletionPartial.Substring(0, 2) + " " + prefix;
+
+                        foreach (string key in CompletionEmoteAtlas.GetTextures().Keys) {
+                            if (!key.StartsWith(subpartial))
+                                continue;
+
+                            string basename = key.TrimEnd("0123456789".ToCharArray());
+                            string subkey = subpartial.Length >= basename.Length ? key : basename;
+
+                            // if partial input is shorter than this key, try to find a '/' later in the key
+                            int i = subpartial.Length < key.Length ? key.IndexOf('/', subpartial.Length) : -1;
+
+                            if (i != -1)
+                                subkey = key.Substring(0, i + 1);
+
+                            subkey = subkey.Trim();
+
+                            string full_completion = prefix + subkey;
+                            if (!Completion.Contains(full_completion))
+                                Completion.Add(full_completion);
+                        }
+                    }
+                    break;
+            }
         }
 
         protected override void Render(GameTime gameTime, bool toBuffer) {
@@ -461,7 +705,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     for (int i = 0; i < count; i++) {
                         DataChat msg = log[count - 1 - i];
 
-                        float alpha = 1f;
+                        float alpha = Completion.Count == 0 ? 1f : 0.8f;
                         float delta = (float) (now - msg.ReceivedDate).TotalSeconds;
                         if (!Active && delta > 3f)
                             alpha = 1f - Ease.CubeIn(delta - 3f);
@@ -589,6 +833,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     fontScale,
                     PromptMessageColor
                 );
+                RenderCompletions(new(25f * scale + promptWidth, UI_HEIGHT - 125f * scale), scale, fontScale);
             }
         }
 
@@ -685,6 +930,131 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             );
         }
 
+        protected void RenderCompletions(Vector2 pos, float scale, Vector2 fontScale) {
+            Vector2 curPos = pos;
+
+            for (int i = 0; i < Completion.Count; i++) {
+                string match = Completion[i];
+                string alias = "";
+                if (CompletionArgType == CompletionType.Command)
+                    CommandAliasLookup.TryGetValue(match, out alias);
+
+                /* An example input prompt with suggestion:
+                 *   /w RedFlames   (what we're rendering)
+                 * > /w R           (input prompt)
+                 * 
+                 * prefix = "/w ", match = "RedFlames", typed = "R", suggestion = "edFlames"
+                 */
+                string typed = "", suggestion = "", suggestionPrefix = "", suggestionSuffix = "";
+                string prefix = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
+
+                if (match.StartsWith(CompletionPartial, StringComparison.InvariantCultureIgnoreCase)) {
+                    typed = match.Substring(0, CompletionPartial.Length);
+                    suggestion = match.Substring(CompletionPartial.Length);
+                } else {
+                    suggestion = match;
+                }
+
+                // since e.g. typing /channelcha + [Tab] gets you /cc, it will look like "/channelchat -> /cc"
+                if (!alias.IsNullOrEmpty())
+                    suggestionSuffix = " -> /" + alias;
+
+                // prefix "emoji" completions with a preview of the actual emoji, and surround with ":"
+                if (CompletionArgType == CompletionType.Emoji) {
+                    if (Emoji.TryGet(match, out char emoji))
+                        suggestionPrefix = $"{emoji} :";
+                    else
+                        suggestionPrefix = ":";
+                    suggestion += ":";
+                }
+
+                Vector2 sizePrefix = CelesteNetClientFont.Measure(prefix);
+                Vector2 sizeTyped = CelesteNetClientFont.Measure(typed);
+                Vector2 sizeSuggestionPrefix = CelesteNetClientFont.Measure(suggestionPrefix);
+                Vector2 sizeSuggestion = CelesteNetClientFont.Measure(suggestion);
+                Vector2 sizeSuggestionSuffix = CelesteNetClientFont.Measure(suggestionSuffix);
+
+                // these are mainly for the background rect
+                float width = sizeSuggestionPrefix.X + sizeTyped.X + sizeSuggestion.X + sizeSuggestionSuffix.X + 50f;
+                float height = 5f + Math.Max(sizeTyped.Y, sizeSuggestion.Y);
+
+                curPos.X = pos.X - sizeSuggestionPrefix.X * scale;
+                curPos.Y -= height * scale;
+
+                // "emoji" completion doesn't render "prefix", only suggestion
+                if (CompletionArgType == CompletionType.Emoji) {
+                    curPos.X += sizePrefix.X * scale;
+                } else {
+                    width += sizePrefix.X;
+                }
+
+                Context.RenderHelper.Rect(curPos.X, curPos.Y, width * scale, height * scale, Color.Black * 0.8f);
+                curPos.X += 25f * scale;
+
+                // default colors of the text parts
+                Color colorPrefix = Color.DarkGray;
+                Color colorTyped = Color.Gray;
+                Color colorSuggestionPrefix = Color.White;
+                Color colorSuggestion = Color.Gold;
+                Color colorSuggestionSuffix = Color.DarkGray * 0.8f;
+
+                // fade all other suggestions if one is selected
+                if (CompletionSelected > -1 && CompletionSelected != i) {
+                    colorSuggestion = Color.Lerp(Color.Gold, Color.Gray, .66f);
+                }
+
+                // give green-ish color to selected, or if only one exists (Tab completes without having to select)
+                if (CompletionSelected == i || Completion.Count == 1) {
+                    colorTyped = colorSuggestion = Color.Lerp(Color.Gold, Color.GreenYellow, .66f);
+                }
+
+                if (CompletionArgType != CompletionType.Emoji) {
+                    CelesteNetClientFont.Draw(
+                        prefix,
+                        curPos,
+                        Vector2.Zero,
+                        fontScale,
+                        colorPrefix
+                    );
+                    curPos.X += sizePrefix.X * scale;
+                }
+
+                CelesteNetClientFont.Draw(
+                    suggestionPrefix,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    colorSuggestionPrefix
+                );
+                curPos.X += sizeSuggestionPrefix.X * scale;
+
+                CelesteNetClientFont.Draw(
+                    typed,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    colorTyped
+                );
+                curPos.X += sizeTyped.X * scale;
+
+                CelesteNetClientFont.Draw(
+                    suggestion,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    colorSuggestion
+                );
+                curPos.X += sizeSuggestion.X * scale;
+
+                CelesteNetClientFont.Draw(
+                    suggestionSuffix,
+                    curPos,
+                    Vector2.Zero,
+                    fontScale,
+                    colorSuggestionSuffix
+                );
+            }
+        }
 
         protected override void Dispose(bool disposing) {
             if (Active)

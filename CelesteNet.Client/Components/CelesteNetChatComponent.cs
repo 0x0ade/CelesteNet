@@ -703,7 +703,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     for (int i = 0; i < count; i++) {
                         DataChat msg = log[count - 1 - i];
 
-                        float alpha = 1f;
+                        float alpha = Completion.Count == 0 ? 1f : 0.8f;
                         float delta = (float) (now - msg.ReceivedDate).TotalSeconds;
                         if (!Active && delta > 3f)
                             alpha = 1f - Ease.CubeIn(delta - 3f);

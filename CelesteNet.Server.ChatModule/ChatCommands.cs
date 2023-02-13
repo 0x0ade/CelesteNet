@@ -15,6 +15,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public readonly List<ChatCMD> All = new();
         public readonly Dictionary<string, ChatCMD> ByID = new();
         public readonly Dictionary<Type, ChatCMD> ByType = new();
+        public readonly DataCommandList DataAll = new DataCommandList();
 
         public ChatCommands(ChatModule chat) {
             foreach (Type type in CelesteNetUtils.GetTypes()) {
@@ -24,14 +25,32 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 ChatCMD? cmd = (ChatCMD?) Activator.CreateInstance(type);
                 if (cmd == null)
                     throw new Exception($"Cannot create instance of CMD {type.FullName}");
-                Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd.ID.ToLowerInvariant()} ({type.FullName})");
+                Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd.ID.ToLowerInvariant()} ({type.FullName}, {cmd.Completion})");
                 All.Add(cmd);
                 ByID[cmd.ID.ToLowerInvariant()] = cmd;
                 ByType[type] = cmd;
             }
+            DataAll.List = new CommandInfo[All.Count];
 
-            foreach (ChatCMD cmd in All)
+            int i = 0;
+            foreach (ChatCMD cmd in All) {
                 cmd.Init(chat);
+
+                // check if **base** type is an existing command in ByType, which means this cmd is an alias
+                // N.B. the base type ChatCMD itself is abstract and shouldn't be in ByType; see above
+                ByType.TryGetValue(cmd.GetType().BaseType, out ChatCMD? aliasTo);
+
+                if (aliasTo != null)
+                    Logger.Log(LogLevel.VVV, "chatcmds", $"Command: {cmd.ID.ToLowerInvariant()} is {(cmd.InternalAliasing ? "internal alias" : "alias")} of {aliasTo.ID.ToLowerInvariant()}");
+
+                DataAll.List[i++] = new CommandInfo() {
+                                        ID = cmd.ID,
+                                        Auth = cmd.MustAuth,
+                                        AuthExec = cmd.MustAuthExec,
+                                        FirstArg = cmd.Completion,
+                                        AliasTo = cmd.InternalAliasing ? "" : aliasTo?.ID.ToLowerInvariant() ?? ""
+                                    };
+            }
 
             All = All.OrderBy(cmd => cmd.HelpOrder).ToList();
         }
@@ -70,6 +89,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public virtual bool MustAuth => false;
         public virtual bool MustAuthExec => false;
+
+        public virtual CompletionType Completion => CompletionType.None;
+
+        public virtual bool InternalAliasing => false;
 
         public virtual void Init(ChatModule chat) {
             Chat = chat;

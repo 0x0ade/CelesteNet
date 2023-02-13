@@ -31,6 +31,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public DataPlayerInfo? PlayerInfo => Server.Data.TryGetRef(SessionID, out DataPlayerInfo? value) ? value : null;
 
+        public uint LastWhisperSessionID;
+
         public Channel Channel;
 
         public DataInternalBlob[] AvatarFragments = Dummy<DataInternalBlob>.EmptyArray;
@@ -49,6 +51,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             _Alive = 1;
             UID = uid;
             Name = name;
+
+            LastWhisperSessionID = uint.MaxValue;
 
             Channel = server.Channels.Default;
 
@@ -201,12 +205,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                         Con.Send(fragBlob);
                         avaSendsNew++;
                     }
-
-                    foreach (DataType bound in Server.Data.GetBoundRefs(otherInfo))
-                        if (!bound.Is<MetaPlayerPrivateState>(Server.Data) || other.Channel.ID == 0) {
-                            Con.Send(bound);
-                            boundSends++;
-                        }
                 }
 
             Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} - Done using ConLock -- blobSendsNew/avaSendsNew {blobSendsNew}/{avaSendsNew} - blobSendsOut/avaSendsOut {blobSendsOut}/{avaSendsOut} - boundSends {boundSends}");
@@ -319,6 +317,26 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             return true;
+        }
+
+        public void SendCommandList(DataCommandList commands) {
+            if (commands == null || commands.List.Length == 0) {
+                return;
+            }
+
+            // I almost made this a member variable of this class, but there's no point rn because it's only sent once at session start
+            DataCommandList filteredCommands = new();
+
+            bool auth = false;
+            bool authExec = false;
+            if (!(UID?.IsNullOrEmpty() ?? true) && Server.UserData.TryLoad(UID, out BasicUserInfo info)) {
+                auth = info.Tags.Contains(BasicUserInfo.TAG_AUTH);
+                authExec = info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC);
+            }
+
+            filteredCommands.List = commands.List.Where(cmd => (!cmd.Auth || auth) && (!cmd.AuthExec || authExec)).ToArray();
+
+            Con.Send(filteredCommands);
         }
 
         public event Action<CelesteNetPlayerSession, DataPlayerInfo?>? OnEnd;

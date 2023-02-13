@@ -20,6 +20,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Args => "<text> | i:<img> | p:<img> | g:<img>";
 
+        public override CompletionType Completion => CompletionType.Emote;
+
         public override string Info => "Send an emote appearing over your player.";
         public override string Help =>
 @"Send an emote appearing over your player.

@@ -20,6 +20,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Args => "<user> <text>";
 
+        public override CompletionType Completion => CompletionType.Player;
+
         public override string Info => "Send a whisper to someone else or toggle whispers.";
 
         public override string Help =>
@@ -60,6 +62,10 @@ To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID
                 env.Msg.Text = text;
                 env.Msg.Color = Chat.Settings.ColorWhisper;
                 Chat.ForceSend(env.Msg);
+                // remember the last whisper recipient/sender's session
+                // env.Player is not null, therefore env.Session must not be null
+                env.Session!.LastWhisperSessionID = other.SessionID;
+                other.LastWhisperSessionID = env.Session!.SessionID;
             }
 
             other.Con.Send(Chat.PrepareAndLog(null, new DataChat {

@@ -59,6 +59,7 @@ export class FrontendCMDPanel extends FrontendBasicPanel {
           this.run();
         }
       })}
+      ${mdcrd.iconButton("Run", "send", () => { this.run(); })}
     </div>`
   }
 

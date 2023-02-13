@@ -105,21 +105,92 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingRange(4, 16)]
         public int ChatLogLength { get; set; } = 8;
 
+        [SettingRange(1, 5)]
+        public int ChatScrollSpeed { get; set; } = 2;
+        public CelesteNetChatComponent.ChatScrollFade ChatScrollFading { get; set; } = CelesteNetChatComponent.ChatScrollFade.Fast;
+
         public const int UISizeMin = 1;
         public const int UISizeMax = 4;
+        [SettingIgnore]
+        [YamlIgnore]
+        public int _UISize { get; private set; } = 2;
+        [SettingSubText("modoptions_celestenetclient_uisizehint")]
         [SettingRange(UISizeMin, UISizeMax)]
-        public int UISize { get; set; } = 2;
+        public int UISize {
+            get => _UISize;
+            set {
+                if (value != _UISize) {
+                    // update both chat and player UI size properties to the same value
+                    UISizeChat = UISizePlayerList = value;
+                }
+                _UISize = value;
+            }
+        }
+
+        [SettingIgnore]
+        [YamlIgnore]
+        public int _UISizeChat { get; private set; }
+        [SettingRange(UISizeMin, UISizeMax)]
+        public int UISizeChat {
+            get => _UISizeChat;
+            set {
+                if (UISizeChatSlider != null && value != _UISizeChat) {
+                    // all this is to make the OUI elements update and "react" properly (and visually)
+                    if (value < _UISizeChat) {
+                        UISizeChatSlider.LeftPressed();
+                    } else {
+                        UISizeChatSlider.RightPressed();
+                    }
+
+                    UISizeChatSlider.Index = Calc.Clamp(value, UISizeMin, UISizeMax) - 1;
+                    UISizeChatSlider.OnValueChange.Invoke(value);
+                }
+                _UISizeChat = value;
+            }
+        }
+
+        [SettingIgnore]
+        [YamlIgnore]
+        public TextMenu.Slider UISizeChatSlider { get; protected set; }
+
+        [SettingIgnore]
+        [YamlIgnore]
+        public int _UISizePlayerList { get; private set; }
+        [SettingRange(UISizeMin, UISizeMax)]
+        public int UISizePlayerList {
+            get => _UISizePlayerList;
+            set {
+                if (UISizePlayerListSlider != null && value != _UISizePlayerList) {
+                    // all this is to make the OUI elements update and "react" properly (and visually)
+                    if (value < _UISizePlayerList) {
+                        UISizePlayerListSlider.LeftPressed();
+                    } else {
+                        UISizePlayerListSlider.RightPressed();
+                    }
+
+                    UISizePlayerListSlider.Index = Calc.Clamp(value, UISizeMin, UISizeMax) - 1;
+                    UISizePlayerListSlider.OnValueChange.Invoke(value);
+                }
+                _UISizePlayerList = value;
+            }
+        }
+
+
+        [SettingIgnore]
+        [YamlIgnore]
+        public TextMenu.Slider UISizePlayerListSlider { get; protected set; }
+
         [SettingIgnore]
         public float UIScaleOverride { get; set; } = 0f;
         [SettingIgnore]
         [YamlIgnore]
-        public float UIScale => UIScaleOverride > 0f ? UIScaleOverride : UISize switch {
-            1 => 0.25f,
-            2 => 0.4f,
-            3 => 0.6f,
-            4 => 0.75f,
-            _ => 0.5f + 0.5f * ((UISize - 1f) / (UISizeMax - 1f)),
-        };
+        public float UIScale => CalcUIScale(UISize);
+        [SettingIgnore]
+        [YamlIgnore]
+        public float UIScaleChat => CalcUIScale(UISizeChat);
+        [SettingIgnore]
+        [YamlIgnore]
+        public float UIScalePlayerList => CalcUIScale(UISizePlayerList);
 
         [SettingSubText("modoptions_celestenetclient_uiblurhint")]
         public CelesteNetRenderHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetRenderHelperComponent.BlurQuality.MEDIUM;
@@ -144,6 +215,19 @@ namespace Celeste.Mod.CelesteNet.Client {
 
 
         #region Helpers
+
+        private float CalcUIScale(int uisize) {
+            if (UIScaleOverride > 0f)
+                return UIScaleOverride;
+            return uisize switch
+            {
+                1 => 0.25f,
+                2 => 0.4f,
+                3 => 0.6f,
+                4 => 0.75f,
+                _ => 0.5f + 0.5f * ((uisize - 1f) / (UISizeMax - 1f)),
+            };
+        }
 
         [SettingIgnore]
         [YamlIgnore]
@@ -238,6 +322,25 @@ namespace Celeste.Mod.CelesteNet.Client {
             item.AddDescription(menu, "modoptions_celestenetclient_reloadhint".DialogClean());
         }
 
+        public void CreateUISizeChatEntry(TextMenu menu, bool inGame)
+        {
+            if (UISizeChat < UISizeMin || UISizeChat > UISizeMax)
+                UISizeChat = UISize;
+            menu.Add(
+                (UISizeChatSlider = new TextMenu.Slider("modoptions_celestenetclient_uisizechat".DialogClean(), i => i.ToString(), UISizeMin, UISizeMax, UISizeChat))
+                            .Change(v => _UISizeChat = v)
+            );
+        }
+
+        public void CreateUISizePlayerListEntry(TextMenu menu, bool inGame)
+        {
+            if (UISizePlayerList < UISizeMin || UISizePlayerList > UISizeMax)
+                UISizePlayerList = UISize;
+            menu.Add(
+                (UISizePlayerListSlider = new TextMenu.Slider("modoptions_celestenetclient_uisizeplayerlist".DialogClean(), i => i.ToString(), UISizeMin, UISizeMax, UISizePlayerList))
+                            .Change(v => _UISizePlayerList = v)
+            );
+        }
         #endregion
 
 

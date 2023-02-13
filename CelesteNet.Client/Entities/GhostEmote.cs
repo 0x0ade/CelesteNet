@@ -10,7 +10,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
     // TODO: This is taken mostly as is from GhostNet and can be improved.
     public class GhostEmote : Entity {
 
-        private static readonly char[] IconPathsSeperator = new[] { ' ' };
+        public static readonly char IconPathsSeperator = ' ';
 
         public static float Size = 256f;
 

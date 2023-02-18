@@ -77,16 +77,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         // Speedrun Clock is set to File.
         public static readonly float SubTimerOffset = 24f;
 
-        public ListModes ListMode => Settings.PlayerListMode;
+        public ListModes ListMode => Settings.PlayerListUI.PlayerListMode;
         private ListModes LastListMode;
 
-        public LocationModes LocationMode => Settings.ShowPlayerListLocations;
+        public LocationModes LocationMode => Settings.PlayerListUI.ShowPlayerListLocations;
         private LocationModes LastLocationMode;
 
-        public bool ShowPing => Settings.PlayerListShowPing;
+        public bool ShowPing => Settings.PlayerListUI.PlayerListShowPing;
         private bool LastShowPing;
 
-        public bool AllowSplit => Settings.PlayerListAllowSplit;
+        public bool AllowSplit => Settings.PlayerListUI.PlayerListAllowSplit;
         private bool LastAllowSplit;
 
         private static float? spaceWidth;
@@ -507,7 +507,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
              * Celeste/1-ForsakenCity/A/b-02/31 randomizer/Mirror Temple_0_1234567 A
              */
 
-            if (!location.IsRandomizer || !Settings.PlayerListShortenRandomizer)
+            if (!location.IsRandomizer || !Settings.PlayerListUI.PlayerListShortenRandomizer)
                 return;
 
             // shorten the randomizer/ part down

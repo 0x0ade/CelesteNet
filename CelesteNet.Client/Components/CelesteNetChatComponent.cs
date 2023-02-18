@@ -36,7 +36,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public List<CommandInfo> CommandList = new();
         public Dictionary<string, string> CommandAliasLookup = new();
 
-        public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
+        public ChatMode Mode => Active ? ChatMode.All : Settings.ChatUI.ShowNewMessages;
 
         public enum ChatMode {
             All,
@@ -48,7 +48,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                                 GFX.Gui["controls/directions/0x-1"].Width + GFX.Gui["controls/keyboard/PageUp"].Width,
                                 Math.Max(GFX.Gui["controls/directions/0x-1"].Height, GFX.Gui["controls/keyboard/PageUp"].Height)
                             );
-        public float ScrollFade => (int) Settings.ChatScrollFading / 2f;
+        public float ScrollFade => (int) Settings.ChatUI.ChatScrollFading / 2f;
 
         public enum ChatScrollFade {
             None = 0,
@@ -326,7 +326,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             } else if (Active) {
                 Engine.Commands.Open = false;
 
-                ScrolledDistance = Math.Max(0f, ScrolledDistance + (MInput.Keyboard.CurrentState[Keys.PageUp] - MInput.Keyboard.CurrentState[Keys.PageDown]) * 2f * Settings.ChatScrollSpeed);
+                ScrolledDistance = Math.Max(0f, ScrolledDistance + (MInput.Keyboard.CurrentState[Keys.PageUp] - MInput.Keyboard.CurrentState[Keys.PageDown]) * 2f * Settings.ChatUI.ChatScrollSpeed);
                 if (ScrolledDistance < 10f) {
                     ScrolledFromIndex = Log.Count;
                 }
@@ -698,7 +698,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         y -= 105f * scale;
 
                     float scrollOffset = ScrolledDistance;
-                    float logLength = Settings.ChatLogLength;
+                    float logLength = Settings.ChatUI.ChatLogLength;
                     int renderedCount = 0;
                     skippedMsgCount = 0;
                     int count = ScrolledFromIndex > 0 ? ScrolledFromIndex : log.Count;

@@ -13,6 +13,8 @@ namespace Celeste.Mod.CelesteNet.Client {
     [SettingName("modoptions_celestenetclient_title")]
     public class CelesteNetClientSettings : EverestModuleSettings {
 
+        #region Top Level Settings
+
         [SettingIgnore]
         public bool WantsToBeConnected { get; set; }
 
@@ -35,8 +37,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     NameEntry.Disabled = value || !(Engine.Scene is Overworld);
             }
         }
-        [YamlIgnore]
-        [SettingIgnore]
+        [SettingIgnore, YamlIgnore]
         public TextMenu.OnOff EnabledEntry { get; protected set; }
 
         public bool AutoReconnect { get; set; } = true;
@@ -46,73 +47,75 @@ namespace Celeste.Mod.CelesteNet.Client {
 #endif
         [SettingSubText("modoptions_celestenetclient_devonlyhint")]
         public string Server { get; set; } = "celeste.0x0a.de";
-        [YamlIgnore]
-        [SettingIgnore]
+        [SettingIgnore, YamlIgnore]
         public TextMenu.Button ServerEntry { get; protected set; }
 
         public string Name { get; set; } = "Guest";
-        [YamlIgnore]
-        [SettingIgnore]
+        [SettingIgnore, YamlIgnore]
         public TextMenu.Button NameEntry { get; protected set; }
 
+        #endregion
+
+        #region Debug
+
+        public DebugMenu Debug { get; set; }
+
+        [SettingSubMenu]
+        public class DebugMenu {
 
 #if !DEBUG
         [SettingIgnore]
 #endif
-        [SettingSubText("modoptions_celestenetclient_devonlyhint")]
-        public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
+            [SettingSubText("modoptions_celestenetclient_devonlyhint")]
+            public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
 
 
 #if !DEBUG
         [SettingIgnore]
 #endif
-        [SettingSubText("modoptions_celestenetclient_devonlyhint")]
-        public LogLevel DevLogLevel {
-            get => Logger.Level;
-            set => Logger.Level = value;
+            [SettingSubText("modoptions_celestenetclient_devonlyhint")]
+            public LogLevel DevLogLevel {
+                get => Logger.Level;
+                set => Logger.Level = value;
+            }
+
         }
 
+        #endregion
 
-        [SettingSubText("modoptions_celestenetclient_interactionshint")]
-        public bool Interactions { get; set; } = true;
-        public SyncMode Sounds { get; set; } = SyncMode.ON;
-        [SettingRange(1, 10)]
-        public int SoundVolume { get; set; } = 8;
-        [SettingSubText("modoptions_celestenetclient_entitieshint")]
-        public SyncMode Entities { get; set; } = SyncMode.ON;
+        #region In-Game
 
-        public CelesteNetPlayerListComponent.ListModes PlayerListMode { get; set; } = CelesteNetPlayerListComponent.ListModes.Channels;
-        public CelesteNetPlayerListComponent.LocationModes ShowPlayerListLocations { get; set; } = CelesteNetPlayerListComponent.LocationModes.ON;
-        [SettingIgnore]
-        public bool PlayerListShortenRandomizer { get; set; } = true;
-#if !DEBUG
-        [SettingIgnore]
-#endif
-        public bool PlayerListAllowSplit { get; set; } = true;
-        public bool PlayerListShowPing { get; set; } = true;
+        public InGameMenu InGame { get; set; }
+        [SettingSubMenu]
+        public class InGameMenu {
 
-        public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }
+            [SettingSubText("modoptions_celestenetclient_interactionshint")]
+            public bool Interactions { get; set; } = true;
 
-        [SettingRange(0, 4)]
-        public int PlayerOpacity { get; set; } = 4;
+            public SyncMode Sounds { get; set; } = SyncMode.ON;
 
-        [SettingRange(0, 4)]
-        public int NameOpacity { get; set; } = 4;
+            [SettingRange(1, 10)]
+            public int SoundVolume { get; set; } = 8;
 
-        public bool ShowOwnName { get; set; } = true;
+            [SettingSubText("modoptions_celestenetclient_entitieshint")]
+            public SyncMode Entities { get; set; } = SyncMode.ON;
 
-        [SettingIgnore]
-        [SettingRange(4, 16)]
-        public int ChatLogLength { get; set; } = 8;
+            [SettingRange(0, 4)]
+            public int PlayerOpacity { get; set; } = 4;
 
-        [SettingRange(1, 5)]
-        public int ChatScrollSpeed { get; set; } = 2;
-        public CelesteNetChatComponent.ChatScrollFade ChatScrollFading { get; set; } = CelesteNetChatComponent.ChatScrollFade.Fast;
+            [SettingRange(0, 4)]
+            public int NameOpacity { get; set; } = 4;
 
-        public const int UISizeMin = 1;
-        public const int UISizeMax = 4;
-        [SettingIgnore]
-        [YamlIgnore]
+            public bool ShowOwnName { get; set; } = true;
+
+        }
+
+        #endregion
+
+        #region Top-level UI
+
+        public const int UISizeMin = 1, UISizeMax = 4;
+        [SettingIgnore, YamlIgnore]
         public int _UISize { get; private set; } = 2;
         [SettingSubText("modoptions_celestenetclient_uisizehint")]
         [SettingRange(UISizeMin, UISizeMax)]
@@ -127,8 +130,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
-        [SettingIgnore]
-        [YamlIgnore]
+        [SettingIgnore, YamlIgnore]
         public int _UISizeChat { get; private set; }
         [SettingRange(UISizeMin, UISizeMax)]
         public int UISizeChat {
@@ -149,12 +151,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
-        [SettingIgnore]
-        [YamlIgnore]
+        [SettingIgnore, YamlIgnore]
         public TextMenu.Slider UISizeChatSlider { get; protected set; }
 
-        [SettingIgnore]
-        [YamlIgnore]
+        [SettingIgnore, YamlIgnore]
         public int _UISizePlayerList { get; private set; }
         [SettingRange(UISizeMin, UISizeMax)]
         public int UISizePlayerList {
@@ -176,25 +176,192 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
 
-        [SettingIgnore]
-        [YamlIgnore]
+        [SettingIgnore, YamlIgnore]
         public TextMenu.Slider UISizePlayerListSlider { get; protected set; }
 
         [SettingIgnore]
         public float UIScaleOverride { get; set; } = 0f;
-        [SettingIgnore]
-        [YamlIgnore]
+        [SettingIgnore, YamlIgnore]
         public float UIScale => CalcUIScale(UISize);
-        [SettingIgnore]
-        [YamlIgnore]
+        [SettingIgnore, YamlIgnore]
         public float UIScaleChat => CalcUIScale(UISizeChat);
-        [SettingIgnore]
-        [YamlIgnore]
+        [SettingIgnore, YamlIgnore]
         public float UIScalePlayerList => CalcUIScale(UISizePlayerList);
+
+        #endregion
+
+        #region UI Chat
+
+        public ChatUIMenu ChatUI { get; set; }
+        [SettingSubMenu]
+        public class ChatUIMenu {
+
+            public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }
+
+            [SettingIgnore]
+            [SettingRange(4, 16)]
+            public int ChatLogLength { get; set; } = 8;
+
+            [SettingRange(1, 5)]
+            public int ChatScrollSpeed { get; set; } = 2;
+
+            public CelesteNetChatComponent.ChatScrollFade ChatScrollFading { get; set; } = CelesteNetChatComponent.ChatScrollFade.Fast;
+
+        }
+
+        #endregion
+
+        #region UI Player List
+
+        public PlayerListUIMenu PlayerListUI { get; set; }
+        [SettingSubMenu]
+        public class PlayerListUIMenu {
+
+            public CelesteNetPlayerListComponent.ListModes PlayerListMode { get; set; } = CelesteNetPlayerListComponent.ListModes.Channels;
+
+            public CelesteNetPlayerListComponent.LocationModes ShowPlayerListLocations { get; set; } = CelesteNetPlayerListComponent.LocationModes.ON;
+
+            [SettingIgnore]
+            public bool PlayerListShortenRandomizer { get; set; } = true;
+
+            public bool PlayerListAllowSplit { get; set; } = true;
+
+            public bool PlayerListShowPing { get; set; } = true;
+
+        }
+
+        #endregion
+
+        #region Performance
+
+        // TODO: Add some more performance-focused settings like maybe skipping Blur RTs entirely
 
         [SettingSubText("modoptions_celestenetclient_uiblurhint")]
         public CelesteNetRenderHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetRenderHelperComponent.BlurQuality.MEDIUM;
 
+        #endregion
+
+        #region Legacy properties
+
+        // For compatibility with other mods that access these
+
+        // Debug
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.ConnectionType is now CelesteNetClientSettings.Debug.ConnectionType")]
+        public ConnectionType ConnectionType {
+            get { return Debug.ConnectionType; }
+            set { Debug.ConnectionType = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.DevLogLevel is now CelesteNetClientSettings.Debug.DevLogLevel")]
+        public LogLevel DevLogLevel { 
+            get { return Debug.DevLogLevel; }
+            set { Debug.DevLogLevel = value; }
+        }
+        // In-Game
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.Interactions is now CelesteNetClientSettings.InGame.Interactions")]
+        public bool Interactions { 
+            get { return InGame?.Interactions ?? true; }
+            set { if (InGame != null) InGame.Interactions = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.Sounds is now CelesteNetClientSettings.InGame.Sounds")]
+        public SyncMode Sounds {
+            get { return InGame?.Sounds ?? SyncMode.ON; }
+            set { if (InGame != null) InGame.Sounds = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.SoundVolume is now CelesteNetClientSettings.InGame.SoundVolume")]
+        public int SoundVolume {
+            get { return InGame?.SoundVolume ?? 8; }
+            set { if (InGame != null) InGame.SoundVolume = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.Entities is now CelesteNetClientSettings.InGame.Entities")]
+        public SyncMode Entities {
+            get { return InGame?.Entities ?? SyncMode.ON; }
+            set { if (InGame != null) InGame.Entities = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.PlayerOpacity is now CelesteNetClientSettings.InGame.PlayerOpacity")]
+        public int PlayerOpacity {
+            get { return InGame?.PlayerOpacity ?? 4; }
+            set { if (InGame != null) InGame.PlayerOpacity = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.NameOpacity is now CelesteNetClientSettings.InGame.NameOpacity")]
+        public int NameOpacity {
+            get { 
+                
+                return InGame?.NameOpacity ?? 4; 
+            }
+            set { if (InGame != null) InGame.NameOpacity = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.ShowOwnName is now CelesteNetClientSettings.InGame.ShowOwnName")]
+        public bool ShowOwnName {
+            get { return InGame?.ShowOwnName ?? true; }
+            set { if (InGame != null) InGame.ShowOwnName = value; }
+        }
+        // Chat UI
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.ShowNewMessages is now CelesteNetClientSettings.ChatUI.ShowNewMessages")]
+        public CelesteNetChatComponent.ChatMode ShowNewMessages {
+            get { return ChatUI?.ShowNewMessages ?? CelesteNetChatComponent.ChatMode.All; }
+            set { if (ChatUI != null) ChatUI.ShowNewMessages = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.ChatLogLength is now CelesteNetClientSettings.ChatUI.ChatLogLength")]
+        public int ChatLogLength {
+            get { return ChatUI?.ChatLogLength ?? 8; }
+            set { if (ChatUI != null) ChatUI.ChatLogLength = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.ChatScrollSpeed is now CelesteNetClientSettings.ChatUI.ChatScrollSpeed")]
+        public int ChatScrollSpeed {
+            get { return ChatUI?.ChatScrollSpeed ?? 2; }
+            set { if (ChatUI != null) ChatUI.ChatScrollSpeed = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.ChatScrollFading is now CelesteNetClientSettings.ChatUI.ChatScrollFading")]
+        public CelesteNetChatComponent.ChatScrollFade ChatScrollFading {
+            get { return ChatUI?.ChatScrollFading ?? CelesteNetChatComponent.ChatScrollFade.Fast; }
+            set { if (ChatUI != null) ChatUI.ChatScrollFading = value; }
+        }
+        // Player List UI
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.PlayerListMode is now CelesteNetClientSettings.PlayerListUI.PlayerListMode")]
+        public CelesteNetPlayerListComponent.ListModes PlayerListMode {
+            get { return PlayerListUI?.PlayerListMode ?? CelesteNetPlayerListComponent.ListModes.Channels; }
+            set { if (PlayerListUI != null) PlayerListUI.PlayerListMode = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.ShowPlayerListLocations is now CelesteNetClientSettings.PlayerListUI.ShowPlayerListLocations")]
+        public CelesteNetPlayerListComponent.LocationModes ShowPlayerListLocations {
+            get { return PlayerListUI?.ShowPlayerListLocations ?? CelesteNetPlayerListComponent.LocationModes.ON; }
+            set { if (PlayerListUI != null) PlayerListUI.ShowPlayerListLocations = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.PlayerListShortenRandomizer is now CelesteNetClientSettings.PlayerListUI.PlayerListShortenRandomizer")]
+        public bool PlayerListShortenRandomizer {
+            get { return PlayerListUI?.PlayerListShortenRandomizer ?? true; }
+            set { if (PlayerListUI != null) PlayerListUI.PlayerListShortenRandomizer = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.PlayerListAllowSplit is now CelesteNetClientSettings.PlayerListUI.PlayerListAllowSplit")]
+        public bool PlayerListAllowSplit {
+            get { return PlayerListUI?.PlayerListAllowSplit ?? true; }
+            set { if (PlayerListUI != null) PlayerListUI.PlayerListAllowSplit = value; }
+        }
+        [SettingIgnore, YamlIgnore]
+        [Obsolete("CelesteNetClientSettings.PlayerListShowPing is now CelesteNetClientSettings.PlayerListUI.PlayerListShowPing")]
+        public bool PlayerListShowPing {
+            get { return PlayerListUI?.PlayerListShowPing ?? true; }
+            set { if (PlayerListUI != null) PlayerListUI.PlayerListShowPing = value; }
+        }
+
+        #endregion
 
         public bool EmoteWheel { get; set; } = true;
 
@@ -208,11 +375,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #endregion
 
-
         [SettingIgnore]
         public string[] Emotes { get; set; }
-
-
 
         #region Helpers
 
@@ -229,8 +393,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             };
         }
 
-        [SettingIgnore]
-        [YamlIgnore]
+        [SettingIgnore, YamlIgnore]
         public string Host {
             get {
                 string server = Server?.ToLowerInvariant();
@@ -243,8 +406,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return server;
             }
         }
-        [SettingIgnore]
-        [YamlIgnore]
+        [SettingIgnore, YamlIgnore]
         public int Port {
             get {
                 string server = Server;
@@ -259,7 +421,6 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         #endregion
-
 
         #region Custom Entry Creators
 
@@ -342,7 +503,6 @@ namespace Celeste.Mod.CelesteNet.Client {
             );
         }
         #endregion
-
 
         [Flags]
         public enum SyncMode {

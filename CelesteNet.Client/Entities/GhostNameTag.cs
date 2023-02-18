@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Render() {
             base.Render();
 
-            float a = Alpha * (CelesteNetClientModule.Settings.NameOpacity / 4f);
+            float a = Alpha * (CelesteNetClientModule.Settings.InGame.NameOpacity / 4f);
 
             if (a <= 0f || string.IsNullOrWhiteSpace(Name))
                 return;

@@ -254,7 +254,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             bool auth = f.IsAuthorized(c);
             lock (StatLock)
                 f.RespondJSON(c, new {
-                    StartupTime = f.Server.StartupTime.ToUnixTime(),
+                    StartupTime = f.Server.StartupTime.ToUnixTimeMillis(),
                     GCMemory = GC.GetTotalMemory(false),
                     Modules = f.Server.Modules.Count,
                     TickRate = f.Server.CurrentTickRate,
@@ -321,12 +321,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     Ban = ban.Reason.IsNullOrEmpty() ? null : new {
                         ban.Name,
                         ban.Reason,
-                        From = ban.From?.ToUnixTime() ?? 0,
-                        To = ban.To?.ToUnixTime() ?? 0
+                        From = ban.From?.ToUnixTimeMillis() ?? 0,
+                        To = ban.To?.ToUnixTimeMillis() ?? 0
                     },
                     Kicks = kicks.Log.Select(e => new {
                         e.Reason,
-                        From = e.From?.ToUnixTime() ?? 0
+                        From = e.From?.ToUnixTimeMillis() ?? 0
                     }).ToArray()
                 };
             }).ToArray());

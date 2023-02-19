@@ -33,7 +33,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private WebSocketServiceHost? WSHost;
 
         private Timer? StatsTimer;
-        private Timer? WSUpdateCooldown;
+        private Dictionary<string, long> WSUpdateCooldowns;
+        public static readonly long WSUpdateCooldownTime = 1000;
 
 #if NETCORE
         private readonly FileExtensionContentTypeProvider ContentTypeProvider = new();
@@ -96,9 +97,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             StatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateStats(Server);
             StatsTimer.Enabled = true;
 
-            WSUpdateCooldown = new(500);
-            WSUpdateCooldown.AutoReset = false;
-            WSUpdateCooldown.Elapsed += (_, _) => WSUpdateCooldown.Stop();
+            WSUpdateCooldowns = new();
         }
 
         public override void Dispose() {
@@ -133,29 +132,29 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         private void OnConnect(CelesteNetServer server, CelesteNetConnection con) {
-            TryBroadcastCMD(false, "update", Settings.APIPrefix + "/status");
+            TryBroadcastUpdate(Settings.APIPrefix + "/status");
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
             BroadcastCMD(false, "sess_join", PlayerSessionToFrontend(session, shorten: true));
-            TryBroadcastCMD(false, "update", Settings.APIPrefix + "/status");
-            TryBroadcastCMD(false, "update", Settings.APIPrefix + "/players");
+            TryBroadcastUpdate(Settings.APIPrefix + "/status");
+            TryBroadcastUpdate(Settings.APIPrefix + "/players");
             session.OnEnd += OnSessionEnd;
         }
 
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
             BroadcastCMD(false, "sess_leave", PlayerSessionToFrontend(session, shorten: true));
-            TryBroadcastCMD(false, "update", Settings.APIPrefix + "/status");
-            TryBroadcastCMD(false, "update", Settings.APIPrefix + "/players");
+            TryBroadcastUpdate(Settings.APIPrefix + "/status");
+            TryBroadcastUpdate(Settings.APIPrefix + "/players");
         }
 
         private void OnDisconnect(CelesteNetServer server, CelesteNetConnection con, CelesteNetPlayerSession? session) {
             if (session == null)
-                TryBroadcastCMD(false, "update", Settings.APIPrefix + "/status");
+                TryBroadcastUpdate(Settings.APIPrefix + "/status");
         }
 
         private void OnBroadcastChannels(Channels obj) {
-            TryBroadcastCMD(false, "update", Settings.APIPrefix + "/channels");
+            TryBroadcastUpdate(Settings.APIPrefix + "/channels");
         }
 
         private void OnChannelMove(CelesteNetPlayerSession session, Channel? from, Channel to) {
@@ -411,13 +410,15 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             BroadcastRawString(authOnly, sr.ReadToEnd());
         }
 
-        public void TryBroadcastCMD(bool authOnly, string id, object obj) {
-            if (WSUpdateCooldown?.Enabled ?? false) {
-                Logger.Log(LogLevel.VVV, "frontend", $"Not sending {id} wscmd because of WSUpdateCooldown");
+        public void TryBroadcastUpdate(string path, bool authOnly = false) {
+            WSUpdateCooldowns.TryGetValue(path, out long cd);
+            if (cd > DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) {
+                Logger.Log(LogLevel.VVV, "frontend", $"Not sending 'cmd update {path}' wscmd because of WSUpdateCooldown");
                 return;
             }
-            WSUpdateCooldown?.Start();
-            BroadcastCMD(authOnly, id, obj);
+            WSUpdateCooldowns[path] = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond + WSUpdateCooldownTime;
+            
+            BroadcastCMD(authOnly, "update", path);
         }
 
         public void BroadcastCMD(bool authOnly, string id, object obj) {

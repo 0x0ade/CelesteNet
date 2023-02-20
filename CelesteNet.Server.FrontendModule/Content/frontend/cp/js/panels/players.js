@@ -42,6 +42,16 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
   }
 
   playerJoin(data) {
+    data.TCPPingMs = 0;
+    data.UDPPingMs = 0;
+    data.TCPDownlinkBpS = 0;
+    data.TCPDownlinkPpS = 0;
+    data.TCPUplinkBpS = 0;
+    data.TCPUplinkPpS = 0;
+    data.UDPDownlinkBpS = 0;
+    data.UDPDownlinkPpS = 0;
+    data.UDPUplinkBpS = 0;
+    data.UDPUplinkPpS = 0;
     this.data.push(data);
     this.rebuildList();
     this.render(null);
@@ -94,13 +104,13 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
         ${p.Name}<br>
         ${p.DisplayName !== p.FullName ? p.UID : this.frontend.censor(p.UID)}<br>
         ${this.frontend.censor(p.Connection)}<br>
-        ${el => !p.TCPDownlinkBpS ? rd$(el)`<span></span>` :
+        ${el => 
           rd$(el)`<span>
-            <code>Ping:${` ${p.TCPPingMs ? `${p.TCPPingMs}ms` : '-'} TCP | ${p.UDPPingMs ? `${p.UDPPingMs}ms` : '-'} UDP`}</code><br>
-            <code>TCP ↓:${` ${p.TCPDownlinkBpS.toFixed(3)} BpS | ${p.TCPDownlinkPpS.toFixed(3)} PpS`}</code><br>
-            <code>UDP ↓:${` ${p.UDPDownlinkBpS.toFixed(3)} BpS | ${p.UDPDownlinkPpS.toFixed(3)} PpS`}</code><br>
-            <code>TCP ↑:${` ${p.TCPUplinkBpS.toFixed(3)} BpS | ${p.TCPUplinkPpS.toFixed(3)} PpS`}</code><br>
-            <code>UDP ↑:${` ${p.UDPUplinkBpS.toFixed(3)} BpS | ${p.UDPUplinkPpS.toFixed(3)} PpS`}</code>
+            <code>Ping:${` ${ p.TCPPingMs      ? `${p.TCPPingMs}ms` : '-'} TCP | ${p.UDPPingMs ? `${p.UDPPingMs}ms` : '-'} UDP`}</code><br>
+            <code>TCP ↓:${` ${p.TCPDownlinkBpS ? `${p.TCPDownlinkBpS.toFixed(3)} BpS` : '-'} | ${p.TCPDownlinkPpS ? `${p.TCPDownlinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
+            <code>UDP ↓:${` ${p.UDPDownlinkBpS ? `${p.UDPDownlinkBpS.toFixed(3)} BpS` : '-'} | ${p.UDPDownlinkPpS ? `${p.UDPDownlinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
+            <code>TCP ↑:${` ${p.TCPUplinkBpS ? `${p.TCPUplinkBpS.toFixed(3)} BpS` : '-'} | ${p.TCPUplinkPpS ? `${p.TCPUplinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
+            <code>UDP ↑:${` ${p.UDPUplinkBpS ? `${p.UDPUplinkBpS.toFixed(3)} BpS` : '-'} | ${p.UDPUplinkPpS ? `${p.UDPUplinkPpS.toFixed(3)} PpS` : '-'}`}</code>
           </span>`}
         </span>`
       )(el);

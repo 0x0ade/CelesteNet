@@ -37,6 +37,22 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
     /** @type {PlayerData[]} */
     this.data = [];
     this.input = null;
+    frontend.sync.register("sess_join", data => this.playerJoin(data));
+    frontend.sync.register("sess_leave", data => this.playerLeave(data));
+  }
+
+  playerJoin(data) {
+    this.data.push(data);
+    this.rebuildList();
+    this.render(null);
+  }
+
+  playerLeave(data) {
+    let idx = this.data.findIndex(p => p.ID == data.ID);
+    if (idx != -1)
+      this.data.splice(idx, 1);
+    this.rebuildList();
+    this.render(null);
   }
 
   render(el) {
@@ -63,7 +79,10 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
 
   async update() {
     this.data = await fetch(this.ep).then(r => r.json());
+    this.rebuildList();
+  }
 
+  rebuildList() {
     // @ts-ignore
     this.input = this.elInput.getElementsByTagName("input")[0];
     let filter = this.input.value.trim().toLowerCase();

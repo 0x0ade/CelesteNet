@@ -49,6 +49,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return curr != prev;
             } else {
                 Default.Add(session);
+                OnMove?.Invoke(session, null, Default);
                 BroadcastList();
             }
             return false;
@@ -90,14 +91,15 @@ namespace Celeste.Mod.CelesteNet.Server {
         // On removal this only gives the Name & ID of the removed channel, plus total count as above
         public Action<string, uint, int>? OnRemove;
 
-        public Action<CelesteNetPlayerSession, Channel?, Channel>? OnMove;
+        public Action<CelesteNetPlayerSession, Channel?, Channel?>? OnMove;
 
-        public void BroadcastList() {
+        public void BroadcastList(bool invokeAction = false) {
             using (ListSnapshot<Channel> snapshot = All.ToSnapshot())
                 foreach (Channel c in snapshot)
                     c.RemoveStale();
 
-            OnBroadcastList?.Invoke(this);
+            if (invokeAction)
+                OnBroadcastList?.Invoke(this);
 
             lock (All)
                 using (Server.ConLock.R())
@@ -226,15 +228,16 @@ namespace Celeste.Mod.CelesteNet.Server {
                 if (Players.Count > 0)
                     return;
 
-                Ctx.OnRemove?.Invoke(Name, ID, Ctx.All.Count);
                 Ctx.All.Remove(this);
                 Ctx.ByName.Remove(Name);
                 Ctx.ByID.Remove(ID);
+                Ctx.OnRemove?.Invoke(Name, ID, Ctx.All.Count);
             }
         }
 
         private void RemoveByDC(CelesteNetPlayerSession session, DataPlayerInfo? lastInfo) {
             Remove(session);
+            Ctx.OnMove?.Invoke(session, this, null);
             Ctx.BroadcastList();
         }
 

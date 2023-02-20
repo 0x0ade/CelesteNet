@@ -138,14 +138,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private void OnSessionStart(CelesteNetPlayerSession session) {
             BroadcastCMD(false, "sess_join", PlayerSessionToFrontend(session, shorten: true));
             TryBroadcastUpdate(Settings.APIPrefix + "/status");
-            TryBroadcastUpdate(Settings.APIPrefix + "/players");
+            //TryBroadcastUpdate(Settings.APIPrefix + "/players");
             session.OnEnd += OnSessionEnd;
         }
 
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
             BroadcastCMD(false, "sess_leave", PlayerSessionToFrontend(session, shorten: true));
             TryBroadcastUpdate(Settings.APIPrefix + "/status");
-            TryBroadcastUpdate(Settings.APIPrefix + "/players");
+            //TryBroadcastUpdate(Settings.APIPrefix + "/players");
         }
 
         private void OnDisconnect(CelesteNetServer server, CelesteNetConnection con, CelesteNetPlayerSession? session) {
@@ -157,12 +157,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             TryBroadcastUpdate(Settings.APIPrefix + "/channels");
         }
 
-        private void OnChannelMove(CelesteNetPlayerSession session, Channel? from, Channel to) {
-            BroadcastCMD(false, "chan_move", new { session.SessionID, session.UID, fromID = from?.ID, toID = to.ID });
+        private void OnChannelMove(CelesteNetPlayerSession session, Channel? from, Channel? to) {
+            BroadcastCMD(false, "chan_move", new { session.SessionID, session.UID, fromID = from?.ID, toID = to?.ID });
         }
 
         private void OnCreateChannel(Channel channel, int total) {
-            BroadcastCMD(false, "chan_create", new { channel.Name, channel.ID, channel.IsPrivate, Count = total });
+            BroadcastCMD(false, "chan_create", new { Channel = new { channel.ID, channel.Name, channel.IsPrivate, Players = channel.Players.Select(p => p.SessionID) }, Count = total });
         }
 
         private void OnRemoveChannel(string name, uint id, int total) {

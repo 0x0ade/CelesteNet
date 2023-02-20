@@ -29,11 +29,59 @@ export class FrontendChannelsPanel extends FrontendBasicPanel {
     this.ep = "/api/channels";
     /** @type {ChannelData[]} */
     this.data = [];
+    frontend.sync.register("chan_create", data => this.channelAdd(data.Channel, data.Count));
+    frontend.sync.register("chan_remove", data => this.channelRemove(data.ID, data.Count));
+    frontend.sync.register("chan_move", data => this.channelMove(data.SessionID, data.fromID, data.toID));
+  }
+
+  channelMove(sid, fromID, toID) {
+    if (fromID != null) {
+      let from = this.data.find(c => c.ID == fromID );
+      if (from) {
+        let idx = from.Players.indexOf(sid);
+        if (idx != -1)
+          from.Players.splice(idx, 1);
+      }
+    }
+
+    if (toID != null) {
+      let to = this.data.find(c => c.ID == toID );
+      if (to)
+        to.Players.push(sid);
+    }
+
+    this.rebuildList();
+    this.render(null);
+  }
+
+  channelAdd(c, total) {
+    this.data.push(c);
+    if (this.data.length == total) {
+      this.rebuildList();
+      this.render(null);
+    } else {
+      this.refresh();
+    }
+  }
+
+  channelRemove(cID, total) {
+    let idx = this.data.findIndex(c => c.ID == cID );
+    if (idx != -1)
+      this.data.splice(idx, 1);
+    if (this.data.length == total) {
+      this.rebuildList();
+      this.render(null);
+    } else {
+      this.refresh();
+    }
   }
 
   async update() {
     this.data = await fetch(this.ep).then(r => r.json());
+    this.rebuildList();
+  }
 
+  rebuildList() {
     // @ts-ignore
     this.list = this.data.map(c => el => {
       el = mdcrd.list.item(el => rd$(el)`

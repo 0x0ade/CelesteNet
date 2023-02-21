@@ -177,7 +177,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
                 using (Env.Chat.Server.ConLock.R())
                     return
+                        // check for exact name
                         Env.Chat.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.Equals(String, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
+                        // check for partial name in channel
+                        Env.Session?.Channel.Players.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
+                        // check for partial name elsewhere
                         Env.Chat.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String, StringComparison.InvariantCultureIgnoreCase) ?? false);
             }
         }

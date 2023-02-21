@@ -228,8 +228,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             UpdateOrder = 10000;
             DrawOrder = 10100;
-
-            Persistent = true;
         }
 
         public void Send(string text) {

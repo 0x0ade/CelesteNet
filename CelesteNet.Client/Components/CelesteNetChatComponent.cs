@@ -552,7 +552,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     UpdateCompletion(CompletionType.None);
                 }
-            } else if (!char.IsControl(c)) {
+            } else if (!char.IsControl(c) && CelesteNetUtils.EnglishFontCharsSet.Contains(c)) {
                 if (CursorIndex == Typing.Length) {
                     // Any other character - append.
                     Typing += c;

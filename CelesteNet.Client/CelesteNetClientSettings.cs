@@ -41,6 +41,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool AutoReconnect { get; set; } = true;
 
+        [SettingSubText("modoptions_celestenetclient_avatarshint")]
+        public bool ReceivePlayerAvatars { get; set; } = true;
+
 #if !DEBUG
         [SettingIgnore]
 #endif
@@ -268,6 +271,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 (EnabledEntry = new TextMenu.OnOff("modoptions_celestenetclient_connected".DialogClean(), Connected))
                 .Change(v => Connected = v)
             );
+            EnabledEntry.AddDescription(menu, "modoptions_celestenetclient_connectedhint".DialogClean());
         }
 
         public void CreateServerEntry(TextMenu menu, bool inGame) {

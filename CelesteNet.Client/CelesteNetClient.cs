@@ -52,6 +52,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             Settings = settings;
             Options = options;
 
+            Options.AvatarsDisabled = !Settings.ReceivePlayerAvatars;
+
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient created");
 
             Data = new();
@@ -299,6 +301,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             // The first DataPlayerInfo sent from the server is our own
             if (PlayerInfo == null || PlayerInfo.ID == info.ID)
                 PlayerInfo = info;
+        }
+
+        public bool Filter(CelesteNetConnection con, DataPlayerInfo info) {
+            if (info != null && Options.AvatarsDisabled)
+                info.DisplayName = info.FullName;
+            return true;
         }
 
         public void Handle(CelesteNetConnection con, DataReady ready) {

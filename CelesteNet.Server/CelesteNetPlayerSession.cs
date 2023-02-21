@@ -201,9 +201,11 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     Con.Send(otherInfo);
                     blobSendsNew++;
-                    foreach (DataInternalBlob fragBlob in other.AvatarFragments) {
-                        Con.Send(fragBlob);
-                        avaSendsNew++;
+                    if (!ClientOptions.AvatarsDisabled) {
+                        foreach (DataInternalBlob fragBlob in other.AvatarFragments) {
+                            Con.Send(fragBlob);
+                            avaSendsNew++;
+                        }
                     }
                 }
 

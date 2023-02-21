@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
@@ -35,6 +36,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public List<CommandInfo> CommandList = new();
         public Dictionary<string, string> CommandAliasLookup = new();
+
+        protected Regex AvatarRegex = new Regex(@":celestenet_avatar_\d+_:", RegexOptions.Compiled);
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 
@@ -225,8 +228,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             UpdateOrder = 10000;
             DrawOrder = 10100;
-
-            Persistent = true;
         }
 
         public void Send(string text) {
@@ -251,6 +252,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Handle(CelesteNetConnection con, DataChat msg) {
             if (Client == null)
                 return;
+
+            if (Client.Options.AvatarsDisabled) {
+                msg.Text = AvatarRegex.Replace(msg.Text, "");
+                msg.Tag = AvatarRegex.Replace(msg.Tag, "");
+            }
 
             lock (Log) {
                 if (msg.Player?.ID == Client.PlayerInfo?.ID) {

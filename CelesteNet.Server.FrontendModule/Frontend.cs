@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private WebSocketServiceHost? WSHost;
 
         private Timer? StatsTimer;
-        private Dictionary<string, long> WSUpdateCooldowns;
+        private readonly Dictionary<string, long> WSUpdateCooldowns = new();
         public static readonly long WSUpdateCooldownTime = 1000;
 
 #if NETCORE
@@ -96,8 +96,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             StatsTimer.AutoReset = true;
             StatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateStats(Server);
             StatsTimer.Enabled = true;
-
-            WSUpdateCooldowns = new();
         }
 
         public override void Dispose() {

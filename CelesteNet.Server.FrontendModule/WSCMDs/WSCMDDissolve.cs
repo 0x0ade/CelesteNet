@@ -13,7 +13,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDDissolve : WSCMD<uint> {
         public override bool MustAuth => true;
         public override object? Run(uint input) {
-            if (input == 0)
+            if (input == Channels.IdDefault)
                 return null;
 
             ChatModule chat = Frontend.Server.Get<ChatModule>();
@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             lock (channels.All)
                 if (channels.ByID.TryGetValue(input, out Channel? c))
                     foreach (CelesteNetPlayerSession player in c.Players.ToArray()) {
-                        channels.Move(player, channels.Default.Name);
+                        channels.Move(player, Channels.NameDefault);
                         chat.SendTo(player, $"{c.Name} dissolved by server admin.", color: chat.Settings.ColorCommandReply);
                     }
             return null;

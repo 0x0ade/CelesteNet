@@ -29,7 +29,7 @@ const mdc = window["mdc"]; // mdc
 }} UserInfo
  */
 
-export class FrontendPlayersPanel extends FrontendBasicPanel {
+export class FrontendAccountsPanel extends FrontendBasicPanel {
   /**
    * @param {import("../frontend.js").Frontend} frontend
    */

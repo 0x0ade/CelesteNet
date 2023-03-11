@@ -108,6 +108,36 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             public bool ShowOwnName { get; set; } = true;
 
+            [DefaultButtonBinding(0, Keys.D1)]
+            public ButtonBinding ButtonEmote1 { get; set; }
+
+            [DefaultButtonBinding(0, Keys.D2)]
+            public ButtonBinding ButtonEmote2 { get; set; }
+
+            [DefaultButtonBinding(0, Keys.D3)]
+            public ButtonBinding ButtonEmote3 { get; set; }
+
+            [DefaultButtonBinding(0, Keys.D4)]
+            public ButtonBinding ButtonEmote4 { get; set; }
+
+            [DefaultButtonBinding(0, Keys.D5)]
+            public ButtonBinding ButtonEmote5 { get; set; }
+
+            [DefaultButtonBinding(0, Keys.D6)]
+            public ButtonBinding ButtonEmote6 { get; set; }
+
+            [DefaultButtonBinding(0, Keys.D7)]
+            public ButtonBinding ButtonEmote7 { get; set; }
+
+            [DefaultButtonBinding(0, Keys.D8)]
+            public ButtonBinding ButtonEmote8 { get; set; }
+
+            [DefaultButtonBinding(0, Keys.D9)]
+            public ButtonBinding ButtonEmote9 { get; set; }
+
+            [DefaultButtonBinding(0, Keys.D0)]
+            public ButtonBinding ButtonEmote10 { get; set; }
+
         }
 
         #endregion

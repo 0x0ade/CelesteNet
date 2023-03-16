@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
@@ -40,6 +41,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Dictionary<string, string> CommandAliasLookup = new();
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ChatUI.ShowNewMessages;
+        protected Regex AvatarRegex = new Regex(@":celestenet_avatar_\d+_:", RegexOptions.Compiled);
 
         public enum ChatMode {
             All,
@@ -228,8 +230,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             UpdateOrder = 10000;
             DrawOrder = 10100;
-
-            Persistent = true;
         }
 
         public void Send(string text) {
@@ -254,6 +254,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Handle(CelesteNetConnection con, DataChat msg) {
             if (Client == null)
                 return;
+
+            if (Client.Options.AvatarsDisabled) {
+                msg.Text = AvatarRegex.Replace(msg.Text, "");
+                msg.Tag = AvatarRegex.Replace(msg.Tag, "");
+            }
 
             lock (Log) {
                 if (msg.Player?.ID == Client.PlayerInfo?.ID) {
@@ -555,7 +560,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     UpdateCompletion(CompletionType.None);
                 }
-            } else if (!char.IsControl(c)) {
+            } else if (!char.IsControl(c) && CelesteNetUtils.EnglishFontCharsSet.Contains(c)) {
                 if (CursorIndex == Typing.Length) {
                     // Any other character - append.
                     Typing += c;

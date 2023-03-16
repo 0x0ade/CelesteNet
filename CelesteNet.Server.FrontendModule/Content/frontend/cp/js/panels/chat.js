@@ -14,6 +14,7 @@ const mdc = window["mdc"]; // mdc
 @typedef {{
   ID: number,
   PlayerID: number,
+  Name: string,
   Targets: number[] | null,
   Color: string,
   DateTime: number,
@@ -214,11 +215,11 @@ export class FrontendChatPanel extends FrontendBasicPanel {
 
         if (data.PlayerID) {
           if (data.PlayerID !== this.frontend.MAX_INT) {
-            const player = FrontendPlayersPanel["instance"].data.find(p => p.ID == data.PlayerID);
+            let player = FrontendPlayersPanel["instance"].data.find(p => p.ID == data.PlayerID);
             // TODO: Rerender el on missing player only once! Otherwise render -> refresh -> render -> refresh...
             if (!player)
               FrontendPlayersPanel["instance"].refresh();
-            name = player && player.FullName || ("#" + data.PlayerID);
+            name = player && player.FullName || data.Name || ("#" + data.PlayerID);
 
             opts = [
               ...opts,
@@ -228,6 +229,8 @@ export class FrontendChatPanel extends FrontendBasicPanel {
           } else {
             name = " ** SERVER ** ";
           }
+        } else if (data.Name) {
+          name = data.Name;
         }
 
         if (data.Targets && data.Targets.length > 0 && !data.Tag.startsWith("channel ")) {

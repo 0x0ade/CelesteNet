@@ -30,7 +30,7 @@ $@"Switch to a different channel.
 To list all public channels, {Chat.Settings.CommandPrefix}{ID}
 To create / join a public channel, {Chat.Settings.CommandPrefix}{ID} channel
 To create / join a private channel, {Chat.Settings.CommandPrefix}{ID} {Channels.PrefixPrivate}channel
-To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Chat.Server.Channels.Default.Name}";
+To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Channels.NameDefault}";
 
         public override void ParseAndRun(ChatCMDEnv env) {
             CelesteNetPlayerSession? session = env.Session;

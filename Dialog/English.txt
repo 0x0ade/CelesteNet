@@ -25,6 +25,8 @@
 	MODOPTIONS_CELESTENETCLIENT_TITLE= 			CelesteNet - Multiplayer
 
 	MODOPTIONS_CELESTENETCLIENT_CONNECTED=			Connected
+	MODOPTIONS_CELESTENETCLIENT_CONNECTEDHINT=			Try setting "Receive Player Avatars" OFF if you can't connect
+	MODOPTIONS_CELESTENETCLIENT_AVATARSHINT=			Tells the server not to send you any profile pics during handshake.
 	MODOPTIONS_CELESTENETCLIENT_SERVER=			Server: ((server))
 	MODOPTIONS_CELESTENETCLIENT_NAME=			Name / Key: ((name))
 	MODOPTIONS_CELESTENETCLIENT_SETTINGS=			Settings

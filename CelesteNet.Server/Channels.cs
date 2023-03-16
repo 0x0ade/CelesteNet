@@ -14,6 +14,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     public class Channels : IDisposable {
 
         public const string NameDefault = "main";
+        public const uint IdDefault = 0;
         public const string NamePrivate = "!<private>";
         public const string PrefixPrivate = "!";
 
@@ -48,6 +49,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 return curr != prev;
             } else {
                 Default.Add(session);
+                OnMove?.Invoke(session, null, Default);
                 BroadcastList();
             }
             return false;
@@ -84,12 +86,20 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public Action<Channels>? OnBroadcastList;
 
-        public void BroadcastList() {
+        // the integer will be the current number of channels to try and detect getting out of sync
+        public Action<Channel, int>? OnCreate;
+        // On removal this only gives the Name & ID of the removed channel, plus total count as above
+        public Action<string, uint, int>? OnRemove;
+
+        public Action<CelesteNetPlayerSession, Channel?, Channel?>? OnMove;
+
+        public void BroadcastList(bool invokeAction = false) {
             using (ListSnapshot<Channel> snapshot = All.ToSnapshot())
                 foreach (Channel c in snapshot)
                     c.RemoveStale();
 
-            OnBroadcastList?.Invoke(this);
+            if (invokeAction)
+                OnBroadcastList?.Invoke(this);
 
             lock (All)
                 using (Server.ConLock.R())
@@ -131,6 +141,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     foreach (CelesteNetPlayerSession other in prev.Players)
                         other.Con.Send(move);
 
+                OnMove?.Invoke(session, prev, c);
                 BroadcastList();
 
                 session.ResendPlayerStates();
@@ -173,6 +184,9 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Ctx.All.Add(this);
                 Ctx.ByName[Name] = this;
                 Ctx.ByID[ID] = this;
+                // only invoke this for player-created channels, not "main"
+                if (ID != Channels.IdDefault)
+                    Ctx.OnCreate?.Invoke(this, Ctx.All.Count);
             }
         }
 
@@ -207,7 +221,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             // Hopefully nobody will get stuck in channel limbo...
             session.OnEnd -= RemoveByDC;
 
-            if (ID == 0)
+            if (ID == Channels.IdDefault)
                 return;
 
             lock (Ctx.All) {
@@ -217,11 +231,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Ctx.All.Remove(this);
                 Ctx.ByName.Remove(Name);
                 Ctx.ByID.Remove(ID);
+                Ctx.OnRemove?.Invoke(Name, ID, Ctx.All.Count);
             }
         }
 
         private void RemoveByDC(CelesteNetPlayerSession session, DataPlayerInfo? lastInfo) {
             Remove(session);
+            Ctx.OnMove?.Invoke(session, this, null);
             Ctx.BroadcastList();
         }
 

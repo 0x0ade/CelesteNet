@@ -36,9 +36,12 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             foreach (ChatCMD cmd in All) {
                 cmd.Init(chat);
 
+                ChatCMD? aliasTo = null;
                 // check if **base** type is an existing command in ByType, which means this cmd is an alias
                 // N.B. the base type ChatCMD itself is abstract and shouldn't be in ByType; see above
-                ByType.TryGetValue(cmd.GetType().BaseType, out ChatCMD? aliasTo);
+                Type? cmdBase = cmd.GetType().BaseType;
+                if (cmdBase != null)
+                    ByType.TryGetValue(cmdBase, out aliasTo);
 
                 if (aliasTo != null)
                     Logger.Log(LogLevel.VVV, "chatcmds", $"Command: {cmd.ID.ToLowerInvariant()} is {(cmd.InternalAliasing ? "internal alias" : "alias")} of {aliasTo.ID.ToLowerInvariant()}");
@@ -177,7 +180,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
                 using (Env.Chat.Server.ConLock.R())
                     return
+                        // check for exact name
                         Env.Chat.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.Equals(String, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
+                        // check for partial name in channel
+                        Env.Session?.Channel.Players.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
+                        // check for partial name elsewhere
                         Env.Chat.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String, StringComparison.InvariantCultureIgnoreCase) ?? false);
             }
         }

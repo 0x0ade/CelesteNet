@@ -76,7 +76,7 @@ namespace Celeste.Mod.CelesteNet {
 
         [ThreadStatic]
         private static char[]? sanitizedShared;
-        public static unsafe string Sanitize(this string? value, HashSet<char>? illegal = null, bool space = false) {
+        public static unsafe string Sanitize(this string? value, HashSet<char>? illegal = null, bool space = false, bool dedupe = true) {
             const int buffer = 64;
 
             if (value.IsNullOrEmpty())
@@ -124,7 +124,7 @@ namespace Celeste.Mod.CelesteNet {
                     }
 
                 } else {
-                     if (!space) {
+                    if (!space) {
                         for (int i = value.Length; i > 0; --i) {
                             char c = *from++;
                             if (!EnglishFontCharsSet.Contains(c))
@@ -154,7 +154,9 @@ namespace Celeste.Mod.CelesteNet {
                 if (last == (char*) IntPtr.Zero)
                     return "";
 
-                return StringDedupeStaticContext.ToDedupedString(sanitized, (int) (last - sanitized) + 1);
+                int count = (int) (last - sanitized) + 1;
+
+                return !dedupe ? new(sanitized, 0, count) : StringDedupeStaticContext.ToDedupedString(sanitized, count);
             }
         }
 

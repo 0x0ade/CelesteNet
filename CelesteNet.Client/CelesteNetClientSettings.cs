@@ -42,7 +42,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool AutoReconnect { get; set; } = true;
 
-#if !DEBUG
+#if DEBUG
+        [SettingSubHeader("modoptions_celestenetclient_subheading_general")]
+#else
         [SettingIgnore]
 #endif
         [SettingSubText("modoptions_celestenetclient_devonlyhint")]
@@ -50,29 +52,26 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ServerEntry { get; protected set; }
 
+#if !DEBUG
+        [SettingSubHeader("modoptions_celestenetclient_subheading_general")]
+#endif
         public string Name { get; set; } = "Guest";
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button NameEntry { get; protected set; }
 
-        #endregion
+#endregion
 
-        #region Debug
+#region Debug
 
         public DebugMenu Debug { get; set; }
 
+#if DEBUG
         [SettingSubMenu]
-        public class DebugMenu {
-
-#if !DEBUG
-        [SettingIgnore]
 #endif
+        public class DebugMenu {
             [SettingSubText("modoptions_celestenetclient_devonlyhint")]
             public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
 
-
-#if !DEBUG
-        [SettingIgnore]
-#endif
             [SettingSubText("modoptions_celestenetclient_devonlyhint")]
             public LogLevel DevLogLevel {
                 get => Logger.Level;
@@ -81,9 +80,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         }
 
-        #endregion
+#endregion
 
-        #region In-Game
+#region In-Game
 
         public InGameMenu InGame { get; set; }
         [SettingSubMenu]
@@ -92,13 +91,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             [SettingSubText("modoptions_celestenetclient_interactionshint")]
             public bool Interactions { get; set; } = true;
 
-            public SyncMode Sounds { get; set; } = SyncMode.ON;
-
-            [SettingRange(1, 10)]
-            public int SoundVolume { get; set; } = 8;
-
             [SettingSubText("modoptions_celestenetclient_entitieshint")]
             public SyncMode Entities { get; set; } = SyncMode.ON;
+            [SettingSubHeader("modoptions_celestenetclient_subheading_players")]
 
             [SettingRange(0, 4)]
             public int PlayerOpacity { get; set; } = 4;
@@ -108,45 +103,22 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             public bool ShowOwnName { get; set; } = true;
 
-            [DefaultButtonBinding(0, Keys.D1)]
-            public ButtonBinding ButtonEmote1 { get; set; }
+            [SettingSubHeader("modoptions_celestenetclient_subheading_sound")]
+            public SyncMode Sounds { get; set; } = SyncMode.ON;
 
-            [DefaultButtonBinding(0, Keys.D2)]
-            public ButtonBinding ButtonEmote2 { get; set; }
-
-            [DefaultButtonBinding(0, Keys.D3)]
-            public ButtonBinding ButtonEmote3 { get; set; }
-
-            [DefaultButtonBinding(0, Keys.D4)]
-            public ButtonBinding ButtonEmote4 { get; set; }
-
-            [DefaultButtonBinding(0, Keys.D5)]
-            public ButtonBinding ButtonEmote5 { get; set; }
-
-            [DefaultButtonBinding(0, Keys.D6)]
-            public ButtonBinding ButtonEmote6 { get; set; }
-
-            [DefaultButtonBinding(0, Keys.D7)]
-            public ButtonBinding ButtonEmote7 { get; set; }
-
-            [DefaultButtonBinding(0, Keys.D8)]
-            public ButtonBinding ButtonEmote8 { get; set; }
-
-            [DefaultButtonBinding(0, Keys.D9)]
-            public ButtonBinding ButtonEmote9 { get; set; }
-
-            [DefaultButtonBinding(0, Keys.D0)]
-            public ButtonBinding ButtonEmote10 { get; set; }
+            [SettingRange(1, 10)]
+            public int SoundVolume { get; set; } = 8;
 
         }
 
-        #endregion
+#endregion
 
-        #region Top-level UI
+#region Top-level UI
 
         public const int UISizeMin = 1, UISizeMax = 4;
         [SettingIgnore, YamlIgnore]
         public int _UISize { get; private set; } = 2;
+        [SettingSubHeader("modoptions_celestenetclient_subheading_ui")]
         [SettingSubText("modoptions_celestenetclient_uisizehint")]
         [SettingRange(UISizeMin, UISizeMax)]
         public int UISize {
@@ -218,9 +190,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public float UIScalePlayerList => CalcUIScale(UISizePlayerList);
 
-        #endregion
+#endregion
 
-        #region UI Chat
+#region UI Chat
 
         public ChatUIMenu ChatUI { get; set; }
         [SettingSubMenu]
@@ -239,9 +211,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         }
 
-        #endregion
+#endregion
 
-        #region UI Player List
+#region UI Player List
 
         public PlayerListUIMenu PlayerListUI { get; set; }
         [SettingSubMenu]
@@ -260,18 +232,17 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         }
 
-        #endregion
+#endregion
 
-        #region Performance
+#region Performance
 
         // TODO: Add some more performance-focused settings like maybe skipping Blur RTs entirely
-
         [SettingSubText("modoptions_celestenetclient_uiblurhint")]
         public CelesteNetRenderHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetRenderHelperComponent.BlurQuality.MEDIUM;
 
-        #endregion
+#endregion
 
-        #region Legacy properties
+#region Legacy properties
 
         // For compatibility with other mods that access these
 
@@ -393,9 +364,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #endregion
 
+        [SettingSubHeader("modoptions_celestenetclient_subheading_other")]
         public bool EmoteWheel { get; set; } = true;
 
-        #region Key Bindings
+#region Key Bindings
 
         [DefaultButtonBinding(Buttons.Back, Keys.Tab)]
         public ButtonBinding ButtonPlayerList { get; set; }
@@ -403,12 +375,76 @@ namespace Celeste.Mod.CelesteNet.Client {
         [DefaultButtonBinding(0, Keys.T)]
         public ButtonBinding ButtonChat { get; set; }
 
-        #endregion
+        [SettingSubHeader("modoptions_celestenetclient_binds_playerlist")]
+        [DefaultButtonBinding(Buttons.LeftThumbstickUp, Keys.Up)]
+        public ButtonBinding ButtonPlayerListScrollUp { get; set; }
+
+        [DefaultButtonBinding(Buttons.LeftThumbstickDown, Keys.Down)]
+        public ButtonBinding ButtonPlayerListScrollDown { get; set; }
+
+        [SettingSubHeader("modoptions_celestenetclient_binds_chat")]
+        [DefaultButtonBinding(0, Keys.Enter)]
+        public ButtonBinding ButtonChatSend { get; set; }
+
+        [DefaultButtonBinding(0, Keys.Escape)]
+        public ButtonBinding ButtonChatClose { get; set; }
+
+        [DefaultButtonBinding(Buttons.LeftThumbstickUp, Keys.PageUp)]
+        public ButtonBinding ButtonChatScrollUp { get; set; }
+
+        [DefaultButtonBinding(Buttons.LeftThumbstickDown, Keys.PageDown)]
+        public ButtonBinding ButtonChatScrollDown { get; set; }
+
+        //[DefaultButtonBinding(0, Keys.Back)]
+        //public ButtonBinding ButtonChatBackspace { get; set; }
+
+        //[DefaultButtonBinding(0, Keys.Delete)]
+        //public ButtonBinding ButtonChatDelete { get; set; }
+
+        // TODO: Customize ways to open the emote wheel, which stick or maybe even on KB?
+        //[DefaultButtonBinding(0, 0)]
+        //public ButtonBinding ButtonEmoteWheel { get; set; }
+
+        [SettingSubHeader("modoptions_celestenetclient_binds_emote")]
+        [DefaultButtonBinding(Buttons.RightStick, Keys.Q)]
+        public ButtonBinding ButtonEmoteWheelSend { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D1)]
+        public ButtonBinding ButtonEmote1 { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D2)]
+        public ButtonBinding ButtonEmote2 { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D3)]
+        public ButtonBinding ButtonEmote3 { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D4)]
+        public ButtonBinding ButtonEmote4 { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D5)]
+        public ButtonBinding ButtonEmote5 { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D6)]
+        public ButtonBinding ButtonEmote6 { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D7)]
+        public ButtonBinding ButtonEmote7 { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D8)]
+        public ButtonBinding ButtonEmote8 { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D9)]
+        public ButtonBinding ButtonEmote9 { get; set; }
+
+        [DefaultButtonBinding(0, Keys.D0)]
+        public ButtonBinding ButtonEmote10 { get; set; }
+
+#endregion
 
         [SettingIgnore]
         public string[] Emotes { get; set; }
 
-        #region Helpers
+#region Helpers
 
         private float CalcUIScale(int uisize) {
             if (UIScaleOverride > 0f)
@@ -450,9 +486,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
-        #endregion
+#endregion
 
-        #region Custom Entry Creators
+#region Custom Entry Creators
 
         public void CreateConnectedEntry(TextMenu menu, bool inGame) {
             menu.Add(
@@ -532,7 +568,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             .Change(v => _UISizePlayerList = v)
             );
         }
-        #endregion
+#endregion
 
         [Flags]
         public enum SyncMode {

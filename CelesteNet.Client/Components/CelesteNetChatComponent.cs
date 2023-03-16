@@ -21,6 +21,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected float ScrolledDistance = 0f;
         protected int skippedMsgCount = 0;
 
+        public int InputScrollUpState => Settings.ButtonChatScrollUp.Check ? 1 : 0;
+        public int InputScrollDownState => Settings.ButtonChatScrollDown.Check ? 1 : 0;
+
         public string PromptMessage = "";
         public Color PromptMessageColor = Color.White;
 
@@ -326,7 +329,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             } else if (Active) {
                 Engine.Commands.Open = false;
 
-                ScrolledDistance = Math.Max(0f, ScrolledDistance + (MInput.Keyboard.CurrentState[Keys.PageUp] - MInput.Keyboard.CurrentState[Keys.PageDown]) * 2f * Settings.ChatUI.ChatScrollSpeed);
+                ScrolledDistance = Math.Max(0f, ScrolledDistance + (InputScrollUpState - InputScrollDownState) * 2f * Settings.ChatUI.ChatScrollSpeed);
                 if (ScrolledDistance < 10f) {
                     ScrolledFromIndex = Log.Count;
                 }
@@ -336,7 +339,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 LeftRightRepeatDelay.Update(Engine.RawDeltaTime);
                 DeleteRepeatDelay.Update(Engine.RawDeltaTime);
 
-                if (MInput.Keyboard.Pressed(Keys.Enter)) {
+                if (Settings.ButtonChatSend.Pressed) {
                     if (!string.IsNullOrWhiteSpace(Typing))
                         Repeat.Insert(1, Typing);
                     Send(Typing);
@@ -405,7 +408,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (MInput.Keyboard.Pressed(Keys.End)) {
                     CursorIndex = Typing.Length;
 
-                } else if (Input.ESC.Released) {
+                } else if (Settings.ButtonChatClose.Released) {
                     Active = false;
                 }
 
@@ -790,8 +793,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         float x = 25f * scale;
                         y -= 2 * ScrollPromptSize.Y * scale;
 
-                        bool scrollingUp = MInput.Keyboard.CurrentState[Keys.PageUp] == KeyState.Down && renderedCount > 1;
-                        bool scrollingDown = MInput.Keyboard.CurrentState[Keys.PageDown] == KeyState.Down && ScrolledDistance > 0f;
+                        bool scrollingUp = InputScrollUpState == 1 && renderedCount > 1;
+                        bool scrollingDown = InputScrollDownState == 1 && ScrolledDistance > 0f;
 
                         RenderScrollPrompt(new(x, y), scale, scrollingUp, scrollingDown);
                     }

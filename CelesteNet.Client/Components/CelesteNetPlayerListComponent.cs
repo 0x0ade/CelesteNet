@@ -24,6 +24,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private static readonly char[] RandomizerEndTrimChars = "_0123456789".ToCharArray();
 
         public bool Active;
+        private bool ButtonIsHeld;
+        public bool PropActive
+        {
+            get => Active;
+            set
+            {
+                if (Active == value)
+                    return;
+                ScrolledDistance = 0f;
+                hasScrolled = false;
+
+                Active = value;
+            }
+        }
+
         public bool ShouldRebuild = false;
 
         private List<Blob> List = new();
@@ -130,6 +145,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private bool SplitSuccessfully = false;
 
         private int SplitStartsAt;
+
+        protected float ScrolledDistance = 0f;
+
+        private int InputScrollState = 0;
+        public int InputScrollUpState => Settings.ButtonPlayerListScrollUp.Check ? 1 : 0;
+        public int InputScrollDownState => Settings.ButtonPlayerListScrollDown.Check ? 1 : 0;
+
+        private bool hasScrolled;
 
         public enum ListModes {
             Channels,
@@ -613,9 +636,48 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 RebuildList();
             }
 
-            if (!(Engine.Scene?.Paused ?? false) && Settings.ButtonPlayerList.Button.Pressed)
-                Active = !Active;
+            // shouldn't open player list on pause menu, although now with rebindable hotkey, should this still be this way?
+            if (!(Engine.Scene?.Paused ?? false))
+            {
+                if (Settings.ButtonPlayerList.Pressed && !Active)
+                {
+                    // open right away upon Pressed instead of Released, and remember that it's potentially held down now
+                    PropActive = true;
+                    ButtonIsHeld = true;
+                }
+                else if (Settings.ButtonPlayerList.Released)
+                {
+                    // if the bind is released, make sure it wasn't being held for scrolling purposes
+                    // if scrolling while holding it down, we most likely don't want to close again
+                    if (!hasScrolled && !ButtonIsHeld)
+                        PropActive = !PropActive;
 
+                    hasScrolled = ButtonIsHeld = false;
+                }
+            }
+
+            // check scrolling inputs: Either with ActiveControlsOnlyWhenHeld turned off or only when ButtonPlayerList held
+            if (!Settings.PlayerListUI.ActiveControlsOnlyWhenHeld || Settings.ButtonPlayerList.Check)
+            {
+                if (Settings.ButtonPlayerListScrollUp.Check || Settings.ButtonPlayerListScrollDown.Check)
+                {
+                    InputScrollState = InputScrollDownState - InputScrollUpState;
+                    hasScrolled = Settings.PlayerListUI.ActiveControlsOnlyWhenHeld;
+                    Settings.ButtonPlayerListScrollDown.ConsumePress();
+                    Settings.ButtonPlayerListScrollUp.ConsumePress();
+                }
+            }
+
+            // adjusting the actual scroll value: Don't scroll player list while chat is open
+            if (InputScrollState != 0 && !(Context?.Chat?.Active ?? false))
+            {
+                ScrolledDistance = ScrolledDistance + InputScrollState * 6f;
+                if (ScrolledDistance < 0f)
+                    ScrolledDistance = 0f;
+                else if (ScrolledDistance > SizeUpper.Y)
+                    ScrolledDistance = SizeUpper.Y;
+            }
+            InputScrollState = 0;
         }
 
         public override void Draw(GameTime gameTime) {
@@ -661,7 +723,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case ListModes.Classic:
                     SplitRectAbsolute(
                         x, y,
-                        sizeAllXPadded, sizeAll.Y + 2 * PaddingY * scale,
+                        sizeAllXPadded, sizeAll.Y + 2 * PaddingY * scale - ScrolledDistance,
                         chatStartY,
                         colorFull, colorFaded
                     );
@@ -676,13 +738,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     // own channel box always there
                     SplitRectAbsolute(
                         x, y,
-                        sizeAllXPadded, SizeUpper.Y + 2 * PaddingY * scale,
+                        sizeAllXPadded, SizeUpper.Y + 2 * PaddingY * scale - ScrolledDistance,
                         chatStartY,
                         colorFull, colorFaded
                     );
 
                     // skip below the drawn rect and include a gap
-                    float columnY = y + SizeUpper.Y + 2 * PaddingY * scale + SplitGap * scale;
+                    float columnY = y + SizeUpper.Y + 2 * PaddingY * scale + SplitGap * scale - ScrolledDistance;
 
                     if (SplitViewPartially && SplitSuccessfully) {
                         // two rects for the two columns
@@ -728,10 +790,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             float alpha;
             foreach (Blob blob in List) {
-                alpha = (y + blob.Dyn.Y < chatStartY) ? 1f : 0.5f;
-                blob.Render(y, scale, ref sizeAll, alpha);
+                if (blob.Dyn.Y < ScrolledDistance)
+                {
+                    continue;
+                }
+                alpha = (y + blob.Dyn.Y - ScrolledDistance < chatStartY) ? 1f : 0.5f;
+                blob.Render(y - ScrolledDistance, scale, ref sizeAll, alpha);
             }
-
         }
 
         private void SplitRectAbsolute(float x, float y, float width, float height, float splitAtY, Color colorA, Color colorB) {

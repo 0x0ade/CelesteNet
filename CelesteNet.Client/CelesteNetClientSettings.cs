@@ -202,6 +202,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }
 
+            public bool ShowScrollingControls { get; set; } = true;
+
             [SettingIgnore]
             [SettingRange(4, 16)]
             public int ChatLogLength { get; set; } = 8;
@@ -231,6 +233,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             public bool PlayerListAllowSplit { get; set; } = true;
 
             public bool PlayerListShowPing { get; set; } = true;
+
+            public bool ActiveControlsOnlyWhenHeld { get; set; } = true;
 
         }
 

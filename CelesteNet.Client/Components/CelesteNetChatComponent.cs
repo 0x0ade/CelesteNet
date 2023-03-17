@@ -49,10 +49,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Off
         }
 
-        protected Vector2 ScrollPromptSize = new Vector2(
-                                GFX.Gui["controls/directions/0x-1"].Width + GFX.Gui["controls/keyboard/PageUp"].Width,
-                                Math.Max(GFX.Gui["controls/directions/0x-1"].Height, GFX.Gui["controls/keyboard/PageUp"].Height)
-                            );
+        public MTexture? InputScrollUpIcon;
+        public MTexture? InputScrollDownIcon;
+        public MTexture ArrowUpIcon => GFX.Gui["controls/directions/0x-1"];
+        public MTexture ArrowDownIcon => GFX.Gui["controls/directions/0x1"];
+        private bool activeController = false;
+
+
+        protected Vector2 ScrollPromptSize = new Vector2();
         public float ScrollFade => (int) Settings.ChatUI.ChatScrollFading / 2f;
 
         public enum ChatScrollFade {
@@ -181,6 +185,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     _RepeatIndex = 0;
                     _Time = 0;
                     TextInput.OnInput += OnTextInput;
+
+                    UpdateScrollPromptControls();
                 } else {
                     Typing = "";
                     CursorIndex = 0;
@@ -794,7 +800,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     RenderPositionY = y;
 
-                    if (Active) {
+                    if (Active && Settings.ChatUI.ShowScrollingControls) {
+                        if (activeController != Input.GuiInputController())
+                            UpdateScrollPromptControls();
+
                         float x = 25f * scale;
                         y -= 2 * ScrollPromptSize.Y * scale;
 
@@ -843,6 +852,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 );
                 RenderCompletions(new(25f * scale + promptWidth, UI_HEIGHT - 125f * scale), scale, fontScale);
             }
+        }
+
+        protected void UpdateScrollPromptControls()
+        {
+            InputScrollUpIcon = Input.GuiButton(Settings.ButtonChatScrollUp.Button, mode: Input.PrefixMode.Latest);
+            InputScrollDownIcon = Input.GuiButton(Settings.ButtonChatScrollDown.Button, mode: Input.PrefixMode.Latest);
+            ScrollPromptSize.X = ArrowUpIcon.Width + InputScrollUpIcon?.Width ?? 0f;
+            ScrollPromptSize.Y = Math.Max(ArrowUpIcon.Height, InputScrollUpIcon?.Height ?? 0f);
+            activeController = Input.GuiInputController();
         }
 
         protected void RenderInputPrompt(Vector2 pos, Vector2 size, float scale, Vector2 fontScale, out float promptWidth) {
@@ -903,15 +921,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             float oldPosX = pos.X;
 
             // top
-            GFX.Gui["controls/keyboard/PageUp"].Draw(
-                pos,
-                Vector2.Zero,
-                upActive ? Color.Goldenrod : Color.White,
-                scale
-            );
-            pos.X += GFX.Gui["controls/keyboard/PageUp"].Width * scale;
+            if (InputScrollUpIcon != null)
+            {
+                InputScrollUpIcon.Draw(
+                    pos,
+                    Vector2.Zero,
+                    upActive ? Color.Goldenrod : Color.White,
+                    scale
+                );
+                pos.X += InputScrollUpIcon.Width * scale;
+            }
 
-            GFX.Gui["controls/directions/0x-1"].Draw(
+            ArrowUpIcon.Draw(
                 pos,
                 Vector2.Zero,
                 Color.White * (upActive ? 1f : .7f),
@@ -922,15 +943,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             pos.Y += ScrollPromptSize.Y * scale;
 
             // bottom
-            GFX.Gui["controls/keyboard/PageDown"].Draw(
-                pos,
-                Vector2.Zero,
-                downActive ? Color.Goldenrod : Color.White,
-                scale
-            );
-            pos.X += GFX.Gui["controls/keyboard/PageDown"].Width * scale;
+            if (InputScrollDownIcon != null)
+            {
+                InputScrollDownIcon.Draw(
+                    pos,
+                    Vector2.Zero,
+                    downActive ? Color.Goldenrod : Color.White,
+                    scale
+                );
+                pos.X += InputScrollDownIcon.Width * scale;
+            }
 
-            GFX.Gui["controls/directions/0x1"].Draw(
+            ArrowDownIcon.Draw(
                 pos,
                 Vector2.Zero,
                 Color.White * (downActive ? 1f : .7f),

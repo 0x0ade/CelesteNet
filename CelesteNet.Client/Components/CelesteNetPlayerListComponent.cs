@@ -24,7 +24,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private static readonly char[] RandomizerEndTrimChars = "_0123456789".ToCharArray();
 
         public bool Active;
-        private bool ButtonIsHeld;
         public bool PropActive
         {
             get => Active;
@@ -34,10 +33,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 ScrolledDistance = 0f;
                 hasScrolled = false;
+                ButtonHoldTime = 0f;
 
                 Active = value;
             }
         }
+
+        private bool ButtonInitialHold;
+        private float ButtonHoldTime = 0f;
 
         public bool ShouldRebuild = false;
 
@@ -84,6 +87,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public static readonly float ChatOffset = 5f;
 
         public static readonly float TextScaleSizeThreshold = 0.7f;
+
+        // bar is in the top right of the player list, this is a percentage of the width it takes up / Height is absolute
+        public static readonly float HoldScrollDelayBarWidth = 0.4f;
+        public static readonly float HoldScrollDelayBarHeight = 6f;
 
         // Refers to the main timer, where the IL/File time is located.
         public static readonly float MainTimerOffset = 104f;
@@ -157,6 +164,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public enum ListModes {
             Channels,
             Classic,
+        }
+
+        public enum ScrollModes {
+            Hold = 0,
+            Keybinds = 1,
+            KeybindsOnHold = 2
         }
 
         [Flags]
@@ -643,26 +656,47 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 {
                     // open right away upon Pressed instead of Released, and remember that it's potentially held down now
                     PropActive = true;
-                    ButtonIsHeld = true;
+                    ButtonInitialHold = true;
                 }
                 else if (Settings.ButtonPlayerList.Released)
                 {
                     // if the bind is released, make sure it wasn't being held for scrolling purposes
                     // if scrolling while holding it down, we most likely don't want to close again
-                    if (!hasScrolled && !ButtonIsHeld)
+                    if (!ButtonInitialHold && (!hasScrolled || Settings.PlayerListUI.PlayerListScrollDelay == 0))
                         PropActive = !PropActive;
 
-                    hasScrolled = ButtonIsHeld = false;
+                    hasScrolled = ButtonInitialHold = false;
                 }
             }
 
-            // check scrolling inputs: Either with ActiveControlsOnlyWhenHeld turned off or only when ButtonPlayerList held
-            if (!Settings.PlayerListUI.ActiveControlsOnlyWhenHeld || Settings.ButtonPlayerList.Check)
+            if (Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.Hold)
             {
+                // scrolling mode: just keep scrolling down while button is held, after delay period
+                if (Settings.PlayerListUI.PlayerListScrollDelay == 0 ? ButtonInitialHold : Settings.ButtonPlayerList.Check)
+                {
+                    // adding a slight minimum delay even to (Settings.PlayerListUI.PlayerListScrollDelay == 0) so that you don't
+                    // IMMEDIATELY scroll the player count off the top of the list
+                    if (ButtonHoldTime > Math.Max(Settings.PlayerListUI.PlayerListScrollDelay / 2f, .1f))
+                    {
+                        InputScrollState = 1;
+                        hasScrolled = true;
+                    }
+                    else
+                    {
+                        ButtonHoldTime += Engine.RawDeltaTime;
+                    }
+                }
+                else if (ButtonHoldTime > 0f)
+                    ButtonHoldTime -= Engine.RawDeltaTime * 2f;
+            }
+            else if ((Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.KeybindsOnHold && Settings.ButtonPlayerList.Check)
+                    || Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.Keybinds)
+            {
+                // in keybinds modes, deal with up/down buttons
                 if (Settings.ButtonPlayerListScrollUp.Check || Settings.ButtonPlayerListScrollDown.Check)
                 {
                     InputScrollState = InputScrollDownState - InputScrollUpState;
-                    hasScrolled = Settings.PlayerListUI.ActiveControlsOnlyWhenHeld;
+                    hasScrolled = Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.KeybindsOnHold;
                     Settings.ButtonPlayerListScrollDown.ConsumePress();
                     Settings.ButtonPlayerListScrollUp.ConsumePress();
                 }
@@ -796,6 +830,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
                 alpha = (y + blob.Dyn.Y - ScrolledDistance < chatStartY) ? 1f : 0.5f;
                 blob.Render(y - ScrolledDistance, scale, ref sizeAll, alpha);
+            }
+
+            if (ButtonHoldTime > 0.01f && Settings.PlayerListUI.PlayerListScrollDelay > 0) {
+                float heldDelayRatio = ButtonHoldTime / (Settings.PlayerListUI.PlayerListScrollDelay/2f);
+                float barFullWidth = sizeAll.X * HoldScrollDelayBarWidth;
+                float barWidth = barFullWidth * heldDelayRatio;
+                MDraw.Rect(x + sizeAll.X - barFullWidth - 1, y, barFullWidth + 1, HoldScrollDelayBarHeight,     Color.White   * .15f);
+                MDraw.Rect(x + sizeAll.X - barWidth,     y + 1, barWidth,         HoldScrollDelayBarHeight - 2, Color.HotPink * .60f);
             }
         }
 

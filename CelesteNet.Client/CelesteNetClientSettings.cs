@@ -3,10 +3,6 @@ using Celeste.Mod.UI;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -234,8 +230,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             public bool PlayerListShowPing { get; set; } = true;
 
-            public bool ActiveControlsOnlyWhenHeld { get; set; } = true;
+            [SettingSubText("modoptions_celestenetclient_plscrollmodehint")]
+            public CelesteNetPlayerListComponent.ScrollModes PlayerListScrollMode { get; set; } = CelesteNetPlayerListComponent.ScrollModes.Hold;
 
+            [SettingSubText("modoptions_celestenetclient_playerlistscrolldelayhint")]
+            [SettingRange(0, 5)]
+            public int PlayerListScrollDelay { get; set; } = 1;
         }
 
 #endregion

@@ -1,21 +1,35 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Options;
-using MonoMod.Utils;
+using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetPlayerSession : IDisposable {
 
         public static readonly HashSet<char> IllegalNameChars = new() { ':', '#', '|' };
+
+        public static readonly string[] GuestNamePrefixes =
+        {
+            "Dashing", "Jumping", "Golden", "Dashless",
+            "Spinning", "Red", "Blue", "Pink", "Crouched",
+            "Climbing", "Falling", "Dream", "Neutral",
+            "Subpixel", "Super", "Hyper", "Pride",
+            "Forsaken", "Awake", "Celestial", "Mirror",
+            "Summit", "Core", "Moon", "Space"
+        };
+        public static readonly string[] GuestNameCharacter =
+        {
+            "Madeline", "Theo", "Maddy", "Baddy", "Badeline",
+            "Granny", "Celia", "Zipper", "Spinner", "Heart",
+            "Oshiro", "Kevin", "Seeker", "Puffer", "Berry",
+            "Strawberry", "Cassette", "Snowball", "Cloud",
+            "Bubble", "Booster", "Feather", "Jelly", "Bird",
+            "Petal", "Spring"
+        };
 
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
@@ -111,19 +125,40 @@ namespace Celeste.Mod.CelesteNet.Server {
             string fullNameSpace = nameSpace;
             string fullName = Name.Replace(" ", "");
 
-            using (Server.ConLock.R()) {
-                int i = 1;
-                while (true) {
-                    bool conflict = false;
-                    foreach (CelesteNetPlayerSession other in Server.Sessions)
-                        if (conflict = other.PlayerInfo?.FullName == fullName)
+            if (fullName != "Guest")
+            {
+                using (Server.ConLock.R()) {
+                    int i = 1;
+                    while (true) {
+                        bool conflict = false;
+                        foreach (CelesteNetPlayerSession other in Server.Sessions)
+                            if (conflict = other.PlayerInfo?.FullName == fullName)
+                                break;
+                        if (!conflict)
                             break;
-                    if (!conflict)
-                        break;
-                    i++;
-                    fullNameSpace = $"{nameSpace}#{i}";
-                    fullName = $"{Name}#{i}";
+                        i++;
+                        fullNameSpace = $"{nameSpace}#{i}";
+                        fullName = $"{Name}#{i}";
+                    }
                 }
+            } else
+            {
+                string chosenName;
+                Random rnd = new Random(UID.GetHashCode());
+                using (Server.ConLock.R())
+                {
+                    while (true)
+                    {
+                        chosenName = $"{fullName}|{rnd.Choose(GuestNamePrefixes)}{ rnd.Choose(GuestNameCharacter)}";
+                        bool conflict = false;
+                        foreach (CelesteNetPlayerSession other in Server.Sessions)
+                            if (conflict = other.PlayerInfo?.FullName == chosenName)
+                                break;
+                        if (!conflict)
+                            break;
+                    }
+                }
+                fullName = fullNameSpace = chosenName;
             }
 
             // Handle avatars

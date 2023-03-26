@@ -9,7 +9,7 @@ namespace Celeste.Mod.CelesteNet.Client {
     [SettingName("modoptions_celestenetclient_title")]
     public class CelesteNetClientSettings : EverestModuleSettings {
 
-        #region Top Level Settings
+#region Top Level Settings
 
         [SettingIgnore]
         public bool WantsToBeConnected { get; set; }
@@ -31,6 +31,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                     ServerEntry.Disabled = value || !(Engine.Scene is Overworld);
                 if (NameEntry != null)
                     NameEntry.Disabled = value || !(Engine.Scene is Overworld);
+                if (ExtraServersEntry != null)
+                    ExtraServersEntry.Disabled = value || !(Engine.Scene is Overworld);
             }
         }
         [SettingIgnore, YamlIgnore]
@@ -40,15 +42,37 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         [SettingSubText("modoptions_celestenetclient_avatarshint")]
         public bool ReceivePlayerAvatars { get; set; } = true;
+
+        public const string DefaultServer = "celeste.0x0a.de";
 #if DEBUG
         [SettingSubHeader("modoptions_celestenetclient_subheading_general")]
 #else
         [SettingIgnore]
 #endif
         [SettingSubText("modoptions_celestenetclient_devonlyhint")]
-        public string Server { get; set; } = "celeste.0x0a.de";
+        public string Server {
+            get => _Server;
+            set {
+                if (_Server == value)
+                    return;
+
+                _Server = value;
+
+                if (ServerEntry != null)
+                    ServerEntry.Label = "modoptions_celestenetclient_server".DialogClean().Replace("((server))", value);
+            }
+        }
+        private string _Server = DefaultServer;
+
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ServerEntry { get; protected set; }
+
+        [SettingIgnore]
+        public string[] ExtraServers { get; set; }
+        [SettingIgnore, YamlIgnore]
+        public TextMenu.Slider ExtraServersEntry { get; protected set; }
+
+        // TODO: Reset button to get back to DefaultServer and such
 
 #if !DEBUG
         [SettingSubHeader("modoptions_celestenetclient_subheading_general")]
@@ -542,18 +566,49 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void CreateEmotesEntry(TextMenu menu, bool inGame) {
-            TextMenu.Item item;
-
-            menu.Add(item = new TextMenu.Button("modoptions_celestenetclient_reload".DialogClean()).Pressed(() => {
+            menu.Add(new TextMenu.Button("modoptions_celestenetclient_reload".DialogClean()).Pressed(() => {
                 CelesteNetClientSettings settingsOld = CelesteNetClientModule.Settings;
                 CelesteNetClientModule.Instance.LoadSettings();
                 CelesteNetClientSettings settingsNew = CelesteNetClientModule.Settings;
                 CelesteNetClientModule.Instance._Settings = settingsOld;
 
                 settingsOld.Emotes = settingsNew.Emotes;
+            }).AddDescription(menu, "modoptions_celestenetclient_reloadhint".DialogClean()));
+        }
+
+        public void CreateExtraServersEntry(TextMenu menu, bool inGame) {
+#if DEBUG
+            int selected = 0;
+            for (int i = 0; i < ExtraServers.Length; i++)
+                if (ExtraServers[i] == Server)
+                    selected = i+1;
+            menu.Add(ExtraServersEntry = (TextMenu.Slider) new TextMenu.Slider("modoptions_celestenetclient_extraservers_slider".DialogClean(), i => i == 0 ? DefaultServer : ExtraServers[i-1], 0, ExtraServers.Length, selected).Change(i =>
+            {
+                if (!Connected && i <= ExtraServers.Length)
+                        Server = i == 0 ? DefaultServer : ExtraServers[i-1];
             }));
 
-            item.AddDescription(menu, "modoptions_celestenetclient_reloadhint".DialogClean());
+            ExtraServersEntry.Visible = ExtraServers.Length > 0;
+            ExtraServersEntry.Disabled = inGame || Connected;
+
+            menu.Add(new TextMenu.Button("modoptions_celestenetclient_extraservers_reload".DialogClean()).Pressed(() => {
+                CelesteNetClientSettings settingsOld = CelesteNetClientModule.Settings;
+                CelesteNetClientModule.Instance.LoadSettings();
+                CelesteNetClientSettings settingsNew = CelesteNetClientModule.Settings;
+                CelesteNetClientModule.Instance._Settings = settingsOld;
+
+                settingsOld.ExtraServers = settingsNew.ExtraServers;
+
+                int old_idx = ExtraServersEntry.Index;
+                ExtraServersEntry.Index = 0;
+                ExtraServersEntry.Values.Clear();
+
+                for (int i = 0; i <= ExtraServers.Length; i++)
+                    ExtraServersEntry.Add(i == 0 ? DefaultServer : ExtraServers[i-1], i, i == old_idx);
+
+                ExtraServersEntry.Visible = ExtraServers.Length > 0;
+            }).AddDescription(menu, "modoptions_celestenetclient_reloadhint".DialogClean()));
+#endif
         }
 
         public void CreateUISizeChatEntry(TextMenu menu, bool inGame)

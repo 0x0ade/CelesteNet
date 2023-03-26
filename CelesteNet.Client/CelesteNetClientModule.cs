@@ -91,7 +91,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             // .ga domains have become inaccessible for some people.
             if (Settings.Server == "celeste.0x0ade.ga")
-                Settings.Server = "celeste.0x0a.de";
+                Settings.Server = CelesteNetClientSettings.DefaultServer;
 
             if (Settings.Emotes == null || Settings.Emotes.Length == 0) {
                 Settings.Emotes = new string[] {
@@ -104,6 +104,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                     "p:theo/yolo03 theo/yolo02 theo/yolo01 theo/yolo02 END",
                     "p:granny/laugh",
                 };
+            }
+
+            if (Settings.ExtraServers == null)
+            {
+                Settings.ExtraServers = new string[] { };
             }
         }
 

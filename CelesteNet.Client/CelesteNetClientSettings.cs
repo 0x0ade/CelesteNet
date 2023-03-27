@@ -266,7 +266,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             [SettingRange(0, 100, true)]
             public int ScrollDelayLeniency { get; set; } = 50;
-            
+
         }
 
         #endregion
@@ -351,9 +351,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         [Obsolete("CelesteNetClientSettings.NameOpacity is now CelesteNetClientSettings.InGame.NameOpacity")]
         public int NameOpacity {
-            get { 
-                
-                return InGame?.NameOpacity ?? 4; 
+            get {
+                return InGame?.NameOpacity ?? 4;
             }
             set { if (InGame != null) InGame.NameOpacity = value; }
         }
@@ -541,6 +540,36 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region Custom Entry Creators
 
+        public TextMenu.Slider CreateMenuSlider(TextMenu menu, string dialogLabel, int min, int max, int val, Func<int, string> values, Action<int> onChange) {
+            TextMenu.Slider item = new TextMenu.Slider($"modoptions_celestenetclient_{dialogLabel}".DialogClean(), values, min, max, val);
+            item.Change(onChange);
+            menu.Add(item);
+            return item;
+        }
+
+        public TextMenu.Button CreateMenuButton(TextMenu menu, string dialogLabel, Func<string, string>? dialogTransform, Action onPress)
+        {
+            string label = $"modoptions_celestenetclient_{dialogLabel}".DialogClean();
+            TextMenu.Button item = new TextMenu.Button(dialogTransform?.Invoke(label) ?? label);
+            item.Pressed(onPress);
+            menu.Add(item);
+            return item;
+        }
+        public TextMenu.Button CreateMenuStringInput(TextMenu menu, string dialogLabel, Func<string, string>? dialogTransform, int maxValueLength, Func<string> currentValue, Func<string, string> newValue) {
+            string label = $"modoptions_celestenetclient_{dialogLabel}".DialogClean();
+            TextMenu.Button item = new TextMenu.Button(dialogTransform?.Invoke(label) ?? label);
+            item.Pressed(() => {
+                Audio.Play("event:/ui/main/savefile_rename_start");
+                menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(
+                    currentValue.Invoke(),
+                    v => newValue.Invoke(v),
+                    maxValueLength
+                );
+            });
+            menu.Add(item);
+            return item;
+        }
+
         public void CreateConnectedEntry(TextMenu menu, bool inGame) {
             menu.Add(
                 (EnabledEntry = new TextMenu.OnOff("modoptions_celestenetclient_connected".DialogClean(), Connected))
@@ -551,17 +580,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateServerEntry(TextMenu menu, bool inGame) {
 #if DEBUG
-            menu.Add(
-                (ServerEntry = new TextMenu.Button(("modoptions_celestenetclient_server".DialogClean()).Replace("((server))", Server)))
-                .Pressed(() => {
-                    Audio.Play("event:/ui/main/savefile_rename_start");
-                    menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(
-                        Server,
-                        v => Server = v,
-                        maxValueLength: 30
-                    );
-                })
-            );
+            ServerEntry = CreateMenuStringInput(menu, "SERVER", s => s.Replace("((server))", Server), 30, () => Server, newVal => Server = newVal);
             ServerEntry.Disabled = inGame || Connected;
             ServerEntry.AddDescription(menu, "modoptions_celestenetclient_devonlyhint".DialogClean());
 #endif
@@ -572,29 +591,20 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (name.StartsWith("#"))
                 name = "########";
 
-            menu.Add(
-                (NameEntry = new TextMenu.Button(("modoptions_celestenetclient_name".DialogClean()).Replace("((name))", name)))
-                .Pressed(() => {
-                    Audio.Play("event:/ui/main/savefile_rename_start");
-                    menu.SceneAs<Overworld>().Goto<OuiModOptionString>().Init<OuiModOptions>(
-                        Name,
-                        v => Name = v,
-                        maxValueLength: 20
-                    );
-                })
-            );
+            NameEntry = CreateMenuStringInput(menu, "NAME", s => s.Replace("((name))", name), 20, () => Name, newVal => Name = newVal);
             NameEntry.Disabled = inGame || Connected;
         }
 
         public void CreateEmotesEntry(TextMenu menu, bool inGame) {
-            menu.Add(new TextMenu.Button("modoptions_celestenetclient_reload".DialogClean()).Pressed(() => {
+            TextMenu.Button item = CreateMenuButton(menu, "RELOAD", null, () => {
                 CelesteNetClientSettings settingsOld = CelesteNetClientModule.Settings;
                 CelesteNetClientModule.Instance.LoadSettings();
                 CelesteNetClientSettings settingsNew = CelesteNetClientModule.Settings;
                 CelesteNetClientModule.Instance._Settings = settingsOld;
 
                 settingsOld.Emotes = settingsNew.Emotes;
-            }).AddDescription(menu, "modoptions_celestenetclient_reloadhint".DialogClean()));
+            });
+            item.AddDescription(menu, "modoptions_celestenetclient_reloadhint".DialogClean());
         }
 
         public void CreateExtraServersEntry(TextMenu menu, bool inGame) {
@@ -603,16 +613,21 @@ namespace Celeste.Mod.CelesteNet.Client {
             for (int i = 0; i < ExtraServers.Length; i++)
                 if (ExtraServers[i] == Server)
                     selected = i+1;
-            menu.Add(ExtraServersEntry = (TextMenu.Slider) new TextMenu.Slider("modoptions_celestenetclient_extraservers_slider".DialogClean(), i => i == 0 ? DefaultServer : ExtraServers[i-1], 0, ExtraServers.Length, selected).Change(i =>
-            {
-                if (!Connected && i <= ExtraServers.Length)
+
+            ExtraServersEntry = CreateMenuSlider(
+                menu, "EXTRASERVERS_SLIDER",
+                0, ExtraServers.Length, selected,
+                i => i == 0 ? DefaultServer : ExtraServers[i-1],
+                i => {
+                    if (!Connected && i <= ExtraServers.Length)
                         Server = i == 0 ? DefaultServer : ExtraServers[i-1];
-            }));
+                }
+            );
 
             ExtraServersEntry.Visible = ExtraServers.Length > 0;
             ExtraServersEntry.Disabled = inGame || Connected;
 
-            menu.Add(new TextMenu.Button("modoptions_celestenetclient_extraservers_reload".DialogClean()).Pressed(() => {
+            TextMenu.Button item = CreateMenuButton(menu, "EXTRASERVERS_RELOAD", null, () => {
                 CelesteNetClientSettings settingsOld = CelesteNetClientModule.Settings;
                 CelesteNetClientModule.Instance.LoadSettings();
                 CelesteNetClientSettings settingsNew = CelesteNetClientModule.Settings;
@@ -628,28 +643,21 @@ namespace Celeste.Mod.CelesteNet.Client {
                     ExtraServersEntry.Add(i == 0 ? DefaultServer : ExtraServers[i-1], i, i == old_idx);
 
                 ExtraServersEntry.Visible = ExtraServers.Length > 0;
-            }).AddDescription(menu, "modoptions_celestenetclient_reloadhint".DialogClean()));
+            });
+            item.AddDescription(menu, "modoptions_celestenetclient_reloadhint".DialogClean());
 #endif
         }
 
-        public void CreateUISizeChatEntry(TextMenu menu, bool inGame)
-        {
+        public void CreateUISizeChatEntry(TextMenu menu, bool inGame) {
             if (UISizeChat < UISizeMin || UISizeChat > UISizeMax)
                 UISizeChat = UISize;
-            menu.Add(
-                (UISizeChatSlider = new TextMenu.Slider("modoptions_celestenetclient_uisizechat".DialogClean(), i => i.ToString(), UISizeMin, UISizeMax, UISizeChat))
-                            .Change(v => _UISizeChat = v)
-            );
+            UISizeChatSlider = CreateMenuSlider(menu, "UISIZECHAT", UISizeMin, UISizeMax, UISizeChat, i => i.ToString(), v => _UISizeChat = v);
         }
 
-        public void CreateUISizePlayerListEntry(TextMenu menu, bool inGame)
-        {
+        public void CreateUISizePlayerListEntry(TextMenu menu, bool inGame) {
             if (UISizePlayerList < UISizeMin || UISizePlayerList > UISizeMax)
                 UISizePlayerList = UISize;
-            menu.Add(
-                (UISizePlayerListSlider = new TextMenu.Slider("modoptions_celestenetclient_uisizeplayerlist".DialogClean(), i => i.ToString(), UISizeMin, UISizeMax, UISizePlayerList))
-                            .Change(v => _UISizePlayerList = v)
-            );
+            UISizePlayerListSlider = CreateMenuSlider(menu, "UISIZEPLAYERLIST", UISizeMin, UISizeMax, UISizePlayerList, i => i.ToString(), v => _UISizePlayerList = v);
         }
 
         #endregion

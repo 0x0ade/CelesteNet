@@ -9,7 +9,7 @@ namespace Celeste.Mod.CelesteNet.Client {
     [SettingName("modoptions_celestenetclient_title")]
     public class CelesteNetClientSettings : EverestModuleSettings {
 
-#region Top Level Settings
+        #region Top Level Settings
 
         [SettingIgnore]
         public bool WantsToBeConnected { get; set; }
@@ -81,9 +81,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button NameEntry { get; protected set; }
 
-#endregion
+        #endregion
 
-#region Debug
+        #region Debug
 
         public DebugMenu Debug { get; set; }
 
@@ -102,9 +102,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         }
 
-#endregion
+        #endregion
 
-#region In-Game
+        #region In-Game
 
         public InGameMenu InGame { get; set; }
         [SettingSubMenu]
@@ -133,11 +133,11 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         }
 
-#endregion
+        #endregion
 
-#region Top-level UI
+        #region Top-level UI
 
-        public const int UISizeMin = 1, UISizeMax = 4;
+        public const int UISizeMin = 1, UISizeMax = 20;
         [SettingIgnore, YamlIgnore]
         public int _UISize { get; private set; } = 2;
         [SettingSubHeader("modoptions_celestenetclient_subheading_ui")]
@@ -212,15 +212,18 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public float UIScalePlayerList => CalcUIScale(UISizePlayerList);
 
-#endregion
+        #endregion
 
-#region UI Chat
+        #region UI Chat
 
         public ChatUIMenu ChatUI { get; set; }
         [SettingSubMenu]
         public class ChatUIMenu {
 
             public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }
+
+            [SettingRange(1, 10)]
+            public int NewMessagesSizeAdjust { get; set; } = 10; // TODO implement
 
             public bool ShowScrollingControls { get; set; } = true;
 
@@ -235,9 +238,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         }
 
-#endregion
+        #endregion
 
-#region UI Player List
+        #region UI Player List
 
         public PlayerListUIMenu PlayerListUI { get; set; }
         [SettingSubMenu]
@@ -260,19 +263,44 @@ namespace Celeste.Mod.CelesteNet.Client {
             [SettingSubText("modoptions_celestenetclient_playerlistscrolldelayhint")]
             [SettingRange(0, 5)]
             public int PlayerListScrollDelay { get; set; } = 1;
+
+            [SettingRange(0, 100, true)]
+            public int ScrollDelayLeniency { get; set; } = 50;
+            
         }
 
-#endregion
+        #endregion
 
-#region Performance
+        #region UI Player List
+
+        public PlayerListCustomizeMenu PlayerListCustomize { get; set; }
+        [SettingSubMenu]
+        public class PlayerListCustomizeMenu
+        {
+            [SettingRange(50, 90, true)]
+            public int DynScaleThreshold { get; set; } = 70;
+
+            [SettingRange(0, 50, true)]
+            public int DynScaleRange { get; set; } = 50;
+
+            [SettingRange(10, 100, true)]
+            public int Opacity { get; set; } = 85;
+
+            // Everest TODO: SettingRange -> optional stepping, optional string suffixes
+            // TODO: Reset button (Everest Submenu Attribute?)
+        }
+
+        #endregion
+
+        #region Performance
 
         // TODO: Add some more performance-focused settings like maybe skipping Blur RTs entirely
         [SettingSubText("modoptions_celestenetclient_uiblurhint")]
         public CelesteNetRenderHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetRenderHelperComponent.BlurQuality.MEDIUM;
 
-#endregion
+        #endregion
 
-#region Legacy properties
+        #region Legacy properties
 
         // For compatibility with other mods that access these
 
@@ -397,7 +425,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingSubHeader("modoptions_celestenetclient_subheading_other")]
         public bool EmoteWheel { get; set; } = true;
 
-#region Key Bindings
+        #region Key Bindings
 
         [DefaultButtonBinding(Buttons.Back, Keys.Tab)]
         public ButtonBinding ButtonPlayerList { get; set; }
@@ -469,24 +497,17 @@ namespace Celeste.Mod.CelesteNet.Client {
         [DefaultButtonBinding(0, Keys.D0)]
         public ButtonBinding ButtonEmote10 { get; set; }
 
-#endregion
+        #endregion
 
         [SettingIgnore]
         public string[] Emotes { get; set; }
 
-#region Helpers
+        #region Helpers
 
         private float CalcUIScale(int uisize) {
             if (UIScaleOverride > 0f)
                 return UIScaleOverride;
-            return uisize switch
-            {
-                1 => 0.25f,
-                2 => 0.4f,
-                3 => 0.6f,
-                4 => 0.75f,
-                _ => 0.5f + 0.5f * ((uisize - 1f) / (UISizeMax - 1f)),
-            };
+            return ((uisize - 1f) / (UISizeMax - 1f));
         }
 
         [SettingIgnore, YamlIgnore]
@@ -516,9 +537,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
-#endregion
+        #endregion
 
-#region Custom Entry Creators
+        #region Custom Entry Creators
 
         public void CreateConnectedEntry(TextMenu menu, bool inGame) {
             menu.Add(
@@ -630,7 +651,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                             .Change(v => _UISizePlayerList = v)
             );
         }
-#endregion
+
+        #endregion
 
         [Flags]
         public enum SyncMode {

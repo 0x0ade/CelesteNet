@@ -86,7 +86,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public static readonly float ChatOffset = 5f;
 
-        public static readonly float TextScaleSizeThreshold = 0.7f;
+        public float TextScaleSizeThreshold => Settings.PlayerListCustomize.DynScaleThreshold / 100f;
+
+        public int TextScaleRetryMax => Settings.PlayerListCustomize.DynScaleRange/10;
 
         // bar is in the top right of the player list, this is a percentage of the width it takes up / Height is absolute
         public static readonly float HoldScrollDelayBarWidth = 0.4f;
@@ -98,6 +100,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         // Refers to the sub timer, where the IL time is located when the
         // Speedrun Clock is set to File.
         public static readonly float SubTimerOffset = 24f;
+
+        public float CustomAlpha => Settings.PlayerListCustomize.Opacity / 100f;
 
         public ListModes ListMode => Settings.PlayerListUI.PlayerListMode;
         private ListModes LastListMode;
@@ -160,6 +164,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public int InputScrollDownState => Settings.ButtonPlayerListScrollDown.Check ? 1 : 0;
 
         private bool hasScrolled;
+
+        // adding a slight minimum delay even to (Settings.PlayerListUI.PlayerListScrollDelay == 0) so that you don't
+        // IMMEDIATELY scroll the player count off the top of the list
+        private float ActualScrollDelay => Math.Max(Settings.PlayerListUI.PlayerListScrollDelay / 2f, .1f);
+        private float ScrollDelayLeniency => 1f - Settings.PlayerListUI.ScrollDelayLeniency / 100f;
 
         public enum ListModes {
             Channels,
@@ -262,7 +271,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if ((
                     (sizeAll.X + 2 * (Margin + PaddingX) * scale) >  UI_WIDTH * TextScaleSizeThreshold ||
                     (sizeAll.Y + 2 * (Margin + PaddingY) * scale) > UI_HEIGHT * TextScaleSizeThreshold
-                    ) && textScaleTry < 5) {
+                    ) && textScaleTry < TextScaleRetryMax) {
                     textScaleTry++;
                     textScale -= scale * 0.1f;
                     goto RetryLineScale;
@@ -385,7 +394,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if ((
                     (Math.Max(sizeAll.X, sizeToSplit.X) + 2 * (Margin + PaddingX) * scale) > UI_WIDTH * TextScaleSizeThreshold ||
                     (sizeAll.Y + sizeToSplit.Y / 2f + 2 * (Margin + PaddingY) * scale) > UI_HEIGHT * TextScaleSizeThreshold
-                    ) && textScaleTry < 5) {
+                    ) && textScaleTry < TextScaleRetryMax) {
                     textScaleTry++;
                     textScale -= scale * 0.1f;
                     goto RetryLineScale;
@@ -662,7 +671,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 {
                     // if the bind is released, make sure it wasn't being held for scrolling purposes
                     // if scrolling while holding it down, we most likely don't want to close again
-                    if (!ButtonInitialHold && (!hasScrolled || Settings.PlayerListUI.PlayerListScrollDelay == 0))
+                    if (!ButtonInitialHold && ((!hasScrolled && ButtonHoldTime < ActualScrollDelay * ScrollDelayLeniency) || Settings.PlayerListUI.PlayerListScrollDelay == 0))
                         PropActive = !PropActive;
 
                     hasScrolled = ButtonInitialHold = false;
@@ -676,7 +685,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 {
                     // adding a slight minimum delay even to (Settings.PlayerListUI.PlayerListScrollDelay == 0) so that you don't
                     // IMMEDIATELY scroll the player count off the top of the list
-                    if (ButtonHoldTime > Math.Max(Settings.PlayerListUI.PlayerListScrollDelay / 2f, .1f))
+                    if (ButtonHoldTime > ActualScrollDelay)
                     {
                         InputScrollState = 1;
                         hasScrolled = true;
@@ -750,8 +759,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             float sizeAllXPadded = sizeAll.X + 2 * PaddingX * scale;
             float sizeAllXBlobs = sizeAll.X;
             float chatStartY = (Context?.Chat?.RenderPositionY ?? UI_HEIGHT) - ChatOffset;
-            Color colorFull = Color.Black * 0.8f;
-            Color colorFaded = Color.Black * 0.5f;
+            Color colorFull = Color.Black * 0.95f * CustomAlpha;
+            Color colorFaded = Color.Black * 0.6f * CustomAlpha;
 
             switch (ListMode) {
                 case ListModes.Classic:
@@ -829,15 +838,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     continue;
                 }
                 alpha = (y + blob.Dyn.Y - ScrolledDistance < chatStartY) ? 1f : 0.5f;
-                blob.Render(y - ScrolledDistance, scale, ref sizeAll, alpha);
+                blob.Render(y - ScrolledDistance, scale, ref sizeAll, alpha * CustomAlpha);
             }
 
             if (ButtonHoldTime > 0.01f && Settings.PlayerListUI.PlayerListScrollDelay > 0) {
                 float heldDelayRatio = ButtonHoldTime / (Settings.PlayerListUI.PlayerListScrollDelay/2f);
                 float barFullWidth = sizeAll.X * HoldScrollDelayBarWidth;
                 float barWidth = barFullWidth * heldDelayRatio;
-                MDraw.Rect(x + sizeAll.X - barFullWidth - 1, y, barFullWidth + 1, HoldScrollDelayBarHeight,     Color.White   * .15f);
-                MDraw.Rect(x + sizeAll.X - barWidth,     y + 1, barWidth,         HoldScrollDelayBarHeight - 2, Color.HotPink * .60f);
+                float barAlphaAdjust = (ButtonHoldTime < ActualScrollDelay * ScrollDelayLeniency) ? 0.5f : 1f;
+                MDraw.Rect(x + sizeAll.X - barFullWidth - 1, y, barFullWidth + 1, HoldScrollDelayBarHeight,     Color.White   * .15f * barAlphaAdjust * CustomAlpha);
+                MDraw.Rect(x + sizeAll.X - barWidth,     y + 1, barWidth,         HoldScrollDelayBarHeight - 2, Color.HotPink * .60f * barAlphaAdjust * CustomAlpha);
             }
         }
 

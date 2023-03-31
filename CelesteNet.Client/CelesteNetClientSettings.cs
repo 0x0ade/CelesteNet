@@ -3,6 +3,7 @@ using Celeste.Mod.UI;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
+using System.IO;
 using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -14,6 +15,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         // moved into SubMenu sub-classes, some migrating of settings will be in order
         [SettingIgnore]
         public int SettingsVersionDoNotEdit { get; set; } = 0;
+        // NOTE: The default should be 0 or unset, and not the current version number,
+        // because otherwise "unversioned" settings files could not be detected.
         [SettingIgnore, YamlIgnore]
         public int Version {
             get => SettingsVersionDoNotEdit;
@@ -21,6 +24,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             {
                 if (SettingsVersionDoNotEdit < value && value <= SettingsVersionCurrent)
                     SettingsVersionDoNotEdit = value;
+                else
+                    Logger.LogDetailed(LogLevel.WRN, "CelesteNetClientSettings", $"Attempt to change Settings.Version from {SettingsVersionDoNotEdit} to {value} which is not allowed!");
             }
         }
 
@@ -686,7 +691,7 @@ namespace Celeste.Mod.CelesteNet.Client {
     }
 
     // Settings type with relevant properties from CelesteNetClientSettings.SettingsVersion < 2 (before Settings Version number existed)
-    // will be loaded in CelesteNetClientModule.LoadSettings() to get old values and potentially adjust them to new format
+    // will be loaded in CelesteNetClientModule.LoadOldSettings() to get old values and potentially adjust them to new format
     public class CelesteNetClientSettingsBeforeVersion2 : EverestModuleSettings
     {
 

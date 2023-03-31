@@ -91,7 +91,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             base.LoadSettings();
             Logger.Log(LogLevel.INF, "LoadSettings", $"Loaded settings with versioning number '{Settings.Version}'.");
 
-            // if any of the submenu subclass instances are null, this probably means old settings were loaded
+            // use newly introduced versioning properties to detect if old settings were loaded
             if (Settings.Version < CelesteNetClientSettings.SettingsVersionCurrent)
             {
                 Logger.Log(LogLevel.WRN, "LoadSettings", $"SettingsVersion was {Settings.Version} < {CelesteNetClientSettings.SettingsVersionCurrent}, will load old format and migrate settings...");
@@ -153,7 +153,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
             catch (Exception)
             {
-                Logger.LogDetailed(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path + " as CelesteNetClientSettingsOld");
+                Logger.LogDetailed(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path + " as CelesteNetClientSettingsBeforeVersion2");
             }
 
             if (settingsOld != null)

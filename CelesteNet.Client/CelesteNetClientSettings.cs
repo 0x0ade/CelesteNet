@@ -9,6 +9,21 @@ namespace Celeste.Mod.CelesteNet.Client {
     [SettingName("modoptions_celestenetclient_title")]
     public class CelesteNetClientSettings : EverestModuleSettings {
 
+        public const int SettingsVersionCurrent = 2;
+        // since with this PR (probably going into v2.2) a big chunk of options are being
+        // moved into SubMenu sub-classes, some migrating of settings will be in order
+        [SettingIgnore]
+        public int SettingsVersionDoNotEdit { get; set; } = 0;
+        [SettingIgnore, YamlIgnore]
+        public int Version {
+            get => SettingsVersionDoNotEdit;
+            set
+            {
+                if (SettingsVersionDoNotEdit < value && value <= SettingsVersionCurrent)
+                    SettingsVersionDoNotEdit = value;
+            }
+        }
+
         #region Top Level Settings
 
         [SettingIgnore]
@@ -85,7 +100,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region Debug
 
-        public DebugMenu Debug { get; set; }
+        public DebugMenu Debug { get; set; } = new();
 
 #if DEBUG
         [SettingSubMenu]
@@ -106,7 +121,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region In-Game
 
-        public InGameMenu InGame { get; set; }
+        public InGameMenu InGame { get; set; } = new();
         [SettingSubMenu]
         public class InGameMenu {
 
@@ -216,7 +231,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region UI Chat
 
-        public ChatUIMenu ChatUI { get; set; }
+        public ChatUIMenu ChatUI { get; set; } = new();
         [SettingSubMenu]
         public class ChatUIMenu {
 
@@ -242,7 +257,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region UI Player List
 
-        public PlayerListUIMenu PlayerListUI { get; set; }
+        public PlayerListUIMenu PlayerListUI { get; set; } = new();
         [SettingSubMenu]
         public class PlayerListUIMenu {
 
@@ -273,7 +288,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region UI Player List
 
-        public PlayerListCustomizeMenu PlayerListCustomize { get; set; }
+        public PlayerListCustomizeMenu PlayerListCustomize { get; set; } = new();
         [SettingSubMenu]
         public class PlayerListCustomizeMenu
         {
@@ -308,14 +323,14 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         [Obsolete("CelesteNetClientSettings.ConnectionType is now CelesteNetClientSettings.Debug.ConnectionType")]
         public ConnectionType ConnectionType {
-            get { return Debug.ConnectionType; }
-            set { Debug.ConnectionType = value; }
+            get { return Debug?.ConnectionType ?? ConnectionType.Auto; }
+            set { if (Debug != null) Debug.ConnectionType = value; }
         }
         [SettingIgnore, YamlIgnore]
         [Obsolete("CelesteNetClientSettings.DevLogLevel is now CelesteNetClientSettings.Debug.DevLogLevel")]
         public LogLevel DevLogLevel { 
-            get { return Debug.DevLogLevel; }
-            set { Debug.DevLogLevel = value; }
+            get { return Debug?.DevLogLevel ?? LogLevel.INF; }
+            set { if (Debug != null) Debug.DevLogLevel = value; }
         }
         // In-Game
         [SettingIgnore, YamlIgnore]
@@ -351,9 +366,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         [Obsolete("CelesteNetClientSettings.NameOpacity is now CelesteNetClientSettings.InGame.NameOpacity")]
         public int NameOpacity {
-            get {
-                return InGame?.NameOpacity ?? 4;
-            }
+            get { return InGame?.NameOpacity ?? 4; }
             set { if (InGame != null) InGame.NameOpacity = value; }
         }
         [SettingIgnore, YamlIgnore]
@@ -669,6 +682,48 @@ namespace Celeste.Mod.CelesteNet.Client {
             Receive =       0b10,
             ON =            0b11
         }
+
+    }
+
+    // Settings type with relevant properties from CelesteNetClientSettings.SettingsVersion < 2 (before Settings Version number existed)
+    // will be loaded in CelesteNetClientModule.LoadSettings() to get old values and potentially adjust them to new format
+    public class CelesteNetClientSettingsBeforeVersion2 : EverestModuleSettings
+    {
+
+        public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
+
+        public LogLevel DevLogLevel { get; set; }
+
+        public bool Interactions { get; set; } = true;
+        public CelesteNetClientSettings.SyncMode Sounds { get; set; } = CelesteNetClientSettings.SyncMode.ON;
+        [SettingRange(1, 10)]
+        public int SoundVolume { get; set; } = 8;
+        public CelesteNetClientSettings.SyncMode Entities { get; set; } = CelesteNetClientSettings.SyncMode.ON;
+
+        public CelesteNetPlayerListComponent.ListModes PlayerListMode { get; set; } = CelesteNetPlayerListComponent.ListModes.Channels;
+        public CelesteNetPlayerListComponent.LocationModes ShowPlayerListLocations { get; set; } = CelesteNetPlayerListComponent.LocationModes.ON;
+
+        public bool PlayerListShortenRandomizer { get; set; } = true;
+
+        public bool PlayerListAllowSplit { get; set; } = true;
+        public bool PlayerListShowPing { get; set; } = true;
+
+        public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }
+
+        [SettingRange(0, 4)]
+        public int PlayerOpacity { get; set; } = 4;
+
+        [SettingRange(0, 4)]
+        public int NameOpacity { get; set; } = 4;
+
+        public bool ShowOwnName { get; set; } = true;
+
+        [SettingRange(4, 16)]
+        public int ChatLogLength { get; set; } = 8;
+
+        [SettingRange(1, 5)]
+        public int ChatScrollSpeed { get; set; } = 2;
+        public CelesteNetChatComponent.ChatScrollFade ChatScrollFading { get; set; } = CelesteNetChatComponent.ChatScrollFade.Fast;
 
     }
 }

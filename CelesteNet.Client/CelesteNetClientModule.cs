@@ -11,6 +11,7 @@ using FMOD.Studio;
 using MonoMod.Utils;
 using System.Collections;
 using Celeste.Mod.CelesteNet.Client.Components;
+using System.IO;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
@@ -88,12 +89,32 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override void LoadSettings() {
             base.LoadSettings();
+            Logger.Log(LogLevel.INF, "LoadSettings", $"Loaded settings with versioning number '{Settings.Version}'.");
+
+            // if any of the submenu subclass instances are null, this probably means old settings were loaded
+            if (Settings.Version < CelesteNetClientSettings.SettingsVersionCurrent)
+            {
+                Logger.Log(LogLevel.WRN, "LoadSettings", $"SettingsVersion was {Settings.Version} < {CelesteNetClientSettings.SettingsVersionCurrent}, will load old format and migrate settings...");
+                LoadOldSettings();
+
+                // gotta do it this way because the setter for UISize will also "overwrite" the other two values...
+                int oldSizeChat = Settings.UISizeChat;
+                int oldSizePlayerList = Settings.UISizePlayerList;
+                // the adjustments are somewhat arbitrary but the range has been increased from 1 - 4 to 1 - 20 and we don't want to make everyone's UI tiny with the update :)
+                Settings.UISize = Settings.UISize * 2 + 2;
+                Settings.UISizeChat = oldSizeChat * 2 + 2;
+                Settings.UISizePlayerList = oldSizePlayerList * 2 + 2;
+
+                Settings.Version = CelesteNetClientSettings.SettingsVersionCurrent;
+                Logger.Log(LogLevel.INF, "LoadSettings", $"Settings Migration done, set Version to {Settings.Version}");
+            }
 
             // .ga domains have become inaccessible for some people.
             if (Settings.Server == "celeste.0x0ade.ga")
                 Settings.Server = CelesteNetClientSettings.DefaultServer;
 
-            if (Settings.Emotes == null || Settings.Emotes.Length == 0) {
+            if (Settings.Emotes == null || Settings.Emotes.Length == 0)
+            {
                 Settings.Emotes = new string[] {
                     "i:collectables/heartgem/0/spin",
                     "i:collectables/strawberry",
@@ -109,6 +130,54 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (Settings.ExtraServers == null)
             {
                 Settings.ExtraServers = new string[] { };
+            }
+        }
+
+        public void LoadOldSettings()
+        {
+
+            CelesteNetClientSettingsBeforeVersion2 settingsOld = (CelesteNetClientSettingsBeforeVersion2)typeof(CelesteNetClientSettingsBeforeVersion2).GetConstructor(Everest._EmptyTypeArray).Invoke(Everest._EmptyObjectArray);
+            string path = UserIO.GetSaveFilePath("modsettings-" + Metadata.Name);
+
+            if (!File.Exists(path))
+            {
+                Logger.Log(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path);
+                return;
+            }
+
+            try
+            {
+                using Stream stream = File.OpenRead(path);
+                using StreamReader input = new StreamReader(stream);
+                YamlHelper.DeserializerUsing(settingsOld).Deserialize(input, typeof(CelesteNetClientSettingsBeforeVersion2));
+            }
+            catch (Exception)
+            {
+                Logger.LogDetailed(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path + " as CelesteNetClientSettingsOld");
+            }
+
+            if (settingsOld != null)
+            {
+                Settings.Debug.ConnectionType = settingsOld.ConnectionType;
+                Settings.Debug.DevLogLevel = settingsOld.DevLogLevel;
+
+                Settings.InGame.Interactions = settingsOld.Interactions;
+                Settings.InGame.Sounds = settingsOld.Sounds;
+                Settings.InGame.SoundVolume = settingsOld.SoundVolume;
+                Settings.InGame.Entities = settingsOld.Entities;
+                Settings.InGame.NameOpacity = settingsOld.NameOpacity;
+                Settings.InGame.PlayerOpacity = settingsOld.PlayerOpacity;
+                Settings.InGame.ShowOwnName = settingsOld.ShowOwnName;
+
+                Settings.PlayerListUI.PlayerListMode = settingsOld.PlayerListMode;
+                Settings.PlayerListUI.PlayerListShortenRandomizer = true;
+                Settings.PlayerListUI.PlayerListAllowSplit = true;
+                Settings.PlayerListUI.PlayerListShowPing = settingsOld.PlayerListShowPing;
+
+                Settings.ChatUI.ShowNewMessages = settingsOld.ShowNewMessages;
+                Settings.ChatUI.ChatLogLength = settingsOld.ChatLogLength;
+                Settings.ChatUI.ChatScrollSpeed = settingsOld.ChatScrollSpeed;
+                Settings.ChatUI.ChatScrollFading = settingsOld.ChatScrollFading;
             }
         }
 

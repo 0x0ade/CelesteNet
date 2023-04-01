@@ -693,6 +693,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         protected override void Render(GameTime gameTime, bool toBuffer) {
             float scale = Scale;
+
+            if (!Active)
+                scale *= Settings.ChatUI.NewMessagesSizeAdjust/10f;
+
             Vector2 fontScale = Vector2.One * scale;
 
             RenderPositionY = null;

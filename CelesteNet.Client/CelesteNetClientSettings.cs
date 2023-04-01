@@ -288,8 +288,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }
 
-            [SettingRange(1, 10)]
-            public int NewMessagesSizeAdjust { get; set; } = 10; // TODO implement
+            [SettingRange(5, 15)]
+            public int NewMessagesSizeAdjust { get; set; } = 10;
 
             public bool ShowScrollingControls { get; set; } = true;
 

@@ -3,7 +3,6 @@ using Celeste.Mod.UI;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
-using System.IO;
 using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Client {

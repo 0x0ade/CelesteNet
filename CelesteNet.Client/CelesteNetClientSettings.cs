@@ -51,6 +51,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                     ServerEntry.Disabled = value || !(Engine.Scene is Overworld);
                 if (NameEntry != null)
                     NameEntry.Disabled = value || !(Engine.Scene is Overworld);
+                if (KeyEntry != null)
+                    KeyEntry.Disabled = value || !(Engine.Scene is Overworld);
                 if (ExtraServersEntry != null)
                     ExtraServersEntry.Disabled = value || !(Engine.Scene is Overworld);
             }
@@ -97,9 +99,53 @@ namespace Celeste.Mod.CelesteNet.Client {
 #if !DEBUG
         [SettingSubHeader("modoptions_celestenetclient_subheading_general")]
 #endif
+        [SettingSubText("modoptions_celestenetclient_loginmodehint")]
+        public LoginModeType LoginMode {
+            get {
+                return _loginMode;
+            }
+            set {
+                _loginMode = value;
+                switch (value) {
+                    case LoginModeType.Guest:
+                        // Enable Name (unless in-game), disable Key input
+                        if (NameEntry != null) {
+                            //NameEntry.Visible = true;
+                            NameEntry.Disabled = !(Engine.Scene is Overworld);
+                        }
+                        if (KeyEntry != null) {
+                            //KeyEntry.Visible = false;
+                            KeyEntry.Disabled = true;
+                        }
+                        break;
+                    case LoginModeType.Key:
+                        // Enable Key (unless in-game), disable Name input
+                        if (NameEntry != null) {
+                            //NameEntry.Visible = false;
+                            NameEntry.Disabled = true;
+                        }
+                        if (KeyEntry != null) {
+                            //KeyEntry.Visible = true;
+                            KeyEntry.Disabled = !(Engine.Scene is Overworld);
+                        }
+                        break;
+                }
+            }
+        }
+        private LoginModeType _loginMode = LoginModeType.Guest;
+
         public string Name { get; set; } = "Guest";
+
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button NameEntry { get; protected set; }
+
+        public string Key { get; set; } = "";
+
+        [SettingIgnore, YamlIgnore]
+        public TextMenu.Button KeyEntry { get; protected set; }
+
+        [SettingIgnore, YamlIgnore]
+        public string NameKey => _loginMode == LoginModeType.Guest ? Name : Key;
 
         #endregion
 
@@ -604,13 +650,17 @@ namespace Celeste.Mod.CelesteNet.Client {
 #endif
         }
 
-        public void CreateNameEntry(TextMenu menu, bool inGame) {
-            string name = Name;
-            if (name.StartsWith("#"))
-                name = "########";
-
-            NameEntry = CreateMenuStringInput(menu, "NAME", s => s.Replace("((name))", name), 20, () => Name, newVal => Name = newVal);
-            NameEntry.Disabled = inGame || Connected;
+        public void CreateNameEntry(TextMenu menu, bool inGame)
+        {
+            NameEntry = CreateMenuStringInput(menu, "NAME", s => s.Replace("((name))", Name), 20, () => Name, newVal => Name = newVal);
+            NameEntry.AddDescription(menu, "modoptions_celestenetclient_namehint".DialogClean());
+            NameEntry.Disabled = inGame || Connected || _loginMode != LoginModeType.Guest;
+        }
+        public void CreateKeyEntry(TextMenu menu, bool inGame)
+        {
+            KeyEntry = CreateMenuStringInput(menu, "KEY", s => s.Replace("((key))", Key.Length > 0 ? "########" : "-"), 20, () => Key, newVal => Key = newVal);
+            KeyEntry.AddDescription(menu, "modoptions_celestenetclient_keyhint".DialogClean());
+            KeyEntry.Disabled = inGame || Connected || _loginMode != LoginModeType.Key;
         }
 
         public void CreateEmotesEntry(TextMenu menu, bool inGame) {
@@ -686,6 +736,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             Send =          0b01,
             Receive =       0b10,
             ON =            0b11
+        }
+
+        public enum LoginModeType
+        {
+            Guest = 0,
+            Key = 1
         }
 
     }

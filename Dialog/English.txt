@@ -28,7 +28,14 @@
 	MODOPTIONS_CELESTENETCLIENT_CONNECTEDHINT=			Try setting "Receive Player Avatars" OFF if you can't connect
 	MODOPTIONS_CELESTENETCLIENT_AVATARSHINT=			Tells the server not to send you any profile pics during handshake.
 	MODOPTIONS_CELESTENETCLIENT_SERVER=			Server: ((server))
-	MODOPTIONS_CELESTENETCLIENT_NAME=			Name / Key: ((name))
+	MODOPTIONS_CELESTENETCLIENT_LOGINMODE=		Login Mode
+	MODOPTIONS_CELESTENETCLIENT_LOGINMODEHINT=		Switch between Guest mode (uses "Guest name") and Key mode (registered with "Key" below)
+	MODOPTIONS_CELESTENETCLIENT_NAME=			Name: ((name)) (for Guest mode only)
+	MODOPTIONS_CELESTENETCLIENT_NAMEHINT=		A guest name - will not use linked account or have profile pic.
+	MODOPTIONS_CELESTENETCLIENT_KEY=			Key: ((key))
+	MODOPTIONS_CELESTENETCLIENT_KEYHINT=		Get key by linking a Discord account on celestenet.0x0a.de (in web browser).
+	MODOPTIONS_CELESTENETCLIENT_RESETGENERAL=	Reset General Settings
+	MODOPTIONS_CELESTENETCLIENT_RESETGENERALHINT=	Resets the options above to defaults, including Name/Key & Server
 	MODOPTIONS_CELESTENETCLIENT_SETTINGS=			Settings
 
 	MODOPTIONS_CELESTENETCLIENT_EXTRASERVERS_SLIDER=Switch Servers

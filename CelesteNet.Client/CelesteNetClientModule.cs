@@ -101,9 +101,20 @@ namespace Celeste.Mod.CelesteNet.Client {
                 int oldSizeChat = Settings.UISizeChat;
                 int oldSizePlayerList = Settings.UISizePlayerList;
                 // the adjustments are somewhat arbitrary but the range has been increased from 1 - 4 to 1 - 20 and we don't want to make everyone's UI tiny with the update :)
-                Settings.UISize = Settings.UISize * 2 + 2;
-                Settings.UISizeChat = oldSizeChat * 2 + 2;
-                Settings.UISizePlayerList = oldSizePlayerList * 2 + 2;
+                Settings.UISize = Settings.UISize * 2 + 4;
+                Settings.UISizeChat = oldSizeChat * 2 + 4;
+                Settings.UISizePlayerList = oldSizePlayerList * 2 + 4;
+
+                if (Settings.Name.StartsWith("#"))
+                {
+                    Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Key;
+                    Settings.Key = Settings.Name;
+                    Settings.Name = "Guest";
+                } else
+                {
+                    Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Guest;
+                    Settings.Key = "";
+                }
 
                 Settings.Version = CelesteNetClientSettings.SettingsVersionCurrent;
                 Logger.Log(LogLevel.INF, "LoadSettings", $"Settings Migration done, set Version to {Settings.Version}");

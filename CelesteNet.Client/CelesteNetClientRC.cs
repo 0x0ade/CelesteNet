@@ -291,7 +291,7 @@ header {
                             return;
                         }
 
-                        CelesteNetClientModule.Settings.Name = "#" + name;
+                        CelesteNetClientModule.Settings.Key = "#" + name;
                         CelesteNetClientModule.Instance.SaveSettings();
                         Write(c, "OK");
                     }

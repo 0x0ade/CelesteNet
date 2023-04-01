@@ -143,7 +143,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                             sock.ReceiveTimeout = sock.SendTimeout = 2000;
                                             sock.Connect(address, Settings.Port);
                                             // Do the teapot handshake here, as a successful "connection" doesn't mean that the server can handle IPv6.
-                                            teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name, Options);
+                                            teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.NameKey, Options);
                                             Logger.Log(LogLevel.INF, "main", $"Connecting to {address} ({address.AddressFamily}) succeeded");
                                             break;
                                         } catch (Exception e) {

@@ -175,6 +175,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         [RCEndpoint(false, "/userinfo", "?uid={uid}&key={keyIfNoUID}", "", "User Info", "Get some basic user info.")]
         public static void UserInfo(Frontend f, HttpRequestEventArgs c) {
             bool auth = f.IsAuthorized(c);
+            bool usedOwnKey = false;
 
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
@@ -201,6 +202,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 }
 
                 auth = true;
+                usedOwnKey = true;
             }
 
             if (uid.IsNullOrEmpty()) {
@@ -212,6 +214,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
 
             BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
+
+            // prevent leaking other moderator and admin keys when using a session
+            if (!usedOwnKey && info.Tags.Intersect(BasicUserInfo.AUTH_TAGS).Any() && !f.IsAuthorizedExec(c))
+                auth = false;
 
             f.RespondJSON(c, new {
                 UID = uid,

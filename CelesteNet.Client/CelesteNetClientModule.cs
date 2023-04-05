@@ -92,25 +92,42 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (Settings.Version < CelesteNetClientSettings.SettingsVersionCurrent)
             {
                 Logger.Log(LogLevel.WRN, "LoadSettings", $"SettingsVersion was {Settings.Version} < {CelesteNetClientSettings.SettingsVersionCurrent}, will load old format and migrate settings...");
-                LoadOldSettings();
 
-                // gotta do it this way because the setter for UISize will also "overwrite" the other two values...
-                int oldSizeChat = Settings.UISizeChat;
-                int oldSizePlayerList = Settings.UISizePlayerList;
-                // the adjustments are somewhat arbitrary but the range has been increased from 1 - 4 to 1 - 20 and we don't want to make everyone's UI tiny with the update :)
-                Settings.UISize = Settings.UISize * 2 + 4;
-                Settings.UISizeChat = oldSizeChat * 2 + 4;
-                Settings.UISizePlayerList = oldSizePlayerList * 2 + 4;
+                if (LoadOldSettings()) {
+                    if (Settings.UISize < CelesteNetClientSettings.UISizeDefault) {
+                        Logger.Log(LogLevel.INF, "LoadSettings", $"Settings.UISize was {Settings.UISize} < {CelesteNetClientSettings.UISizeDefault}, performing range adjustments...");
 
-                if (Settings.Name.StartsWith("#"))
-                {
-                    Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Key;
-                    Settings.Key = Settings.Name;
-                    Settings.Name = "Guest";
-                } else
-                {
-                    Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Guest;
-                    Settings.Key = "";
+                        if (Settings.UISize < CelesteNetClientSettings.UISizeMin || Settings.UISize > CelesteNetClientSettings.UISizeMax) {
+                            Settings.UISize = CelesteNetClientSettings.UISizeDefault;
+                            Logger.Log(LogLevel.INF, "LoadSettings", $"Settings.UISize was outside min/max values, set to default of {CelesteNetClientSettings.UISizeDefault}");
+                        } else {
+                            Logger.Log(LogLevel.VVV, "LoadSettings", $"Found UI Sizes: {Settings.UISize} / {Settings.UISizeChat} / {Settings.UISizePlayerList}");
+                            // gotta do it this way because the setter for UISize will also "overwrite" the other two values...
+                            int oldSizeChat = Settings.UISizeChat;
+                            int oldSizePlayerList = Settings.UISizePlayerList;
+
+                            // just use Settings.UISize if these are outside of range
+                            if (oldSizeChat < CelesteNetClientSettings.UISizeMin || oldSizeChat > CelesteNetClientSettings.UISizeMax)
+                                oldSizeChat = Settings.UISize;
+                            if (oldSizePlayerList < CelesteNetClientSettings.UISizeMin || oldSizePlayerList > CelesteNetClientSettings.UISizeMax)
+                                oldSizePlayerList = Settings.UISize;
+
+                            // the adjustments are somewhat arbitrary but the range has been increased from 1 - 4 to 1 - 20 and we don't want to make everyone's UI tiny with the update :)
+                            Settings.UISize = Settings.UISize * 2 + 4;
+                            Settings.UISizeChat = oldSizeChat * 2 + 4;
+                            Settings.UISizePlayerList = oldSizePlayerList * 2 + 4;
+                        }
+                    }
+
+                    Settings.Name ??= "";
+                    if (Settings.Name.StartsWith("#")) {
+                        Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Key;
+                        Settings.Key = Settings.Name;
+                        Settings.Name = "Guest";
+                    } else {
+                        Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Guest;
+                        Settings.Key = "";
+                    }
                 }
 
                 Settings.Version = CelesteNetClientSettings.SettingsVersionCurrent;
@@ -118,11 +135,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
 
             // .ga domains have become inaccessible for some people.
-            if (Settings.Server == "celeste.0x0ade.ga")
+            if (string.IsNullOrWhiteSpace(Settings.Server) || Settings.Server == "celeste.0x0ade.ga" || Settings.Server == "celestenet.0x0ade.ga")
                 Settings.Server = CelesteNetClientSettings.DefaultServer;
 
-            if (Settings.Emotes == null || Settings.Emotes.Length == 0)
-            {
+            if (Settings.Emotes == null || Settings.Emotes.Length == 0) {
                 Settings.Emotes = new string[] {
                     "i:collectables/heartgem/0/spin",
                     "i:collectables/strawberry",
@@ -136,36 +152,32 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
 
             if (Settings.ExtraServers == null)
-            {
                 Settings.ExtraServers = new string[] { };
-            }
         }
 
-        public void LoadOldSettings()
-        {
+        public bool LoadOldSettings() {
 
             CelesteNetClientSettingsBeforeVersion2 settingsOld = (CelesteNetClientSettingsBeforeVersion2)typeof(CelesteNetClientSettingsBeforeVersion2).GetConstructor(Everest._EmptyTypeArray).Invoke(Everest._EmptyObjectArray);
             string path = UserIO.GetSaveFilePath("modsettings-" + Metadata.Name);
 
-            if (!File.Exists(path))
-            {
+            if (!File.Exists(path)) {
                 Logger.Log(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path);
-                return;
+                return false;
             }
 
-            try
-            {
+            try {
                 using Stream stream = File.OpenRead(path);
                 using StreamReader input = new StreamReader(stream);
                 YamlHelper.DeserializerUsing(settingsOld).Deserialize(input, typeof(CelesteNetClientSettingsBeforeVersion2));
-            }
-            catch (Exception)
-            {
+            } catch (Exception) {
                 Logger.LogDetailed(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path + " as CelesteNetClientSettingsBeforeVersion2");
+                return false;
             }
 
-            if (settingsOld != null)
-            {
+            if (settingsOld == null) {
+                Logger.LogDetailed(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path + " as CelesteNetClientSettingsBeforeVersion2 (Output object is null)");
+                return false;
+            } else {
                 Settings.Debug.ConnectionType = settingsOld.ConnectionType;
                 Settings.Debug.DevLogLevel = settingsOld.DevLogLevel;
 
@@ -187,6 +199,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Settings.ChatUI.ChatScrollSpeed = settingsOld.ChatScrollSpeed;
                 Settings.ChatUI.ChatScrollFading = settingsOld.ChatScrollFading;
             }
+            return true;
         }
 
         public override void OnInputInitialize() {

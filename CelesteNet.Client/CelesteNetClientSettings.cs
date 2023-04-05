@@ -202,9 +202,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region Top-level UI
 
-        public const int UISizeMin = 1, UISizeMax = 20;
+        public const int UISizeMin = 1, UISizeMax = 20, UISizeDefault = 8;
         [SettingIgnore, YamlIgnore]
-        public int _UISize { get; private set; } = 2;
+        public int _UISize { get; private set; } = UISizeDefault;
         [SettingSubHeader("modoptions_celestenetclient_subheading_ui")]
         [SettingSubText("modoptions_celestenetclient_uisizehint")]
         [SettingRange(UISizeMin, UISizeMax)]

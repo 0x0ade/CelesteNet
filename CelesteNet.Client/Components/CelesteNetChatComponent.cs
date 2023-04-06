@@ -223,6 +223,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Info
         }
 
+        protected List<VirtualButton> ButtonsToSuppress = new() {
+            Input.ESC,
+            Input.QuickRestart,
+
+            // apparently some people put Dash on their Enter key
+            // instead of just doing Dash i'm gonna put other binds too in case
+
+            Input.Grab,
+            Input.Jump,
+            Input.Dash,
+            Input.CrouchDash,
+
+            Input.Talk,
+            Input.Pause,
+            Input.QuickRestart,
+
+            Input.MenuConfirm,
+            Input.MenuCancel
+        };
+
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
@@ -457,16 +477,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
-            // Prevent menus from reacting to player input after exiting chat.
+            // Prevent binds from reacting to player input after exiting chat.
             if (_ConsumeInput > 0) {
-                Input.MenuConfirm.ConsumeBuffer();
-                Input.MenuConfirm.ConsumePress();
-                Input.ESC.ConsumeBuffer();
-                Input.ESC.ConsumePress();
-                Input.Pause.ConsumeBuffer();
-                Input.Pause.ConsumePress();
-                Input.QuickRestart.ConsumeBuffer();
-                Input.QuickRestart.ConsumePress();
+                foreach (VirtualButton button in ButtonsToSuppress) {
+                    button.ConsumeBuffer();
+                    button.ConsumePress();
+                }
+
                 _ConsumeInput--;
             }
 

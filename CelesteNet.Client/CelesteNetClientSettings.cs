@@ -52,7 +52,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (KeyEntry != null)
                     KeyEntry.Disabled = value || !(Engine.Scene is Overworld);
                 if (ExtraServersEntry != null)
-                    ExtraServersEntry.Disabled = value || !(Engine.Scene is Overworld);
+                    ExtraServersEntry.Disabled = value;
+                if (ResetGeneralButton != null)
+                    ResetGeneralButton.Disabled = value;
             }
         }
         [SettingIgnore, YamlIgnore]
@@ -697,7 +699,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             );
 
             ExtraServersEntry.Visible = ExtraServers.Length > 0;
-            ExtraServersEntry.Disabled = inGame || Connected;
+            ExtraServersEntry.Disabled = Connected;
 
             TextMenu.Button item = CreateMenuButton(menu, "EXTRASERVERS_RELOAD", null, () => {
                 CelesteNetClientSettings settingsOld = CelesteNetClientModule.Settings;
@@ -744,6 +746,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 ReceivePlayerAvatars = true;
             });
             ResetGeneralButton.AddDescription(menu, "modoptions_celestenetclient_resetgeneralhint".DialogClean());
+            ResetGeneralButton.Disabled = Connected;
         }
 
         public void CreateAutoReconnectEntry(TextMenu menu, bool inGame) {

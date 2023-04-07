@@ -19,8 +19,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public int Version {
             get => SettingsVersionDoNotEdit;
-            set
-            {
+            set {
                 if (SettingsVersionDoNotEdit < value && value <= SettingsVersionCurrent)
                     SettingsVersionDoNotEdit = value;
                 else
@@ -60,9 +59,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         public TextMenu.OnOff EnabledEntry { get; protected set; }
 
         public bool AutoReconnect { get; set; } = true;
+        [SettingIgnore, YamlIgnore]
+        public TextMenu.OnOff AutoReconnectEntry { get; protected set; }
 
-        [SettingSubText("modoptions_celestenetclient_avatarshint")]
         public bool ReceivePlayerAvatars { get; set; } = true;
+        [SettingIgnore, YamlIgnore]
+        public TextMenu.OnOff ReceivePlayerAvatarsEntry { get; protected set; }
 
         public const string DefaultServer = "celeste.0x0a.de";
 #if DEBUG
@@ -145,6 +147,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         [SettingIgnore, YamlIgnore]
         public string NameKey => _loginMode == LoginModeType.Guest ? Name : Key;
+
+        [SettingIgnore, YamlIgnore]
+        public TextMenu.Button ResetGeneralButton { get; protected set; }
 
         #endregion
 
@@ -725,6 +730,36 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (UISizePlayerList < UISizeMin || UISizePlayerList > UISizeMax)
                 UISizePlayerList = UISize;
             UISizePlayerListSlider = CreateMenuSlider(menu, "UISIZEPLAYERLIST", UISizeMin, UISizeMax, UISizePlayerList, i => i.ToString(), v => _UISizePlayerList = v);
+        }
+
+        public void CreateResetGeneralButtonEntry(TextMenu menu, bool inGame) {
+            ResetGeneralButton = CreateMenuButton(menu, "RESETGENERAL", null, () => {
+                SettingsVersionDoNotEdit = SettingsVersionCurrent;
+                Server = DefaultServer;
+                // do this which is hopefully visually correct on the OnOff items...
+                AutoReconnectEntry?.RightPressed();
+                ReceivePlayerAvatarsEntry?.RightPressed();
+                // ... but also making sure these are in fact set to these values
+                AutoReconnect = true;
+                ReceivePlayerAvatars = true;
+            });
+            ResetGeneralButton.AddDescription(menu, "modoptions_celestenetclient_resetgeneralhint".DialogClean());
+        }
+
+        public void CreateAutoReconnectEntry(TextMenu menu, bool inGame) {
+            menu.Add(
+                (AutoReconnectEntry = new TextMenu.OnOff("modoptions_celestenetclient_autoreconnect".DialogClean(), AutoReconnect))
+                .Change(v => AutoReconnect = v)
+            );
+            AutoReconnectEntry.AddDescription(menu, "modoptions_celestenetclient_autoreconnecthint".DialogClean());
+        }
+
+        public void CreateReceivePlayerAvatarsEntry(TextMenu menu, bool inGame) {
+            menu.Add(
+                (ReceivePlayerAvatarsEntry = new TextMenu.OnOff("modoptions_celestenetclient_avatars".DialogClean(), ReceivePlayerAvatars))
+                .Change(v => ReceivePlayerAvatars = v)
+            );
+            ReceivePlayerAvatarsEntry.AddDescription(menu, "modoptions_celestenetclient_avatarshint".DialogClean());
         }
 
         #endregion

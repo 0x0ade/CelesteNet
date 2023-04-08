@@ -48,9 +48,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (ServerEntry != null)
                     ServerEntry.Disabled = value || !(Engine.Scene is Overworld);
                 if (NameEntry != null)
-                    NameEntry.Disabled = value || !(Engine.Scene is Overworld);
+                    NameEntry.Disabled = value || !(Engine.Scene is Overworld) || _loginMode != LoginModeType.Guest;
                 if (KeyEntry != null)
-                    KeyEntry.Disabled = value || !(Engine.Scene is Overworld);
+                    KeyEntry.Disabled = value || !(Engine.Scene is Overworld) || _loginMode != LoginModeType.Key;
                 if (ExtraServersEntry != null)
                     ExtraServersEntry.Disabled = value;
                 if (ResetGeneralButton != null)

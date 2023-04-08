@@ -122,7 +122,7 @@ html, body, #body {
     padding: 0 10vw;
 }
 
-#front.rules-front {
+#front.slim-front {
     min-height: 220px;
     height: calc(min(20vw, 20vh));
 }
@@ -216,7 +216,7 @@ html, body, #body {
     color: white;
 }
 
-.rules-front #front-text {
+.slim-front #front-text {
     top: calc(50% + 1.8em);
 }
 
@@ -227,13 +227,17 @@ html, body, #body {
     gap: 48px;
 }
 
-.rules-main {
+.slim-main {
     max-width: calc(2197px / 2);
     margin: 0 auto;
 }
 
-.rules-main #content div:nth-child(1) {
-    padding-top:0px;
+.slim-main #content > div {
+    padding: 20px;
+}
+
+.slim-main #content > div:nth-child(1) {
+    padding-top: 0px;
 }
 
 .back-link {
@@ -243,6 +247,17 @@ html, body, #body {
 
 #content {
     flex: 2 1;
+}
+
+#content > .faq-block {
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.7);
+    margin-bottom: 22px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+#content > .faq-block > * {
+    margin: .7em;
 }
 
 #sidebar {

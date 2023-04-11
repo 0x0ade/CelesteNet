@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -197,7 +198,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 };
 
                 DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
-                if (channel != null && !string.IsNullOrEmpty(channel.Name) && !(Settings.HideOwnChannelName && channel == own))
+                if (!string.IsNullOrEmpty(channel?.Name) && !(Settings.HideOwnChannelName && channel == own))
                     blob.Name += $" #{channel.Name}";
 
                 if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))

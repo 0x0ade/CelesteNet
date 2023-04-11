@@ -184,6 +184,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void RebuildListClassic(ref List<Blob> list, ref DataPlayerInfo[] all) {
+            DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+
             foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
                 if (string.IsNullOrWhiteSpace(player.DisplayName))
                     continue;
@@ -195,7 +197,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 };
 
                 DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
-                if (channel != null && !string.IsNullOrEmpty(channel.Name) && !Settings.HideOwnChannelName)
+                if (channel != null && !string.IsNullOrEmpty(channel.Name) && !(Settings.HideOwnChannelName && channel == own))
                     blob.Name += $" #{channel.Name}";
 
                 if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))

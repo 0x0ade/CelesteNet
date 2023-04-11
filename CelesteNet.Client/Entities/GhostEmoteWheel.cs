@@ -154,16 +154,15 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             popupScale *= level.GetScreenScale();
 
-            Vector2 pos = Tracking.Position;
-            pos.Y -= 8f;
-
-            pos = level.WorldToScreen(pos);
-
             float radius = BG.Width * 0.5f * 0.75f * popupScale;
 
-            pos = pos.Clamp(
-                0f + radius, 0f + radius,
-                1920f - radius, 1080f - radius
+            CelesteNetClientUtils.GetClampedScreenPos(
+                Tracking.Position,
+                level,
+                out Vector2 pos,
+                marginX: radius,
+                marginY: radius,
+                offsetY: -8f
             );
 
             // Draw.Circle(pos, radius, Color.Black * 0.8f * alpha * alpha, radius * 0.6f * (1f + 0.2f * (float) Math.Sin(time)), 8);

@@ -786,7 +786,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 PlayerNameTag?.RemoveSelf();
                 level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
             }
-            PlayerNameTag.Alpha = Settings.InGame.ShowOwnName ? 1f : 0f;
+            PlayerNameTag.Alpha = Settings.InGameHUD.ShowOwnName ? 1f : 0f;
         }
 
         public override void Tick() {

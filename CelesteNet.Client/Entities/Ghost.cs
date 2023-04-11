@@ -212,7 +212,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (NameTag.Scene != Scene)
                 Scene.Add(NameTag);
 
-            Visible = !Dead && CelesteNetClientModule.Settings.InGame.PlayerOpacity != 0;
+            Visible = !Dead && CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity != 0;
 
             base.Update();
 
@@ -230,15 +230,15 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 level.Add(Holding);
 
             // TODO: Get rid of this, sync particles separately!
-            if (CelesteNetClientModule.Settings.InGame.PlayerOpacity != 0 && DashWasB != null && DashDir != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
+            if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity != 0 && DashWasB != null && DashDir != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
                 level.ParticlesFG.Emit(DashWasB.Value ? Player.P_DashB : Player.P_DashA, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Value.Angle());
         }
 
         private void OpacityAdjustAlpha() {
-            if (CelesteNetClientModule.Settings.InGame.PlayerOpacity == 0) {
+            if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity == 0) {
                 Alpha = 0f;
             } else {
-                Alpha = 0.875f * ((CelesteNetClientModule.Settings.InGame.PlayerOpacity + 2) / 6f);
+                Alpha = 0.875f * ((CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity + 2) / 6f);
             }
             if (Hair != null)
                 Hair.Alpha = Alpha;
@@ -402,7 +402,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void HandleDeath() {
             if (Scene is not Level level ||
                 level.Paused || level.Overlay != null ||
-                CelesteNetClientModule.Settings.InGame.PlayerOpacity == 0)
+                CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity == 0)
                 return;
             level.Add(new GhostDeadBody(this, Vector2.Zero, Alpha));
         }

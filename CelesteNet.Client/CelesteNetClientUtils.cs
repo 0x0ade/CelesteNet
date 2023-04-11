@@ -51,6 +51,26 @@ namespace Celeste.Mod.CelesteNet.Client {
             return pos;
         }
 
+        public static bool GetClampedScreenPos(Vector2 worldPos, Level level, out Vector2 outPos, float? marginX = null, float? marginY = null, float offsetX = 0f, float offsetY = 0f, bool screenBottomMargin = true) {
+            float _marginX = marginX ?? CelesteNetClientModule.Settings.InGameHUD.ScreenMargins * 8f;
+            float _marginY = marginY ?? CelesteNetClientModule.Settings.InGameHUD.ScreenMargins * 8f;
+
+            if (level == null) {
+                outPos = Vector2.Zero;
+                return false;
+            }
+
+            worldPos.X += offsetX;
+            worldPos.Y += offsetY;
+
+            Vector2 posScreen = level.WorldToScreen(worldPos);
+            outPos = posScreen.Clamp(
+                _marginX, _marginY,
+                1920f - _marginX, 1080f - (screenBottomMargin ? _marginY : 0f)
+            );
+            return outPos.Equals(posScreen);
+        }
+
         private readonly static FieldInfo f_Player_wasDashB =
             typeof(Player).GetField("wasDashB", BindingFlags.NonPublic | BindingFlags.Instance);
 

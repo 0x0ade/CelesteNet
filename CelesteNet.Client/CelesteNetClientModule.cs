@@ -185,9 +185,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Settings.InGame.Sounds = settingsOld.Sounds;
                 Settings.InGame.SoundVolume = settingsOld.SoundVolume;
                 Settings.InGame.Entities = settingsOld.Entities;
-                Settings.InGame.NameOpacity = settingsOld.NameOpacity;
-                Settings.InGame.PlayerOpacity = settingsOld.PlayerOpacity;
-                Settings.InGame.ShowOwnName = settingsOld.ShowOwnName;
+                Settings.InGameHUD.NameOpacity = settingsOld.NameOpacity;
+                Settings.InGame.OtherPlayerOpacity = settingsOld.PlayerOpacity;
+                Settings.InGameHUD.ShowOwnName = settingsOld.ShowOwnName;
 
                 Settings.PlayerListUI.PlayerListMode = settingsOld.PlayerListMode;
                 Settings.PlayerListUI.PlayerListShortenRandomizer = true;

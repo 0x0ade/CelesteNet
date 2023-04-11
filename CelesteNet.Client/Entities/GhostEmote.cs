@@ -124,46 +124,58 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             else
                 text = Value;
 
-            float alpha = Alpha * PopupAlpha;
-
-            if (alpha <= 0f || (icon == null && string.IsNullOrWhiteSpace(text)))
+            if (icon == null && string.IsNullOrWhiteSpace(text))
                 return;
 
             if (Tracking == null)
                 return;
 
-            Vector2 pos = level.WorldToScreen(Position);
-
-            if (Float)
-                pos.Y -= (float) Math.Sin(Time * 2f) * 4f;
+            float screenMargins = 0f;
+            Vector2 marginSize;
 
             if (icon != null) {
-                Vector2 size = new(icon.Width, icon.Height);
-                float scale = (Size / Math.Max(size.X, size.Y)) * 0.5f * popupScale;
-                size *= scale;
+                marginSize = new(icon.Width, icon.Height);
+                screenMargins = CelesteNetClientModule.Settings.InGameHUD.ScreenMargins * 16f;
+            } else {
+                marginSize = CelesteNetClientFont.Measure(text);
+            }
 
-                pos = pos.Clamp(
-                    0f + size.X * 0.5f + 64f, 0f + size.Y * 1f + 64f,
-                    1920f - size.X * 0.5f - 64f, 1080f - 64f
-                );
+            float scale = Size / Math.Max(marginSize.X, marginSize.Y) * 0.5f * popupScale;
+            marginSize *= scale;
+            marginSize.X *= 0.5f;
 
+            bool isOnScreen = CelesteNetClientUtils.GetClampedScreenPos(
+                Position,
+                level,
+                out Vector2 pos,
+                marginX: screenMargins + marginSize.X,
+                marginY: screenMargins + marginSize.Y,
+                offsetX: 0f,
+                offsetY: Float ? - (float) Math.Sin(Time * 2f) * 4f : 0f,
+                false
+            );
+
+            int opacity = CelesteNetClientModule.Settings.InGameHUD.EmoteOpacity;
+
+            if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenEmotes == CelesteNetClientSettings.OffScreenModes.Hidden)
+                return;
+
+            if (CelesteNetClientModule.Settings.InGameHUD.OffScreenEmotes == CelesteNetClientSettings.OffScreenModes.Opacity)
+                opacity = CelesteNetClientModule.Settings.InGameHUD.OffScreenEmoteOpacity;
+
+            float alpha = PopupAlpha * (opacity / 4f);
+
+            if (alpha <= 0f)
+                return;
+
+            if (icon != null) {
                 icon.DrawJustified(
                     pos,
                     new(0.5f, 1f),
                     Color.White * alpha,
                     Vector2.One * scale
                 );
-
             } else {
-                Vector2 size = CelesteNetClientFont.Measure(text);
-                float scale = (Size / Math.Max(size.X, size.Y)) * 0.5f * popupScale;
-                size *= scale;
-
-                pos = pos.Clamp(
-                    0f + size.X * 0.5f, 0f + size.Y * 1f,
-                    1920f - size.X * 0.5f, 1080f
-                );
-
                 CelesteNetClientFont.DrawOutline(
                     text,
                     pos,

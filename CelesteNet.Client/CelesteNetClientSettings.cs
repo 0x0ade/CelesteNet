@@ -190,19 +190,80 @@ namespace Celeste.Mod.CelesteNet.Client {
             [SettingSubHeader("modoptions_celestenetclient_subheading_players")]
 
             [SettingRange(0, 4)]
-            public int PlayerOpacity { get; set; } = 4;
-
-            [SettingRange(0, 4)]
-            public int NameOpacity { get; set; } = 4;
-
-            public bool ShowOwnName { get; set; } = true;
+            public int OtherPlayerOpacity { get; set; } = 4;
 
             [SettingSubHeader("modoptions_celestenetclient_subheading_sound")]
             public SyncMode Sounds { get; set; } = SyncMode.ON;
 
             [SettingRange(1, 10)]
             public int SoundVolume { get; set; } = 8;
+        }
 
+        #endregion
+
+
+        #region In-Game HUD Elements
+
+        public InGameHUDMenu InGameHUD { get; set; } = new();
+        [SettingSubMenu]
+        public class InGameHUDMenu {
+
+            public bool ShowOwnName { get; set; } = true;
+
+            [SettingRange(0, 4)]
+            public int NameOpacity { get; set; } = 4;
+
+            public OffScreenModes _OffScreenNames = OffScreenModes.Unmodified;
+            public OffScreenModes OffScreenNames {
+                get {
+                    return _OffScreenNames;
+                }
+                set {
+                    _OffScreenNames = value;
+                    if (_OffScreenNameOpacityEntry != null)
+                        _OffScreenNameOpacityEntry.Visible = _OffScreenNames == OffScreenModes.Opacity;
+                }
+            }
+
+            private TextMenu.Slider _OffScreenNameOpacityEntry;
+            public int OffScreenNameOpacity { get; set; } = 4;
+
+            [SettingRange(0, 4)]
+            public int EmoteOpacity { get; set; } = 4;
+
+            public OffScreenModes _OffScreenEmotes = OffScreenModes.Unmodified;
+            public OffScreenModes OffScreenEmotes {
+                get {
+                    return _OffScreenEmotes;
+                }
+                set {
+                    _OffScreenEmotes = value;
+                    if (_OffScreenEmoteOpacityEntry != null)
+                        _OffScreenEmoteOpacityEntry.Visible = _OffScreenEmotes == OffScreenModes.Opacity;
+                }
+            }
+
+            private TextMenu.Slider _OffScreenEmoteOpacityEntry;
+            public int OffScreenEmoteOpacity { get; set; } = 4;
+
+            [SettingRange(1, 12)]
+            public int ScreenMargins { get; set; } = 4;
+
+            public void CreateOffScreenNameOpacityEntry(TextMenuExt.SubMenu menu, bool inGame) {
+                menu.Add(
+                    (_OffScreenNameOpacityEntry = new TextMenu.Slider("modoptions_celestenetclient_offscreennameopacity".DialogClean(), i => i.ToString(), 0, 4, OffScreenNameOpacity))
+                    .Change(v => OffScreenNameOpacity = v)
+                );
+                _OffScreenNameOpacityEntry.Visible = OffScreenNames == OffScreenModes.Opacity;
+            }
+
+            public void CreateOffScreenEmoteOpacityEntry(TextMenuExt.SubMenu menu, bool inGame) {
+                menu.Add(
+                    (_OffScreenEmoteOpacityEntry = new TextMenu.Slider("modoptions_celestenetclient_offscreenemoteopacity".DialogClean(), i => i.ToString(), 0, 4, OffScreenEmoteOpacity))
+                    .Change(v => OffScreenEmoteOpacity = v)
+                );
+                _OffScreenEmoteOpacityEntry.Visible = OffScreenEmotes == OffScreenModes.Opacity;
+            }
         }
 
         #endregion
@@ -417,20 +478,20 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         [Obsolete("CelesteNetClientSettings.PlayerOpacity is now CelesteNetClientSettings.InGame.PlayerOpacity")]
         public int PlayerOpacity {
-            get { return InGame?.PlayerOpacity ?? 4; }
-            set { if (InGame != null) InGame.PlayerOpacity = value; }
+            get { return InGame?.OtherPlayerOpacity ?? 4; }
+            set { if (InGame != null) InGame.OtherPlayerOpacity = value; }
         }
         [SettingIgnore, YamlIgnore]
         [Obsolete("CelesteNetClientSettings.NameOpacity is now CelesteNetClientSettings.InGame.NameOpacity")]
         public int NameOpacity {
-            get { return InGame?.NameOpacity ?? 4; }
-            set { if (InGame != null) InGame.NameOpacity = value; }
+            get { return InGameHUD?.NameOpacity ?? 4; }
+            set { if (InGameHUD != null) InGameHUD.NameOpacity = value; }
         }
         [SettingIgnore, YamlIgnore]
         [Obsolete("CelesteNetClientSettings.ShowOwnName is now CelesteNetClientSettings.InGame.ShowOwnName")]
         public bool ShowOwnName {
-            get { return InGame?.ShowOwnName ?? true; }
-            set { if (InGame != null) InGame.ShowOwnName = value; }
+            get { return InGameHUD?.ShowOwnName ?? true; }
+            set { if (InGameHUD != null) InGameHUD.ShowOwnName = value; }
         }
         // Chat UI
         [SettingIgnore, YamlIgnore]
@@ -780,7 +841,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             Guest = 0,
             Key = 1
         }
-
+        public enum OffScreenModes {
+            Unmodified = 0,
+            Hidden = 1,
+            Opacity = 2
+        }
     }
 
     // Settings type with relevant properties from CelesteNetClientSettings.SettingsVersion < 2 (before Settings Version number existed)

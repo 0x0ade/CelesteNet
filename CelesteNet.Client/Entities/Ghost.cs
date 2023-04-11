@@ -238,7 +238,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity == 0) {
                 Alpha = 0f;
             } else {
-                Alpha = 0.875f * ((CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity + 2) / 6f);
+                Alpha = CelesteNetClientModule.Settings.OtherPlayerAlpha;
             }
             if (Hair != null)
                 Hair.Alpha = Alpha;

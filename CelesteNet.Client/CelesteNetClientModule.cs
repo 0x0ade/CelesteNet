@@ -185,8 +185,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Settings.InGame.Sounds = settingsOld.Sounds;
                 Settings.InGame.SoundVolume = settingsOld.SoundVolume;
                 Settings.InGame.Entities = settingsOld.Entities;
-                Settings.InGameHUD.NameOpacity = settingsOld.NameOpacity;
-                Settings.InGame.OtherPlayerOpacity = settingsOld.PlayerOpacity;
+                Settings.InGameHUD.NameOpacity = settingsOld.NameOpacity * 5;
+                // this is because of the change to Ghost.OpacityAdjustAlpha(), basically baking in the transformation that used to happen
+                Settings.InGame.OtherPlayerOpacity = (int) Math.Round((settingsOld.PlayerOpacity + 2f)/6f * 0.875f * 20);
                 Settings.InGameHUD.ShowOwnName = settingsOld.ShowOwnName;
 
                 Settings.PlayerListUI.PlayerListMode = settingsOld.PlayerListMode;

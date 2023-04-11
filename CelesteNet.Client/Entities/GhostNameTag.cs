@@ -64,10 +64,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenNames == CelesteNetClientSettings.OffScreenModes.Hidden)
                 return;
 
-            if (CelesteNetClientModule.Settings.InGameHUD.OffScreenNames == CelesteNetClientSettings.OffScreenModes.Opacity)
+            if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenNames == CelesteNetClientSettings.OffScreenModes.Opacity)
                 opacity = CelesteNetClientModule.Settings.InGameHUD.OffScreenNameOpacity;
 
-            float a = Alpha * (opacity / 4f);
+            float a = Alpha * (opacity / 20f);
 
             if (a <= 0f)
                 return;

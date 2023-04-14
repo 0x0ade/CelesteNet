@@ -205,14 +205,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 usedOwnKey = true;
             }
 
-            if (uid.IsNullOrEmpty()) {
-                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
-                f.RespondJSON(c, new {
-                    Error = "Unauthorized - invalid uid."
-                });
-                return;
-            }
-
             BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
 
             // prevent leaking other moderator and admin keys when using a session

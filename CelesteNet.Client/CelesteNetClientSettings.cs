@@ -44,6 +44,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingSubText("modoptions_celestenetclient_avatarshint")]
         public bool ReceivePlayerAvatars { get; set; } = true;
 
+        [SettingSubText("modoptions_celestenetclient_hideownchannelhint")]
+        public bool HideOwnChannelName { get; set; } = false;
+
 #if !DEBUG
         [SettingIgnore]
 #endif

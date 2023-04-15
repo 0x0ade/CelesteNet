@@ -1,16 +1,12 @@
 ﻿using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetChatComponent : CelesteNetGameComponent {
@@ -61,8 +57,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected Regex ChannelResponseRegex = new Regex(@"^(Moved to|Already in) (?!main)\S+", RegexOptions.Compiled);
         // check for /join|channel list
         protected Regex ChannelListHeaderRegex = new Regex(@"^You're in (?!main)\S+", RegexOptions.Compiled);
-
-        public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 
         public enum ChatMode {
             All,
@@ -314,7 +308,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 msg.Tag = AvatarRegex.Replace(msg.Tag, "");
             }
 
-            if (Settings.HideOwnChannelName) {
+            if (Settings.PlayerListUI.HideOwnChannelName) {
                 // don't get too eager, only replace text in ACK'd commands and server responses
                 if (msg.Color != PublicChatColor && msg.Color != WhisperChatColor) {
                     Match cmdMatch = ChannelCMDRegex.Match(msg.Text);
@@ -694,7 +688,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case CompletionType.Channel:
                     CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
                     IEnumerable<string> channelNames = playerlist?.Channels?.List?.Select(channel => channel.Name);
-                    if (Settings.HideOwnChannelName)
+                    if (Settings.PlayerListUI.HideOwnChannelName)
                         // don't accidentally leak the channel name via tab completions
                         channelNames = channelNames.Where(name => name != CurrentChannelName);
                     Completion = channelNames.Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;

@@ -3,8 +3,6 @@ using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     // TODO: This is taken mostly as is from GhostNet and can be improved.

@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Xml.Linq;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -116,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public bool AllowSplit => Settings.PlayerListUI.PlayerListAllowSplit;
         private bool LastAllowSplit;
 
-        public bool HideOwnChannelName => Settings.HideOwnChannelName;
+        public bool HideOwnChannelName => Settings.PlayerListUI.HideOwnChannelName;
         private bool LastHideOwnChannelName;
 
         private static float? spaceWidth;
@@ -243,7 +242,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 };
 
                 DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
-                if (!string.IsNullOrEmpty(channel?.Name) && !(Settings.HideOwnChannelName && channel == own))
+                if (!string.IsNullOrEmpty(channel?.Name) && !(HideOwnChannelName && channel == own))
                     blob.Name += $" #{channel.Name}";
 
                 if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
@@ -301,7 +300,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
             void AddChannel(ref List<Blob> list, DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor, LocationModes locationMode) {
-                bool hideChannel = channel == own && channel.Name != "main" && Settings.HideOwnChannelName;
+                bool hideChannel = channel == own && channel.Name != "main" && HideOwnChannelName;
                 list.Add(new() {
                     Name = hideChannel ? "<hidden>" : channel.Name,
                     Color = hideChannel ? ColorChannelHeaderPrivate : color,

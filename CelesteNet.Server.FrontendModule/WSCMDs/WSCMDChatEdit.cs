@@ -2,7 +2,6 @@
 using Celeste.Mod.CelesteNet.Server.Chat;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
-using Monocle;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
@@ -23,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return null;
 
             if (input.Color != null)
-                msg.Color = Calc.HexToColor((string) input.Color);
+                msg.Color = ColorHelpers.HexToColor((string) input.Color);
 
             if (input.Text != null)
                 msg.Text = (string) input.Text;

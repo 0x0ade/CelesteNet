@@ -32,6 +32,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (data.Spin is bool spin)
                 status.Spin = spin;
 
+            Frontend.Server.BroadcastAsync(status);
+
             return null;
         }
     }

@@ -329,6 +329,16 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void UpdateGeneric(Vector2 pos, Vector2 scale, Color color, Facings facing, Vector2 speed) {
             if (Holdable.Holder == null)
                 Position = pos;
+            if (scale.X > 0.0f) {
+                scale.X = Calc.Clamp(scale.X, 0.5f, 1.5f);
+            } else {
+                scale.X = Calc.Clamp(scale.X, -0.5f, -1.5f);
+            }
+            if (scale.Y > 0.0f) {
+                scale.Y = Calc.Clamp(scale.Y, 0.5f, 1.5f);
+            } else {
+                scale.Y = Calc.Clamp(scale.Y, -0.5f, -1.5f);
+            }
             Sprite.Scale = scale;
             Sprite.Scale.X *= (float) facing;
             Sprite.Color = color * Alpha;

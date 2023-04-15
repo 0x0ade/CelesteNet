@@ -68,6 +68,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public TextMenu.OnOff ReceivePlayerAvatarsEntry { get; protected set; }
 
+        [SettingSubText("modoptions_celestenetclient_hideownchannelhint")]
+        public bool HideOwnChannelName { get; set; } = false;
+
         public const string DefaultServer = "celeste.0x0a.de";
 #if DEBUG
         [SettingSubHeader("modoptions_celestenetclient_subheading_general")]

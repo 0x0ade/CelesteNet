@@ -28,6 +28,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public string PromptMessage = "";
         public Color PromptMessageColor = Color.White;
 
+        // FIXME aaaaaaAAAAAAAAAAAAA i don't like this is hardcoded kdfj;askldjfkls
+        public Color WhisperChatColor = Calc.HexToColor("#888888");
+        public Color PublicChatColor = Color.White;
+
+        // will get filled out once we join the server
+        protected string CurrentChannelName = "main";
+
         public float? RenderPositionY { get; private set; } = null;
 
         protected Overlay _DummyOverlay = new PauseUpdateOverlay();
@@ -42,6 +49,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ChatUI.ShowNewMessages;
         protected Regex AvatarRegex = new Regex(@":celestenet_avatar_\d+_:", RegexOptions.Compiled);
+
+        // used for hiding your own channel name
+        // match anything other than main
+
+        // check for /cc
+        protected Regex ChannelTagRegex = new Regex(@"channel (?!main)\S+", RegexOptions.Compiled);
+        // check for /join|channel (may contain spaces in name)
+        protected Regex ChannelCMDRegex = new Regex(@"^\/(join|channel) ((?!main).+)", RegexOptions.Compiled);
+        // check for /join|channel response
+        protected Regex ChannelResponseRegex = new Regex(@"^(Moved to|Already in) (?!main)\S+", RegexOptions.Compiled);
+        // check for /join|channel list
+        protected Regex ChannelListHeaderRegex = new Regex(@"^You're in (?!main)\S+", RegexOptions.Compiled);
+
+        public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
 
         public enum ChatMode {
             All,
@@ -231,6 +252,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Info
         }
 
+        protected List<VirtualButton> ButtonsToSuppress = new() {
+            Input.ESC,
+            Input.QuickRestart,
+
+            // apparently some people put Dash on their Enter key
+            // instead of just doing Dash i'm gonna put other binds too in case
+
+            Input.Grab,
+            Input.Jump,
+            Input.Dash,
+            Input.CrouchDash,
+
+            Input.Talk,
+            Input.Pause,
+            Input.QuickRestart,
+
+            Input.MenuConfirm,
+            Input.MenuCancel
+        };
+
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
@@ -257,6 +298,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
+        public void Handle(CelesteNetConnection con, DataChannelList channelList) {
+            // stolen homework from CelesteNetPlayerListComponent
+            string tmp = channelList.List.FirstOrDefault(channel => channel.Players.Contains(Client.PlayerInfo.ID))?.Name;
+            if (tmp == null) return;
+            CurrentChannelName = tmp;
+        }
+
         public void Handle(CelesteNetConnection con, DataChat msg) {
             if (Client == null)
                 return;
@@ -264,6 +312,28 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Client.Options.AvatarsDisabled) {
                 msg.Text = AvatarRegex.Replace(msg.Text, "");
                 msg.Tag = AvatarRegex.Replace(msg.Tag, "");
+            }
+
+            if (Settings.HideOwnChannelName) {
+                // don't get too eager, only replace text in ACK'd commands and server responses
+                if (msg.Color != PublicChatColor && msg.Color != WhisperChatColor) {
+                    Match cmdMatch = ChannelCMDRegex.Match(msg.Text);
+                    if (cmdMatch.Success) {
+                        string channelOrPage = cmdMatch.Groups[2].Value;
+
+                        // hide if the argument is not a parsable int
+                        // a number > int.MaxValue is treated as a channel name
+                        // main already excluded in regex
+                        if (!int.TryParse(channelOrPage, out _))
+                            msg.Text = ChannelCMDRegex.Replace(msg.Text, "/$1 <hidden>");
+                    }
+
+                    msg.Text = ChannelResponseRegex.Replace(msg.Text, "$1 <hidden>");
+                    msg.Text = ChannelListHeaderRegex.Replace(msg.Text, "You're in <hidden>");
+                    if (CurrentChannelName != "main")
+                        msg.Text = Regex.Replace(msg.Text, $@"\b{CurrentChannelName} - (\d+) players\b", "<hidden> - $1 players");
+                }
+                msg.Tag = ChannelTagRegex.Replace(msg.Tag, "channel");
             }
 
             lock (Log) {
@@ -284,7 +354,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (Log[index].Version <= msg.Version) {
                     Log[index] = msg;
                 }
-                if (msg.Color != Color.White) {
+                if (msg.Color != PublicChatColor) {
                     index = LogSpecial.FindLastIndex(other => other.ID == msg.ID);
                     if (index == -1) {
                         index = LogSpecial.FindLastIndex(other => other.ID < msg.ID);
@@ -465,16 +535,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
             }
 
-            // Prevent menus from reacting to player input after exiting chat.
+            // Prevent binds from reacting to player input after exiting chat.
             if (_ConsumeInput > 0) {
-                Input.MenuConfirm.ConsumeBuffer();
-                Input.MenuConfirm.ConsumePress();
-                Input.ESC.ConsumeBuffer();
-                Input.ESC.ConsumePress();
-                Input.Pause.ConsumeBuffer();
-                Input.Pause.ConsumePress();
-                Input.QuickRestart.ConsumeBuffer();
-                Input.QuickRestart.ConsumePress();
+                foreach (VirtualButton button in ButtonsToSuppress) {
+                    button.ConsumeBuffer();
+                    button.ConsumePress();
+                }
+
                 _ConsumeInput--;
             }
 
@@ -626,7 +693,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     break;
                 case CompletionType.Channel:
                     CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
-                    Completion = playerlist?.Channels?.List?.Select(channel => channel.Name).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
+                    IEnumerable<string> channelNames = playerlist?.Channels?.List?.Select(channel => channel.Name);
+                    if (Settings.HideOwnChannelName)
+                        // don't accidentally leak the channel name via tab completions
+                        channelNames = channelNames.Where(name => name != CurrentChannelName);
+                    Completion = channelNames.Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
 
                     break;
 

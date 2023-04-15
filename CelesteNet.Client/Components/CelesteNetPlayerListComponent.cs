@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -114,6 +115,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public bool AllowSplit => Settings.PlayerListUI.PlayerListAllowSplit;
         private bool LastAllowSplit;
+
+        public bool HideOwnChannelName => Settings.HideOwnChannelName;
+        private bool LastHideOwnChannelName;
 
         private static float? spaceWidth;
         protected static float SpaceWidth {
@@ -226,6 +230,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void RebuildListClassic(ref List<Blob> list, ref DataPlayerInfo[] all) {
+            DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+
             foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
                 if (string.IsNullOrWhiteSpace(player.DisplayName))
                     continue;
@@ -237,7 +243,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 };
 
                 DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
-                if (channel != null && !string.IsNullOrEmpty(channel.Name))
+                if (!string.IsNullOrEmpty(channel?.Name) && !(Settings.HideOwnChannelName && channel == own))
                     blob.Name += $" #{channel.Name}";
 
                 if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
@@ -295,9 +301,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
             void AddChannel(ref List<Blob> list, DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor, LocationModes locationMode) {
+                bool hideChannel = channel == own && channel.Name != "main" && Settings.HideOwnChannelName;
                 list.Add(new() {
-                    Name = channel.Name,
-                    Color = color,
+                    Name = hideChannel ? "<hidden>" : channel.Name,
+                    Color = hideChannel ? ColorChannelHeaderPrivate : color,
                     ScaleFactor = scaleFactorHeader,
                     CanSplit = channel != own
                 });
@@ -648,12 +655,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 LastShowPing != ShowPing ||
                 LastAllowSplit != AllowSplit ||
                 LastScale != Scale ||
+                LastHideOwnChannelName != HideOwnChannelName ||
                 ShouldRebuild) {
                 LastListMode = ListMode;
                 LastLocationMode = LocationMode;
                 LastShowPing = ShowPing;
                 LastAllowSplit = AllowSplit;
                 LastScale = Scale;
+                LastHideOwnChannelName = HideOwnChannelName;
                 ShouldRebuild = false;
                 RebuildList();
             }

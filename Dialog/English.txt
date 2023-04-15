@@ -39,6 +39,8 @@
 	MODOPTIONS_CELESTENETCLIENT_KEYHINT=			Get key by linking a Discord account on celestenet.0x0a.de (in web browser).
 	MODOPTIONS_CELESTENETCLIENT_RESETGENERAL=	Reset General Settings
 	MODOPTIONS_CELESTENETCLIENT_RESETGENERALHINT=	Resets the options above to defaults, excluding Name/Key
+	MODOPTIONS_CELESTENETCLIENT_HIDEOWNCHANNEL=			Hide your channel name
+	MODOPTIONS_CELESTENETCLIENT_HIDEOWNCHANNELHINT=		Intended for streamers.{n}Prevents leaking your channel name when receiving a message or opening the player list.
 	MODOPTIONS_CELESTENETCLIENT_SETTINGS=			Settings
 
 	MODOPTIONS_CELESTENETCLIENT_EXTRASERVERS_SLIDER= Switch Servers

@@ -190,7 +190,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             [SettingSubHeader("modoptions_celestenetclient_subheading_players")]
 
             [SettingRange(0, 20)]
-            public int OtherPlayerOpacity { get; set; } = 17;
+            public int OtherPlayerOpacity { get; set; } = 18;
 
             [SettingSubHeader("modoptions_celestenetclient_subheading_sound")]
             public SyncMode Sounds { get; set; } = SyncMode.ON;

@@ -128,6 +128,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                         Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Guest;
                         Settings.Key = "";
                     }
+                } else {
+                    Logger.Log(LogLevel.INF, "LoadSettings", $"Reverting to default settings...");
+                    _Settings = new CelesteNetClientSettings();
                 }
 
                 Settings.Version = CelesteNetClientSettings.SettingsVersionCurrent;

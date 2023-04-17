@@ -153,12 +153,12 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 false
             );
 
-            int opacity = CelesteNetClientModule.Settings.InGameHUD.EmoteOpacity;
-
             if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenEmotes == CelesteNetClientSettings.OffScreenModes.Hidden)
                 return;
 
-            if (CelesteNetClientModule.Settings.InGameHUD.OffScreenEmotes == CelesteNetClientSettings.OffScreenModes.Opacity)
+            int opacity = CelesteNetClientModule.Settings.InGameHUD.EmoteOpacity;
+
+            if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenEmotes == CelesteNetClientSettings.OffScreenModes.Opacity)
                 opacity = CelesteNetClientModule.Settings.InGameHUD.OffScreenEmoteOpacity;
 
             float alpha = PopupAlpha * (opacity / 20f);

@@ -32,11 +32,18 @@
 	MODOPTIONS_CELESTENETCLIENT_AUTORECONNECTHINT=		Only reconnects when getting disconnected unexpectedly, not on start-up.
 	MODOPTIONS_CELESTENETCLIENT_SERVER=				Server: ((server))
 	MODOPTIONS_CELESTENETCLIENT_LOGINMODE=			Login Mode
-	MODOPTIONS_CELESTENETCLIENT_LOGINMODEHINT=		Switch between Guest mode (uses "Guest name") and Key mode (registered with "Key" below)
-	MODOPTIONS_CELESTENETCLIENT_NAME=				Name: ((name)) (for Guest mode only)
+	MODOPTIONS_CELESTENETCLIENT_LOGINMODEHINT=		Guest - set "Name"  below and connect as Guest{n}Key - see note on "Key" input below when enabled{n}NOTE: Name/Key can only be edited when you're disconnected/offline!
+	MODOPTIONS_CELESTENETCLIENT_NAME=				Name: ((name))
 	MODOPTIONS_CELESTENETCLIENT_NAMEHINT=			A guest name - will not use linked account or have profile pic.
 	MODOPTIONS_CELESTENETCLIENT_KEY=				Key: ((key))
 	MODOPTIONS_CELESTENETCLIENT_KEYHINT=			Get key by linking a Discord account on celestenet.0x0a.de (in web browser).
+
+	MODOPTIONS_CELESTENETCLIENT_KEYDISPLAY_HIDE=\#\#\#HIDDEN\#\#\#
+	MODOPTIONS_CELESTENETCLIENT_KEYDISPLAY_NONE=-
+	MODOPTIONS_CELESTENETCLIENT_KEYERROR_INVALIDCHARS=   :celestenet_warning: Contains invalid characters - check your input
+	MODOPTIONS_CELESTENETCLIENT_KEYERROR_INVALIDKEY=   :celestenet_warning: Server returned "Invalid key" - check your input
+	MODOPTIONS_CELESTENETCLIENT_KEYERROR_INVALIDLENGTH=   :celestenet_warning: Key must have length 16 - check your input
+
 	MODOPTIONS_CELESTENETCLIENT_RESETGENERAL=	Reset General Settings
 	MODOPTIONS_CELESTENETCLIENT_RESETGENERALHINT=	Resets the options above to defaults, excluding Name/Key
 	MODOPTIONS_CELESTENETCLIENT_HIDEOWNCHANNEL=			Hide your channel name

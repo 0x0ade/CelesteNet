@@ -328,6 +328,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                             _StartThread = null;
                             Stop();
                             context.Status.Set(cee.Status ?? "Connection failed", 3f, false);
+                            if (cee.Status.ToLower().Trim() == "invalid key")
+                                Settings.KeyError = CelesteNetClientSettings.KeyErrors.InvalidKey;
                             handled = true;
                             break;
                         }

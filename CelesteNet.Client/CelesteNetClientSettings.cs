@@ -3,6 +3,7 @@ using Celeste.Mod.UI;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
+using System.Linq;
 using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -50,7 +51,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (NameEntry != null)
                     NameEntry.Disabled = value || !(Engine.Scene is Overworld) || _loginMode != LoginModeType.Guest;
                 if (KeyEntry != null)
-                    KeyEntry.Disabled = value || !(Engine.Scene is Overworld) || _loginMode != LoginModeType.Key;
+                    SetKeyEntryDisabled(value || !(Engine.Scene is Overworld) || _loginMode != LoginModeType.Key);
                 if (ExtraServersEntry != null)
                     ExtraServersEntry.Disabled = value;
                 if (ResetGeneralButton != null)
@@ -112,25 +113,18 @@ namespace Celeste.Mod.CelesteNet.Client {
                 switch (value) {
                     case LoginModeType.Guest:
                         // Enable Name (unless in-game), disable Key input
-                        if (NameEntry != null) {
-                            //NameEntry.Visible = true;
-                            NameEntry.Disabled = !(Engine.Scene is Overworld);
-                        }
-                        if (KeyEntry != null) {
-                            //KeyEntry.Visible = false;
-                            KeyEntry.Disabled = true;
-                        }
+                        if (NameEntry != null)
+                            NameEntry.Disabled = !(Engine.Scene is Overworld) || Connected;
+                        if (KeyEntry != null)
+                            SetKeyEntryDisabled();
                         break;
                     case LoginModeType.Key:
                         // Enable Key (unless in-game), disable Name input
                         if (NameEntry != null) {
-                            //NameEntry.Visible = false;
                             NameEntry.Disabled = true;
                         }
-                        if (KeyEntry != null) {
-                            //KeyEntry.Visible = true;
-                            KeyEntry.Disabled = !(Engine.Scene is Overworld);
-                        }
+                        if (KeyEntry != null)
+                            SetKeyEntryDisabled(!(Engine.Scene is Overworld) || Connected);
                         break;
                 }
             }
@@ -142,13 +136,48 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button NameEntry { get; protected set; }
 
-        public string Key { get; set; } = "";
+
+        public string Key {
+            get {
+                return _Key;
+            }
+            set {
+                value = value.TrimStart('#');
+
+                if (value.Length != 16) {
+                    KeyError = KeyErrors.InvalidLength;
+                } else if (!value.All("0123456789abcdefABCDEF".Contains)) {
+                    KeyError = KeyErrors.InvalidChars;
+                } else {
+                    KeyError = KeyErrors.None;
+                }
+
+                _Key = "#" + value;
+            }
+        }
+
+        [YamlIgnore]
+        private string _Key = "";
 
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button KeyEntry { get; protected set; }
 
         [SettingIgnore, YamlIgnore]
         public string NameKey => _loginMode == LoginModeType.Guest ? Name : Key;
+
+        [SettingIgnore, YamlIgnore]
+        public KeyErrors KeyError {
+            get {
+                return _KeyError;
+            }
+            set {
+                _KeyError = value;
+                if (KeyEntry != null)
+                    KeyEntry.Label = "modoptions_celestenetclient_key".DialogClean().Replace("((key))", Key.Length > 0 ? KeyDisplayDialog(_KeyError) : "-");
+            }
+        }
+        [YamlIgnore]
+        private KeyErrors _KeyError = KeyErrors.None;
 
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ResetGeneralButton { get; protected set; }
@@ -720,7 +749,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             menu.Add(item);
             return item;
         }
-        public TextMenu.Button CreateMenuStringInput(TextMenu menu, string dialogLabel, Func<string, string>? dialogTransform, int maxValueLength, Func<string> currentValue, Func<string, string> newValue) {
+        public TextMenu.Button CreateMenuStringInput(TextMenu menu, string dialogLabel, Func<string, string>? dialogTransform, int maxValueLength, Func<string> currentValue, Action<string> newValue) {
             string label = $"modoptions_celestenetclient_{dialogLabel}".DialogClean();
             TextMenu.Button item = new TextMenu.Button(dialogTransform?.Invoke(label) ?? label);
             item.Pressed(() => {
@@ -759,9 +788,35 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
         public void CreateKeyEntry(TextMenu menu, bool inGame)
         {
-            KeyEntry = CreateMenuStringInput(menu, "KEY", s => s.Replace("((key))", Key.Length > 0 ? "########" : "-"), 20, () => Key, newVal => Key = newVal);
+            KeyEntry = CreateMenuStringInput(menu, "KEY", s => s.Replace("((key))", Key.Length > 0 ? KeyDisplayDialog(KeyError) : "-"), 17, () => Key, newVal => Key = newVal);
             KeyEntry.AddDescription(menu, "modoptions_celestenetclient_keyhint".DialogClean());
-            KeyEntry.Disabled = inGame || Connected || _loginMode != LoginModeType.Key;
+            SetKeyEntryDisabled(inGame || Connected || _loginMode != LoginModeType.Key);
+        }
+
+        public void SetKeyEntryDisabled(bool value = true) {
+            if (KeyEntry == null)
+                return;
+            KeyEntry.Disabled = value;
+            KeyEntry.Label = "modoptions_celestenetclient_key".DialogClean().Replace("((key))", Key.Length > 0 ? KeyDisplayDialog(_KeyError) : "-");
+        }
+
+        public string KeyDisplayDialog(KeyErrors val) {
+            if (_loginMode != LoginModeType.Key)
+                return "modoptions_celestenetclient_keydisplay_none".DialogClean();
+
+            if (!Connected) {
+                // Don't show the error if we managed to connect, I guess :clueless:
+                switch (val) {
+                    case KeyErrors.InvalidChars:
+                        return "modoptions_celestenetclient_keyerror_invalidchars".DialogClean();
+                    case KeyErrors.InvalidLength:
+                        return "modoptions_celestenetclient_keyerror_invalidlength".DialogClean();
+                    case KeyErrors.InvalidKey:
+                        return "modoptions_celestenetclient_keyerror_invalidkey".DialogClean();
+                }
+            }
+
+            return "modoptions_celestenetclient_keydisplay_hide".DialogClean();
         }
 
         public void CreateEmotesEntry(TextMenu menu, bool inGame) {
@@ -879,6 +934,13 @@ namespace Celeste.Mod.CelesteNet.Client {
             Unmodified = 0,
             Hidden = 1,
             Opacity = 2
+        }
+
+        public enum KeyErrors {
+            None = 0,
+            InvalidLength,
+            InvalidChars,
+            InvalidKey
         }
     }
 

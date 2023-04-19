@@ -278,6 +278,7 @@ header {
                         }
 
                         CelesteNetClientModule.Settings.Key = "#" + name;
+                        CelesteNetClientModule.Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Key;
                         CelesteNetClientModule.Instance.SaveSettings();
                         Write(c, "OK");
                     }

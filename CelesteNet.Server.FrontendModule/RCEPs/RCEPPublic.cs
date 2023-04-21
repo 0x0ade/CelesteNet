@@ -241,6 +241,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 f.RespondJSON(c, new {
                     Error = "Unauthorized - invalid key."
                 });
+                return;
             }
 
             f.Server.UserData.RevokeKey(key);

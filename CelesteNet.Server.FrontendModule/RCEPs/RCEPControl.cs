@@ -492,8 +492,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 #if NETCORE
         [RCEndpoint(true, "/exec", "", "", "Execute C#", "Run some C# code. Highly dangerous!")]
         public static void Exec(Frontend f, HttpRequestEventArgs c) {
-            if (!f.IsAuthorizedExec(c))
+            if (!f.IsAuthorizedExec(c)) {
                 f.Respond(c, "Unauthorized!");
+                return;
+            }
 
             ExecALC? alc = null;
 

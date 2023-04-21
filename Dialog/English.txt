@@ -75,14 +75,24 @@
 	MODOPTIONS_CELESTENETCLIENT_UISIZECHAT= 		UI Size: Chat
 	MODOPTIONS_CELESTENETCLIENT_UISIZEPLAYERLIST=	UI Size: Player List
 	MODOPTIONS_CELESTENETCLIENT_UIBLUR= 			UI Blur
-	MODOPTIONS_CELESTENETCLIENT_UIBLURHINT=			Lower the quality if you're experiencing lag.
+	MODOPTIONS_CELESTENETCLIENT_UIBLURHINT=			Lower/turn off if you're experiencing lag. Affects UI background "diffused" effect.
 	MODOPTIONS_CELESTENETCLIENT_UISIZEHINT=			Changing this updates the UI Sizes "Player List" and "Chat" to this value.
-	MODOPTIONS_CELESTENETCLIENT_PLSCROLLMODEHINT=	"Hold" - Hold to auto-scroll when opening, {n}"Keybinds" - Up/Down control binds, {n}"Keybinds on Hold" - Up/Down binds only while holding
-	MODOPTIONS_CELESTENETCLIENT_PLAYERLISTSCROLLDELAYHINT= 		Delay before scrolling, applies to "Hold" mode only. "0" probably not recommended.
+	MODOPTIONS_CELESTENETCLIENT_PLSCROLLMODEHINT=	"Hold Tab" - Hold to auto-scroll when opening, {n}"Keybinds" - Up/Down control binds, {n}"Keybinds on Hold" - Up/Down binds only while holding
+	MODOPTIONS_CELESTENETCLIENT_SCROLLDELAYHINT= 		Delay before scrolling, applies to "Hold" mode only. "0" probably not recommended.
+	MODOPTIONS_CELESTENETCLIENT_SCROLLDELAY= Scroll Delay (Hold Tab)
+	MODOPTIONS_CELESTENETCLIENT_SCROLLDELAYLENIENCY= Scroll Delay Leniency
 
+	MODOPTIONS_CELESTENETCLIENT_CHATUI_SHOWNEWMESSAGES=Show New Messages (Fading Popup)
+	MODOPTIONS_CELESTENETCLIENT_CHATUI_NEWMESSAGESFADETIME= New Messages Fade Time
+
+	MODOPTIONS_CELESTENETCLIENT_CHATUI_NEWMESSAGESSIZEADJUST= New Messages Size Adjustment
+
+	MODOPTIONS_CELESTENETCLIENT_UICUSTOMIZE= UI Customization
+	MODOPTIONS_CELESTENETCLIENT_CHATOPACITY= Chat Opacity
+	MODOPTIONS_CELESTENETCLIENT_PLAYERLISTOPACITY= Player List Opacity
 
 	MODOPTIONS_CELESTENETCLIENT_RELOAD= 			Reload Emotes
-	MODOPTIONS_CELESTENETCLIENT_RELOADHINT=			Open Saves/modsettings-CelesteNet.celeste in a text editor.
+	MODOPTIONS_CELESTENETCLIENT_RELOADHINT=			Edit Saves/modsettings-CelesteNet.celeste in a text editor.
 	MODOPTIONS_CELESTENETCLIENT_RECOMMENDED= 		Install Recommended Mods
 	MODOPTIONS_CELESTENETCLIENT_RECOMMENDEDHINT=		((list))
 

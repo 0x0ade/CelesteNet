@@ -194,8 +194,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Settings.InGameHUD.ShowOwnName = settingsOld.ShowOwnName;
 
                 Settings.PlayerListUI.PlayerListMode = settingsOld.PlayerListMode;
-                Settings.PlayerListUI.PlayerListShortenRandomizer = true;
-                Settings.PlayerListUI.PlayerListAllowSplit = true;
+                Settings.UICustomize.PlayerListShortenRandomizer = true;
+                Settings.UICustomize.PlayerListAllowSplit = true;
                 Settings.PlayerListUI.PlayerListShowPing = settingsOld.PlayerListShowPing;
 
                 Settings.ChatUI.ShowNewMessages = settingsOld.ShowNewMessages;

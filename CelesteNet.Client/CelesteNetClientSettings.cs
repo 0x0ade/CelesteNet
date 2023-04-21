@@ -258,7 +258,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             public int NameOpacity { get; set; } = 20;
 
             [YamlIgnore]
-            private OffScreenModes _OffScreenNames = OffScreenModes.Unmodified;
+            private OffScreenModes _OffScreenNames = OffScreenModes.Same;
             public OffScreenModes OffScreenNames {
                 get {
                     return _OffScreenNames;
@@ -266,19 +266,19 @@ namespace Celeste.Mod.CelesteNet.Client {
                 set {
                     _OffScreenNames = value;
                     if (_OffScreenNameOpacityEntry != null)
-                        _OffScreenNameOpacityEntry.Disabled = _OffScreenNames != OffScreenModes.Opacity;
+                        _OffScreenNameOpacityEntry.Disabled = _OffScreenNames != OffScreenModes.Other;
                 }
             }
 
             [YamlIgnore]
             private TextMenu.Slider _OffScreenNameOpacityEntry;
-            public int OffScreenNameOpacity { get; set; } = 20;
+            public int OffScreenNameOpacity { get; set; } = 10;
 
             [SettingRange(0, 20)]
             public int EmoteOpacity { get; set; } = 20;
 
             [YamlIgnore]
-            private OffScreenModes _OffScreenEmotes = OffScreenModes.Unmodified;
+            private OffScreenModes _OffScreenEmotes = OffScreenModes.Same;
             public OffScreenModes OffScreenEmotes {
                 get {
                     return _OffScreenEmotes;
@@ -286,13 +286,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                 set {
                     _OffScreenEmotes = value;
                     if (_OffScreenEmoteOpacityEntry != null)
-                        _OffScreenEmoteOpacityEntry.Disabled = _OffScreenEmotes != OffScreenModes.Opacity;
+                        _OffScreenEmoteOpacityEntry.Disabled = _OffScreenEmotes != OffScreenModes.Other;
                 }
             }
 
             [YamlIgnore]
             private TextMenu.Slider _OffScreenEmoteOpacityEntry;
-            public int OffScreenEmoteOpacity { get; set; } = 20;
+            public int OffScreenEmoteOpacity { get; set; } = 10;
 
             [SettingRange(1, 12)]
             public int ScreenMargins { get; set; } = 4;
@@ -314,7 +314,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     (_OffScreenNameOpacityEntry = new TextMenu.Slider("modoptions_celestenetclient_offscreennameopacity".DialogClean(), i => $"{i * 5}%", 0, 20, OffScreenNameOpacity))
                     .Change(v => OffScreenNameOpacity = v)
                 );
-                _OffScreenNameOpacityEntry.Disabled = OffScreenNames != OffScreenModes.Opacity;
+                _OffScreenNameOpacityEntry.Disabled = OffScreenNames != OffScreenModes.Other;
             }
 
             public void CreateOffScreenEmoteOpacityEntry(TextMenuExt.SubMenu menu, bool inGame) {
@@ -322,7 +322,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     (_OffScreenEmoteOpacityEntry = new TextMenu.Slider("modoptions_celestenetclient_offscreenemoteopacity".DialogClean(), i => $"{i * 5}%", 0, 20, OffScreenEmoteOpacity))
                     .Change(v => OffScreenEmoteOpacity = v)
                 );
-                _OffScreenEmoteOpacityEntry.Disabled = OffScreenEmotes != OffScreenModes.Opacity;
+                _OffScreenEmoteOpacityEntry.Disabled = OffScreenEmotes != OffScreenModes.Other;
             }
         }
 
@@ -415,8 +415,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             public CelesteNetChatComponent.ChatMode ShowNewMessages { get; set; }
 
-            [SettingRange(5, 15)]
-            public int NewMessagesSizeAdjust { get; set; } = 10;
+            public int NewMessagesFadeTime { get; set; } = 6;
+
+            [SettingRange(-5, 5)]
+            public int NewMessagesSizeAdjust { get; set; } = 0;
 
             public bool ShowScrollingControls { get; set; } = true;
 
@@ -429,6 +431,11 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             public CelesteNetChatComponent.ChatScrollFade ChatScrollFading { get; set; } = CelesteNetChatComponent.ChatScrollFade.Fast;
 
+            public void CreateNewMessagesFadeTimeEntry(TextMenuExt.SubMenu menu, bool inGame) {
+                menu.Add(
+                    new TextMenu.Slider("modoptions_celestenetclient_chatui_newmessagesfadetime".DialogClean(), i => $"{i / 2f:F1} s", 1, 20, NewMessagesFadeTime).Change(v => NewMessagesFadeTime = v)
+                );
+            }
         }
 
         #endregion
@@ -443,44 +450,61 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             public CelesteNetPlayerListComponent.LocationModes ShowPlayerListLocations { get; set; } = CelesteNetPlayerListComponent.LocationModes.ON;
 
-            [SettingIgnore]
-            public bool PlayerListShortenRandomizer { get; set; } = true;
-
-            public bool PlayerListAllowSplit { get; set; } = true;
-
             public bool PlayerListShowPing { get; set; } = true;
 
             [SettingSubText("modoptions_celestenetclient_hideownchannelhint")]
             public bool HideOwnChannelName { get; set; } = false;
 
             [SettingSubText("modoptions_celestenetclient_plscrollmodehint")]
-            public CelesteNetPlayerListComponent.ScrollModes PlayerListScrollMode { get; set; } = CelesteNetPlayerListComponent.ScrollModes.Hold;
+            public CelesteNetPlayerListComponent.ScrollModes PlayerListScrollMode { get; set; } = CelesteNetPlayerListComponent.ScrollModes.HoldTab;
 
-            [SettingSubText("modoptions_celestenetclient_playerlistscrolldelayhint")]
-            [SettingRange(0, 5)]
-            public int PlayerListScrollDelay { get; set; } = 1;
+            [SettingSubText("modoptions_celestenetclient_scrolldelayhint")]
+            public int ScrollDelay { get; set; } = 1;
 
             [SettingRange(0, 100, true)]
             public int ScrollDelayLeniency { get; set; } = 50;
 
+            public void CreateScrollDelayEntry(TextMenuExt.SubMenu menu, bool inGame) {
+                menu.Add(
+                    new TextMenu.Slider("modoptions_celestenetclient_scrolldelay".DialogClean(), i => $"{i/2f:F1} s", 0, 5, ScrollDelay).Change(v => ScrollDelay = v)
+                );
+            }
         }
 
         #endregion
 
-        #region UI Player List
+        #region UI Customize
 
-        public PlayerListCustomizeMenu PlayerListCustomize { get; set; } = new();
+        public UICustomizeMenu UICustomize { get; set; } = new();
         [SettingSubMenu]
-        public class PlayerListCustomizeMenu
+        public class UICustomizeMenu
         {
+            public int ChatOpacity { get; set; } = 16;
+
+            public int PlayerListOpacity { get; set; } = 17;
+
+            [SettingIgnore]
+            public bool PlayerListShortenRandomizer { get; set; } = true;
+
+            public bool PlayerListAllowSplit { get; set; } = true;
+
             [SettingRange(50, 90, true)]
             public int DynScaleThreshold { get; set; } = 70;
 
             [SettingRange(0, 50, true)]
             public int DynScaleRange { get; set; } = 50;
 
-            [SettingRange(10, 100, true)]
-            public int Opacity { get; set; } = 85;
+            public void CreateChatOpacityEntry(TextMenuExt.SubMenu menu, bool inGame) {
+                menu.Add(
+                    new TextMenu.Slider("modoptions_celestenetclient_ChatOpacity".DialogClean(), i => $"{i * 5}%", 0, 20, ChatOpacity).Change(v => ChatOpacity = v)
+                );
+            }
+
+            public void CreatePlayerListOpacityEntry(TextMenuExt.SubMenu menu, bool inGame) {
+                menu.Add(
+                    new TextMenu.Slider("modoptions_celestenetclient_PlayerListOpacity".DialogClean(), i => $"{i * 5}%", 0, 20, PlayerListOpacity).Change(v => PlayerListOpacity = v)
+                );
+            }
 
             // Everest TODO: SettingRange -> optional stepping, optional string suffixes
             // TODO: Reset button (Everest Submenu Attribute?)
@@ -595,16 +619,16 @@ namespace Celeste.Mod.CelesteNet.Client {
             set { if (PlayerListUI != null) PlayerListUI.ShowPlayerListLocations = value; }
         }
         [SettingIgnore, YamlIgnore]
-        [Obsolete("CelesteNetClientSettings.PlayerListShortenRandomizer is now CelesteNetClientSettings.PlayerListUI.PlayerListShortenRandomizer")]
+        [Obsolete("CelesteNetClientSettings.PlayerListShortenRandomizer is now CelesteNetClientSettings.UICustomize.PlayerListShortenRandomizer")]
         public bool PlayerListShortenRandomizer {
-            get { return PlayerListUI?.PlayerListShortenRandomizer ?? true; }
-            set { if (PlayerListUI != null) PlayerListUI.PlayerListShortenRandomizer = value; }
+            get { return UICustomize?.PlayerListShortenRandomizer ?? true; }
+            set { if (UICustomize != null) UICustomize.PlayerListShortenRandomizer = value; }
         }
         [SettingIgnore, YamlIgnore]
-        [Obsolete("CelesteNetClientSettings.PlayerListAllowSplit is now CelesteNetClientSettings.PlayerListUI.PlayerListAllowSplit")]
+        [Obsolete("CelesteNetClientSettings.PlayerListAllowSplit is now CelesteNetClientSettings.UICustomize.PlayerListAllowSplit")]
         public bool PlayerListAllowSplit {
-            get { return PlayerListUI?.PlayerListAllowSplit ?? true; }
-            set { if (PlayerListUI != null) PlayerListUI.PlayerListAllowSplit = value; }
+            get { return UICustomize?.PlayerListAllowSplit ?? true; }
+            set { if (UICustomize != null) UICustomize.PlayerListAllowSplit = value; }
         }
         [SettingIgnore, YamlIgnore]
         [Obsolete("CelesteNetClientSettings.PlayerListShowPing is now CelesteNetClientSettings.PlayerListUI.PlayerListShowPing")]
@@ -931,9 +955,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             Key = 1
         }
         public enum OffScreenModes {
-            Unmodified = 0,
+            Same = 0,
             Hidden = 1,
-            Opacity = 2
+            Other = 2
         }
 
         public enum KeyErrors {

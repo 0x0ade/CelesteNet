@@ -86,9 +86,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public static readonly float ChatOffset = 5f;
 
-        public float TextScaleSizeThreshold => Settings.PlayerListCustomize.DynScaleThreshold / 100f;
+        public float TextScaleSizeThreshold => Settings.UICustomize.DynScaleThreshold / 100f;
 
-        public int TextScaleRetryMax => Settings.PlayerListCustomize.DynScaleRange/10;
+        public int TextScaleRetryMax => Settings.UICustomize.DynScaleRange/10;
 
         // bar is in the top right of the player list, this is a percentage of the width it takes up / Height is absolute
         public static readonly float HoldScrollDelayBarWidth = 0.4f;
@@ -101,7 +101,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         // Speedrun Clock is set to File.
         public static readonly float SubTimerOffset = 24f;
 
-        public float CustomAlpha => Settings.PlayerListCustomize.Opacity / 100f;
+        public float CustomAlpha => Settings.UICustomize.PlayerListOpacity / 20f;
 
         public ListModes ListMode => Settings.PlayerListUI.PlayerListMode;
         private ListModes LastListMode;
@@ -112,7 +112,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public bool ShowPing => Settings.PlayerListUI.PlayerListShowPing;
         private bool LastShowPing;
 
-        public bool AllowSplit => Settings.PlayerListUI.PlayerListAllowSplit;
+        public bool AllowSplit => Settings.UICustomize.PlayerListAllowSplit;
         private bool LastAllowSplit;
 
         public bool HideOwnChannelName => Settings.PlayerListUI.HideOwnChannelName;
@@ -170,7 +170,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         // adding a slight minimum delay even to (Settings.PlayerListUI.PlayerListScrollDelay == 0) so that you don't
         // IMMEDIATELY scroll the player count off the top of the list
-        private float ActualScrollDelay => Math.Max(Settings.PlayerListUI.PlayerListScrollDelay / 2f, .1f);
+        private float ActualScrollDelay => Math.Max(Settings.PlayerListUI.ScrollDelay / 2f, .1f);
         private float ScrollDelayLeniency => 1f - Settings.PlayerListUI.ScrollDelayLeniency / 100f;
 
         public enum ListModes {
@@ -179,7 +179,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public enum ScrollModes {
-            Hold = 0,
+            HoldTab = 0,
             Keybinds = 1,
             KeybindsOnHold = 2
         }
@@ -245,8 +245,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!string.IsNullOrEmpty(channel?.Name) && !(HideOwnChannelName && channel == own))
                     blob.Name += $" #{channel.Name}";
 
-                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                    GetState(blob, state);
+                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
+                    if (LocationMode != LocationModes.OFF)
+                        GetState(blob, state);
+
+                    blob.Idle = state.Idle;
+                }
 
                 if (ShowPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo conInfo))
                     blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
@@ -501,8 +505,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 blob.Name = player.DisplayName;
 
                 blob.LocationMode = locationMode;
-                if (locationMode != LocationModes.OFF && Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                    GetState(blob, state);
+                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
+                    if (locationMode != LocationModes.OFF)
+                        GetState(blob, state);
+
+                    blob.Idle = state.Idle;
+                }
 
                 if (ShowPing && withPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo conInfo))
                     blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
@@ -546,8 +554,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ShortenRandomizerLocation(ref blob.Location);
             }
 
-            blob.Idle = state.Idle;
-
             // Allow mods to override f.e. the displayed location name or icon very easily.
             OnGetState?.Invoke(blob, state);
         }
@@ -558,7 +564,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
              * Celeste/1-ForsakenCity/A/b-02/31 randomizer/Mirror Temple_0_1234567 A
              */
 
-            if (!location.IsRandomizer || !Settings.PlayerListUI.PlayerListShortenRandomizer)
+            if (!location.IsRandomizer || !Settings.UICustomize.PlayerListShortenRandomizer)
                 return;
 
             // shorten the randomizer/ part down
@@ -598,7 +604,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
 
                 // just update blob state, since SID hasn't changed
-                GetState(playerBlob, state);
+                if (LocationMode != LocationModes.OFF)
+                    GetState(playerBlob, state);
+
+                playerBlob.Idle = state.Idle;
                 playerBlob.Generate();
             });
 
@@ -679,17 +688,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 {
                     // if the bind is released, make sure it wasn't being held for scrolling purposes
                     // if scrolling while holding it down, we most likely don't want to close again
-                    if (!ButtonInitialHold && ((!hasScrolled && ButtonHoldTime < ActualScrollDelay * ScrollDelayLeniency) || Settings.PlayerListUI.PlayerListScrollDelay == 0))
+                    if (!ButtonInitialHold && ((!hasScrolled && ButtonHoldTime < ActualScrollDelay * ScrollDelayLeniency) || Settings.PlayerListUI.ScrollDelay == 0))
                         PropActive = !PropActive;
 
                     hasScrolled = ButtonInitialHold = false;
                 }
             }
 
-            if (Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.Hold)
+            if (Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.HoldTab)
             {
                 // scrolling mode: just keep scrolling down while button is held, after delay period
-                if (Settings.PlayerListUI.PlayerListScrollDelay == 0 ? ButtonInitialHold : Settings.ButtonPlayerList.Check)
+                if (Settings.PlayerListUI.ScrollDelay == 0 ? ButtonInitialHold : Settings.ButtonPlayerList.Check)
                 {
                     // adding a slight minimum delay even to (Settings.PlayerListUI.PlayerListScrollDelay == 0) so that you don't
                     // IMMEDIATELY scroll the player count off the top of the list
@@ -849,8 +858,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 blob.Render(y - ScrolledDistance, scale, ref sizeAll, alpha * CustomAlpha);
             }
 
-            if (ButtonHoldTime > 0.01f && Settings.PlayerListUI.PlayerListScrollDelay > 0) {
-                float heldDelayRatio = ButtonHoldTime / (Settings.PlayerListUI.PlayerListScrollDelay/2f);
+            if (ButtonHoldTime > 0.01f && Settings.PlayerListUI.ScrollDelay > 0) {
+                float heldDelayRatio = ButtonHoldTime / (Settings.PlayerListUI.ScrollDelay/2f);
                 float barFullWidth = sizeAll.X * HoldScrollDelayBarWidth;
                 float barWidth = barFullWidth * heldDelayRatio;
                 float barAlphaAdjust = (ButtonHoldTime < ActualScrollDelay * ScrollDelayLeniency) ? 0.5f : 1f;

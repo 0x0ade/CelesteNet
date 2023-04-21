@@ -158,7 +158,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             int opacity = CelesteNetClientModule.Settings.InGameHUD.EmoteOpacity;
 
-            if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenEmotes == CelesteNetClientSettings.OffScreenModes.Opacity)
+            if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenEmotes == CelesteNetClientSettings.OffScreenModes.Other)
                 opacity = CelesteNetClientModule.Settings.InGameHUD.OffScreenEmoteOpacity;
 
             float alpha = PopupAlpha * (opacity / 20f);

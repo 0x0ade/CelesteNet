@@ -14,6 +14,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected float _Time;
 
         public float Scale => Settings.UIScaleChat;
+        public float CustomAlpha => Settings.UICustomize.ChatOpacity / 20f;
+
         protected int ScrolledFromIndex = 0;
         protected float ScrolledDistance = 0f;
         protected int skippedMsgCount = 0;
@@ -760,7 +762,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             float scale = Scale;
 
             if (!Active)
-                scale *= Settings.ChatUI.NewMessagesSizeAdjust/10f;
+                scale *= (1f + Settings.ChatUI.NewMessagesSizeAdjust/10f);
 
             Vector2 fontScale = Vector2.One * scale;
 
@@ -789,9 +791,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         DataChat msg = log[count - 1 - i];
 
                         float alpha = Completion.Count == 0 ? 1f : 0.8f;
-                        float delta = (float) (now - msg.ReceivedDate).TotalSeconds;
-                        if (!Active && delta > 3f)
-                            alpha = 1f - Ease.CubeIn(delta - 3f);
+                        float deltaToFade = (float) (now - msg.ReceivedDate).TotalSeconds - Settings.ChatUI.NewMessagesFadeTime / 2f;
+                        if (!Active && deltaToFade > 0f)
+                            alpha = 1f - Ease.CubeIn(deltaToFade);
                         if (alpha <= 0f)
                             continue;
 
@@ -842,7 +844,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         
                         logLength -= msgExtraLines * 0.75f * (cutoff > 0f ? 1f - cutoff / height : 1f);
 
-                        Context.RenderHelper.Rect(25f * scale, y, size.X + 50f * scale, height - cutoff, Color.Black * 0.8f * alpha);
+                        Context.RenderHelper.Rect(25f * scale, y, size.X + 50f * scale, height - cutoff, Color.Black * CustomAlpha * alpha);
                         CelesteNetClientFontMono.Draw(
                             time,
                             new(50f * scale, y + 20f * scale),
@@ -984,7 +986,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         protected void RenderScrollPrompt(Vector2 pos, float scale, bool upActive, bool downActive) {
-            Context.RenderHelper.Rect(pos.X, pos.Y, 50f * scale + ScrollPromptSize.X * scale, 2 * ScrollPromptSize.Y * scale, Color.Black * 0.8f);
+            Context.RenderHelper.Rect(pos.X, pos.Y, 50f * scale + ScrollPromptSize.X * scale, 2 * ScrollPromptSize.Y * scale, Color.Black * CustomAlpha);
             pos.X += 25f * scale;
 
             float oldPosX = pos.X;

@@ -48,10 +48,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 Tracking?.Position ?? Position,
                 level,
                 out Vector2 pos,
-                marginX: screenMargins + marginSize.X,
-                marginY: screenMargins + marginSize.Y,
-                marginX2: screenMargins + marginSize.X,
-                marginY2: screenMargins,
+                marginLeft:   screenMargins + marginSize.X,
+                marginTop:    screenMargins + marginSize.Y,
+                marginRight:  screenMargins + marginSize.X,
+                marginBottom: screenMargins,
                 offsetY: -16f
             );
 

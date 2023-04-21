@@ -145,10 +145,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 Position,
                 level,
                 out Vector2 pos,
-                marginX: screenMargins / 2 + marginSize.X,
-                marginY: screenMargins + marginSize.Y,
-                marginX2: screenMargins / 2 + marginSize.X,
-                marginY2: screenMargins,
+                marginLeft:   screenMargins / 2 + marginSize.X,
+                marginTop:    screenMargins     + marginSize.Y,
+                marginRight:  screenMargins / 2 + marginSize.X,
+                marginBottom: screenMargins,
                 offsetX: 0f,
                 offsetY: Float ? - (float) Math.Sin(Time * 2f) * 4f : 0f
             );

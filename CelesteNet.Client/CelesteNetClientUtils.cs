@@ -45,7 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             return GetClampedScreenPos(worldPos, level, out outPos, marginX, marginY, marginX, marginY, offsetX, offsetY);
         }
 
-        public static bool GetClampedScreenPos(Vector2 worldPos, Level level, out Vector2 outPos, float marginX, float marginY, float marginX2, float marginY2, float offsetX = 0f, float offsetY = 0f) {
+        public static bool GetClampedScreenPos(Vector2 worldPos, Level level, out Vector2 outPos, float marginLeft, float marginTop, float marginRight, float marginBottom, float offsetX = 0f, float offsetY = 0f) {
             if (level == null) {
                 outPos = Vector2.Zero;
                 return false;
@@ -56,8 +56,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             Vector2 posScreen = level.WorldToScreen(worldPos);
             outPos = posScreen.Clamp(
-                marginX, marginY,
-                1920f - marginX2, 1080f - marginY2
+                marginLeft, marginTop,
+                1920f - marginRight, 1080f - marginBottom
             );
             return outPos.Equals(posScreen);
         }

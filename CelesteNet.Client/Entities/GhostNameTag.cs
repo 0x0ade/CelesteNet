@@ -50,6 +50,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 out Vector2 pos,
                 marginX: screenMargins + marginSize.X,
                 marginY: screenMargins + marginSize.Y,
+                marginX2: screenMargins + marginSize.X,
+                marginY2: screenMargins,
                 offsetY: -16f
             );
 

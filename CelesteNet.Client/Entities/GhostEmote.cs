@@ -128,12 +128,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (Tracking == null)
                 return;
 
-            float screenMargins = 0f;
+            float screenMargins = CelesteNetClientModule.Settings.InGameHUD.ScreenMargins * 8f + 32f;
             Vector2 marginSize;
 
             if (icon != null) {
                 marginSize = new(icon.Width, icon.Height);
-                screenMargins = CelesteNetClientModule.Settings.InGameHUD.ScreenMargins * 16f;
             } else {
                 marginSize = CelesteNetClientFont.Measure(text);
             }
@@ -146,11 +145,12 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 Position,
                 level,
                 out Vector2 pos,
-                marginX: screenMargins + marginSize.X,
+                marginX: screenMargins / 2 + marginSize.X,
                 marginY: screenMargins + marginSize.Y,
+                marginX2: screenMargins / 2 + marginSize.X,
+                marginY2: screenMargins,
                 offsetX: 0f,
-                offsetY: Float ? - (float) Math.Sin(Time * 2f) * 4f : 0f,
-                false
+                offsetY: Float ? - (float) Math.Sin(Time * 2f) * 4f : 0f
             );
 
             if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenEmotes == CelesteNetClientSettings.OffScreenModes.Hidden)

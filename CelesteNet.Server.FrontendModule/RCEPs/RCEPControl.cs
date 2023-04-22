@@ -407,6 +407,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             if (!f.IsAuthorizedExec(c)) {
                 if (moduleID == f.Wrapper.ID || f.Settings.ExecOnlySettings.Contains(moduleID)) {
+                    c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                     f.Respond(c, "Unauthorized!");
                     return;
                 }
@@ -438,6 +439,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     });
                     return;
                 } catch (Exception e) {
+                    c.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                     f.RespondJSON(c, new {
                         Error = e.ToString()
                     });
@@ -466,6 +468,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     });
                     return;
                 } catch (Exception e) {
+                    c.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                     f.RespondJSON(c, new {
                         Error = e.ToString()
                     });
@@ -482,6 +485,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 text = File.ReadAllText(path);
                 f.Respond(c, text);
             } catch (Exception e) {
+                c.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                 f.RespondJSON(c, new {
                     Error = e.ToString()
                 });
@@ -493,6 +497,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         [RCEndpoint(true, "/exec", "", "", "Execute C#", "Run some C# code. Highly dangerous!")]
         public static void Exec(Frontend f, HttpRequestEventArgs c) {
             if (!f.IsAuthorizedExec(c)) {
+                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                 f.Respond(c, "Unauthorized!");
                 return;
             }
@@ -563,7 +568,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             } catch (Exception e) {
                 Logger.Log(LogLevel.DEV, "frontend-exec", e.ToString());
-                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                c.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                 f.Respond(c, $"Error:\n{e}");
 
             } finally {

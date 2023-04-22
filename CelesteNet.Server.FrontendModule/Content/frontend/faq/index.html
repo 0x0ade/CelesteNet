@@ -1,0 +1,368 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="shortcut icon" type="image/png" href="/favicon.png">
+
+    <title>CelesteNet FAQ</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#3b2d4a">
+
+    <meta property="og:title" content="CelesteNet FAQ" />
+    <meta name="description" content="Frequently Asked Questions about CelesteNet.">
+    <meta property="og:description" content="Frequently Asked Questions about CelesteNet.">
+    <meta name="author" content="0x0ade">
+    <meta property="og:locale" content="en_US">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:400,600&display=swap">
+
+    <link rel="stylesheet" href="/main/style.css">
+    <link rel="stylesheet" href="/overlay/style.css">
+</head>
+<body>
+    <div id="background">
+        <div id="cogwheel"></div>
+    </div>
+
+    <div id="body">
+        <div id="front" class="slim-front faq-front">
+            <div id="front-clips-wrap">
+                <video id="front-clips-video" src="https://papyrus.0x0a.de/celestenet/clips_opt.mp4" width="484" height="272" autoplay="autoplay" loop="true" muted="true"></video>
+            </div>
+            <div id="front-dim"></div>
+            <div id="front-title">CelesteNet FAQ</div>
+            <div id="front-text">Frequently Asked Questions about <a href="/">CelesteNet</a>.</div>
+        </div>
+
+        <div id="main" class="slim-main faq-main">
+
+            <div id="content">
+                <div>
+                    <sub class="back-link"><a href="/">&lt; Back to main page</a></sub>
+                    <div class="text-body">
+                        This site aims to answer questions most commonly asked on CelesteNet and to act as a general guide on how to use it.<br />
+                        If you have any other questions, the quickest way to get them answered is by joining the
+                        <a href="https://discord.gg/celeste" target="_blank" rel="noopener noreferrer">official Celeste Discord server</a> and asking in the <samp>#celestenet</samp> channel!
+                        <br />
+                    </div>
+                </div>
+                <div class="faq-block">
+                    <h3 id="howto-install">
+                        <a class="faq-anchor" href="#howto-install">#1</a>
+                        How do I get CelesteNet?
+                    </h3>
+                    <div class="text-body">
+                        Follow the installation instructions on the <a href="/">front page</a>.
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-join">
+                        <a class="faq-anchor" href="#howto-join">#2</a>
+                        How do I <em>join</em> CelesteNet?
+                    </h3>
+                    <div class="text-body">
+                        Once you've installed the mod and opened the game, go into <strong>Mod Options</strong> and find CelesteNet's settings section. Activate the <strong>Connected</strong> option. That's it!<br />
+                        If you run into any issues not addressed on this page, check the <a href="#howto-other">last entry</a> to find out how to contact us or get help.
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-rules">
+                        <a class="faq-anchor" href="#howto-rules">#3</a>
+                        Are there rules? Can I get banned?
+                    </h3>
+                    <div class="text-body">
+                        Yes, chat is moderated and should be PG-13 or "safe for work". There's a dedicated <a href="/rules">rules page</a>, please read it before joining. We want our community to be welcoming and inclusive
+                        for everyone!
+                        <br />
+                        Usually we will issue at least one warning kick before we ban, unless there's very obvious trolling going on. Kicks and bans always have a reason attached to them.
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-register">
+                        <a class="faq-anchor" href="#howto-register">#4</a>
+                        How do I register? How do I get my profile picture in-game?
+                    </h3>
+                    <div class="text-body">
+                        Currently, the only way to register is to link a <a href="https://discord.com/" target="_blank" rel="noopener noreferrer">Discord</a> account.
+                        You can always join as a Guest, unless Lockdown is in effect.
+                        See also entry <a href="#howto-lockdown">#5</a>.<br />
+                        Registration is done on the <a href="/#user">front page</a> in the section titled <strong>Your Profile</strong>.
+                        <ul>
+                            <li>It is recommended you do this on the same device you play CelesteNet on.</li>
+                            <li>Once you've registered, you should see your username and profile picture under <strong>Your Profile</strong>.</li>
+                            <li>Now you need to click <strong>Send to Client</strong> right below that or manually set your key in-game.</li>
+                            <li>Your key should look similar to this: <samp>#01ab23cde5671fab</samp>. It acts like a passphrase to identify you to the server, so keep it <em><strong>secret</strong>!</em></li>
+                        </ul>
+                        Some browsers' security features might block the website from communicating with the game. When that happens, set your key manually.<br />
+                        <br />
+                        After you've set your key in-game, you will have to <strong>reconnect</strong> to start using the new name/profile!<br />
+                        <br />
+                        <strong>Additional information:</strong><br />
+                        The registration uses the OAuth2 protocol, similar to how you can sign up to services using your Google or Facebook account.
+                        When registering, CelesteNet will get some information about you from Discord &mdash; namely your username, discriminator (<samp>#1234</samp>) and profile picture.<br />
+                        <br />
+                        This profile information <strong>does not sync</strong> automatically. To update your CelesteNet appearance, click on your username on the <a href="/#user">front page</a>,
+                        link your Discord account once more, and reconnect to CelesteNet in-game.
+                        The changes should be reflected immediately.
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-lockdown">
+                        <a class="faq-anchor" href="#howto-lockdown">#5</a>
+                        Why do I get the "Server doesn't allow anonymous guests" warning?
+                    </h3>
+                    <div class="text-body">
+                        This means the server has been put into Lockdown mode, meaning only registered players can join.<br />
+                        <sub>See entry <a href="#howto-register">#4</a> above on how to register.</sub>
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-guests">
+                        <a class="faq-anchor" href="#howto-guests">#6</a>
+                        Are there any differences between Guests and registered users?
+                    </h3>
+                    <div class="text-body">
+                        There are some differences, the most obvious one being the lack of profile pictures for Guests.<br />
+                        Some more technical limitations exist, because the server will not store certain data unless you're registered.<br />
+                        <br />
+                        This means Guests cannot <u>toggle</u>...
+                        <ul>
+                            <li>... incoming whispers via <samp>/whisper</samp></li>
+                            <li>... between automatic global/channel chat mode via <samp>/channelchat</samp> or <samp>/globalchat</samp></li>
+                            <li>... teleports from others via <samp>/tpon</samp> and <samp>/tpoff</samp></li>
+                        </ul>
+                        <sup>
+                            Please also note that short-hand command aliases like <samp>/w</samp>, <samp>/cc</samp> and <samp>/gc</samp> exist, and the same things apply.
+                            <!-- See the <a href="/chat#commands">CelesteNet chat guide</a> for more information about chat commands and their aliases.-->
+                        </sup><br />
+                        The limitations only apply to the toggle aspects of those commands. Guest <em>can</em> still send whispers, individual channel chat messages and teleport to people.
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-chat">
+                        <a class="faq-anchor" href="#howto-chat">#7</a>
+                        How do I chat? How does chat work?
+                    </h3>
+                    <div class="text-body">
+                        Pressing <kbd>T</kbd> on your keyboard by default opens chat when you're connected to CelesteNet.<br />
+                        All commands start with <samp>/</samp>. Send <samp>/help</samp> to learn about commands and how to use them.
+                        <!-- or check the <a href="/chat#commands">CelesteNet chat guide</a> for more information about chat commands.--><br />
+                        <br />
+                        By default you will be in the channel named <samp>main</samp>, like most other players.<br />
+                        <sub>See entry <a href="#howto-channels">#9</a> for more information about how channels work.</sub><br />
+                        <sub>See entry <a href="#howto-emotes">#15</a> for more information about emotes.</sub>
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-server">
+                        <a class="faq-anchor" href="#howto-server">#8</a>
+                        Where is the server, how many servers are there?
+                    </h3>
+                    <div class="text-body">
+                        There is only one official CelesteNet server, the same server this website is hosted on. It is located in Germany,
+                        hosted by <a href="https://0x0a.de/" target="_blank" rel="noopener noreferrer">0x0ade</a> with Hetzner.<br />
+                        If you want to play privately with a couple of friends, you most likely want to join a private channel rather than host your own server.<br />
+                        <sub>See entry <a href="#howto-channels">#9</a> for more information about channels.</sub>
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-channels">
+                        <a class="faq-anchor" href="#howto-channels">#9</a>
+                        How do I create and use channels?
+                    </h3>
+                    <div class="text-body">
+                        By default you will be in the channel <samp>main</samp>, like most other players.<br />
+                        Press the <kbd>Tab</kbd> key to open up the player list, letting you see the player count, your current channel at the top and other channels below.<br />
+                        <br />
+                        You can create or <strong>join</strong> a channel by sending the command <samp>/join mychannel</samp> in chat, replacing <samp>mychannel</samp> with the name of
+                        your channel &ndash; if it does not yet exist, the server will create it for you.<br />
+                        <sub><strong>NB:</strong> The command <samp>/channel</samp> is <em>exactly</em> the same as the <samp>/join</samp> command, it is an alias.</sub><br />
+                        <br />
+                        You can create or join a <strong>private</strong> channel by prefixing the channel name with a <samp>!</samp>, e.g. <samp>/join !mysecretchannel</samp> &mdash; keep
+                        in mind that the "secret" name could be guessed by others if it is too simple.
+                        Private channel names are hidden from anyone who isn't in it.<br />
+                        <br />
+                        <strong>Note:</strong> Currently channel names are case-sensitive. This means <samp>!MyChannel</samp> and <samp>!mychannel</samp> are two different channels!
+                        This may be changed in the future.
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-custom-maps">
+                        <a class="faq-anchor" href="#howto-custom-maps">#10</a>
+                        Can I play custom maps with my friends?
+                    </h3>
+                    <div class="text-body">
+                        Yes! All maps should work, whether they're the "vanilla" chapters or added by mods.<br />
+                        Simply being in the same level <em>(and in the same CelesteNet channel!)</em> as another player should let you see them and play with them.
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-interactions">
+                        <a class="faq-anchor" href="#howto-interactions">#11</a>
+                        I keep accidentally grabbing/throwing people! What are "Interactions"?
+                    </h3>
+                    <div class="text-body">
+                        <strong>Interactions</strong> are a feature that lets you bounce on other players' heads and grab and throw them similar to Theo crystals.
+                        Both players need to have <strong>Interactions</strong> enabled (in CelesteNet's Mod Options) for this to work.<br />
+                        However this feature can be a little buggy and lead to accidental grabs and throws, so we recommend setting "Interactions" to "Off" most of the time.
+                        <br />
+                        <sub>
+                            (Also, if you've been thrown into solid tiles or got otherwise stuck due to interactions and <strong>can't even open the Pause menu</strong>,
+                            use the game's Debug map accessed with <kbd>F6</kbd> or send <samp>/tp &lt;someone&gt;</samp> to teleport yourself out)
+                        </sub>
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-gamemodes">
+                        <a class="faq-anchor" href="#howto-gamemodes">#12</a>
+                        How do I race on CelesteNet? Are there multiplayer game modes?
+                    </h3>
+                    <div class="text-body">
+                        CelesteNet itself does not provide any built-in racing functionality.<br />
+                        The mod you're looking for is <a href="https://gamebanana.com/mods/398723" target="_blank" rel="noopener noreferrer"><strong>Head 2 Head</strong></a>! Check the mod's page for a full description of its features.<br />
+                        <br />
+                        Other popular multiplayer mods include:
+                        <ul>
+                            <li><a href="https://gamebanana.com/mods/335146" target="_blank" rel="noopener noreferrer"><strong>Madhunt</strong></a> &mdash; a form of "Badeline tag"/hide &amp; seek hybrid.</li>
+                            <li><a href="https://gamebanana.com/mods/417385" target="_blank" rel="noopener noreferrer"><strong>Heart Wars</strong></a> &mdash; a <em>Capture the Flag</em> style game mode.</li>
+                            <li><a href="https://gamebanana.com/mods/150725" target="_blank" rel="noopener noreferrer"><strong>Partnership</strong></a> &mdash; a co-op map for two players.</li>
+                            <li><em>...and more? If you made or know of a mod that should be listed here, let us know!</em></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-cheating">
+                        <a class="faq-anchor" href="#howto-cheating">#13</a>
+                        Can I use other mods, assist mode, cheat mode or variant mode?
+                    </h3>
+                    <p>
+                        Yes!<br />
+                        Generally all of these are permitted. What is not allowed, however, is using them to cheat in competitive contexts, such as racing or Madhunt matches.<br />
+                        Also, you shouldn't excessively use invincibility, infinite dashing or other gameplay changes to harass others or to prevent them from being able to play and enjoy the game.
+                        Any such misconduct may result in a warning kick by the CelesteNet moderation. Feel free to report any such issues to us and we will handle it.
+                    </p>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-skinmods">
+                        <a class="faq-anchor" href="#howto-skinmods">#14</a>
+                        How do I change my character’s hair and appearance? Can I use skin mods?
+                    </h3>
+                    <div class="text-body">
+                        Celestenet itself only synchronizes hair length and hair colors, as well as "vanilla" player sprite variations such as the <em>Other Self</em> variant, no-backpack Variant, etc.<br />
+                        If you're using a custom skin mod (e.g. <a href="https://gamebanana.com/mods/251814" target="_blank" rel="noopener noreferrer">Niko from OneShot</a>
+                        or <a href="https://gamebanana.com/mods/385893" target="_blank" rel="noopener noreferrer">Ralsei from Deltarune</a>) other players will still see you as regular Madeline even if they have the mod too.
+                        Additionally, every other player may appear the same way as yourself. So you will see everyone as Niko or Ralsei, regardless of which skin they're using.<br />
+                        <br />
+                        Popular hair and skin mods that fully support CelesteNet include:
+                        <ul>
+                            <li><a href="https://gamebanana.com/mods/14871" target="_blank" rel="noopener noreferrer"><strong>Hyperline</strong></a> &mdash; customize hair color and length per dash-count. Supports things like gradients and rainbow hair.</li>
+                            <li><a href="https://gamebanana.com/mods/251795" target="_blank" rel="noopener noreferrer"><strong>Prideline</strong></a> &mdash; turn your hair colors into LGBTQ+ pride flags!</li>
+                            <li><a href="https://gamebanana.com/mods/403700" target="_blank" rel="noopener noreferrer"><strong>Styline</strong></a> &mdash; mix and match various modifications and filters to adjust and recolor Madeline.</li>
+                            <li><a href="https://gamebanana.com/mods/251812" target="_blank" rel="noopener noreferrer"><strong>Super Mario Bros. Skin</strong></a> &mdash; play as Mario or Luigi from Super Mario Bros. 1!</li>
+                            <li><a href="https://gamebanana.com/mods/251802" target="_blank" rel="noopener noreferrer"><strong>KyaruMod</strong></a> &mdash; play as Kyaru or Kiruya from Princess Connect!</li>
+                            <li><em>...and more? If you made or know of a mod that should be listed here, let us know!</em></li>
+                        </ul>
+                        <strong>Note:</strong> The hair length sent to other players will be capped at 12 segments (Madeline's default hair is 4 or 5 in length depending on dash count).<br />
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-emotes">
+                        <a class="faq-anchor" href="#howto-emotes">#15</a>
+                        How can I use Emotes? What different types of Emotes are avaliable?
+                    </h3>
+                    <div class="text-body">
+                        Sometimes it can be a bit confusing when people ask about Emotes. There's essentially three things you could be asking about.
+                        <h4>1. Emotes in Chat:</h4>
+                        <em>Emotes</em> or <strong>emoji</strong> within chat work very similar to how they work on Discord.<br />
+                        You surround the name of the <em>emoji</em> with <samp>:</samp>, for example <samp>:glad:</samp> is a default <em>emoji</em> added by Everest.<br />
+                        When you type <samp>:</samp> you should already see a list of available <em>emoji</em> being suggested. Once you accept
+                        a suggestion (with <kbd>Tab</kbd>) or type it out fully, it should replace itself with its icon in the input already. You can still remove or edit it as normal text.<br />
+                        <br />
+                        Technically any Celeste Mod you install can add new <em>emoji</em> and only those who also have it will see them. Otherwise they will only see the text, e.g. the literal <samp>:frogeline:</samp>.
+                        One popular mod that adds most of the <em>emoji</em> from the official Celeste Discord is <a href="https://gamebanana.com/mods/53673" target="_blank" rel="noopener noreferrer">CelesteEmojis</a>.<br />
+                        Everest adds these default emoji: <samp>:glad:</samp> <samp>:thinking:</samp> <samp>:gladbw:</samp> <samp>:thinkingbw:</samp> <samp>:checkpoint:</samp> <samp>:everest:</samp>. Try them out!
+                        <h4>2. Emotes in-game:</h4>
+                        These emotes are things like <strong>animated character portraits</strong> that pop up above you or someone else's Madeline. They can also simply be text.<br />
+                        You activate these with the row of number keys <kbd>1</kbd> - <kbd>9</kbd> on keyboard or by opening the Emote Wheel by moving the right analog stick on a controller.
+                        Press the stick down to send a selected emote.<br />
+                        Additionally you can send these emotes with the <samp>/emote</samp> or <samp>/e</samp> command in chat. Check <samp>/help emote</samp> to learn about the command's syntax.<br />
+                        These emotes can only be used to show portraits/textures from the game itself, no custom images!
+                        You can customize the preset emotes for the number keys and emote wheel by editing <samp>modsettings-CelesteNet.Client.celeste</samp> in your Celeste <samp>Saves/</samp> folder.
+                        <h4>3. EmoteMod:</h4>
+                        Another popular version of "emotes" are added by <a href="https://gamebanana.com/tools/6846" target="_blank" rel="noopener noreferrer">EmoteMod</a>.
+                        With this mod you can trigger <strong>animations of your character</strong>, e.g. Madeline spinning, her idle animations, sitting down, and many others.<br />
+                        Animations played via this mod can be seen by everyone, whether they have the mod themselves or not, since the animations are just Madeline's regular sprite animations.
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-celestenetter">
+                        <a class="faq-anchor" href="#howto-celestenetter">#16</a>
+                        How do I find others to play with?
+                    </h3>
+                    <div class="text-body">
+                        The easiest way to find others is to simply ask in global chat!<br />
+                        Make suggestions like playing a certain A-, B- or C-Side, attempting to get a Heart or Golden Berry you still need, or playing maps from a modded Collab like Spring Collab 2020 or Strawberry Jam.<br />
+                        You can also join the <a href="https://discord.gg/celeste" target="_blank" rel="noopener noreferrer">official Celeste Discord server</a> and give yourself the <samp>@celestenetter</samp> role.
+                        Whenever you feel like playing with others, ping this role in <samp>#celestenet</samp> and suggest something to do. Others may do the same!<br />
+                        <br />
+                        <strong>Note:</strong> A lot of people have that Discord role. Because of that, there's a rule in place to only respond to pings if you can join! There's no need for a dozen people to say "No".
+                        If the pings are getting too much, you can always remove the role again.
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-ghostnet">
+                        <a class="faq-anchor" href="#howto-ghostnet">#17</a>
+                        What was GhostNet?
+
+                    </h3>
+                    <div class="text-body">
+                        A buggy mess. <a href="https://0x0ade.ga/ghostnet/" target="_blank" rel="noopener noreferrer">GhostNet has been superceded by CelesteNet</a>.
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3 id="howto-other">
+                        <a class="faq-anchor" href="#howto-other">#</a>
+                        I've got another question!
+                    </h3>
+                    <div class="text-body">
+                        Hop on the <a href="https://discord.gg/celeste" target="_blank" rel="noopener noreferrer">official Celeste Discord Server</a> and ask away in <samp>#celestenet</samp>!<br />
+                        If you think you've found a bug or are experiencing connection issues or crashes, you can also report them there, or create a thread in <samp>#modding_help</samp>.
+                        Make sure to ping <samp>@Celestenet Team</samp> to let us know!<br />
+                        Lastly, you can also create an <strong>issue</strong> on <a href="https://github.com/0x0ade/CelesteNet/issues">Github</a> and we will get back to you as soon as we can.
+                    </div>
+                </div>
+
+                <div id="baked">
+                    Baked with <img class="berry" src="/main/berry.gif" alt="a strawberry"> by <a href="https://github.com/0x0ade/CelesteNet">the CelesteNet devs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dummy"></div>
+
+    <script src="/main/clipswrap.js" type="module" async></script>
+</body>
+</html>

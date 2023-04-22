@@ -156,15 +156,34 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         private void OnChannelMove(CelesteNetPlayerSession session, Channel? from, Channel? to) {
-            BroadcastCMD(false, "chan_move", new { session.SessionID, session.UID, fromID = from?.ID, toID = to?.ID });
+            BroadcastCMD(false, "chan_move",
+                new {
+                    session.SessionID,
+                    fromID = from?.ID,
+                    toID = to?.ID
+                });
         }
 
         private void OnCreateChannel(Channel channel, int total) {
-            BroadcastCMD(channel.IsPrivate, "chan_create", new { Channel = new { channel.ID, channel.Name, channel.IsPrivate, Players = channel.Players.Select(p => p.SessionID) }, Count = total });
+            BroadcastCMD(channel.IsPrivate, "chan_create",
+                new {
+                    Channel = new {
+                        channel.ID,
+                        channel.Name,
+                        channel.IsPrivate,
+                        Players = channel.Players.Select(p => p.SessionID)
+                    },
+                    Count = total
+                });
         }
 
         private void OnRemoveChannel(string name, uint id, int total) {
-            BroadcastCMD(false, "chan_remove", new { Name = name, ID = id, Count = total });
+            BroadcastCMD(false, "chan_remove",
+                new {
+                    Name = name,
+                    ID = id,
+                    Count = total
+                });
         }
 
         private void OnChatReceive(ChatModule chat, DataChat msg) {

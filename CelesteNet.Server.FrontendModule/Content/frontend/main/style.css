@@ -274,6 +274,11 @@ html, body, #body {
     color: rgb(100, 35, 115);
 }
 
+.faq-block .text-body :is(h4, h5, h6) {
+    margin-block-start: 1.1em;
+    margin-block-end: .33em;
+}
+
 samp {
     border: 1px solid #a0004020;
     border-radius: 4px;

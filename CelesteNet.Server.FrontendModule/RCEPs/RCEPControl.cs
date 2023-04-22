@@ -499,6 +499,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (!f.IsAuthorizedExec(c)) {
                 c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                 f.Respond(c, "Unauthorized!");
+                return;
             }
 
             ExecALC? alc = null;

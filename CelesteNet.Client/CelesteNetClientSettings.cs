@@ -420,6 +420,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             public bool ShowScrollingControls { get; set; } = true;
 
+            public bool ChatCloseCancelsSuggestions { get; set; } = true;
+
             [SettingIgnore]
             [SettingRange(4, 16)]
             public int ChatLogLength { get; set; } = 8;

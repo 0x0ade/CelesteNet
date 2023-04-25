@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Xml.Linq;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -25,6 +24,24 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private static readonly char[] RandomizerEndTrimChars = "_0123456789".ToCharArray();
 
         public bool Active;
+        public bool PropActive
+        {
+            get => Active;
+            set
+            {
+                if (Active == value)
+                    return;
+                ScrolledDistance = 0f;
+                hasScrolled = false;
+                ButtonHoldTime = 0f;
+
+                Active = value;
+            }
+        }
+
+        private bool ButtonInitialHold;
+        private float ButtonHoldTime = 0f;
+
         public bool ShouldRebuild = false;
 
         private List<Blob> List = new();
@@ -69,7 +86,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public static readonly float ChatOffset = 5f;
 
-        public static readonly float TextScaleSizeThreshold = 0.7f;
+        public float TextScaleSizeThreshold => Settings.UICustomize.DynScaleThreshold / 100f;
+
+        public int TextScaleRetryMax => Settings.UICustomize.DynScaleRange/10;
+
+        // bar is in the top right of the player list, this is a percentage of the width it takes up / Height is absolute
+        public static readonly float HoldScrollDelayBarWidth = 0.4f;
+        public static readonly float HoldScrollDelayBarHeight = 6f;
 
         // Refers to the main timer, where the IL/File time is located.
         public static readonly float MainTimerOffset = 104f;
@@ -78,19 +101,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         // Speedrun Clock is set to File.
         public static readonly float SubTimerOffset = 24f;
 
-        public ListModes ListMode => Settings.PlayerListMode;
+        public float CustomAlpha => Settings.UICustomize.PlayerListOpacity / 20f;
+
+        public ListModes ListMode => Settings.PlayerListUI.PlayerListMode;
         private ListModes LastListMode;
 
-        public LocationModes LocationMode => Settings.ShowPlayerListLocations;
+        public LocationModes LocationMode => Settings.PlayerListUI.ShowPlayerListLocations;
         private LocationModes LastLocationMode;
 
-        public bool ShowPing => Settings.PlayerListShowPing;
+        public bool ShowPing => Settings.PlayerListUI.PlayerListShowPing;
         private bool LastShowPing;
 
-        public bool AllowSplit => Settings.PlayerListAllowSplit;
+        public bool AllowSplit => Settings.UICustomize.PlayerListAllowSplit;
         private bool LastAllowSplit;
 
-        public bool HideOwnChannelName => Settings.HideOwnChannelName;
+        public bool HideOwnChannelName => Settings.PlayerListUI.HideOwnChannelName;
         private bool LastHideOwnChannelName;
 
         private static float? spaceWidth;
@@ -135,9 +160,28 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private int SplitStartsAt;
 
+        protected float ScrolledDistance = 0f;
+
+        private int InputScrollState = 0;
+        public int InputScrollUpState => Settings.ButtonPlayerListScrollUp.Check ? 1 : 0;
+        public int InputScrollDownState => Settings.ButtonPlayerListScrollDown.Check ? 1 : 0;
+
+        private bool hasScrolled;
+
+        // adding a slight minimum delay even to (Settings.PlayerListUI.PlayerListScrollDelay == 0) so that you don't
+        // IMMEDIATELY scroll the player count off the top of the list
+        private float ActualScrollDelay => Math.Max(Settings.PlayerListUI.ScrollDelay / 2f, .1f);
+        private float ScrollDelayLeniency => 1f - Settings.PlayerListUI.ScrollDelayLeniency / 100f;
+
         public enum ListModes {
             Channels,
             Classic,
+        }
+
+        public enum ScrollModes {
+            HoldTab = 0,
+            Keybinds = 1,
+            KeybindsOnHold = 2
         }
 
         [Flags]
@@ -198,11 +242,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 };
 
                 DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
-                if (!string.IsNullOrEmpty(channel?.Name) && !(Settings.HideOwnChannelName && channel == own))
+                if (!string.IsNullOrEmpty(channel?.Name) && !(HideOwnChannelName && channel == own))
                     blob.Name += $" #{channel.Name}";
 
-                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                    GetState(blob, state);
+                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
+                    if (LocationMode != LocationModes.OFF)
+                        GetState(blob, state);
+
+                    blob.Idle = state.Idle;
+                }
 
                 if (ShowPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo conInfo))
                     blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
@@ -232,7 +280,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if ((
                     (sizeAll.X + 2 * (Margin + PaddingX) * scale) >  UI_WIDTH * TextScaleSizeThreshold ||
                     (sizeAll.Y + 2 * (Margin + PaddingY) * scale) > UI_HEIGHT * TextScaleSizeThreshold
-                    ) && textScaleTry < 5) {
+                    ) && textScaleTry < TextScaleRetryMax) {
                     textScaleTry++;
                     textScale -= scale * 0.1f;
                     goto RetryLineScale;
@@ -256,7 +304,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
             void AddChannel(ref List<Blob> list, DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor, LocationModes locationMode) {
-                bool hideChannel = channel == own && channel.Name != "main" && Settings.HideOwnChannelName;
+                bool hideChannel = channel == own && channel.Name != "main" && HideOwnChannelName;
                 list.Add(new() {
                     Name = hideChannel ? "<hidden>" : channel.Name,
                     Color = hideChannel ? ColorChannelHeaderPrivate : color,
@@ -356,7 +404,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if ((
                     (Math.Max(sizeAll.X, sizeToSplit.X) + 2 * (Margin + PaddingX) * scale) > UI_WIDTH * TextScaleSizeThreshold ||
                     (sizeAll.Y + sizeToSplit.Y / 2f + 2 * (Margin + PaddingY) * scale) > UI_HEIGHT * TextScaleSizeThreshold
-                    ) && textScaleTry < 5) {
+                    ) && textScaleTry < TextScaleRetryMax) {
                     textScaleTry++;
                     textScale -= scale * 0.1f;
                     goto RetryLineScale;
@@ -457,8 +505,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 blob.Name = player.DisplayName;
 
                 blob.LocationMode = locationMode;
-                if (locationMode != LocationModes.OFF && Client.Data.TryGetBoundRef(player, out DataPlayerState state))
-                    GetState(blob, state);
+                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
+                    if (locationMode != LocationModes.OFF)
+                        GetState(blob, state);
+
+                    blob.Idle = state.Idle;
+                }
 
                 if (ShowPing && withPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo conInfo))
                     blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
@@ -502,8 +554,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ShortenRandomizerLocation(ref blob.Location);
             }
 
-            blob.Idle = state.Idle;
-
             // Allow mods to override f.e. the displayed location name or icon very easily.
             OnGetState?.Invoke(blob, state);
         }
@@ -514,7 +564,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
              * Celeste/1-ForsakenCity/A/b-02/31 randomizer/Mirror Temple_0_1234567 A
              */
 
-            if (!location.IsRandomizer || !Settings.PlayerListShortenRandomizer)
+            if (!location.IsRandomizer || !Settings.UICustomize.PlayerListShortenRandomizer)
                 return;
 
             // shorten the randomizer/ part down
@@ -554,7 +604,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
 
                 // just update blob state, since SID hasn't changed
-                GetState(playerBlob, state);
+                if (LocationMode != LocationModes.OFF)
+                    GetState(playerBlob, state);
+
+                playerBlob.Idle = state.Idle;
                 playerBlob.Generate();
             });
 
@@ -622,9 +675,69 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 RebuildList();
             }
 
-            if (!(Engine.Scene?.Paused ?? false) && Settings.ButtonPlayerList.Button.Pressed)
-                Active = !Active;
+            // shouldn't open player list on pause menu, although now with rebindable hotkey, should this still be this way?
+            if (!(Engine.Scene?.Paused ?? false))
+            {
+                if (Settings.ButtonPlayerList.Pressed && !Active)
+                {
+                    // open right away upon Pressed instead of Released, and remember that it's potentially held down now
+                    PropActive = true;
+                    ButtonInitialHold = true;
+                }
+                else if (Settings.ButtonPlayerList.Released)
+                {
+                    // if the bind is released, make sure it wasn't being held for scrolling purposes
+                    // if scrolling while holding it down, we most likely don't want to close again
+                    if (!ButtonInitialHold && ((!hasScrolled && ButtonHoldTime < ActualScrollDelay * ScrollDelayLeniency) || Settings.PlayerListUI.ScrollDelay == 0))
+                        PropActive = !PropActive;
 
+                    hasScrolled = ButtonInitialHold = false;
+                }
+            }
+
+            if (Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.HoldTab)
+            {
+                // scrolling mode: just keep scrolling down while button is held, after delay period
+                if (Settings.PlayerListUI.ScrollDelay == 0 ? ButtonInitialHold : Settings.ButtonPlayerList.Check)
+                {
+                    // adding a slight minimum delay even to (Settings.PlayerListUI.PlayerListScrollDelay == 0) so that you don't
+                    // IMMEDIATELY scroll the player count off the top of the list
+                    if (ButtonHoldTime > ActualScrollDelay)
+                    {
+                        InputScrollState = 1;
+                        hasScrolled = true;
+                    }
+                    else
+                    {
+                        ButtonHoldTime += Engine.RawDeltaTime;
+                    }
+                }
+                else if (ButtonHoldTime > 0f)
+                    ButtonHoldTime -= Engine.RawDeltaTime * 2f;
+            }
+            else if ((Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.KeybindsOnHold && Settings.ButtonPlayerList.Check)
+                    || Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.Keybinds)
+            {
+                // in keybinds modes, deal with up/down buttons
+                if (Settings.ButtonPlayerListScrollUp.Check || Settings.ButtonPlayerListScrollDown.Check)
+                {
+                    InputScrollState = InputScrollDownState - InputScrollUpState;
+                    hasScrolled = Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.KeybindsOnHold;
+                    Settings.ButtonPlayerListScrollDown.ConsumePress();
+                    Settings.ButtonPlayerListScrollUp.ConsumePress();
+                }
+            }
+
+            // adjusting the actual scroll value: Don't scroll player list while chat is open
+            if (InputScrollState != 0 && !(Context?.Chat?.Active ?? false))
+            {
+                ScrolledDistance = ScrolledDistance + InputScrollState * 6f;
+                if (ScrolledDistance < 0f)
+                    ScrolledDistance = 0f;
+                else if (ScrolledDistance > SizeUpper.Y)
+                    ScrolledDistance = SizeUpper.Y;
+            }
+            InputScrollState = 0;
         }
 
         public override void Draw(GameTime gameTime) {
@@ -663,14 +776,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             float sizeAllXPadded = sizeAll.X + 2 * PaddingX * scale;
             float sizeAllXBlobs = sizeAll.X;
             float chatStartY = (Context?.Chat?.RenderPositionY ?? UI_HEIGHT) - ChatOffset;
-            Color colorFull = Color.Black * 0.8f;
-            Color colorFaded = Color.Black * 0.5f;
+            Color colorFull = Color.Black * 0.95f * CustomAlpha;
+            Color colorFaded = Color.Black * 0.6f * CustomAlpha;
 
             switch (ListMode) {
                 case ListModes.Classic:
                     SplitRectAbsolute(
                         x, y,
-                        sizeAllXPadded, sizeAll.Y + 2 * PaddingY * scale,
+                        sizeAllXPadded, sizeAll.Y + 2 * PaddingY * scale - ScrolledDistance,
                         chatStartY,
                         colorFull, colorFaded
                     );
@@ -685,13 +798,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     // own channel box always there
                     SplitRectAbsolute(
                         x, y,
-                        sizeAllXPadded, SizeUpper.Y + 2 * PaddingY * scale,
+                        sizeAllXPadded, SizeUpper.Y + 2 * PaddingY * scale - ScrolledDistance,
                         chatStartY,
                         colorFull, colorFaded
                     );
 
                     // skip below the drawn rect and include a gap
-                    float columnY = y + SizeUpper.Y + 2 * PaddingY * scale + SplitGap * scale;
+                    float columnY = y + SizeUpper.Y + 2 * PaddingY * scale + SplitGap * scale - ScrolledDistance;
 
                     if (SplitViewPartially && SplitSuccessfully) {
                         // two rects for the two columns
@@ -737,10 +850,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             float alpha;
             foreach (Blob blob in List) {
-                alpha = (y + blob.Dyn.Y < chatStartY) ? 1f : 0.5f;
-                blob.Render(y, scale, ref sizeAll, alpha);
+                if (blob.Dyn.Y < ScrolledDistance)
+                {
+                    continue;
+                }
+                alpha = (y + blob.Dyn.Y - ScrolledDistance < chatStartY) ? 1f : 0.5f;
+                blob.Render(y - ScrolledDistance, scale, ref sizeAll, alpha * CustomAlpha);
             }
 
+            if (ButtonHoldTime > 0.01f && Settings.PlayerListUI.ScrollDelay > 0) {
+                float heldDelayRatio = ButtonHoldTime / (Settings.PlayerListUI.ScrollDelay/2f);
+                float barFullWidth = sizeAll.X * HoldScrollDelayBarWidth;
+                float barWidth = barFullWidth * heldDelayRatio;
+                float barAlphaAdjust = (ButtonHoldTime < ActualScrollDelay * ScrollDelayLeniency) ? 0.5f : 1f;
+                MDraw.Rect(x + sizeAll.X - barFullWidth - 1, y, barFullWidth + 1, HoldScrollDelayBarHeight,     Color.White   * .15f * barAlphaAdjust * CustomAlpha);
+                MDraw.Rect(x + sizeAll.X - barWidth,     y + 1, barWidth,         HoldScrollDelayBarHeight - 2, Color.HotPink * .60f * barAlphaAdjust * CustomAlpha);
+            }
         }
 
         private void SplitRectAbsolute(float x, float y, float width, float height, float splitAtY, Color colorA, Color colorB) {

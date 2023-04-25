@@ -1,16 +1,12 @@
 ﻿using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetChatComponent : CelesteNetGameComponent {
@@ -18,9 +14,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected float _Time;
 
         public float Scale => Settings.UIScaleChat;
+        public float CustomAlpha => Settings.UICustomize.ChatOpacity / 20f;
+
         protected int ScrolledFromIndex = 0;
         protected float ScrolledDistance = 0f;
         protected int skippedMsgCount = 0;
+
+        public int InputScrollUpState => Settings.ButtonChatScrollUp.Check ? 1 : 0;
+        public int InputScrollDownState => Settings.ButtonChatScrollDown.Check ? 1 : 0;
 
         public string PromptMessage = "";
         public Color PromptMessageColor = Color.White;
@@ -44,6 +45,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public List<CommandInfo> CommandList = new();
         public Dictionary<string, string> CommandAliasLookup = new();
 
+        public ChatMode Mode => Active ? ChatMode.All : Settings.ChatUI.ShowNewMessages;
         protected Regex AvatarRegex = new Regex(@":celestenet_avatar_\d+_:", RegexOptions.Compiled);
 
         // used for hiding your own channel name
@@ -58,19 +60,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         // check for /join|channel list
         protected Regex ChannelListHeaderRegex = new Regex(@"^You're in (?!main)\S+", RegexOptions.Compiled);
 
-        public ChatMode Mode => Active ? ChatMode.All : Settings.ShowNewMessages;
-
         public enum ChatMode {
             All,
             Special,
             Off
         }
 
-        protected Vector2 ScrollPromptSize = new Vector2(
-                                GFX.Gui["controls/directions/0x-1"].Width + GFX.Gui["controls/keyboard/PageUp"].Width,
-                                Math.Max(GFX.Gui["controls/directions/0x-1"].Height, GFX.Gui["controls/keyboard/PageUp"].Height)
-                            );
-        public float ScrollFade => (int) Settings.ChatScrollFading / 2f;
+        public MTexture? InputScrollUpIcon;
+        public MTexture? InputScrollDownIcon;
+        public MTexture ArrowUpIcon => GFX.Gui["controls/directions/0x-1"];
+        public MTexture ArrowDownIcon => GFX.Gui["controls/directions/0x1"];
+        private bool activeController = false;
+
+
+        protected Vector2 ScrollPromptSize = new Vector2();
+        public float ScrollFade => (int) Settings.ChatUI.ChatScrollFading / 2f;
 
         public enum ChatScrollFade {
             None = 0,
@@ -198,6 +202,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     _RepeatIndex = 0;
                     _Time = 0;
                     TextInput.OnInput += OnTextInput;
+
+                    UpdateScrollPromptControls();
                 } else {
                     Typing = "";
                     CursorIndex = 0;
@@ -304,7 +310,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 msg.Tag = AvatarRegex.Replace(msg.Tag, "");
             }
 
-            if (Settings.HideOwnChannelName) {
+            if (Settings.PlayerListUI.HideOwnChannelName) {
                 // don't get too eager, only replace text in ACK'd commands and server responses
                 if (msg.Color != PublicChatColor && msg.Color != WhisperChatColor) {
                     Match cmdMatch = ChannelCMDRegex.Match(msg.Text);
@@ -400,7 +406,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             } else if (Active) {
                 Engine.Commands.Open = false;
 
-                ScrolledDistance = Math.Max(0f, ScrolledDistance + (MInput.Keyboard.CurrentState[Keys.PageUp] - MInput.Keyboard.CurrentState[Keys.PageDown]) * 2f * Settings.ChatScrollSpeed);
+                ScrolledDistance = Math.Max(0f, ScrolledDistance + (InputScrollUpState - InputScrollDownState) * 2f * Settings.ChatUI.ChatScrollSpeed);
                 if (ScrolledDistance < 10f) {
                     ScrolledFromIndex = Log.Count;
                 }
@@ -410,7 +416,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 LeftRightRepeatDelay.Update(Engine.RawDeltaTime);
                 DeleteRepeatDelay.Update(Engine.RawDeltaTime);
 
-                if (MInput.Keyboard.Pressed(Keys.Enter)) {
+                if (Settings.ButtonChatSend.Pressed) {
                     if (!string.IsNullOrWhiteSpace(Typing))
                         Repeat.Insert(1, Typing);
                     Send(Typing);
@@ -479,7 +485,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (MInput.Keyboard.Pressed(Keys.End)) {
                     CursorIndex = Typing.Length;
 
-                } else if (Input.ESC.Released) {
+                } else if (Settings.ButtonChatClose.Released) {
                     Active = false;
                 }
 
@@ -684,7 +690,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case CompletionType.Channel:
                     CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
                     IEnumerable<string> channelNames = playerlist?.Channels?.List?.Select(channel => channel.Name);
-                    if (Settings.HideOwnChannelName)
+                    if (Settings.PlayerListUI.HideOwnChannelName)
                         // don't accidentally leak the channel name via tab completions
                         channelNames = channelNames.Where(name => name != CurrentChannelName);
                     Completion = channelNames.Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
@@ -754,6 +760,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         protected override void Render(GameTime gameTime, bool toBuffer) {
             float scale = Scale;
+
+            if (!Active)
+                scale *= (1f + Settings.ChatUI.NewMessagesSizeAdjust/10f);
+
             Vector2 fontScale = Vector2.One * scale;
 
             RenderPositionY = null;
@@ -773,7 +783,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         y -= 105f * scale;
 
                     float scrollOffset = ScrolledDistance;
-                    float logLength = Settings.ChatLogLength;
+                    float logLength = Settings.ChatUI.ChatLogLength;
                     int renderedCount = 0;
                     skippedMsgCount = 0;
                     int count = ScrolledFromIndex > 0 ? ScrolledFromIndex : log.Count;
@@ -781,9 +791,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         DataChat msg = log[count - 1 - i];
 
                         float alpha = Completion.Count == 0 ? 1f : 0.8f;
-                        float delta = (float) (now - msg.ReceivedDate).TotalSeconds;
-                        if (!Active && delta > 3f)
-                            alpha = 1f - Ease.CubeIn(delta - 3f);
+                        float deltaToFade = (float) (now - msg.ReceivedDate).TotalSeconds - Settings.ChatUI.NewMessagesFadeTime / 2f;
+                        if (!Active && deltaToFade > 0f)
+                            alpha = 1f - Ease.CubeIn(deltaToFade);
                         if (alpha <= 0f)
                             continue;
 
@@ -834,7 +844,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         
                         logLength -= msgExtraLines * 0.75f * (cutoff > 0f ? 1f - cutoff / height : 1f);
 
-                        Context.RenderHelper.Rect(25f * scale, y, size.X + 50f * scale, height - cutoff, Color.Black * 0.8f * alpha);
+                        Context.RenderHelper.Rect(25f * scale, y, size.X + 50f * scale, height - cutoff, Color.Black * CustomAlpha * alpha);
                         CelesteNetClientFontMono.Draw(
                             time,
                             new(50f * scale, y + 20f * scale),
@@ -861,12 +871,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     RenderPositionY = y;
 
-                    if (Active) {
+                    if (Active && Settings.ChatUI.ShowScrollingControls) {
+                        if (activeController != Input.GuiInputController())
+                            UpdateScrollPromptControls();
+
                         float x = 25f * scale;
                         y -= 2 * ScrollPromptSize.Y * scale;
 
-                        bool scrollingUp = MInput.Keyboard.CurrentState[Keys.PageUp] == KeyState.Down && renderedCount > 1;
-                        bool scrollingDown = MInput.Keyboard.CurrentState[Keys.PageDown] == KeyState.Down && ScrolledDistance > 0f;
+                        bool scrollingUp = InputScrollUpState == 1 && renderedCount > 1;
+                        bool scrollingDown = InputScrollDownState == 1 && ScrolledDistance > 0f;
 
                         RenderScrollPrompt(new(x, y), scale, scrollingUp, scrollingDown);
                     }
@@ -910,6 +923,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 );
                 RenderCompletions(new(25f * scale + promptWidth, UI_HEIGHT - 125f * scale), scale, fontScale);
             }
+        }
+
+        protected void UpdateScrollPromptControls()
+        {
+            InputScrollUpIcon = Input.GuiButton(Settings.ButtonChatScrollUp.Button, mode: Input.PrefixMode.Latest);
+            InputScrollDownIcon = Input.GuiButton(Settings.ButtonChatScrollDown.Button, mode: Input.PrefixMode.Latest);
+            ScrollPromptSize.X = ArrowUpIcon.Width + InputScrollUpIcon?.Width ?? 0f;
+            ScrollPromptSize.Y = Math.Max(ArrowUpIcon.Height, InputScrollUpIcon?.Height ?? 0f);
+            activeController = Input.GuiInputController();
         }
 
         protected void RenderInputPrompt(Vector2 pos, Vector2 size, float scale, Vector2 fontScale, out float promptWidth) {
@@ -964,21 +986,24 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         protected void RenderScrollPrompt(Vector2 pos, float scale, bool upActive, bool downActive) {
-            Context.RenderHelper.Rect(pos.X, pos.Y, 50f * scale + ScrollPromptSize.X * scale, 2 * ScrollPromptSize.Y * scale, Color.Black * 0.8f);
+            Context.RenderHelper.Rect(pos.X, pos.Y, 50f * scale + ScrollPromptSize.X * scale, 2 * ScrollPromptSize.Y * scale, Color.Black * CustomAlpha);
             pos.X += 25f * scale;
 
             float oldPosX = pos.X;
 
             // top
-            GFX.Gui["controls/keyboard/PageUp"].Draw(
-                pos,
-                Vector2.Zero,
-                upActive ? Color.Goldenrod : Color.White,
-                scale
-            );
-            pos.X += GFX.Gui["controls/keyboard/PageUp"].Width * scale;
+            if (InputScrollUpIcon != null)
+            {
+                InputScrollUpIcon.Draw(
+                    pos,
+                    Vector2.Zero,
+                    upActive ? Color.Goldenrod : Color.White,
+                    scale
+                );
+                pos.X += InputScrollUpIcon.Width * scale;
+            }
 
-            GFX.Gui["controls/directions/0x-1"].Draw(
+            ArrowUpIcon.Draw(
                 pos,
                 Vector2.Zero,
                 Color.White * (upActive ? 1f : .7f),
@@ -989,15 +1014,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             pos.Y += ScrollPromptSize.Y * scale;
 
             // bottom
-            GFX.Gui["controls/keyboard/PageDown"].Draw(
-                pos,
-                Vector2.Zero,
-                downActive ? Color.Goldenrod : Color.White,
-                scale
-            );
-            pos.X += GFX.Gui["controls/keyboard/PageDown"].Width * scale;
+            if (InputScrollDownIcon != null)
+            {
+                InputScrollDownIcon.Draw(
+                    pos,
+                    Vector2.Zero,
+                    downActive ? Color.Goldenrod : Color.White,
+                    scale
+                );
+                pos.X += InputScrollDownIcon.Width * scale;
+            }
 
-            GFX.Gui["controls/directions/0x1"].Draw(
+            ArrowDownIcon.Draw(
                 pos,
                 Vector2.Zero,
                 Color.White * (downActive ? 1f : .7f),

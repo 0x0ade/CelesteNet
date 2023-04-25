@@ -1,16 +1,14 @@
-﻿using Microsoft.Xna.Framework.Input;
-using Monocle;
+﻿using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using FMOD.Studio;
 using MonoMod.Utils;
 using System.Collections;
 using Celeste.Mod.CelesteNet.Client.Components;
+using System.IO;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
@@ -42,7 +40,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         // This should ideally be part of the "emote module" if emotes were a fully separate thing.
         public VirtualJoystick JoystickEmoteWheel;
-        public VirtualButton ButtonEmoteSend;
 
         public CelesteNetClientModule() {
             Instance = this;
@@ -89,10 +86,62 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override void LoadSettings() {
             base.LoadSettings();
+            Logger.Log(LogLevel.INF, "LoadSettings", $"Loaded settings with versioning number '{Settings.Version}'.");
+
+            // use newly introduced versioning properties to detect if old settings were loaded
+            if (Settings.Version < CelesteNetClientSettings.SettingsVersionCurrent)
+            {
+                Logger.Log(LogLevel.WRN, "LoadSettings", $"SettingsVersion was {Settings.Version} < {CelesteNetClientSettings.SettingsVersionCurrent}, will load old format and migrate settings...");
+
+                if (LoadOldSettings()) {
+                    if (Settings.UISize < CelesteNetClientSettings.UISizeDefault) {
+                        Logger.Log(LogLevel.INF, "LoadSettings", $"Settings.UISize was {Settings.UISize} < {CelesteNetClientSettings.UISizeDefault}, performing range adjustments...");
+
+                        if (Settings.UISize < CelesteNetClientSettings.UISizeMin || Settings.UISize > CelesteNetClientSettings.UISizeMax) {
+                            Settings.UISize = CelesteNetClientSettings.UISizeDefault;
+                            Logger.Log(LogLevel.INF, "LoadSettings", $"Settings.UISize was outside min/max values, set to default of {CelesteNetClientSettings.UISizeDefault}");
+                        } else {
+                            Logger.Log(LogLevel.VVV, "LoadSettings", $"Found UI Sizes: {Settings.UISize} / {Settings.UISizeChat} / {Settings.UISizePlayerList}");
+                            // gotta do it this way because the setter for UISize will also "overwrite" the other two values...
+                            int oldSizeChat = Settings.UISizeChat;
+                            int oldSizePlayerList = Settings.UISizePlayerList;
+
+                            // just use Settings.UISize if these are outside of range
+                            if (oldSizeChat < CelesteNetClientSettings.UISizeMin || oldSizeChat > CelesteNetClientSettings.UISizeMax)
+                                oldSizeChat = Settings.UISize;
+                            if (oldSizePlayerList < CelesteNetClientSettings.UISizeMin || oldSizePlayerList > CelesteNetClientSettings.UISizeMax)
+                                oldSizePlayerList = Settings.UISize;
+
+                            // the adjustments are somewhat arbitrary but the range has been increased from 1 - 4 to 1 - 20 and we don't want to make everyone's UI tiny with the update :)
+                            Settings.UISize = Settings.UISize * 2 + 4;
+                            Settings.UISizeChat = oldSizeChat * 2 + 4;
+                            Settings.UISizePlayerList = oldSizePlayerList * 2 + 4;
+                        }
+                    }
+
+                    if (string.IsNullOrWhiteSpace(Settings.Name))
+                        Settings.Name = "Guest";
+
+                    if (Settings.Name.StartsWith("#")) {
+                        Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Key;
+                        Settings.Key = Settings.Name;
+                        Settings.Name = "Guest";
+                    } else {
+                        Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Guest;
+                        Settings.Key = "";
+                    }
+                } else {
+                    Logger.Log(LogLevel.INF, "LoadSettings", $"Reverting to default settings...");
+                    _Settings = new CelesteNetClientSettings();
+                }
+
+                Settings.Version = CelesteNetClientSettings.SettingsVersionCurrent;
+                Logger.Log(LogLevel.INF, "LoadSettings", $"Settings Migration done, set Version to {Settings.Version}");
+            }
 
             // .ga domains have become inaccessible for some people.
-            if (Settings.Server == "celeste.0x0ade.ga")
-                Settings.Server = "celeste.0x0a.de";
+            if (string.IsNullOrWhiteSpace(Settings.Server) || Settings.Server == "celeste.0x0ade.ga" || Settings.Server == "celestenet.0x0ade.ga")
+                Settings.Server = CelesteNetClientSettings.DefaultServer;
 
             if (Settings.Emotes == null || Settings.Emotes.Length == 0) {
                 Settings.Emotes = new string[] {
@@ -106,6 +155,72 @@ namespace Celeste.Mod.CelesteNet.Client {
                     "p:granny/laugh",
                 };
             }
+
+            if (Settings.ExtraServers == null)
+                Settings.ExtraServers = new string[] { };
+        }
+
+        public bool LoadOldSettings() {
+
+            CelesteNetClientSettingsBeforeVersion2 settingsOld = (CelesteNetClientSettingsBeforeVersion2)typeof(CelesteNetClientSettingsBeforeVersion2).GetConstructor(Everest._EmptyTypeArray).Invoke(Everest._EmptyObjectArray);
+            string path = UserIO.GetSaveFilePath("modsettings-" + Metadata.Name);
+
+            if (!File.Exists(path)) {
+                Logger.Log(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path);
+                return false;
+            }
+
+            try {
+                using Stream stream = File.OpenRead(path);
+                using StreamReader input = new StreamReader(stream);
+                YamlHelper.DeserializerUsing(settingsOld).Deserialize(input, typeof(CelesteNetClientSettingsBeforeVersion2));
+            } catch (Exception) {
+                Logger.LogDetailed(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path + " as CelesteNetClientSettingsBeforeVersion2");
+                return false;
+            }
+
+            if (settingsOld == null) {
+                Logger.LogDetailed(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path + " as CelesteNetClientSettingsBeforeVersion2 (Output object is null)");
+                return false;
+            } else {
+                Settings.AutoReconnect = settingsOld.AutoReconnect;
+                Settings.ReceivePlayerAvatars = settingsOld.ReceivePlayerAvatars;
+
+                Settings.Name = settingsOld.Name;
+                Settings.Server = settingsOld.Server;
+
+                Settings.Debug.ConnectionType = settingsOld.ConnectionType;
+                Settings.Debug.DevLogLevel = settingsOld.DevLogLevel;
+
+                Settings.InGame.Interactions = settingsOld.Interactions;
+                Settings.InGame.Sounds = settingsOld.Sounds;
+                Settings.InGame.SoundVolume = settingsOld.SoundVolume;
+                Settings.InGame.Entities = settingsOld.Entities;
+                Settings.InGameHUD.NameOpacity = settingsOld.NameOpacity * 5;
+                // this is because of the change to Ghost.OpacityAdjustAlpha(), basically baking in the transformation that used to happen
+                Settings.InGame.OtherPlayerOpacity = (int) Math.Round((settingsOld.PlayerOpacity + 2f)/6f * 0.875f * 20);
+                Settings.InGameHUD.ShowOwnName = settingsOld.ShowOwnName;
+
+                Settings.PlayerListUI.PlayerListMode = settingsOld.PlayerListMode;
+                Settings.UICustomize.PlayerListShortenRandomizer = true;
+                Settings.UICustomize.PlayerListAllowSplit = true;
+                Settings.PlayerListUI.PlayerListShowPing = settingsOld.PlayerListShowPing;
+                Settings.PlayerListUI.ShowPlayerListLocations = settingsOld.ShowPlayerListLocations;
+
+                Settings.ChatUI.ShowNewMessages = settingsOld.ShowNewMessages;
+                Settings.ChatUI.ChatLogLength = settingsOld.ChatLogLength;
+                Settings.ChatUI.ChatScrollSpeed = settingsOld.ChatScrollSpeed;
+                Settings.ChatUI.ChatScrollFading = settingsOld.ChatScrollFading;
+
+                Settings.UIBlur = settingsOld.UIBlur;
+                Settings.EmoteWheel = settingsOld.EmoteWheel;
+
+                Settings.ButtonPlayerList = settingsOld.ButtonPlayerList;
+                Settings.ButtonChat = settingsOld.ButtonChat;
+
+                Settings.Emotes = settingsOld.Emotes;
+            }
+            return true;
         }
 
         public override void OnInputInitialize() {
@@ -114,17 +229,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             JoystickEmoteWheel = new(true,
                 new VirtualJoystick.PadRightStick(Input.Gamepad, 0.2f)
             );
-            ButtonEmoteSend = new(
-                new VirtualButton.KeyboardKey(Keys.Q),
-                new VirtualButton.PadButton(Input.Gamepad, Buttons.RightStick)
-            );
         }
 
         public override void OnInputDeregister() {
             base.OnInputDeregister();
 
             JoystickEmoteWheel?.Deregister();
-            ButtonEmoteSend?.Deregister();
         }
 
         protected override void CreateModMenuSectionHeader(TextMenu menu, bool inGame, EventInstance snapshot) {
@@ -235,6 +345,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                             _StartThread = null;
                             Stop();
                             context.Status.Set(cee.Status ?? "Connection failed", 3f, false);
+                            if (cee.Status.ToLower().Trim() == "invalid key")
+                                Settings.KeyError = CelesteNetClientSettings.KeyErrors.InvalidKey;
                             handled = true;
                             break;
                         }

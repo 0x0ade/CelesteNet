@@ -1,8 +1,4 @@
 ﻿using MC = Mono.Cecil;
-using CIL = Mono.Cecil.Cil;
-
-using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -10,13 +6,7 @@ using Monocle;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Collections;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -49,6 +39,27 @@ namespace Celeste.Mod.CelesteNet.Client {
                 pos.X = 1920f - pos.X;
 
             return pos;
+        }
+
+        public static bool GetClampedScreenPos(Vector2 worldPos, Level level, out Vector2 outPos, float marginX, float marginY, float offsetX = 0f, float offsetY = 0f) {
+            return GetClampedScreenPos(worldPos, level, out outPos, marginX, marginY, marginX, marginY, offsetX, offsetY);
+        }
+
+        public static bool GetClampedScreenPos(Vector2 worldPos, Level level, out Vector2 outPos, float marginLeft, float marginTop, float marginRight, float marginBottom, float offsetX = 0f, float offsetY = 0f) {
+            if (level == null) {
+                outPos = Vector2.Zero;
+                return false;
+            }
+
+            worldPos.X += offsetX;
+            worldPos.Y += offsetY;
+
+            Vector2 posScreen = level.WorldToScreen(worldPos);
+            outPos = posScreen.Clamp(
+                marginLeft, marginTop,
+                1920f - marginRight, 1080f - marginBottom
+            );
+            return outPos.Equals(posScreen);
         }
 
         private readonly static FieldInfo f_Player_wasDashB =

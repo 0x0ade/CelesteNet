@@ -98,8 +98,6 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public TextMenu.Slider ExtraServersEntry { get; protected set; }
 
-        // TODO: Reset button to get back to DefaultServer and such
-
 #if !DEBUG
         [SettingSubHeader("modoptions_celestenetclient_subheading_general")]
 #endif

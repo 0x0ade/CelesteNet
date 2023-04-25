@@ -119,7 +119,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                         }
                     }
 
-                    Settings.Name ??= "";
+                    if (string.IsNullOrWhiteSpace(Settings.Name))
+                        Settings.Name = "Guest";
+
                     if (Settings.Name.StartsWith("#")) {
                         Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Key;
                         Settings.Key = Settings.Name;
@@ -181,6 +183,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Logger.LogDetailed(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path + " as CelesteNetClientSettingsBeforeVersion2 (Output object is null)");
                 return false;
             } else {
+                Settings.AutoReconnect = settingsOld.AutoReconnect;
+                Settings.ReceivePlayerAvatars = settingsOld.ReceivePlayerAvatars;
+
+                Settings.Name = settingsOld.Name;
+                Settings.Server = settingsOld.Server;
+
                 Settings.Debug.ConnectionType = settingsOld.ConnectionType;
                 Settings.Debug.DevLogLevel = settingsOld.DevLogLevel;
 
@@ -197,11 +205,20 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Settings.UICustomize.PlayerListShortenRandomizer = true;
                 Settings.UICustomize.PlayerListAllowSplit = true;
                 Settings.PlayerListUI.PlayerListShowPing = settingsOld.PlayerListShowPing;
+                Settings.PlayerListUI.ShowPlayerListLocations = settingsOld.ShowPlayerListLocations;
 
                 Settings.ChatUI.ShowNewMessages = settingsOld.ShowNewMessages;
                 Settings.ChatUI.ChatLogLength = settingsOld.ChatLogLength;
                 Settings.ChatUI.ChatScrollSpeed = settingsOld.ChatScrollSpeed;
                 Settings.ChatUI.ChatScrollFading = settingsOld.ChatScrollFading;
+
+                Settings.UIBlur = settingsOld.UIBlur;
+                Settings.EmoteWheel = settingsOld.EmoteWheel;
+
+                Settings.ButtonPlayerList = settingsOld.ButtonPlayerList;
+                Settings.ButtonChat = settingsOld.ButtonChat;
+
+                Settings.Emotes = settingsOld.Emotes;
             }
             return true;
         }

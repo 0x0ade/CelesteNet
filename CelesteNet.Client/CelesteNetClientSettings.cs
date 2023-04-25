@@ -972,6 +972,15 @@ namespace Celeste.Mod.CelesteNet.Client {
     // will be loaded in CelesteNetClientModule.LoadOldSettings() to get old values and potentially adjust them to new format
     public class CelesteNetClientSettingsBeforeVersion2 : EverestModuleSettings
     {
+        // technically at this time, some of these should load just fine even with the new class above, as they're unchanged there
+        // but I figured it's a bit cleaner not to make any such assumptions and load them here in the old deserialization
+        public bool AutoReconnect { get; set; } = true;
+
+        public bool ReceivePlayerAvatars { get; set; } = true;
+
+        public string Name { get; set; } = "Guest";
+
+        public string Server { get; set; } = "celeste.0x0a.de";
 
         public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
 
@@ -1007,6 +1016,18 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingRange(1, 5)]
         public int ChatScrollSpeed { get; set; } = 2;
         public CelesteNetChatComponent.ChatScrollFade ChatScrollFading { get; set; } = CelesteNetChatComponent.ChatScrollFade.Fast;
+
+        public CelesteNetRenderHelperComponent.BlurQuality UIBlur { get; set; } = CelesteNetRenderHelperComponent.BlurQuality.MEDIUM;
+
+        public bool EmoteWheel { get; set; } = true;
+
+        [DefaultButtonBinding(Buttons.Back, Keys.Tab)]
+        public ButtonBinding ButtonPlayerList { get; set; }
+
+        [DefaultButtonBinding(0, Keys.T)]
+        public ButtonBinding ButtonChat { get; set; }
+
+        public string[] Emotes { get; set; }
 
     }
 }

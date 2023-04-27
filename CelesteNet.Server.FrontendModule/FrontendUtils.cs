@@ -30,13 +30,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 Name = msg.Player?.FullName ?? string.Empty,
                 Targets = msg.Targets?.Select(p => p?.ID ?? uint.MaxValue) ?? null,
                 Color = msg.Color.ToHex(),
-                DateTime = msg.Date.ToUnixTime(),
+                DateTime = msg.Date.ToUnixTimeMillis(),
                 msg.Tag,
                 msg.Text
             };
 
         private static readonly DateTime UnixTimeStart = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        public static double ToUnixTime(this DateTime time)
+        public static double ToUnixTimeMillis(this DateTime time)
             => time.Subtract(UnixTimeStart).TotalMilliseconds;
 
     }

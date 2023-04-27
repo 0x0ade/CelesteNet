@@ -1,16 +1,10 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClient : IDisposable {
@@ -95,7 +89,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
                 Logger.Log(LogLevel.CRI, "main", $"Startup");
 
-                switch (Settings.ConnectionType) {
+                switch (Settings.Debug.ConnectionType) {
                     case ConnectionType.Auto:
                     case ConnectionType.TCPUDP:
                     case ConnectionType.TCP:
@@ -143,7 +137,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                             sock.ReceiveTimeout = sock.SendTimeout = 2000;
                                             sock.Connect(address, Settings.Port);
                                             // Do the teapot handshake here, as a successful "connection" doesn't mean that the server can handle IPv6.
-                                            teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.Name, Options);
+                                            teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.NameKey, Options);
                                             Logger.Log(LogLevel.INF, "main", $"Connecting to {address} ({address.AddressFamily}) succeeded");
                                             break;
                                         } catch (Exception e) {
@@ -194,7 +188,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             // Create a connection and start the heartbeat timer
                             CelesteNetClientTCPUDPConnection con = new(this, conToken, settings, sock);
                             con.OnDisconnect += _ => Dispose();
-                            if (Settings.ConnectionType == ConnectionType.TCP)
+                            if (Settings.Debug.ConnectionType == ConnectionType.TCP)
                                 con.UseUDP = false;
 
                             // Initialize the heartbeat timer
@@ -232,7 +226,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         break;
 
                     default:
-                        throw new NotSupportedException($"Unsupported connection type {Settings.ConnectionType}");
+                        throw new NotSupportedException($"Unsupported connection type {Settings.Debug.ConnectionType}");
                 }
             }
 

@@ -1,10 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using Monocle;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     public class GhostNameTag : Entity {
@@ -34,9 +29,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public override void Render() {
             base.Render();
 
-            float a = Alpha * (CelesteNetClientModule.Settings.NameOpacity / 4f);
-
-            if (a <= 0f || string.IsNullOrWhiteSpace(Name))
+            if (string.IsNullOrWhiteSpace(Name))
                 return;
 
             Level level = SceneAs<Level>();
@@ -45,16 +38,35 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             float scale = level.GetScreenScale();
 
-            Vector2 pos = Tracking?.Position ?? Position;
-            pos.Y -= 16f;
+            Vector2 marginSize = CelesteNetClientFont.Measure(Name) * scale;
+            marginSize.X *= 0.25f;
+            marginSize.Y *= 0.5f;
 
-            pos = level.WorldToScreen(pos);
+            float screenMargins = CelesteNetClientModule.Settings.InGameHUD.ScreenMargins * 8f;
 
-            Vector2 size = CelesteNetClientFont.Measure(Name) * scale;
-            pos = pos.Clamp(
-                0f + size.X * 0.25f + 32f, 0f + size.Y * 0.5f + 32f,
-                1920f - size.X * 0.25f - 32f, 1080f - 32f
+            bool isOnScreen = CelesteNetClientUtils.GetClampedScreenPos(
+                Tracking?.Position ?? Position,
+                level,
+                out Vector2 pos,
+                marginLeft:   screenMargins + marginSize.X,
+                marginTop:    screenMargins + marginSize.Y,
+                marginRight:  screenMargins + marginSize.X,
+                marginBottom: screenMargins,
+                offsetY: -16f
             );
+
+            int opacity = CelesteNetClientModule.Settings.InGameHUD.NameOpacity;
+
+            if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenNames == CelesteNetClientSettings.OffScreenModes.Hidden)
+                return;
+
+            if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenNames == CelesteNetClientSettings.OffScreenModes.Other)
+                opacity = CelesteNetClientModule.Settings.InGameHUD.OffScreenNameOpacity;
+
+            float a = Alpha * (opacity / 20f);
+
+            if (a <= 0f)
+                return;
 
             CelesteNetClientFont.DrawOutline(
                 Name,

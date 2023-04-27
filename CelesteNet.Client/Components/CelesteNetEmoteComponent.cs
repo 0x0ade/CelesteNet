@@ -107,7 +107,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (!level.Paused && Settings.EmoteWheel && !Player.Dead && Engine.TimeRate > 0.05f) {
                 Wheel.Shown = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f;
                 int selected = Wheel.Selected;
-                if (Wheel.Shown && selected != -1 && CelesteNetClientModule.Instance.ButtonEmoteSend.Pressed) {
+                if (Wheel.Shown && selected != -1 && Settings.ButtonEmoteWheelSend.Pressed) {
                     Send(selected);
                 }
             } else {
@@ -116,25 +116,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             if (!Context.Chat.Active) {
-                if (MInput.Keyboard.Pressed(Keys.D1))
+                if (Settings.ButtonEmote1.Pressed)
                     Send(0);
-                else if (MInput.Keyboard.Pressed(Keys.D2))
+                else if (Settings.ButtonEmote2.Pressed)
                     Send(1);
-                else if (MInput.Keyboard.Pressed(Keys.D3))
+                else if (Settings.ButtonEmote3.Pressed)
                     Send(2);
-                else if (MInput.Keyboard.Pressed(Keys.D4))
+                else if (Settings.ButtonEmote4.Pressed)
                     Send(3);
-                else if (MInput.Keyboard.Pressed(Keys.D5))
+                else if (Settings.ButtonEmote5.Pressed)
                     Send(4);
-                else if (MInput.Keyboard.Pressed(Keys.D6))
+                else if (Settings.ButtonEmote6.Pressed)
                     Send(5);
-                else if (MInput.Keyboard.Pressed(Keys.D7))
+                else if (Settings.ButtonEmote7.Pressed)
                     Send(6);
-                else if (MInput.Keyboard.Pressed(Keys.D8))
+                else if (Settings.ButtonEmote8.Pressed)
                     Send(7);
-                else if (MInput.Keyboard.Pressed(Keys.D9))
+                else if (Settings.ButtonEmote9.Pressed)
                     Send(8);
-                else if (MInput.Keyboard.Pressed(Keys.D0))
+                else if (Settings.ButtonEmote10.Pressed)
                     Send(9);
             }
 

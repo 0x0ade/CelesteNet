@@ -5,9 +5,7 @@ using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     [Tracked]
@@ -114,7 +112,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnPlayer(Player player) {
-            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.Interactions || Context?.Main.GrabbedBy == this)
+            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.InGame.Interactions || Context?.Main.GrabbedBy == this)
                 return;
 
             if (player.StateMachine.State == Player.StNormal &&
@@ -136,7 +134,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnCarry(Vector2 position) {
-            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.Interactions || IdleTag != null)
+            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.InGame.Interactions || IdleTag != null)
                 return;
 
             Position = position;
@@ -158,7 +156,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void OnRelease(Vector2 force) {
             Collidable = true;
 
-            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.Interactions || IdleTag != null)
+            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.InGame.Interactions || IdleTag != null)
                 return;
 
             CelesteNetClient client = Context?.Client;
@@ -188,7 +186,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
             }
 
-            bool holdable = Interactive && GrabCooldown <= 0f && CelesteNetClientModule.Settings.Interactions && IdleTag == null;
+            bool holdable = Interactive && GrabCooldown <= 0f && CelesteNetClientModule.Settings.InGame.Interactions && IdleTag == null;
 
             GrabCooldown -= Engine.RawDeltaTime;
             if (GrabCooldown < 0f)
@@ -212,7 +210,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (NameTag.Scene != Scene)
                 Scene.Add(NameTag);
 
-            Visible = !Dead && CelesteNetClientModule.Settings.PlayerOpacity != 0;
+            Visible = !Dead && CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity != 0;
 
             base.Update();
 
@@ -230,15 +228,15 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 level.Add(Holding);
 
             // TODO: Get rid of this, sync particles separately!
-            if (CelesteNetClientModule.Settings.PlayerOpacity != 0 && DashWasB != null && DashDir != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
+            if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity != 0 && DashWasB != null && DashDir != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
                 level.ParticlesFG.Emit(DashWasB.Value ? Player.P_DashB : Player.P_DashA, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Value.Angle());
         }
 
         private void OpacityAdjustAlpha() {
-            if (CelesteNetClientModule.Settings.PlayerOpacity == 0) {
+            if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity == 0) {
                 Alpha = 0f;
             } else {
-                Alpha = 0.875f * ((CelesteNetClientModule.Settings.PlayerOpacity + 2) / 6f);
+                Alpha = CelesteNetClientModule.Settings.OtherPlayerAlpha;
             }
             if (Hair != null)
                 Hair.Alpha = Alpha;
@@ -329,6 +327,16 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void UpdateGeneric(Vector2 pos, Vector2 scale, Color color, Facings facing, Vector2 speed) {
             if (Holdable.Holder == null)
                 Position = pos;
+            if (scale.X > 0.0f) {
+                scale.X = Calc.Clamp(scale.X, 0.5f, 1.5f);
+            } else {
+                scale.X = Calc.Clamp(scale.X, -0.5f, -1.5f);
+            }
+            if (scale.Y > 0.0f) {
+                scale.Y = Calc.Clamp(scale.Y, 0.5f, 1.5f);
+            } else {
+                scale.Y = Calc.Clamp(scale.Y, -0.5f, -1.5f);
+            }
             Sprite.Scale = scale;
             Sprite.Scale.X *= (float) facing;
             Sprite.Color = color * Alpha;
@@ -402,7 +410,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void HandleDeath() {
             if (Scene is not Level level ||
                 level.Paused || level.Overlay != null ||
-                CelesteNetClientModule.Settings.PlayerOpacity == 0)
+                CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity == 0)
                 return;
             level.Add(new GhostDeadBody(this, Vector2.Zero, Alpha));
         }

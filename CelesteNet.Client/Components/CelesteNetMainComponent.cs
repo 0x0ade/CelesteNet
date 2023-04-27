@@ -4,8 +4,6 @@ using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.Core;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
@@ -13,14 +11,10 @@ using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
-using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetMainComponent : CelesteNetGameComponent {
@@ -220,7 +214,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     ghost == null)
                     return;
 
-                if (Settings.Interactions != state.Interactive && ghost == GrabbedBy)
+                if (Settings.InGame.Interactions != state.Interactive && ghost == GrabbedBy)
                     SendReleaseMe();
 
                 Session session = Session;
@@ -288,14 +282,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion && !state.Idle);
                 ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
                 ghost.UpdateDead(frame.Dead && state.Level == session.Level);
-                ghost.UpdateFollowers((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
-                ghost.UpdateHolding((Settings.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? null : frame.Holding);
+                ghost.UpdateFollowers((Settings.InGame.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
+                ghost.UpdateHolding((Settings.InGame.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? null : frame.Holding);
                 ghost.Interactive = state.Interactive;
             });
         }
 
         public void Handle(CelesteNetConnection con, DataAudioPlay audio) {
-            if ((Settings.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0 || Engine.Scene is not Level level || level.Paused)
+            if ((Settings.InGame.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0 || Engine.Scene is not Level level || level.Paused)
                 return;
 
             Ghost ghost = null;
@@ -454,10 +448,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataPlayerGrabPlayer grab) {
             Player player = Player;
-            if (player != null && !Settings.Interactions && (grab.Player.ID == Client.PlayerInfo.ID || grab.Grabbing.ID == Client.PlayerInfo.ID))
+            if (player != null && !Settings.InGame.Interactions && (grab.Player.ID == Client.PlayerInfo.ID || grab.Grabbing.ID == Client.PlayerInfo.ID))
                 goto Release;
 
-            if (Engine.Scene is not Level level || level.Paused || player == null || !Settings.Interactions)
+            if (Engine.Scene is not Level level || level.Paused || player == null || !Settings.InGame.Interactions)
                 return;
 
             if (grab.Player.ID != Client.PlayerInfo.ID && grab.Grabbing.ID == Client.PlayerInfo.ID) {
@@ -636,7 +630,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public EventInstance PlayAudio(Ghost ghost, string sound, Vector2? at, string param = null, float value = 0f) {
-            if ((Settings.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0)
+            if ((Settings.InGame.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0)
                 return null;
 
             EventDescription desc = Audio.GetEventDescription(sound);
@@ -661,7 +655,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (is3D && at != null)
                 Audio.Position(ev, at.Value);
 
-            ev.setVolume(Settings.SoundVolume / 10f);
+            ev.setVolume(Settings.InGame.SoundVolume / 10f);
 
             if (!string.IsNullOrEmpty(param))
                 ev.setParameterValue(param, value);
@@ -755,8 +749,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 StateUpdated |= true;
             }
 
-            if (WasInteractive != Settings.Interactions) {
-                WasInteractive = Settings.Interactions;
+            if (WasInteractive != Settings.InGame.Interactions) {
+                WasInteractive = Settings.InGame.Interactions;
                 StateUpdated |= true;
             }
 
@@ -786,7 +780,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 PlayerNameTag?.RemoveSelf();
                 level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
             }
-            PlayerNameTag.Alpha = Settings.ShowOwnName ? 1f : 0f;
+            PlayerNameTag.Alpha = Settings.InGameHUD.ShowOwnName ? 1f : 0f;
         }
 
         public override void Tick() {
@@ -932,7 +926,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Mode = Session?.Area.Mode ?? MapEditorArea?.Mode ?? AreaMode.Normal,
                     Level = Session?.Level ?? (MapEditorArea != null ? LevelDebugMap : ""),
                     Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null)),
-                    Interactive = Settings.Interactions
+                    Interactive = Settings.InGame.Interactions
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");
@@ -994,7 +988,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             DataPlayerFrame.Entity[] followers;
             DataPlayerFrame.Entity holding = null;
 
-            if ((Settings.Entities & CelesteNetClientSettings.SyncMode.Send) == 0) {
+            if ((Settings.InGame.Entities & CelesteNetClientSettings.SyncMode.Send) == 0) {
                 followers = Dummy<DataPlayerFrame.Entity>.EmptyArray;
             } else {
                 Leader leader = player.Get<Leader>();
@@ -1083,7 +1077,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void SendAudioPlay(Vector2 pos, string sound, string param = null, float value = 0f) {
-            if ((Settings.Sounds & CelesteNetClientSettings.SyncMode.Send) == 0)
+            if ((Settings.InGame.Sounds & CelesteNetClientSettings.SyncMode.Send) == 0)
                 return;
 
             try {

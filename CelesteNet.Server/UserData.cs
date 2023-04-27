@@ -72,6 +72,11 @@ namespace Celeste.Mod.CelesteNet.Server {
     public class BasicUserInfo {
         public static readonly string TAG_AUTH = "moderator";
         public static readonly string TAG_AUTH_EXEC = "admin";
+        public static readonly IReadOnlyList<string> AUTH_TAGS = new List<string>() {
+            TAG_AUTH,
+            TAG_AUTH_EXEC
+        }.AsReadOnly();
+
         public string Name { get; set; } = "";
         // TODO: Move into separate Discord module!
         public string Discrim { get; set; } = "";

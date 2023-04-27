@@ -293,8 +293,19 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
             // The first DataPlayerInfo sent from the server is our own
-            if (PlayerInfo == null || PlayerInfo.ID == info.ID)
+            if (PlayerInfo == null || PlayerInfo.ID == info.ID) {
                 PlayerInfo = info;
+                // take on the 'generated' Guest name
+                int i = info.FullName.IndexOf('#');
+                string newName = i > 0 ? info.FullName.Substring(0, i)  : info.FullName;
+
+                // first two conditions are to make sure we connected as "Guest",
+                // but then got a different FullName without the "#x" differentiator
+                if (Settings.NameKey == "Guest" && info.Name == "Guest" && newName != "Guest") {
+                    Logger.Log(LogLevel.DEV, "playerinfo", $"Connected as Guest, but got '{newName}'. Saving fixed Guest name to config.");
+                    Settings.Name = newName;
+                }
+            }
         }
 
         public bool Filter(CelesteNetConnection con, DataPlayerInfo info) {

@@ -158,6 +158,14 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             if (Settings.ExtraServers == null)
                 Settings.ExtraServers = new string[] { };
+
+            if (Settings.ClientID == 0)
+                Settings.ClientID = CelesteNetClientSettings.GenerateClientID();
+
+            if (Settings.InstanceID == 0)
+                Settings.InstanceID = (uint) DateTime.UtcNow.TimeOfDay.TotalMilliseconds;
+
+            Logger.Log(LogLevel.WRN, "CelesteNetModule", $"ClientID: {Settings.ClientID} InstanceID: {Settings.InstanceID}");
         }
 
         public bool LoadOldSettings() {

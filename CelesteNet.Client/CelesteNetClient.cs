@@ -47,6 +47,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             Options = options;
 
             Options.AvatarsDisabled = !Settings.ReceivePlayerAvatars;
+            Options.ClientID = Settings.ClientID;
+            Options.InstanceID = Settings.InstanceID;
 
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient created");
 

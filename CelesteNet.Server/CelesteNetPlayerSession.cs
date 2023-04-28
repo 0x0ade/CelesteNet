@@ -125,6 +125,25 @@ namespace Celeste.Mod.CelesteNet.Server {
             string fullNameSpace = nameSpace;
             string fullName = Name.Replace(" ", "");
 
+            // TODO: decide if this should only check against same clientID or also instanceID
+            // i.e. currently you can only have one connection per installation, not per running instance
+            // ...if we check for name being same, you could set different guest names for many conns on same install/config
+            if (ClientOptions.ClientID != 0)
+                using (Server.ConLock.R()) {
+                    foreach (CelesteNetPlayerSession other in Server.Sessions) {
+                        if ( other != this && other.Name == Name
+                                           && other.UID == UID
+                                           && other.Con.UID == Con.UID
+                                           && other.ClientOptions.ClientID == ClientOptions.ClientID
+                           ) {
+                            // disconnect this client because this is a reconnecting client
+                            other.Dispose();
+                            other.Con.Send(new DataDisconnectReason { Text = "Connection resumed elsewhere." });
+                            other.Con.Send(new DataInternalDisconnect());
+                        }
+                    }
+                }
+
             if (fullName != "Guest")
             {
                 using (Server.ConLock.R()) {
@@ -144,7 +163,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             } else
             {
                 string chosenName;
-                Random rnd = new Random(UID.GetHashCode());
+                Random rnd = new Random(ClientOptions.ClientID != 0 ? (int) ClientOptions.ClientID : UID.GetHashCode());
                 using (Server.ConLock.R())
                 {
                     while (true)
@@ -249,6 +268,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (!Server.Channels.SessionStartupMove(this))
                 ResendPlayerStates();
 
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} ClientGUID: {ClientOptions.ClientID} InstanceID: {ClientOptions.InstanceID}");
             Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
             Con.Send(new DataReady());
         }

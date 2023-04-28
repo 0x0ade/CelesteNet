@@ -160,15 +160,14 @@ namespace Celeste.Mod.CelesteNet.Server {
                         fullName = $"{Name}#{i}";
                     }
                 }
-            } else
-            {
+            } else {
                 string chosenName;
                 Random rnd = new Random(ClientOptions.ClientID != 0 ? (int) ClientOptions.ClientID : UID.GetHashCode());
                 using (Server.ConLock.R())
                 {
                     while (true)
                     {
-                        chosenName = $"{fullName}|{rnd.Choose(GuestNamePrefixes)}{ rnd.Choose(GuestNameCharacter)}";
+                        chosenName = $"{fullName}{rnd.Choose(GuestNamePrefixes)}{rnd.Choose(GuestNameCharacter)}";
                         bool conflict = false;
                         foreach (CelesteNetPlayerSession other in Server.Sessions)
                             if (conflict = other.PlayerInfo?.FullName == chosenName)

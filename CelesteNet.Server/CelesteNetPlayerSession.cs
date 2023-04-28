@@ -128,7 +128,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             // TODO: decide if this should only check against same clientID or also instanceID
             // i.e. currently you can only have one connection per installation, not per running instance
             // ...if we check for name being same, you could set different guest names for many conns on same install/config
-            if (ClientOptions.ClientID != 0)
+            if (ClientOptions.ClientID != 0) {
                 using (Server.ConLock.R()) {
                     foreach (CelesteNetPlayerSession other in Server.Sessions) {
                         if ( other != this && other.Name == Name
@@ -143,40 +143,27 @@ namespace Celeste.Mod.CelesteNet.Server {
                         }
                     }
                 }
+            }
 
-            if (fullName != "Guest")
-            {
-                using (Server.ConLock.R()) {
-                    int i = 1;
-                    while (true) {
-                        bool conflict = false;
-                        foreach (CelesteNetPlayerSession other in Server.Sessions)
-                            if (conflict = other.PlayerInfo?.FullName == fullName)
-                                break;
-                        if (!conflict)
-                            break;
-                        i++;
-                        fullNameSpace = $"{nameSpace}#{i}";
-                        fullName = $"{Name}#{i}";
-                    }
-                }
-            } else {
-                string chosenName;
+            // generate more easily memorable persistent Guest name like "GuestDashingMadeline"
+            if (fullName == "Guest") {
                 Random rnd = new Random(ClientOptions.ClientID != 0 ? (int) ClientOptions.ClientID : UID.GetHashCode());
-                using (Server.ConLock.R())
-                {
-                    while (true)
-                    {
-                        chosenName = $"{fullName}{rnd.Choose(GuestNamePrefixes)}{rnd.Choose(GuestNameCharacter)}";
-                        bool conflict = false;
-                        foreach (CelesteNetPlayerSession other in Server.Sessions)
-                            if (conflict = other.PlayerInfo?.FullName == chosenName)
-                                break;
-                        if (!conflict)
+                fullName = fullNameSpace = $"Guest{rnd.Choose(GuestNamePrefixes)}{rnd.Choose(GuestNameCharacter)}";
+            }
+
+            using (Server.ConLock.R()) {
+                int i = 1;
+                while (true) {
+                    bool conflict = false;
+                    foreach (CelesteNetPlayerSession other in Server.Sessions)
+                        if (conflict = other.PlayerInfo?.FullName == fullName)
                             break;
-                    }
+                    if (!conflict)
+                        break;
+                    i++;
+                    fullNameSpace = $"{nameSpace}#{i}";
+                    fullName = $"{Name}#{i}";
                 }
-                fullName = fullNameSpace = chosenName;
             }
 
             // Handle avatars

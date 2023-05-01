@@ -165,7 +165,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (Settings.InstanceID == 0)
                 Settings.InstanceID = (uint) DateTime.UtcNow.TimeOfDay.TotalMilliseconds;
 
-            Logger.Log(LogLevel.WRN, "CelesteNetModule", $"ClientID: {Settings.ClientID} InstanceID: {Settings.InstanceID}");
+            Logger.Log(LogLevel.VVV, "CelesteNetModule", $"ClientID: {Settings.ClientID} InstanceID: {Settings.InstanceID}");
         }
 
         public bool LoadOldSettings() {

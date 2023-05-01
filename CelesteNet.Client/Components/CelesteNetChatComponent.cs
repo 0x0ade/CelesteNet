@@ -100,6 +100,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Typing = Repeat[value];
                 _RepeatIndex = value;
                 _CursorIndex = Typing.Length;
+                CompletionHidden = CompletionHiddenBy.RepeatIndex;
             }
         }
 
@@ -118,6 +119,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     value = Typing.Length;
 
                 _CursorIndex = value;
+                if (CompletionHidden != CompletionHiddenBy.ChatClosePressed)
+                    CompletionHidden = CompletionHiddenBy.None;
             }
         }
 
@@ -204,6 +207,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     TextInput.OnInput += OnTextInput;
 
                     UpdateScrollPromptControls();
+                    CompletionHidden = CompletionHiddenBy.None;
                 } else {
                     Typing = "";
                     CursorIndex = 0;
@@ -242,10 +246,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected Atlas CompletionEmoteAtlas;
         private PromptMessageTypes PromptMessageType;
 
+        private CompletionHiddenBy CompletionHidden = CompletionHiddenBy.None;
+
         public enum PromptMessageTypes {
             None = 0,
             Scroll,
             Info
+        }
+
+        public enum CompletionHiddenBy {
+            None = 0,
+            RepeatIndex,
+            ChatClosePressed
         }
 
         protected List<VirtualButton> ButtonsToSuppress = new() {
@@ -486,46 +498,52 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     CursorIndex = Typing.Length;
 
                 } else if (Settings.ButtonChatClose.Released) {
-                    Active = false;
+                    if (!Settings.ChatUI.ChatCloseCancelsSuggestions || Completion.Count == 0)
+                        Active = false;
+                    CompletionHidden = CompletionHiddenBy.ChatClosePressed;
                 }
 
                 if (Active) {
-                    int spaceBeforeCursor = -1;
-                    string completable = "";
-                    if (_CursorIndex > 0) {
-                        spaceBeforeCursor = Typing.LastIndexOf(" ", _CursorIndex - 1) + 1;
-                        if (spaceBeforeCursor < _CursorIndex) {
-                            completable = Typing.Substring(0, _CursorIndex).Substring(spaceBeforeCursor);
-                        }
-                    }
-
-                    if (completable.IsNullOrEmpty()) {
+                    if (CompletionHidden != CompletionHiddenBy.None) {
                         UpdateCompletion(CompletionType.None);
                     } else {
-                        // completions for commands or their first parameter
-                        if (Typing.StartsWith("/")) {
-                            int firstSpace = Typing.IndexOf(" ");
-                            CommandInfo cmd = firstSpace == -1 ? null : CommandList.FirstOrDefault(c => c.ID == Typing.Substring(1, firstSpace - 1));
-
-                            if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
-                                UpdateCompletion(CompletionType.Command, completable.Substring(1).ToLowerInvariant());
-                            } else if (cmd != null) {
-                                if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
-                                    if (cmd.FirstArg != CompletionType.None) {
-                                        UpdateCompletion(cmd.FirstArg, completable);
-                                    }
-                                } else if (cmd.FirstArg == CompletionType.Emote) {
-                                    UpdateCompletion(CompletionType.Emote, Typing.Substring(0, _CursorIndex).Substring(firstSpace + 1));
-                                }
+                        int spaceBeforeCursor = -1;
+                        string completable = "";
+                        if (_CursorIndex > 0) {
+                            spaceBeforeCursor = Typing.LastIndexOf(" ", _CursorIndex - 1) + 1;
+                            if (spaceBeforeCursor < _CursorIndex) {
+                                completable = Typing.Substring(0, _CursorIndex).Substring(spaceBeforeCursor);
                             }
                         }
 
-                        if (completable.StartsWith(":") && completable.IndexOf(':', 1) == -1
-                            && (CompletionArgType == CompletionType.None
-                            || CompletionArgType == CompletionType.Emoji
-                            || (CompletionArgType == CompletionType.Emote && Completion.Count == 0))) {
-                            // purely client-side completions for chat-emotes
-                            UpdateCompletion(CompletionType.Emoji, completable.Substring(1));
+                        if (completable.IsNullOrEmpty()) {
+                            UpdateCompletion(CompletionType.None);
+                        } else {
+                            // completions for commands or their first parameter
+                            if (Typing.StartsWith("/")) {
+                                int firstSpace = Typing.IndexOf(" ");
+                                CommandInfo cmd = firstSpace == -1 ? null : CommandList.FirstOrDefault(c => c.ID == Typing.Substring(1, firstSpace - 1));
+
+                                if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
+                                    UpdateCompletion(CompletionType.Command, completable.Substring(1).ToLowerInvariant());
+                                } else if (cmd != null) {
+                                    if (Typing.Substring(0, spaceBeforeCursor).Count(c => c == ' ') == 1) {
+                                        if (cmd.FirstArg != CompletionType.None) {
+                                            UpdateCompletion(cmd.FirstArg, completable);
+                                        }
+                                    } else if (cmd.FirstArg == CompletionType.Emote) {
+                                        UpdateCompletion(CompletionType.Emote, Typing.Substring(0, _CursorIndex).Substring(firstSpace + 1));
+                                    }
+                                }
+                            }
+
+                            if (completable.StartsWith(":") && completable.IndexOf(':', 1) == -1
+                                && (CompletionArgType == CompletionType.None
+                                || CompletionArgType == CompletionType.Emoji
+                                || (CompletionArgType == CompletionType.Emote && Completion.Count == 0))) {
+                                // purely client-side completions for chat-emotes
+                                UpdateCompletion(CompletionType.Emoji, completable.Substring(1));
+                            }
                         }
                     }
                 }
@@ -576,6 +594,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 }
                 _RepeatIndex = 0;
                 _Time = 0;
+                if (CompletionHidden != CompletionHiddenBy.ChatClosePressed)
+                    CompletionHidden = CompletionHiddenBy.None;
             } else if (c == (char) 9) {
                 // Tab - completion
                 string accepted = "";
@@ -629,6 +649,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     UpdateCompletion(CompletionType.None);
                 }
+                CompletionHidden = CompletionHiddenBy.None;
             } else if (!char.IsControl(c) && CelesteNetUtils.EnglishFontCharsSet.Contains(c)) {
                 if (CursorIndex == Typing.Length) {
                     // Any other character - append.
@@ -640,9 +661,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 _CursorIndex++;
                 _RepeatIndex = 0;
                 _Time = 0;
+                if (CompletionHidden != CompletionHiddenBy.ChatClosePressed)
+                    CompletionHidden = CompletionHiddenBy.None;
 
-                if (c == ' ')
+                if (c == ' ') {
                     UpdateCompletion(CompletionType.None);
+                    CompletionHidden = CompletionHiddenBy.None;
+                }
             }
         }
 

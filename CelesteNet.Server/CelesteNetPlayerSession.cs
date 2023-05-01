@@ -14,21 +14,21 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public static readonly string[] GuestNamePrefixes =
         {
-            "Dashing", "Jumping", "Golden", "Dashless",
-            "Spinning", "Red", "Blue", "Pink", "Crouched",
-            "Climbing", "Falling", "Dream", "Neutral",
-            "Subpixel", "Super", "Hyper", "Pride",
-            "Forsaken", "Awake", "Celestial", "Mirror",
-            "Summit", "Core", "Moon", "Space"
+            "Dashing",  "Jumping",  "Super", "Hyper", "Hopping",
+            "Spinning", "Crouched", "Blue",  "Pink",  "Red",
+            "Climbing", "Falling",  "Dream", "Awake", "Celestial",
+            "Subpixel", "Dashless", "Windy", "Pride", "Bouncy",
+            "Forsaken", "Neutral",  "Core",  "Space", "Mirror",
+            "Golden",   "Summit",   "Moon",  "Other", "Jammy"
         };
         public static readonly string[] GuestNameCharacter =
         {
-            "Madeline", "Theo", "Maddy", "Baddy", "Badeline",
-            "Granny", "Celia", "Zipper", "Spinner", "Heart",
-            "Oshiro", "Kevin", "Seeker", "Puffer", "Berry",
-            "Strawberry", "Cassette", "Snowball", "Cloud",
-            "Bubble", "Booster", "Feather", "Jelly", "Bird",
-            "Petal", "Spring"
+            "Madeline", "Badeline", "Maddy",  "Baddy",   "Strawberry",
+            "Granny",   "Celia",    "Zipper", "Spinner", "Heart",
+            "Oshiro",   "Kevin",    "Seeker", "Puffer",  "Berry",
+            "Snowball", "Cassette", "Theo",   "Fish",    "Cloud",
+            "Bubble",   "Booster",  "Jelly",  "Feather", "Bird",
+            "Petal",    "Spring",   "Jump",   "Dash",    "Farewell"
         };
 
         public readonly CelesteNetServer Server;

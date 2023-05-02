@@ -153,7 +153,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
 
             // generate more easily memorable persistent Guest name like "GuestDashingMadeline"
-            if (fullName == "Guest") {
+            if (Name == "Guest") {
                 Random rnd = new Random(ClientOptions.ClientID != 0 ? (int) ClientOptions.ClientID : UID.GetHashCode());
                 string prefix = "", character = "";
                 while (prefix == character) {

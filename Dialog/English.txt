@@ -32,7 +32,7 @@
 	MODOPTIONS_CELESTENETCLIENT_AUTORECONNECTHINT=		Only reconnects when getting disconnected unexpectedly, not on start-up.
 	MODOPTIONS_CELESTENETCLIENT_SERVER=				Server: ((server))
 	MODOPTIONS_CELESTENETCLIENT_LOGINMODE=			Login Mode
-	MODOPTIONS_CELESTENETCLIENT_LOGINMODEHINT=		Guest - set "Name"  below and connect as Guest{n}Key - see note on "Key" input below when enabled{n}NOTE: Name/Key can only be edited when you're disconnected/offline!
+	MODOPTIONS_CELESTENETCLIENT_LOGINMODEHINT=		Guest - set "Name" below and connect as Guest{n}Key - see note on "Key" input below when enabled{n}NOTE: Name/Key can only be edited when you're disconnected/offline!
 	MODOPTIONS_CELESTENETCLIENT_NAME=				Name: ((name))
 	MODOPTIONS_CELESTENETCLIENT_NAMEHINT=			A guest name - will not use linked account or have profile pic.
 	MODOPTIONS_CELESTENETCLIENT_KEY=				Key: ((key))

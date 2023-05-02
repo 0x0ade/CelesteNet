@@ -125,9 +125,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             string fullNameSpace = nameSpace;
             string fullName = Name.Replace(" ", "");
 
-            // TODO: decide if this should only check against same clientID or also instanceID
-            // i.e. currently you can only have one connection per installation, not per running instance
-            // ...if we check for name being same, you could set different guest names for many conns on same install/config
+            // This only checks against same clientID, not instanceID at the moment
+            // i.e. currently you can only have one connection per installation, not per individual running instance...
+            // but since we check for name being the same, you could set different guest names for many clients on same connection/installation
             if (ClientOptions.ClientID != 0) {
                 using (Server.ConLock.R()) {
                     foreach (CelesteNetPlayerSession other in Server.Sessions) {

@@ -305,7 +305,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                     // take on the 'generated' Guest name
                     if (newName != "Guest") {
-                        Logger.Log(LogLevel.DEV, "playerinfo", $"Connected as Guest, but got '{newName}'. Saving fixed Guest name to config.");
+                        Logger.Log(LogLevel.INF, "playerinfo", $"Connected as Guest, but got '{newName}'. Saving fixed Guest name to config.");
                         Settings.Name = newName;
                     }
                 }

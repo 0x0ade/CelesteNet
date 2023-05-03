@@ -1,21 +1,42 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Options;
-using MonoMod.Utils;
+using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetPlayerSession : IDisposable {
 
         public static readonly HashSet<char> IllegalNameChars = new() { ':', '#', '|' };
+
+        // I added a check so that it can't pick the same word for prefix and "character",
+        // and now I'm throwing some silly ones into both categories and noone shall stop me
+        public static readonly string[] GuestNamePrefixes =
+        {
+            "Dashing",  "Jumping",  "Super", "Hyper", "Hopping",
+            "Spinning", "Crouched", "Blue",  "Pink",  "Red",
+            "Climbing", "Falling",  "Dream", "Awake", "Celestial",
+            "Subpixel", "Dashless", "Windy", "Pride", "Bouncy",
+            "Forsaken", "Neutral",  "Core",  "Space", "Mirror",
+            "Golden",   "Summit",   "Moon",  "Other", "Jammy",
+            "Rainbow",  "Parrot",   "Nyan",  "Jelly", "Heart",
+            "Puffer",   "Celeste",  "Snip",  "Jade",  "Temple",
+            "Cloud",    "Petal",    "Celery"
+        };
+        public static readonly string[] GuestNameCharacter =
+        {
+            "Madeline", "Badeline", "Maddy",  "Baddy",   "Strawberry",
+            "Granny",   "Celia",    "Zipper", "Spinner", "Waterbear",
+            "Oshiro",   "Kevin",    "Seeker", "Puffer",  "Berry",
+            "Snowball", "Cassette", "Theo",   "Fish",    "Cloud",
+            "Bubble",   "Booster",  "Jelly",  "Feather", "Bird",
+            "Petal",    "Spring",   "Jump",   "Dash",    "Farewell",
+            "Maddie",   "Baddie",   "Jam",    "Nyan",    "Parrot",
+            "Heart",    "Rainbow",  "Orb",    "Mountain"
+        };
 
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
@@ -110,6 +131,37 @@ namespace Celeste.Mod.CelesteNet.Server {
             string nameSpace = Name;
             string fullNameSpace = nameSpace;
             string fullName = Name.Replace(" ", "");
+
+            // This only checks against same clientID, not instanceID at the moment
+            // i.e. currently you can only have one connection per installation, not per individual running instance...
+            // but since we check for name being the same, you could set different guest names for many clients on same connection/installation
+            if (ClientOptions.ClientID != 0) {
+                using (Server.ConLock.R()) {
+                    foreach (CelesteNetPlayerSession other in Server.Sessions) {
+                        if ( other != this && other.Name == Name
+                                           && other.UID == UID
+                                           && other.Con.UID == Con.UID
+                                           && other.ClientOptions.ClientID == ClientOptions.ClientID
+                           ) {
+                            // disconnect this client because this is a reconnecting client
+                            other.Dispose();
+                            other.Con.Send(new DataDisconnectReason { Text = "Connection resumed elsewhere." });
+                            other.Con.Send(new DataInternalDisconnect());
+                        }
+                    }
+                }
+            }
+
+            // generate more easily memorable persistent Guest name like "GuestDashingMadeline"
+            if (Name == "Guest") {
+                Random rnd = new Random(ClientOptions.ClientID != 0 ? (int) ClientOptions.ClientID : UID.GetHashCode());
+                string prefix = "", character = "";
+                while (prefix == character) {
+                    prefix = rnd.Choose(GuestNamePrefixes);
+                    character = rnd.Choose(GuestNameCharacter);
+                }
+                fullName = fullNameSpace = $"Guest{prefix}{character}";
+            }
 
             using (Server.ConLock.R()) {
                 int i = 1;
@@ -214,6 +266,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (!Server.Channels.SessionStartupMove(this))
                 ResendPlayerStates();
 
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} ClientGUID: {ClientOptions.ClientID} InstanceID: {ClientOptions.InstanceID}");
             Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
             Con.Send(new DataReady());
         }

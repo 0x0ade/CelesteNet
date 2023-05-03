@@ -400,7 +400,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Signal the queue that it's flushed if we didn't hit a cap
                     // Else requeue it to be flushed again later
-                    if (TCPSendQueueDelay < 0)
+                    if (TCPSendQueueDelay <= 0)
                         TCPQueue.SignalFlushed();
                     else
                         TCPQueue.DelayFlush(TCPSendQueueDelay, true);

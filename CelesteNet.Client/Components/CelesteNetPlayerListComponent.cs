@@ -618,7 +618,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!ShowPing)
                     return;
 
-                if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Channels == null)
+                if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Channels == null || info?.Player == null)
                     return;
 
                 // Don't rebuild the entire list
@@ -628,6 +628,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
 
                 DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+                if (own == null)
+                    return;
+
                 if (ListMode == ListModes.Channels && !own.Players.Contains(info.Player.ID))
                     return;
 

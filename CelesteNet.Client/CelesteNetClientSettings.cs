@@ -177,6 +177,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         [YamlIgnore]
         private KeyErrors _KeyError = KeyErrors.None;
 
+        [SettingIgnore]
+        public ulong ClientID { get; set; } = 0;
+
+        [SettingIgnore, YamlIgnore]
+        public uint InstanceID { get; set; } = 0;
+
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ResetGeneralButton { get; protected set; }
 
@@ -918,6 +924,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 // ... but also making sure these are in fact set to these values
                 AutoReconnect = true;
                 ReceivePlayerAvatars = true;
+                ClientID = GenerateClientID();
             });
             ResetGeneralButton.AddDescription(menu, "modoptions_celestenetclient_resetgeneralhint".DialogClean());
             ResetGeneralButton.Disabled = Connected;
@@ -940,6 +947,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         #endregion
+
+        public static ulong GenerateClientID() {
+            return ulong.Parse(Guid.NewGuid().ToString().Replace("-", "").Substring(0, 16), System.Globalization.NumberStyles.HexNumber);
+        }
 
         [Flags]
         public enum SyncMode {

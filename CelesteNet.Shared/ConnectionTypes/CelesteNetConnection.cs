@@ -236,9 +236,13 @@ namespace Celeste.Mod.CelesteNet {
                     _BackQueue = newBackQueue;
                 }
 
-                Timer.AutoReset = false;
-                Timer.Interval = delay;
-                Timer.Start();
+                if (delay > 0) {
+                    Timer.AutoReset = false;
+                    Timer.Interval = delay;
+                    Timer.Start();
+                } else {
+                    Logger.Log(LogLevel.WRN, "sendqueue", $"DelayFlush(): Connection {Con}'s send queue '{Name}' Timer not set because delay was '{delay}'");
+                }
             }
         }
 

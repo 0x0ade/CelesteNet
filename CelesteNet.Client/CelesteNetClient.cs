@@ -47,6 +47,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             Options = options;
 
             Options.AvatarsDisabled = !Settings.ReceivePlayerAvatars;
+            Options.ClientID = Settings.ClientID;
+            Options.InstanceID = Settings.InstanceID;
 
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient created");
 
@@ -293,8 +295,21 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo info) {
             // The first DataPlayerInfo sent from the server is our own
-            if (PlayerInfo == null || PlayerInfo.ID == info.ID)
+            if (PlayerInfo == null || PlayerInfo.ID == info.ID) {
                 PlayerInfo = info;
+
+                if (Settings.NameKey == "Guest" && info.Name == "Guest") {
+                    // strip off any '#x' suffix
+                    int i = info.FullName.IndexOf('#');
+                    string newName = i > 0 ? info.FullName.Substring(0, i) : info.FullName;
+
+                    // take on the 'generated' Guest name
+                    if (newName != "Guest") {
+                        Logger.Log(LogLevel.INF, "playerinfo", $"Connected as Guest, but got '{newName}'. Saving fixed Guest name to config.");
+                        Settings.Name = newName;
+                    }
+                }
+            }
         }
 
         public bool Filter(CelesteNetConnection con, DataPlayerInfo info) {

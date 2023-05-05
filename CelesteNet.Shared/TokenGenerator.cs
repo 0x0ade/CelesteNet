@@ -42,6 +42,8 @@ namespace Celeste.Mod.CelesteNet {
             // We just use x^(rand) + 1, which is guaranteed to be of maximum length
             lfsrMask = 1u | (1u << rng.Next(0, 31));
 
+            Logger.Log(LogLevel.DBG, "tokenGen", $"Created TokenGenerator with mask {lfsrMask}");
+
             // Determine the new locations for each bit by shuffeling a bit index array
             int[] newBitLocs = Enumerable.Range(0, 32).ToArray();
             for (int i = 31; i > 0; i--) {
@@ -83,6 +85,8 @@ namespace Celeste.Mod.CelesteNet {
 
             // XOR the value with the random XOR key
             val ^= xorKey;
+
+            Logger.Log(LogLevel.DBG, "tokenGen", $"Generated new token {val}");
 
             return val;
         }

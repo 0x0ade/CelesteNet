@@ -44,15 +44,18 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             float screenMargins = CelesteNetClientModule.Settings.InGameHUD.ScreenMargins * 8f;
 
+            // TODO: revert this change -- only reintroducing this for GravityHelper's ILHook to the "16"
+            Vector2 worldpos = Tracking?.Position ?? Position;
+            worldpos.Y -= 16f;
+
             bool isOnScreen = CelesteNetClientUtils.GetClampedScreenPos(
-                Tracking?.Position ?? Position,
+                worldpos,
                 level,
                 out Vector2 pos,
                 marginLeft:   screenMargins + marginSize.X,
                 marginTop:    screenMargins + marginSize.Y,
                 marginRight:  screenMargins + marginSize.X,
-                marginBottom: screenMargins,
-                offsetY: -16f
+                marginBottom: screenMargins
             );
 
             int opacity = CelesteNetClientModule.Settings.InGameHUD.NameOpacity;

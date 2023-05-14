@@ -1,6 +1,6 @@
 using System;
+using System.IO;
 using System.Linq;
-using System.Threading;
 
 namespace Celeste.Mod.CelesteNet {
     /*
@@ -17,6 +17,18 @@ namespace Celeste.Mod.CelesteNet {
     public class TokenGenerator {
 
         public const int MaxLFSRSteps = 4;
+
+        private static readonly uint[] LFSRPolynomials;
+
+        static TokenGenerator() {
+            // Read the list of polynomials
+            using Stream stream = typeof(TokenGenerator).Assembly.GetManifestResourceStream("polynomials.bin");
+            using BinaryReader reader = new BinaryReader(stream);
+
+            LFSRPolynomials = new uint[stream.Length / 4];
+            for (int i = 0; i < LFSRPolynomials.Length; i++)
+                LFSRPolynomials[i] = reader.ReadUInt32();
+        }
 
         private readonly object lfsrLock = new();
         private readonly Random lfsrStepRNG;
@@ -38,11 +50,16 @@ namespace Celeste.Mod.CelesteNet {
             while (lfsrState == 0)
                 lfsrState = RandomUInt();
 
-            // Generate a random LFSR mask with a period of 2^32-1 (the maximum)
-            // We just use x^(rand) + 1, which is guaranteed to be of maximum length
-            lfsrMask = 1u | (1u << rng.Next(0, 31));
+            // Choose a random LFSR polynomimal
+            // We have to flip the order of the bits (=taking the counterpart) as we're using a Galois LFSR instead of a Fibonacci one
+            lfsrMask = LFSRPolynomials[rng.Next(LFSRPolynomials.Length)];
+            lfsrMask = (lfsrMask >>  1) & 0x55555555 | (lfsrMask <<  1) & 0xaaaaaaaa;
+            lfsrMask = (lfsrMask >>  2) & 0x33333333 | (lfsrMask <<  2) & 0xcccccccc;
+            lfsrMask = (lfsrMask >>  4) & 0x0f0f0f0f | (lfsrMask <<  4) & 0xf0f0f0f0;
+            lfsrMask = (lfsrMask >>  8) & 0x00ff00ff | (lfsrMask <<  8) & 0xff00ff00;
+            lfsrMask = (lfsrMask >> 16) & 0x0000ffff | (lfsrMask << 16) & 0xffff0000;
 
-            Logger.Log(LogLevel.DBG, "tokenGen", $"Created TokenGenerator with mask {lfsrMask}");
+            Logger.Log(LogLevel.DBG, "tokenGen", $"Created TokenGenerator with mask 0x{lfsrMask:x8}");
 
             // Determine the new locations for each bit by shuffeling a bit index array
             int[] newBitLocs = Enumerable.Range(0, 32).ToArray();

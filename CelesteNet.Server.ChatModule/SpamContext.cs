@@ -1,6 +1,5 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
-using Monocle;
 using MonoMod.Utils;
 using System;
 using System.Collections.Concurrent;
@@ -55,7 +54,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             public DateTime End =>
                 Start + TimeSpan.FromSeconds(
                     Spam.Chat.Settings.SpamTimeout +
-                    Spam.Chat.Settings.SpamTimeoutAdd * Calc.Clamp(Count - Spam.Chat.Settings.SpamCount, 0, Spam.Chat.Settings.SpamCountMax)
+                    Spam.Chat.Settings.SpamTimeoutAdd * CalcHelpers.Clamp(Count - Spam.Chat.Settings.SpamCount, 0, Spam.Chat.Settings.SpamCountMax)
                 );
 
             public TimeSpan Timeout => End - DateTime.UtcNow;

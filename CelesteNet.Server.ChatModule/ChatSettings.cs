@@ -1,5 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,13 +20,13 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public double SpamTimeout { get; set; } = 4;
         public double SpamTimeoutAdd { get; set; } = 5;
 
-        public Color ColorBroadcast { get; set; } = Calc.HexToColor("#00adee");
-        public Color ColorServer { get; set; } = Calc.HexToColor("#9e24f5");
-        public Color ColorError { get; set; } = Calc.HexToColor("#c71585");
-        public Color ColorCommand { get; set; } = Calc.HexToColor("#2e31f1");
-        public Color ColorCommandReply { get; set; } = Calc.HexToColor("#e39dcc");
-        public Color ColorWhisper { get; set; } = Calc.HexToColor("#888888");
-        public Color ColorLogEmote { get; set; } = Calc.HexToColor("#bbbb88");
+        public Color ColorBroadcast { get; set; } = ColorHelpers.HexToColor("#00adee");
+        public Color ColorServer { get; set; } = ColorHelpers.HexToColor("#9e24f5");
+        public Color ColorError { get; set; } = ColorHelpers.HexToColor("#c71585");
+        public Color ColorCommand { get; set; } = ColorHelpers.HexToColor("#2e31f1");
+        public Color ColorCommandReply { get; set; } = ColorHelpers.HexToColor("#e39dcc");
+        public Color ColorWhisper { get; set; } = ColorHelpers.HexToColor("#888888");
+        public Color ColorLogEmote { get; set; } = ColorHelpers.HexToColor("#bbbb88");
 
         public string MessageGreeting { get; set; } = "Welcome {player}, to <insert server name here>!";
         public string MessageMOTD { get; set; } =

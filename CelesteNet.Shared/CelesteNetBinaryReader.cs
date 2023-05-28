@@ -1,14 +1,8 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 using Microsoft.Xna.Framework;
-using Monocle;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.ObjectFactories;
 
 namespace Celeste.Mod.CelesteNet {
     public class CelesteNetBinaryReader : BinaryReader {
@@ -40,7 +34,7 @@ namespace Celeste.Mod.CelesteNet {
         public virtual Vector2 ReadVector2()
             => new(ReadSingle(), ReadSingle());
         public virtual Vector2 ReadVector2Scale()
-            => new(Calc.Clamp(ReadSingle(), -3f, 3f), Calc.Clamp(ReadSingle(), -3f, 3f));
+            => new(CalcHelpers.Clamp(ReadSingle(), -3f, 3f), CalcHelpers.Clamp(ReadSingle(), -3f, 3f));
 
         public virtual Color ReadColor()
             => new(ReadByte(), ReadByte(), ReadByte(), ReadByte());

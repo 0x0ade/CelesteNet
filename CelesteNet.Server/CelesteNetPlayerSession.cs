@@ -1,5 +1,5 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Monocle;
+using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;

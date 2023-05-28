@@ -1,15 +1,6 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 using Celeste.Mod.CelesteNet.Server.Chat;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
-using Monocle;
-using MonoMod.Utils;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDChatEdit : WSCMD {
@@ -23,7 +14,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return null;
 
             if (input.Color != null)
-                msg.Color = Calc.HexToColor((string) input.Color);
+                msg.Color = ColorHelpers.HexToColor((string) input.Color);
 
             if (input.Text != null)
                 msg.Text = (string) input.Text;

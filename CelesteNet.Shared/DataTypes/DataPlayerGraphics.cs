@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
+using Microsoft.Xna.Framework;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataPlayerGraphics : DataType<DataPlayerGraphics> {

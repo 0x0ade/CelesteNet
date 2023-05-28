@@ -7,12 +7,12 @@
         public DataPartAudioState() {
         }
 
-        public DataPartAudioState(AudioState state) {
+        public DataPartAudioState(CelesteAudioState state) {
             Music = state.Music == null ? null : new DataPartAudioTrackState(state.Music);
             Ambience = state.Ambience == null ? null : new DataPartAudioTrackState(state.Ambience);
         }
 
-        public AudioState ToState()
+        public CelesteAudioState ToState()
             => new(Music?.ToState(), Ambience?.ToState());
 
         protected override void Read(CelesteNetBinaryReader reader) {

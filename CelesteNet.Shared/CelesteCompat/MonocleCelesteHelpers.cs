@@ -2,8 +2,28 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Xml.Serialization;
 
 namespace Celeste.Mod.CelesteNet.MonocleCelesteHelpers {
+    public enum AreaMode {
+        Normal,
+        BSide,
+        CSide
+    }
+
+    public enum Facings {
+        Right = 1,
+        Left = -1
+    }
+
+    public enum PlayerSpriteMode {
+        Madeline,
+        MadelineNoBackpack,
+        Badeline,
+        MadelineAsBadeline,
+        Playback
+    }
+
     public static class CalcHelpers {
         public static int Clamp(int value, int min, int max) {
             return Math.Min(Math.Max(value, min), max);
@@ -61,6 +81,27 @@ namespace Celeste.Mod.CelesteNet.MonocleCelesteHelpers {
 
         public static byte HexToByte(char c) {
             return (byte)"0123456789ABCDEF".IndexOf(char.ToUpper(c));
+        }
+    }
+
+    public static class InvokeHelpers {
+        //
+        // Summary:
+        //     Invokes all delegates in the invocation list, as long as the previously invoked
+        //     delegate returns true.
+        public static bool InvokeWhileTrue(this MulticastDelegate md, params object[] args) {
+            if ((object)md == null) {
+                return true;
+            }
+
+            Delegate[] invocationList = md.GetInvocationList();
+            for (int i = 0; i < invocationList.Length; i++) {
+                if (!(bool)invocationList[i].DynamicInvoke(args)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

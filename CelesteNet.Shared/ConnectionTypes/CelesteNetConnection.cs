@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;

@@ -1,6 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Monocle;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataPartImage : DataType<DataPartImage> {
@@ -15,26 +14,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public DataPartImage() {
         }
-
-        public DataPartImage(Image img) {
-            AtlasPath = img.Texture.AtlasPath;
-            Position = img.Position;
-            Origin = img.Origin;
-            Scale = img.Scale;
-            Rotation = img.Rotation;
-            Color = img.Color;
-            Effects = img.Effects;
-        }
-
-        public Image ToImage()
-            => new(GFX.Game[AtlasPath]) {
-                Position = Position,
-                Origin = Origin,
-                Scale = Scale,
-                Rotation = Rotation,
-                Color = Color,
-                Effects = Effects
-            };
 
         protected override void Read(CelesteNetBinaryReader reader) {
             AtlasPath = reader.ReadNetString();

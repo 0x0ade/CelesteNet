@@ -1,7 +1,5 @@
-using Celeste.Mod.CelesteNet.Server;
 using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
 using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Server {

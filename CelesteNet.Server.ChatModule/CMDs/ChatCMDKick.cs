@@ -1,13 +1,7 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatCMDKick : ChatCMD {

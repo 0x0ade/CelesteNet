@@ -2,7 +2,6 @@ using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;

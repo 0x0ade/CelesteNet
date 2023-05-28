@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Collections;
 using System.Linq;
-using System.Security.Cryptography;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public static class CelesteNetClientUtils {

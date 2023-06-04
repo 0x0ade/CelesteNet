@@ -11,6 +11,7 @@ using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -920,14 +921,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void SendState() {
             try {
-                Client?.SendAndHandle(new DataPlayerState {
+                DataPlayerState playerState = new DataPlayerState {
                     Player = Client.PlayerInfo,
                     SID = Session?.Area.GetSID() ?? MapEditorArea?.SID ?? "",
                     Mode = Session?.Area.Mode ?? MapEditorArea?.Mode ?? AreaMode.Normal,
                     Level = Session?.Level ?? (MapEditorArea != null ? LevelDebugMap : ""),
                     Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null)),
                     Interactive = Settings.InGame.Interactions
-                });
+                };
+                if (Client.Settings.PlayerListUI.HideOwnLocation) {
+                    playerState.SID = "";
+                    playerState.Mode = AreaMode.Normal;
+                    playerState.Level = "";
+                }
+                Client?.SendAndHandle(playerState);
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");
                 Context.DisposeSafe();

@@ -461,6 +461,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             [SettingSubText("modoptions_celestenetclient_hideownchannelhint")]
             public bool HideOwnChannelName { get; set; } = false;
 
+            [SettingSubText("modoptions_celestenetclient_hideownlocationhint")]
+            public bool HideOwnLocation { get; set; } = true;
+
             [SettingSubText("modoptions_celestenetclient_plscrollmodehint")]
             public CelesteNetPlayerListComponent.ScrollModes PlayerListScrollMode { get; set; } = CelesteNetPlayerListComponent.ScrollModes.HoldTab;
 

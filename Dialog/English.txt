@@ -46,7 +46,7 @@
 
 	MODOPTIONS_CELESTENETCLIENT_RESETGENERAL=	Reset General Settings
 	MODOPTIONS_CELESTENETCLIENT_RESETGENERALHINT=	Resets the options above to defaults, excluding Name/Key
-	MODOPTIONS_CELESTENETCLIENT_HIDEOWNCHANNEL=			Hide your channel name
+	MODOPTIONS_CELESTENETCLIENT_HIDEOWNCHANNELNAME=			Hide your channel name
 	MODOPTIONS_CELESTENETCLIENT_HIDEOWNCHANNELHINT=		Intended for streamers.{n}Prevents leaking your channel name when receiving a message or opening the player list.
 	MODOPTIONS_CELESTENETCLIENT_SETTINGS=			Settings
 

@@ -39,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public virtual void Init() {
             Enabled = true;
-            Client.Data.RegisterHandlersIn(this);
+            Client?.Data?.RegisterHandlersIn(this);
         }
 
         public virtual void Start() {
@@ -101,7 +101,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             IsDisposed = true;
             Game.Components.Remove(this);
             base.Dispose(disposing);
-            Client?.Data.UnregisterHandlersIn(this);
+            Client?.Data?.UnregisterHandlersIn(this);
         }
 
         protected void RunOnMainThread(Action action, bool wait = false)

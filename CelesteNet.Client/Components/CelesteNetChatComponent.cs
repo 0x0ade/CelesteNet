@@ -302,11 +302,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Pending[text] = msg;
                 Log.Add(msg);
                 LogSpecial.Add(msg);
-                Client.Send(msg);
+                Client?.Send(msg);
             }
         }
 
         public void Handle(CelesteNetConnection con, DataChannelList channelList) {
+            if (Client == null)
+                return;
+
             // stolen homework from CelesteNetPlayerListComponent
             string tmp = channelList.List.FirstOrDefault(channel => channel.Players.Contains(Client.PlayerInfo.ID))?.Name;
             if (tmp == null) return;

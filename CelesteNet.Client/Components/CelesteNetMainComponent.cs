@@ -152,6 +152,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
+            if (Client?.Data == null)
+                return;
+
             if (player.ID == Client.PlayerInfo.ID) {
                 if (PlayerNameTag != null)
                     PlayerNameTag.Name = player.DisplayName;
@@ -172,6 +175,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataChannelMove move) {
+            if (Client?.Data == null)
+                return;
+
             if (move.Player.ID == Client.PlayerInfo.ID) {
                 foreach (Ghost ghost in Ghosts.Values)
                     ghost?.RemoveSelf();
@@ -249,6 +255,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
+            if (Client?.Data == null)
+                return;
+
             LastFrames[frame.Player.ID] = frame;
 
             Session session = Session;
@@ -281,7 +290,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
                 ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion && !state.Idle);
                 ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
-                ghost.UpdateDead(frame.Dead && state.Level == session.Level);
+                ghost.UpdateDead(frame.Dead && state.Level == session?.Level);
                 ghost.UpdateFollowers((Settings.InGame.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
                 ghost.UpdateHolding((Settings.InGame.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? null : frame.Holding);
                 ghost.Interactive = state.Interactive;
@@ -289,6 +298,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataAudioPlay audio) {
+            if (Client?.Data == null)
+                return;
+
             if ((Settings.InGame.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0 || Engine.Scene is not Level level || level.Paused)
                 return;
 
@@ -316,7 +328,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataDashTrail trail) {
-            if (Engine.Scene is not Level level || level.Paused)
+            if (Client?.Data == null || Engine.Scene is not Level level || level.Paused)
                 return;
 
             Ghost ghost = null;
@@ -405,48 +417,52 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     session = (Session) serializer.Deserialize(ms);
                 }
 
-                if (!string.IsNullOrEmpty(target.Level) && session.MapData.Get(target.Level) != null) {
+                if (!string.IsNullOrEmpty(target.Level) && session?.MapData.Get(target.Level) != null) {
                     session.Level = target.Level;
                     session.FirstLevel = false;
                 }
 
-                if (target.Session != null && target.Session.InSession) {
-                    DataSession data = target.Session;
-                    session.Audio = data.Audio.ToState();
-                    session.RespawnPoint = data.RespawnPoint;
-                    session.Inventory = data.Inventory;
-                    session.Flags = data.Flags;
-                    session.LevelFlags = data.LevelFlags;
-                    session.Strawberries = data.Strawberries;
-                    session.DoNotLoad = data.DoNotLoad;
-                    session.Keys = data.Keys;
-                    session.Counters = data.Counters;
-                    session.FurthestSeenLevel = data.FurthestSeenLevel;
-                    session.StartCheckpoint = data.StartCheckpoint;
-                    session.ColorGrade = data.ColorGrade;
-                    session.SummitGems = data.SummitGems;
-                    session.FirstLevel = data.FirstLevel;
-                    session.Cassette = data.Cassette;
-                    session.HeartGem = data.HeartGem;
-                    session.Dreaming = data.Dreaming;
-                    session.GrabbedGolden = data.GrabbedGolden;
-                    session.HitCheckpoint = data.HitCheckpoint;
-                    session.LightingAlphaAdd = data.LightingAlphaAdd;
-                    session.BloomBaseAdd = data.BloomBaseAdd;
-                    session.DarkRoomAlpha = data.DarkRoomAlpha;
-                    session.Time = data.Time;
-                    session.CoreMode = data.CoreMode;
+                if (session != null) {
+                    if (target.Session != null && target.Session.InSession) {
+                        DataSession data = target.Session;
+                        session.Audio = data.Audio.ToState();
+                        session.RespawnPoint = data.RespawnPoint;
+                        session.Inventory = data.Inventory;
+                        session.Flags = data.Flags;
+                        session.LevelFlags = data.LevelFlags;
+                        session.Strawberries = data.Strawberries;
+                        session.DoNotLoad = data.DoNotLoad;
+                        session.Keys = data.Keys;
+                        session.Counters = data.Counters;
+                        session.FurthestSeenLevel = data.FurthestSeenLevel;
+                        session.StartCheckpoint = data.StartCheckpoint;
+                        session.ColorGrade = data.ColorGrade;
+                        session.SummitGems = data.SummitGems;
+                        session.FirstLevel = data.FirstLevel;
+                        session.Cassette = data.Cassette;
+                        session.HeartGem = data.HeartGem;
+                        session.Dreaming = data.Dreaming;
+                        session.GrabbedGolden = data.GrabbedGolden;
+                        session.HitCheckpoint = data.HitCheckpoint;
+                        session.LightingAlphaAdd = data.LightingAlphaAdd;
+                        session.BloomBaseAdd = data.BloomBaseAdd;
+                        session.DarkRoomAlpha = data.DarkRoomAlpha;
+                        session.Time = data.Time;
+                        session.CoreMode = data.CoreMode;
+                    }
+                    session.StartedFromBeginning = false;
                 }
 
-                NextRespawnPosition = target.Position ?? session.RespawnPoint;
-
-                session.StartedFromBeginning = false;
+                NextRespawnPosition = target.Position ?? session?.RespawnPoint;
 
                 LevelEnter.Go(session, true);
             });
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerGrabPlayer grab) {
+            if (Client?.Data == null)
+                return;
+
             Player player = Player;
             if (player != null && !Settings.InGame.Interactions && (grab.Player.ID == Client.PlayerInfo.ID || grab.Grabbing.ID == Client.PlayerInfo.ID))
                 goto Release;

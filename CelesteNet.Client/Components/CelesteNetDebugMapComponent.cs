@@ -109,15 +109,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
-            lock (Ghosts) {
-                AreaKey? area = LastArea;
-                if (area == null)
-                    return;
+            if (LastArea == null || Client?.Data == null)
+                return;
 
+            lock (Ghosts) {
                 if (!Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
                     Ghosts.TryGetValue(frame.Player.ID, out DebugMapGhost ghost) && (
-                        state.SID != area.Value.SID ||
-                        state.Mode != area.Value.Mode ||
+                        state.SID != LastArea.Value.SID ||
+                        state.Mode != LastArea.Value.Mode ||
                         state.Level == CelesteNetMainComponent.LevelDebugMap
                     )
                 ) {

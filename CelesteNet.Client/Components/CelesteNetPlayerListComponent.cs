@@ -200,7 +200,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void RebuildList() {
-            if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Channels == null)
+            if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Client?.Data == null || Channels == null)
                 return;
 
             BlobPlayer.PingPadWidth = 0;
@@ -245,14 +245,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!string.IsNullOrEmpty(channel?.Name) && !(HideOwnChannelName && channel == own))
                     blob.Name += $" #{channel.Name}";
 
-                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
+                if ((Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) ?? false)) {
                     if (LocationMode != LocationModes.OFF)
                         GetState(blob, state);
 
                     blob.Idle = state.Idle;
                 }
 
-                if (ShowPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo conInfo))
+                if (ShowPing && (Client?.Data?.TryGetBoundRef(player, out DataConnectionInfo conInfo) ?? false))
                     blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
 
                 list.Add(blob);
@@ -487,14 +487,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (player == null)
                 return "9";
 
-            if (Client.Data.TryGetBoundRef(player, out DataPlayerState state) && !string.IsNullOrEmpty(state?.SID))
+            if ((Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) ?? false) && !string.IsNullOrEmpty(state?.SID))
                 return $"0 {(state.SID.StartsWith("Celeste/") ? "0" : "1") + state.SID + (int) state.Mode} {player.FullName}";
 
             return $"8 {player.FullName}";
         }
 
         private DataPlayerInfo GetPlayerInfo(uint id) {
-            if (Client.Data.TryGetRef(id, out DataPlayerInfo player) && !string.IsNullOrEmpty(player?.DisplayName))
+            if ((Client?.Data?.TryGetRef(id, out DataPlayerInfo player) ?? false) && !string.IsNullOrEmpty(player?.DisplayName))
                 return player;
             return null;
         }
@@ -505,14 +505,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 blob.Name = player.DisplayName;
 
                 blob.LocationMode = locationMode;
-                if (Client.Data.TryGetBoundRef(player, out DataPlayerState state)) {
+                if ((Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) ?? false)) {
                     if (locationMode != LocationModes.OFF)
                         GetState(blob, state);
 
                     blob.Idle = state.Idle;
                 }
 
-                if (ShowPing && withPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo conInfo))
+                if (ShowPing && withPing && (Client?.Data?.TryGetBoundRef(player, out DataConnectionInfo conInfo) ?? false))
                     blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
 
                 return player;
@@ -592,7 +592,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataPlayerState state) {
             RunOnMainThread(() => {
-                if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Channels == null)
+                if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Client?.Data == null || Channels == null)
                     return;
 
                 // Don't rebuild the entire list
@@ -618,7 +618,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!ShowPing)
                     return;
 
-                if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Channels == null || info?.Player == null)
+                if (MDraw.DefaultFont == null || Client?.PlayerInfo == null || Client?.Data == null || Channels == null || info?.Player == null)
                     return;
 
                 // Don't rebuild the entire list

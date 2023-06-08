@@ -114,7 +114,7 @@ function renderUser() {
 				<span class="button-icon"></span>
 				<span class="button-text">
 					<span class="button-icon discord-avatar" style=${`background-image: url(/api/avatar?uid=${info.UID})`}></span>
-					${info.Name}#${info.Discrim}
+					${info.Discrim == "" || info.Discrim == "0" ? `${info.Name}` : `${info.Name}#${info.Discrim}`}
 				</span>
 			</a>
 		</p>`);

@@ -68,7 +68,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         f.SetSessionAuthCookie(c, sessionkey);
                         f.RespondJSON(c, new {
                             Key = sessionkey,
-                            Info = $"Welcome, {info.Name}#{info.Discrim}"
+                            Info = string.IsNullOrEmpty(info.Discrim) || info.Discrim == "0"
+                            ? $"Welcome, {info.Name} ({uid})"
+                            : $"Welcome, {info.Name}#{info.Discrim}"
                         });
                         return;
                     } else {

@@ -113,7 +113,15 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             string key = f.Server.UserData.Create(uid, false);
             BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
-            info.Name = userData.username.ToString();
+
+            if (!string.IsNullOrEmpty(userData.global_name)) {
+                info.Name = userData.global_name.ToString();
+            } else {
+                info.Name = userData.username.ToString();
+            }
+            if (info.Name.Length > 32) {
+                info.Name = info.Name.Substring(0, 32);
+            }
             info.Discrim = userData.discriminator.ToString();
             f.Server.UserData.Save(uid, info);
 

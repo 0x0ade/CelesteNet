@@ -33,6 +33,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public bool? DashWasB;
         public Vector2? DashDir;
+        public int? Dashes;
 
         public bool Dead;
 
@@ -360,9 +361,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.SimulateMotion = simulateMotion;
         }
 
-        public void UpdateDash(bool? wasB, Vector2? dir) {
+        public void UpdateDash(bool? wasB, Vector2? dir, int? dashes) {
             DashWasB = wasB;
             DashDir = dir;
+            Dashes = dashes;
         }
 
         public void UpdateDead(bool dead) {

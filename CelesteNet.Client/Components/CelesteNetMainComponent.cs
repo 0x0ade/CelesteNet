@@ -929,7 +929,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null)),
                     Interactive = Settings.InGame.Interactions
                 };
-                if (Client.Settings.PlayerListUI.HideOwnLocation) {
+                string currentChannel = CelesteNetClientModule.Instance.Context.Chat.CurrentChannelName;
+                bool hideLocation = Client.Settings.PlayerListUI.HideOwnLocation switch
+                {
+                    CelesteNetPlayerListComponent.LocationInvisibility.Off => false,
+                    CelesteNetPlayerListComponent.LocationInvisibility.Main => currentChannel == "main",
+                    CelesteNetPlayerListComponent.LocationInvisibility.PublicChannels => !currentChannel.StartsWith("!"),
+                    CelesteNetPlayerListComponent.LocationInvisibility.Always => true,
+                    _ => throw new ArgumentException("Invalid LocationInvisibility value!", nameof(Client.Settings.PlayerListUI.HideOwnLocation))
+                };
+                if (hideLocation) {
                     playerState.SID = "";
                     playerState.Mode = AreaMode.Normal;
                     playerState.Level = "";

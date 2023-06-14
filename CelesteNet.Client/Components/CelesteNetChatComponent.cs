@@ -31,7 +31,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Color PublicChatColor = Color.White;
 
         // will get filled out once we join the server
-        protected string CurrentChannelName = "main";
+        public string CurrentChannelName = "main";
 
         public float? RenderPositionY { get; private set; } = null;
 

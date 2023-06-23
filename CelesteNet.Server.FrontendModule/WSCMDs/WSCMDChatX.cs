@@ -5,6 +5,7 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Utils;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,14 +20,52 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (input == null)
                 return null;
 
+            string? text = input.Text;
+            string? tag = input.Tag;
+            string? color = input.Color;
+            JArray? targets = input.Targets;
+
             ChatModule chat = Frontend.Server.Get<ChatModule>();
+            DataChat msg = new()
+            {
+                Text = text ?? "",
+                Tag = tag ?? "",
+                Color = chat.Settings.ColorBroadcast
+            };
 
-            string text = (string?) input.Text ?? "";
-            string tag = (string?) input.Tag ?? "";
-            string colorStr = (string?) input.Color ?? "";
-            Color color = !colorStr.IsNullOrEmpty() ? Calc.HexToColor(colorStr) : chat.Settings.ColorBroadcast;
+            if (!string.IsNullOrEmpty(color))
+                msg.Color = Calc.HexToColor(color!);
 
-            return chat.Broadcast(text, tag, color).ToDetailedFrontendChat();
+            if (targets != null && targets.Count > 0)
+            {
+                uint[] targetIDs = targets
+                    .Where(el => el.Type == JTokenType.Integer)
+                    .Select(el => {
+                        try {
+                            return el.Value<uint>();
+                        } catch (OverflowException) {
+                            return 0u;
+                        }
+                    })
+                    .Where(id => id != 0u)
+                    .ToArray();
+
+                DataPlayerInfo[] targetSessions = Frontend.Server.PlayersByID
+                    .Where(kv => targetIDs.Contains(kv.Key))
+                    .Select(kv => kv.Value.PlayerInfo)
+                    .Where(playerInfo => playerInfo != null)
+                    .Select(playerInfo => playerInfo!)
+                    .ToArray();
+
+                if (targetSessions.Length == 0)
+                    // the message would reach 0 players
+                    return null;
+
+                msg.Targets = targetSessions;
+            }
+
+            chat.Broadcast(msg);
+            return msg.ToDetailedFrontendChat();
         }
     }
 }

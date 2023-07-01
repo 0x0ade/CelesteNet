@@ -1,28 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.Helpers;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
-namespace Celeste.Mod.CelesteNet.Server.Chat {
-    public class ChatCommands : IDisposable {
+namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
+    public class CommandsContext : IDisposable {
 
         public readonly List<ChatCMD> All = new();
         public readonly Dictionary<string, ChatCMD> ByID = new();
         public readonly Dictionary<Type, ChatCMD> ByType = new();
         public readonly DataCommandList DataAll = new DataCommandList();
 
-        public ChatCommands(ChatModule chat) {
+        public CommandsContext(ChatModule chat) {
             foreach (Type type in CelesteNetUtils.GetTypes()) {
                 if (!typeof(ChatCMD).IsAssignableFrom(type) || type.IsAbstract)
                     continue;
 
-                ChatCMD? cmd = (ChatCMD?) Activator.CreateInstance(type);
+                ChatCMD? cmd = (ChatCMD?)Activator.CreateInstance(type);
                 if (cmd == null)
                     throw new Exception($"Cannot create instance of CMD {type.FullName}");
                 Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd.ID.ToLowerInvariant()} ({type.FullName}, {cmd.Completion})");
@@ -47,12 +42,12 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     Logger.Log(LogLevel.VVV, "chatcmds", $"Command: {cmd.ID.ToLowerInvariant()} is {(cmd.InternalAliasing ? "internal alias" : "alias")} of {aliasTo.ID.ToLowerInvariant()}");
 
                 DataAll.List[i++] = new CommandInfo() {
-                                        ID = cmd.ID,
-                                        Auth = cmd.MustAuth,
-                                        AuthExec = cmd.MustAuthExec,
-                                        FirstArg = cmd.Completion,
-                                        AliasTo = cmd.InternalAliasing ? "" : aliasTo?.ID.ToLowerInvariant() ?? ""
-                                    };
+                    ID = cmd.ID,
+                    Auth = cmd.MustAuth,
+                    AuthExec = cmd.MustAuthExec,
+                    FirstArg = cmd.Completion,
+                    AliasTo = cmd.InternalAliasing ? "" : aliasTo?.ID.ToLowerInvariant() ?? ""
+                };
             }
 
             All = All.OrderBy(cmd => cmd.HelpOrder).ToList();
@@ -67,10 +62,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             => ByID.TryGetValue(id, out ChatCMD? cmd) ? cmd : null;
 
         public T? Get<T>(string id) where T : ChatCMD
-            => ByID.TryGetValue(id, out ChatCMD? cmd) ? (T) cmd : null;
+            => ByID.TryGetValue(id, out ChatCMD? cmd) ? (T)cmd : null;
 
         public T Get<T>() where T : ChatCMD
-            => ByType.TryGetValue(typeof(T), out ChatCMD? cmd) ? (T) cmd : throw new Exception($"Invalid CMD type {typeof(T).FullName}");
+            => ByType.TryGetValue(typeof(T), out ChatCMD? cmd) ? (T)cmd : throw new Exception($"Invalid CMD type {typeof(T).FullName}");
 
     }
 
@@ -105,7 +100,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         public virtual void ParseAndRun(ChatCMDEnv env) {
-            if ((MustAuth && !env.IsAuthorized) || (MustAuthExec && !env.IsAuthorizedExec))
+            if (MustAuth && !env.IsAuthorized || MustAuthExec && !env.IsAuthorizedExec)
                 throw new Exception("Unauthorized!");
 
             // TODO: Improve or rewrite. This comes from GhostNet, which adopted it from disbot (0x0ade's C# Discord bot).
@@ -174,18 +169,18 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public CelesteNetPlayerSession? Session {
             get {
                 if (Type == ChatCMDArgType.Int || Type == ChatCMDArgType.Long) {
-                    if (Env.Chat.Server.PlayersByID.TryGetValue((uint) Long, out CelesteNetPlayerSession? session))
+                    if (Env.Server.PlayersByID.TryGetValue((uint)Long, out CelesteNetPlayerSession? session))
                         return session;
                 }
 
-                using (Env.Chat.Server.ConLock.R())
+                using (Env.Server.ConLock.R())
                     return
                         // check for exact name
-                        Env.Chat.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.Equals(String, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
+                        Env.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.Equals(String, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
                         // check for partial name in channel
                         Env.Session?.Channel.Players.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
                         // check for partial name elsewhere
-                        Env.Chat.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String, StringComparison.InvariantCultureIgnoreCase) ?? false);
+                        Env.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String, StringComparison.InvariantCultureIgnoreCase) ?? false);
             }
         }
 
@@ -219,11 +214,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (int.TryParse(String, out Int)) {
                 Type = ChatCMDArgType.Int;
                 Long = IntRangeFrom = IntRangeTo = Int;
-                ULong = (ulong) Int;
+                ULong = (ulong)Int;
 
             } else if (long.TryParse(String, out Long)) {
                 Type = ChatCMDArgType.Long;
-                ULong = (ulong) Long;
+                ULong = (ulong)Long;
 
             } else if (ulong.TryParse(String, out ULong)) {
                 Type = ChatCMDArgType.ULong;
@@ -275,7 +270,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
     public class ChatCMDEnv {
 
-        public readonly ChatModule Chat;
+        private readonly ChatModule Chat;
         public readonly DataChat Msg;
 
         public ChatCMD? Cmd;

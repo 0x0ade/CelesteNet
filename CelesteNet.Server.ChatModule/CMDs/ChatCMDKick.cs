@@ -1,15 +1,9 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Server.Chat {
+namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class ChatCMDKick : ChatCMD {
 
         public override string Args => "<user>";
@@ -26,7 +20,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             CelesteNetPlayerSession player = args[0].Session ?? throw new Exception("Invalid username or ID.");
 
-            new DynamicData(player).Set("leaveReason", env.Chat.Settings.MessageKick);
+            new DynamicData(player).Set("leaveReason", Chat.Settings.MessageKick);
             player.Dispose();
             player.Con.Send(new DataDisconnectReason { Text = "Kicked" });
             player.Con.Send(new DataInternalDisconnect());

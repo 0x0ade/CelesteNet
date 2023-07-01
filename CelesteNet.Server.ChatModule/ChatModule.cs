@@ -1,16 +1,9 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.Server.Chat.Cmd;
 using Microsoft.Xna.Framework;
 using MonoMod.Utils;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
@@ -22,7 +15,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
 #pragma warning disable CS8618 // Set on init.
         public SpamContext BroadcastSpamContext;
-        public ChatCommands Commands;
+        public CommandsContext Commands;
 #pragma warning restore CS8618
 
         public override void Init(CelesteNetServerModuleWrapper wrapper) {

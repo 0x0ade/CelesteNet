@@ -151,14 +151,14 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
                 // TODO: Improve or rewrite. This comes from GhostNet, which adopted it from disbot (0x0ade's C# Discord bot).
 
-                ChatCMDEnv env = new(this, msg);
+                CmdEnv env = new(this, msg);
 
                 string cmdName = env.FullText.Substring(Settings.CommandPrefix.Length);
-                cmdName = cmdName.Split(ChatCMD.NameDelimiters)[0].ToLowerInvariant();
+                cmdName = cmdName.Split(ChatCmd.NameDelimiters)[0].ToLowerInvariant();
                 if (cmdName.Length == 0)
                     return;
 
-                ChatCMD? cmd = Commands.Get(cmdName);
+                ChatCmd? cmd = Commands.Get(cmdName);
                 if (cmd != null) {
                     env.Cmd = cmd;
                     Task.Run(() => {
@@ -179,7 +179,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             if (msg.Player != null && Server.PlayersByID.TryGetValue(msg.Player.ID, out CelesteNetPlayerSession? session) &&
                 Server.UserData.Load<UserChatSettings>(session.UID).AutoChannelChat) {
                 msg.Target = msg.Player;
-                Commands.Get<ChatCMDChannelChat>().ParseAndRun(new ChatCMDEnv(this, msg));
+                Commands.Get<CmdChannelChat>().ParseAndRun(new CmdEnv(this, msg));
                 return;
             }
 

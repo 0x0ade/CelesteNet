@@ -1,13 +1,13 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
-    public class ChatCMDE : ChatCMDEmote {
+    public class CmdE : CmdEmote {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDEmote>().ID}";
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdEmote>().ID}";
 
     }
 
-    public class ChatCMDEmote : ChatCMD {
+    public class CmdEmote : ChatCmd {
 
         public override string Args => "<text> | i:<img> | p:<img> | g:<img>";
 
@@ -24,7 +24,7 @@ g:TEXTURE shows TEXTURE from the Gameplay atlas.
 p:FRM1 FRM2 FRM3 plays an animation, 7 FPS by default.
 p:10 FRM1 FRM2 FRM3 plays the animation at 10 FPS.";
 
-        public override void ParseAndRun(ChatCMDEnv env) {
+        public override void ParseAndRun(CmdEnv env) {
             if (env.Session == null || string.IsNullOrWhiteSpace(env.Text))
                 return;
 

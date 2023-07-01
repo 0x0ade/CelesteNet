@@ -2,13 +2,13 @@
 using Microsoft.Xna.Framework;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
-    public class ChatCMDGC : ChatCMDGlobalChat {
+    public class CmdGC : CmdGlobalChat {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDGlobalChat>().ID}";
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdGlobalChat>().ID}";
 
     }
 
-    public class ChatCMDGlobalChat : ChatCMD {
+    public class CmdGlobalChat : ChatCmd {
 
         public override string Args => "<text>";
 
@@ -19,7 +19,7 @@ $@"Send a message to everyone in the server.
 To send a message, {Chat.Settings.CommandPrefix}{ID} message here
 To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
 
-        public override void ParseAndRun(ChatCMDEnv env) {
+        public override void ParseAndRun(CmdEnv env) {
             CelesteNetPlayerSession? session = env.Session;
             if (session == null)
                 return;
@@ -27,7 +27,7 @@ To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
             string text = env.Text.Trim();
 
             if (string.IsNullOrEmpty(text)) {
-                Chat.Commands.Get<ChatCMDChannelChat>().ParseAndRun(env);
+                Chat.Commands.Get<CmdChannelChat>().ParseAndRun(env);
                 return;
             }
 

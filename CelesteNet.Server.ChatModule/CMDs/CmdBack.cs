@@ -3,13 +3,13 @@ using MonoMod.Utils;
 using System;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
-    public class ChatCMDBack : ChatCMD {
+    public class CmdBack : ChatCmd {
 
         public override string Args => "";
 
         public override string Info => "Teleport to where you were before your last teleport.";
 
-        public override void ParseAndRun(ChatCMDEnv env) {
+        public override void ParseAndRun(CmdEnv env) {
             CelesteNetPlayerSession? self = env.Session;
             if (self == null || env.Player == null)
                 throw new Exception("Are you trying to TP as the server?");

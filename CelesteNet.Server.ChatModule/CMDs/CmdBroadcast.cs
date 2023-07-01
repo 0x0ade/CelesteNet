@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
-    public class ChatCMDBC : ChatCMDBroadcast {
+    public class CmdBC : CmdBroadcast {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDBroadcast>().ID}";
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdBroadcast>().ID}";
 
     }
 
-    public class ChatCMDBroadcast : ChatCMD {
+    public class CmdBroadcast : ChatCmd {
 
         public override string Args => "<text>";
 
@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override bool MustAuth => true;
 
-        public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
+        public override void Run(CmdEnv env, List<CmdArg> args) {
             if (args.Count == 0)
                 throw new Exception("No text.");
 

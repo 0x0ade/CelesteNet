@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
-    public class ChatCMDStatus : ChatCMD {
+    public class CmdStatus : ChatCmd {
 
         public override string Args => "<text>";
 
@@ -11,7 +11,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override bool MustAuth => true;
 
-        public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
+        public override void Run(CmdEnv env, List<CmdArg> args) {
             if (args.Count == 0)
                 throw new Exception("No text.");
 

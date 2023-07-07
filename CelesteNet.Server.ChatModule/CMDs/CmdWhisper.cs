@@ -11,8 +11,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     public class CmdWhisper : ChatCmd {
 
-        public override string Args => "<user> <text>";
-
         public override CompletionType Completion => CompletionType.Player;
 
         public override string Info => "Send a whisper to someone else or toggle whispers.";
@@ -22,14 +20,29 @@ $@"Send a whisper to someone else or toggle whispers.
 To send a whisper to someone, {Chat.Settings.CommandPrefix}{ID} user text
 To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID}";
 
-        public override void Run(CmdEnv env, List<CmdArg> args) {
+        public override void Init(ChatModule chat) {
+            Chat = chat;
+
+            ArgParser parser = new(chat, this);
+            parser.IgnoreExtra = false;
+            ArgParsers.Add(parser);
+
+            parser = new(chat, this);
+            parser.AddParameter(new ParamPlayerSession(chat));
+            parser.AddParameter(new ParamString(chat), "message", "Psst, secret message...");
+            ArgParsers.Add(parser);
+        }
+
+        public override void Run(CmdEnv env, List<ICmdArg> args) {
+            Logger.Log(LogLevel.DEV, "whisper", $"Run with '{args.Count}' arguments: {args}");
+
             if (args.Count == 0) {
                 CelesteNetPlayerSession? session = env.Session;
                 if (session == null)
                     return;
 
                 if (env.Server.UserData.GetKey(session.UID).IsNullOrEmpty())
-                    throw new Exception("You must be registered to enable / disable whispers!");
+                    throw new CommandRunException("You must be registered to enable / disable whispers!");
 
                 ChatModule.UserChatSettings settings = env.Server.UserData.Load<ChatModule.UserChatSettings>(session.UID);
                 settings.Whispers = !settings.Whispers;
@@ -38,21 +51,23 @@ To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID
                 return;
             }
 
-            if (args.Count == 1)
-                throw new Exception("No text.");
+            if (args.Count == 1 || args[1] is not CmdArgString argMsg)
+                throw new CommandRunException("No text.");
 
-            CelesteNetPlayerSession? other = args[0].Session;
-            DataPlayerInfo otherPlayer = other?.PlayerInfo ?? throw new Exception("Invalid username or ID.");
+            if (args[0] is not CmdArgPlayerSession sessionArg) {
+                throw new CommandRunException("Invalid username or ID.");
+            }
+
+            CelesteNetPlayerSession? other = sessionArg.Session;
+            DataPlayerInfo otherPlayer = other?.PlayerInfo ?? throw new CommandRunException("Invalid username or ID.");
 
             if (!env.Server.UserData.Load<ChatModule.UserChatSettings>(other.UID).Whispers)
-                throw new Exception($"{otherPlayer.DisplayName} has blocked whispers.");
-
-            string text = args[1].Rest;
+                throw new CommandRunException($"{otherPlayer.DisplayName} has blocked whispers.");
 
             DataPlayerInfo? player = env.Player;
             if (player != null) {
                 env.Msg.Tag = $"whisper @ {otherPlayer.DisplayName}";
-                env.Msg.Text = text;
+                env.Msg.Text = argMsg;
                 env.Msg.Color = Chat.Settings.ColorWhisper;
                 Chat.ForceSend(env.Msg);
                 // remember the last whisper recipient/sender's session
@@ -65,7 +80,7 @@ To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID
                 Player = player,
                 Target = otherPlayer,
                 Tag = "whisper",
-                Text = text,
+                Text = argMsg,
                 Color = Chat.Settings.ColorWhisper
             }));
         }

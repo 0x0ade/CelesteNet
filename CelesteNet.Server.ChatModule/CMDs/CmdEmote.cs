@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdE : CmdEmote {
@@ -8,8 +9,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     }
 
     public class CmdEmote : ChatCmd {
-
-        public override string Args => "<text> | i:<img> | p:<img> | g:<img>";
 
         public override CompletionType Completion => CompletionType.Emote;
 
@@ -24,13 +23,21 @@ g:TEXTURE shows TEXTURE from the Gameplay atlas.
 p:FRM1 FRM2 FRM3 plays an animation, 7 FPS by default.
 p:10 FRM1 FRM2 FRM3 plays the animation at 10 FPS.";
 
-        public override void ParseAndRun(CmdEnv env) {
-            if (env.Session == null || string.IsNullOrWhiteSpace(env.Text))
+        public override void Init(ChatModule chat) {
+            Chat = chat;
+
+            ArgParser parser = new(chat, this);
+            parser.AddParameter(new ParamString(chat), "<text> | i:<img> | p:<img> | g:<img>", "p: madeline/normal");
+            ArgParsers.Add(parser);
+        }
+
+        public override void Run(CmdEnv env, List<ICmdArg> args) {
+            if (env.Session == null || args.Count == 0 || args[0] is not CmdArgString argEmote || string.IsNullOrWhiteSpace(argEmote))
                 return;
 
             DataEmote emote = new() {
                 Player = env.Player,
-                Text = env.Text.Trim()
+                Text = argEmote.String.Trim()
             };
             env.Session.Con.Send(emote);
             env.Server.Data.Handle(env.Session.Con, emote);

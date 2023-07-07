@@ -162,11 +162,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (cmd != null) {
                     env.Cmd = cmd;
                     Task.Run(() => {
-                        try {
                             cmd.ParseAndRun(env);
-                        } catch (Exception e) {
-                            env.Error(e);
-                        }
                     });
 
                 } else {

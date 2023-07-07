@@ -2,11 +2,10 @@
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
+using YamlDotNet.Core;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdBan : ChatCmd {
-
-        public override string Args => "<user> <text>";
 
         public override CompletionType Completion => CompletionType.Player;
 
@@ -14,19 +13,32 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override bool MustAuth => true;
 
-        public override void Run(CmdEnv env, List<CmdArg> args) {
+        public override void Init(ChatModule chat) {
+            Chat = chat;
+
+            ArgParser parser = new(chat, this);
+            parser.AddParameter(new ParamPlayerSession(chat));
+            parser.AddParameter(new ParamString(chat), "reason", "Naughty player.");
+            ArgParsers.Add(parser);
+        }
+
+        public override void Run(CmdEnv env, List<ICmdArg> args) {
             if (args.Count == 0)
-                throw new Exception("No user.");
+                throw new CommandRunException("No user.");
 
             if (args.Count == 1)
-                throw new Exception("No text.");
+                throw new CommandRunException("No text.");
 
-            CelesteNetPlayerSession player = args[0].Session ?? throw new Exception("Invalid username or ID.");
+            if (args[0] is not CmdArgPlayerSession sessionArg) {
+                throw new CommandRunException("Invalid username or ID.");
+            }
+
+            CelesteNetPlayerSession player = sessionArg.Session ?? throw new CommandRunException("Invalid username or ID.");
 
             BanInfo ban = new() {
                 UID = player.UID,
                 Name = player.PlayerInfo?.FullName ?? "",
-                Reason = args[1].Rest,
+                Reason = args[1].ToString(),
                 From = DateTime.UtcNow
             };
 

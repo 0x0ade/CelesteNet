@@ -27,12 +27,12 @@ To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
             ArgParsers.Add(parser);
         }
 
-        public override void Run(CmdEnv env, List<ICmdArg> args) {
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             CelesteNetPlayerSession? session = env.Session;
             if (session == null)
                 return;
 
-            if (args.Count == 0 || args[0] is not CmdArgString argMsg || string.IsNullOrEmpty(argMsg)) {
+            if (args == null || args.Count == 0 || args[0] is not CmdArgString argMsg || string.IsNullOrEmpty(argMsg)) {
                 if (env.Server.UserData.GetKey(session.UID).IsNullOrEmpty())
                     throw new CommandRunException("You must be registered to enable / disable auto channel chat mode!");
 

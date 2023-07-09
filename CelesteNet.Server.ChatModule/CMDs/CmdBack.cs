@@ -8,7 +8,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override string Info => "Teleport to where you were before your last teleport.";
 
-        public override void ParseAndRun(CmdEnv env) {
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             CelesteNetPlayerSession? self = env.Session;
             if (self == null || env.Player == null)
                 throw new CommandRunException("Are you trying to TP as the server?");

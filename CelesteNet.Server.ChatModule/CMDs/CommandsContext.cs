@@ -111,9 +111,13 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             List<Exception> caught = new();
 
             if (ArgParsers.Count == 0) {
-                Logger.Log(LogLevel.WRN, "ChatCMD", $"Command {ID} ({GetType()}) should add at least one ArgParser by overriding Init() or override ParseAndRun() instead.");
-                env.Error(new Exception("Internal Server Error."));
-                return;
+                try {
+                    ParseAndRun(env, null);
+                    return;
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.DEV, "ChatCMD", $"ParseAndRun exception caught: {e.Message} (no parsers)");
+                    caught.Add(e);
+                }
             }
 
             foreach (ArgParser parser in ArgParsers) {
@@ -143,15 +147,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             }
         }
 
-        public virtual void ParseAndRun(CmdEnv env, ArgParser parser) {
+        public virtual void ParseAndRun(CmdEnv env, ArgParser? parser) {
             string raw = env.FullText.Substring(Chat.Settings.CommandPrefix.Length + ID.Length);
 
-            List<ICmdArg> args = parser.Parse(raw, env);
+            List<ICmdArg>? args = parser?.Parse(raw, env);
 
             Run(env, args);
         }
 
-        public virtual void Run(CmdEnv env, List<ICmdArg> args) {
+        public virtual void Run(CmdEnv env, List<ICmdArg>? args) {
         }
 
     }

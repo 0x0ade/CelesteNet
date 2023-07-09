@@ -37,12 +37,12 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Channels.N
             ArgParsers.Add(parser);
         }
 
-        public override void Run(CmdEnv env, List<ICmdArg> args) {
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             CelesteNetPlayerSession? session = env.Session;
             if (session == null)
                 throw new ArgumentNullException($"Called {Chat.Settings.CommandPrefix}{ID} without player Session.");
 
-            if (args.Count == 0)
+            if (args == null || args.Count == 0)
                 throw new ArgumentException($"Called {Chat.Settings.CommandPrefix}{ID} with no Argument?");
 
             if (args[0] is CmdArgChannelPage argChannelPage) {

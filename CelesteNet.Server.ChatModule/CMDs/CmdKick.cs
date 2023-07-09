@@ -20,8 +20,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             ArgParsers.Add(parser);
         }
 
-        public override void Run(CmdEnv env, List<ICmdArg> args) {
-            if (args.Count == 0)
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
+            if (args == null || args.Count == 0)
                 throw new CommandRunException("No user.");
 
             if (args[0] is not CmdArgPlayerSession sessionArg) {

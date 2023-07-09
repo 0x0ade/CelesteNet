@@ -50,7 +50,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             OtherState = otherState;
         }
 
-        public override void Run(CmdEnv env, List<ICmdArg> args) {
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             CelesteNetPlayerSession? self = env.Session;
 
             if (self == null || Other == null || OtherPlayer == null || OtherState == null)
@@ -128,7 +128,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override string Info => "Allow others to teleport to you.";
 
-        public override void ParseAndRun(CmdEnv env) {
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             if (env.Session == null)
                 return;
 
@@ -147,7 +147,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override string Info => "Prevent others from teleporting to you.";
 
-        public override void ParseAndRun(CmdEnv env) {
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             if (env.Session == null)
                 return;
 

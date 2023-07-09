@@ -33,10 +33,10 @@ To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID
             ArgParsers.Add(parser);
         }
 
-        public override void Run(CmdEnv env, List<ICmdArg> args) {
-            Logger.Log(LogLevel.DEV, "whisper", $"Run with '{args.Count}' arguments: {args}");
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
+            Logger.Log(LogLevel.DEV, "whisper", $"Run with '{args?.Count}' arguments: {args}");
 
-            if (args.Count == 0) {
+            if (args == null || args.Count == 0) {
                 CelesteNetPlayerSession? session = env.Session;
                 if (session == null)
                     return;

@@ -27,7 +27,7 @@ Sends a whisper to recipient or sender of the most recent whisper.";
             playerSessionParam = new ParamPlayerSession(Chat);
         }
 
-        public override void Run(CmdEnv env, List<ICmdArg> args) {
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             if (env.Session == null)
                 return;
 
@@ -36,7 +36,7 @@ Sends a whisper to recipient or sender of the most recent whisper.";
             if (lastWhisperID == uint.MaxValue)
                 throw new CommandRunException("You have not sent or received any whispers since you last connected.");
 
-            if (args.Count == 0 || args[0] is not CmdArgString)
+            if (args == null || args.Count == 0 || args[0] is not CmdArgString)
                 throw new CommandRunException("No text.");
 
             bool parsedSessionID = playerSessionParam.TryParse(lastWhisperID.ToString(), env, out ICmdArg? sessionArg);

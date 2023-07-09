@@ -31,9 +31,13 @@ p:10 FRM1 FRM2 FRM3 plays the animation at 10 FPS.";
             ArgParsers.Add(parser);
         }
 
-        public override void Run(CmdEnv env, List<ICmdArg> args) {
-            if (env.Session == null || args.Count == 0 || args[0] is not CmdArgString argEmote || string.IsNullOrWhiteSpace(argEmote))
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
+            if (env.Session == null)
                 return;
+
+            if (args == null || args.Count == 0 || args[0] is not CmdArgString argEmote || string.IsNullOrWhiteSpace(argEmote)) {
+                throw new CommandRunException("No emote argument given.");
+            }
 
             DataEmote emote = new() {
                 Player = env.Player,

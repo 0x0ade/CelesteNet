@@ -40,7 +40,7 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
             ArgParsers.Add(parser);
         }
 
-        public override void Run(CmdEnv env, List<ICmdArg> args) {
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             Logger.Log(LogLevel.DEV, "cmdhelp", $"{GetType()}.Run args# {args?.Count}");
             if (args?.Count > 0) {
                 Logger.Log(LogLevel.DEV, "cmdhelp", $"{GetType()}.Run arg0: {args[0]}");

@@ -26,22 +26,21 @@ To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
             ArgParsers.Add(parser);
         }
 
-        public override void Run(CmdEnv env, List<ICmdArg> args) {
-            CelesteNetPlayerSession? session = env.Session;
-            if (session == null)
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
+            if (env.Session == null)
                 return;
 
-            if (args.Count == 0 || args[0] is not CmdArgString argMsg || string.IsNullOrEmpty(argMsg.String)) {
+            if (args == null || args.Count == 0 || args[0] is not CmdArgString argMsg || string.IsNullOrEmpty(argMsg.String)) {
+                // without arguments this is just toggle mode, same implementation as "/cc" with no args.
                 Chat.Commands.Get<CmdChannelChat>().Run(env, args);
                 return;
             }
 
-            DataPlayerInfo? player = env.Player;
-            if (player == null)
+            if (env.Player == null)
                 return;
 
             DataChat? msg = Chat.PrepareAndLog(null, new DataChat {
-                Player = player,
+                Player = env.Player,
                 Text = argMsg
             });
 

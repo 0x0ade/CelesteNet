@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using YamlDotNet.Core;
+using System.Text;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CommandsContext : IDisposable {
@@ -137,14 +137,48 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                 return;
             }
 
-            IEnumerable<Exception> cmd_exceptions = caught.Where(e => CmdEnv.IsCmdException(e));
-
-            if (cmd_exceptions.Any())
-                caught = cmd_exceptions.ToList();
-
+            int maxArgsParsed = 0, argParserExceptions = 0;
             foreach (Exception e in caught) {
-                env.Error(e);
+                Logger.Log(LogLevel.VVV, "chatcmd", $"Caught exception: {e.GetType().Name} {e.Message}");
+                if (e is not ArgParserException ape)
+                    continue;
+                Logger.Log(LogLevel.DEV, "chatcmd", $"(ArgParserException: {ape.paramsParsed} parsed, {ape.cmd}, {ape.args}, {ape.innerParam}");
+                if (ape.paramsParsed >  maxArgsParsed)
+                    maxArgsParsed = ape.paramsParsed;
+                argParserExceptions++;
             }
+
+            Logger.Log(LogLevel.DEV, "chatcmd", $"maxArgsParsed {maxArgsParsed}, parseExceptions {argParserExceptions}");
+
+            // get rid of arg parser exceptions that got less far in parsing than another parser
+            if (argParserExceptions > 1 && maxArgsParsed > 0)
+                caught = caught.Where(e => e is not ArgParserException ape || ape.paramsParsed >= maxArgsParsed).ToList();
+
+            // The reasoning here is that if there's any parsing exception that came from parsing a single param,
+            // then other more 'generic' parser exceptions probably don't matter (e.g. number of parameters didn't match anyways)
+            if (caught.Any(e => e is ArgParserException ape && ape.innerParam != null)) {
+                caught = caught.Where(e => e is not ArgParserException ape || ape.innerParam != null).ToList();
+            }
+
+            IEnumerable<Exception> cmd_exceptions = caught.Where(e => CmdEnv.IsCmdException(e));
+            IEnumerable<Exception> cmdrun_exceptions = caught.Where(e => e is CommandRunException);
+
+            // if there are any of our custom exceptions, only report those to the player
+            if (cmd_exceptions.Any()) {
+                // if there were CommandRunException, only report that, ignore argparser/param exceptions?
+                if (cmdrun_exceptions.Any())
+                    caught = cmdrun_exceptions.ToList();
+                else
+                    caught = cmd_exceptions.ToList();
+            }
+
+            if (caught.Count > 0) {
+                env.Errors(caught);
+                return;
+            }
+
+            // just to make sure we always return at least a generic error when ParseAndRun failed. Other 'env.Error(s)' returned early.
+            env.Error();
         }
 
         public virtual void ParseAndRun(CmdEnv env, ArgParser? parser) {
@@ -188,6 +222,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public CelesteNetServer Server => Chat.Server ?? throw new Exception("Not ready.");
 
+        public static bool IsParsingException(Exception e) => e is ArgParserException || e is ParamException;
         public static bool IsCmdException(Exception e) => e is ArgParserException || e is ParamException || e is CommandRunException;
 
         public CelesteNetPlayerSession? Session {
@@ -212,10 +247,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public DataChat? Send(string text, string? tag = null, Color? color = null) => Chat.SendTo(Session, text, tag, color ?? Chat.Settings.ColorCommandReply);
 
-        public DataChat? Error(Exception e) {
+        public DataChat? Error(Exception? e = null) {
             string cmdName = Cmd?.ID ?? "?";
 
-            if (IsCmdException(e)) {
+            if (e != null && IsCmdException(e)) {
                 Logger.Log(LogLevel.VVV, "chatcmd", $"Command {cmdName} failed:\n{e}");
                 return Send($"Command {cmdName} failed: {e.Message}", color: Chat.Settings.ColorError);
             }
@@ -224,6 +259,26 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             return Send($"Command {cmdName} failed due to an internal error.", color: Chat.Settings.ColorError);
         }
 
+        public DataChat? Errors(List<Exception> errors) {
+            if (errors.Count == 1)
+                return Error(errors[0]);
+
+            string cmdName = Cmd?.ID ?? "?";
+            StringBuilder errorListing = new();
+
+            try {
+                foreach (Exception e in errors) {
+                    errorListing
+                        .AppendLine()
+                        .Append(" - ")
+                        .Append(e.Message);
+                }
+            } catch (Exception e) {
+                Error(e);
+            }
+
+            return Send($"Command {cmdName} failed:{errorListing}", color: Chat.Settings.ColorError);
+        }
     }
 
 }

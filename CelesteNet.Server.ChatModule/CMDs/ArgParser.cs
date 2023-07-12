@@ -126,16 +126,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                         values.Add(arg);
                     } else {
                         Logger.Log(LogLevel.DEV, $"argparse{p}", $"{param.GetType()}.TryParse failed or returned null.");
-                        break;
+                        throw new ArgParserException($"Failed to parse '{rawValue}' as {Parameters[p].Placeholder}.", this, parsed: p);
                     }
-                } catch (ParamException e) {
-                    string positionalParam;
-                    if (p < paramPosHumanize.Length - 1)
-                        positionalParam = paramPosHumanize[p];
-                    else
-                        positionalParam = $"{p + 1}th";
-
-                    throw new ArgParserException($"Error on {positionalParam} parameter '{Parameters[p].Placeholder}': {e.Message}", this);
+                } catch (ParamException pe) {
+                    throw new ArgParserException($"{pe.Message} (parameter '{Parameters[p].Placeholder}')", this, pe, p);
                 }
             }
 
@@ -148,10 +142,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             }
 
             if (p == Parameters.Count && !extraArguments.IsNullOrEmpty() && !IgnoreExtra)
-                throw new ArgParserException($"Too many parameters given: '{extraArguments}'.", this);
+                throw new ArgParserException($"Too many parameters given: '{extraArguments}'.", this, parsed: p);
 
             if (p < Parameters.Count && !Parameters[p].isOptional)
-                throw new ArgParserException($"Necessary parameter {Parameters[p].Placeholder} not found.", this);
+                throw new ArgParserException($"Necessary parameter {Parameters[p].Placeholder} not found.", this, parsed: p);
 
             return values;
         }
@@ -165,6 +159,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class ArgParserException : Exception {
 
         public readonly string cmd = "", args = "";
+        public readonly ParamException? innerParam;
+        public readonly int paramsParsed = 0;
 
         public ArgParserException() {
         }
@@ -177,10 +173,12 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             : base(message, inner) {
         }
 
-        public ArgParserException(string message, ArgParser ap)
+        public ArgParserException(string message, ArgParser ap, ParamException? pe = null, int parsed = 0)
             : base(message) {
             cmd = ap.Cmd.ID;
             args = ap.ToString();
+            innerParam = pe;
+            paramsParsed = parsed;
         }
     }
 }

@@ -36,7 +36,7 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
             ArgParsers.Add(parser);
 
             parser = new(chat, this);
-            parser.AddParameter(new ParamString(chat, null, ParamFlags.None, 0, @"[^0-9]+"), "command", "join");
+            parser.AddParameter(new ParamString(chat), "command", "join");
             ArgParsers.Add(parser);
         }
 

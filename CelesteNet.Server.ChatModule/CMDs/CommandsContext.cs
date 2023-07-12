@@ -104,7 +104,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public virtual void ParseAndRun(CmdEnv env) {
             if (MustAuth && !env.IsAuthorized || MustAuthExec && !env.IsAuthorizedExec) {
-                env.Error(new Exception("Unauthorized!"));
+                env.Error(new CommandRunException("Unauthorized!"));
                 return;
             }
 

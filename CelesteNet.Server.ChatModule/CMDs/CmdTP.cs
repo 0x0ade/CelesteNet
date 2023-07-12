@@ -32,7 +32,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                 throw new CommandRunException("Invalid username or ID.");
 
             CelesteNetPlayerSession? other = sessionArg.Session;
-            DataPlayerInfo otherPlayer = other?.PlayerInfo ?? throw new Exception("Invalid username or ID.");
+            DataPlayerInfo otherPlayer = other?.PlayerInfo ?? throw new CommandRunException("Invalid username or ID.");
 
             if (!env.Server.UserData.Load<TPSettings>(other.UID).Enabled)
                 throw new CommandRunException($"{otherPlayer.DisplayName} has blocked teleports.");

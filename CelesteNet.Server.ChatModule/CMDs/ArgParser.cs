@@ -9,11 +9,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public readonly ChatModule Chat;
         public readonly ChatCmd Cmd;
 
-        public static readonly string[] paramPosHumanize =
-        {
-            "first", "second", "third", "fourth", "fifth"
-        };
-
         public bool AllOptional => Parameters.TrueForAll((Param a) => { return a.isOptional; });
         public int NeededParamCount => Parameters.Count(p => !p.isOptional);
         public bool NoParse => Parameters.Count == 0;

@@ -103,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
 
                 if (Ghosts.TryGetValue(id, out DebugMapGhost ghost) &&
-                    (state.SID != area.Value.SID || state.Mode != area.Value.Mode || state.Level == CelesteNetMainComponent.LevelDebugMap))
+                    (state.SID != area.Value.SID || (AreaMode)state.Mode != area.Value.Mode || state.Level == CelesteNetMainComponent.LevelDebugMap))
                     Ghosts.Remove(id);
             }
         }
@@ -117,7 +117,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
                     Ghosts.TryGetValue(frame.Player.ID, out DebugMapGhost ghost) && (
                         state.SID != area.Value.SID ||
-                        state.Mode != area.Value.Mode ||
+                        (AreaMode)state.Mode != area.Value.Mode ||
                         state.Level == CelesteNetMainComponent.LevelDebugMap
                     )
                 ) {
@@ -133,7 +133,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost.Name = frame.Player.DisplayName;
                 ghost.Position = frame.Position;
                 ghost.SID = state.SID;
-                ghost.Mode = state.Mode;
+                ghost.Mode = (AreaMode)state.Mode;
             }
         }
 

@@ -1,18 +1,9 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Options;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Server {
@@ -47,6 +38,33 @@ namespace Celeste.Mod.CelesteNet.Server {
             SaveSettings();
 
             Server.Data.UnregisterHandlersIn(this);
+        }
+
+        public static Type[] GetTypes() {
+            Type[] typesPrev = _GetTypes();
+        Retry:
+            Type[] types = _GetTypes();
+            if (typesPrev.Length != types.Length) {
+                typesPrev = types;
+                goto Retry;
+            }
+            return types;
+        }
+
+        private static IEnumerable<Assembly> _GetAssemblies()
+            => AppDomain.CurrentDomain.GetAssemblies().Distinct();
+
+        private static Type[] _GetTypes()
+            => _GetAssemblies().SelectMany(_GetTypes).ToArray();
+
+        private static IEnumerable<Type> _GetTypes(Assembly asm) {
+            try {
+                return asm.GetTypes();
+            } catch (ReflectionTypeLoadException e) {
+#pragma warning disable CS8619 // Compiler thinks this could be <Type?> even though we check for t != null
+                return e.Types.Where(t => t != null);
+#pragma warning restore CS8619
+            }
         }
 
     }

@@ -1,5 +1,3 @@
-using System;
-
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataLowLevelKeepAlive : DataType<DataLowLevelKeepAlive> {
 

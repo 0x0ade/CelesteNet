@@ -1,9 +1,8 @@
 ﻿// Taken from http://mo.notono.us/2008/07/c-stringinject-format-strings-by-key.html
-using System;
-using System.Text.RegularExpressions;
 using System.Collections;
-using System.Globalization;
 using System.ComponentModel;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Celeste.Mod.CelesteNet {
     public static class StringInjectExtension {

@@ -1,15 +1,7 @@
-﻿using Microsoft.Xna.Framework;
-using Monocle;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.ObjectFactories;
 
 namespace Celeste.Mod.CelesteNet {
     public class ListSnapshot<T> : IList<T>, IDisposable {

@@ -1,16 +1,13 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet {
@@ -32,9 +29,6 @@ namespace Celeste.Mod.CelesteNet {
             => string.IsNullOrEmpty(value) ? null : value;
 
         public static Type[] GetTypes() {
-            if (Everest.Modules.Count != 0)
-                return _GetTypes();
-
             Type[] typesPrev = _GetTypes();
             Retry:
             Type[] types = _GetTypes();
@@ -46,9 +40,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         private static IEnumerable<Assembly> _GetAssemblies()
-            => (Everest.Modules?.Select(m => m.GetType().Assembly) ?? new Assembly[0])
-            .Concat(AppDomain.CurrentDomain.GetAssemblies())
-            .Distinct();
+            => AppDomain.CurrentDomain.GetAssemblies().Distinct();
 
         private static Type[] _GetTypes()
             => _GetAssemblies().SelectMany(_GetTypes).ToArray();

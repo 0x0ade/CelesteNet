@@ -1,8 +1,8 @@
-using System.Collections.Generic;
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System;
 
 namespace Celeste.Mod.CelesteNet.Server {
     /*

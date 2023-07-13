@@ -7,6 +7,7 @@
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
     <IsServer>$(AssemblyName.EndsWith('Server'))</IsServer>
     <IsModule>$(AssemblyName.EndsWith('Module'))</IsModule>
+    <IsShared>$(AssemblyName.EndsWith('Shared'))</IsShared>
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
     <DefineConstants>INTERNAL_NULLABLE_ATTRIBUTES;$(DefineConstants)</DefineConstants>
     <Version>2.0.0.0</Version>
@@ -93,7 +94,7 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="!$(IsServer) And !$(IsModule) And !$(IsShared)">
     <Reference Include="Celeste" HintPath="$(CelesteDir)\Celeste.exe" Private="$(CopyCeleste)" />
     <Reference Include="MMHOOK_Celeste" HintPath="$(CelesteDir)\MMHOOK_Celeste.dll" Private="$(CopyCeleste)" />
     <Reference Include="Stearmworks.NET.dll" HintPath="..\lib\Steamworks.NET.dll" Private="$(CopyCeleste)" />

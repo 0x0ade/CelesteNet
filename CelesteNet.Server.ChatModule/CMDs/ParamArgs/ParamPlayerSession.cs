@@ -43,11 +43,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             if (session != null) {
                 arg = new CmdArgPlayerSession(session);
 
-                DataPlayerInfo? sessionPlayer = session.PlayerInfo;
-                if (!Chat.Server.Data.TryGetBoundRef(session.PlayerInfo, out DataPlayerState? otherState) ||
-                otherState == null || otherState.SID.IsNullOrEmpty()) {
-                    if (IngameOnly)
+                if (IngameOnly) {
+                    if (!Chat.Server.Data.TryGetBoundRef(session.PlayerInfo, out DataPlayerState? otherState) ||
+                        otherState == null || otherState.SID.IsNullOrEmpty()) {
                         throw new ParamException("Player is not in-game.");
+                    }
                 }
 
                 Validate?.Invoke(raw, env, arg);

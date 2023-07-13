@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public void AddParameter(Param p, string? placeholder = null, string? customExample = null) {
             Param prev;
             if (!p.isOptional && Parameters.Count > 0 && (prev = Parameters.Last()).isOptional)
-                throw new Exception($"Parameter {p.Help} of {Cmd.ID} must be Optional after {prev.Help} (flags = {prev.Flags})");
+                throw new InvalidOperationException($"Parameter {p.Help} of {Cmd.ID} must be Optional after {prev.Help} (flags = {prev.Flags})");
 
             if (!placeholder.IsNullOrEmpty()) {
                 p.PlaceholderName = placeholder;

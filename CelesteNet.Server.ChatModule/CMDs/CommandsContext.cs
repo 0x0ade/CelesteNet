@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -19,9 +20,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                     continue;
 
                 ChatCmd? cmd = (ChatCmd?)Activator.CreateInstance(type);
-                if (cmd == null)
-                    throw new Exception($"Cannot create instance of CMD {type.FullName}");
-                Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd.ID.ToLowerInvariant()} ({type.FullName}, {cmd.Completion})");
+                // TODO: We have a lot of things in the server that throw Exceptions to indicate we can't properly run,
+                // we should perhaps convert those to Trace.Assert?
+                Trace.Assert(cmd is not null, $"Cannot create instance of CMD {type.FullName}");
+                Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd!.ID.ToLowerInvariant()} ({type.FullName}, {cmd.Completion})");
                 All.Add(cmd);
                 ByID[cmd.ID.ToLowerInvariant()] = cmd;
                 ByType[type] = cmd;
@@ -60,13 +62,13 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         }
 
         public ChatCmd? Get(string id)
-            => ByID.TryGetValue(id, out ChatCmd? cmd) ? cmd : null;
+            => ByID.TryGetValue(id, out ChatCmd cmd) ? cmd : null;
 
         public T? Get<T>(string id) where T : ChatCmd
-            => ByID.TryGetValue(id, out ChatCmd? cmd) ? (T)cmd : null;
+            => ByID.TryGetValue(id, out ChatCmd cmd) ? (T)cmd : null;
 
         public T Get<T>() where T : ChatCmd
-            => ByType.TryGetValue(typeof(T), out ChatCmd? cmd) ? (T)cmd : throw new Exception($"Invalid CMD type {typeof(T).FullName}");
+            => ByType.TryGetValue(typeof(T), out ChatCmd cmd) ? (T)cmd : throw new KeyNotFoundException($"Invalid CMD type {typeof(T).FullName}");
 
     }
 

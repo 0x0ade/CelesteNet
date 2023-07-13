@@ -26,12 +26,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             if (args == null || args.Count == 0)
                 throw new CommandRunException("No user.");
 
-            if (args.Count == 1)
+            if (args.Count < 2)
                 throw new CommandRunException("No text.");
 
-            if (args[0] is not CmdArgPlayerSession sessionArg) {
+            if (args[0] is not CmdArgPlayerSession sessionArg)
                 throw new CommandRunException("Invalid username or ID.");
-            }
 
             CelesteNetPlayerSession player = sessionArg.Session ?? throw new CommandRunException("Invalid username or ID.");
 

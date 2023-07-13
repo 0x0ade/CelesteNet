@@ -51,7 +51,7 @@ To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID
                 return;
             }
 
-            if (args.Count == 1 || args[1] is not CmdArgString argMsg)
+            if (args.Count < 2 || args[1] is not CmdArgString argMsg)
                 throw new CommandRunException("No text.");
 
             if (args[0] is not CmdArgPlayerSession sessionArg) {

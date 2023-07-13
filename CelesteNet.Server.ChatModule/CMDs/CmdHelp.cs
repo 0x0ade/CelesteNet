@@ -41,18 +41,15 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
         }
 
         public override void Run(CmdEnv env, List<ICmdArg>? args) {
-            Logger.Log(LogLevel.DEV, "cmdhelp", $"{GetType()}.Run args# {args?.Count}");
             if (args?.Count > 0) {
-                Logger.Log(LogLevel.DEV, "cmdhelp", $"{GetType()}.Run arg0: {args[0]}");
-                if (args[0] is CmdArgInt getPageNum) {
-                    Logger.Log(LogLevel.DEV, "cmdhelp", $"{GetType()}.Run arg0 is int: {getPageNum.Int}");
-                    env.Send(GetCommandPage(env, getPageNum.Int));
-                } else if (args[0] is CmdArgString cmdNameArg) {
-                    env.Send(GetCommandSnippet(env, cmdNameArg.String));
-                } else {
-                    env.Send(GetCommandSnippet(env, args[0].ToString()));
-                }
 
+                string helpOutput = args[0] switch {
+                    CmdArgInt getPageNum    => GetCommandPage(env, getPageNum.Int),
+                    CmdArgString cmdNameArg => GetCommandSnippet(env, cmdNameArg.String),
+                    _ => GetCommandSnippet(env, args[0].ToString()),
+                };
+
+                env.Send(helpOutput);
                 return;
             }
 
@@ -81,21 +78,24 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
                 IOrderedEnumerable<ArgParser> parsers = cmd.ArgParsers.OrderBy(ap => ap.HelpOrder);
 
                 if (cmd.ArgParsers.Count > 1 && cmd.ArgParsers.TrueForAll(ap => ap.Parameters.Count == 1)) {
-                    StringBuilder alternatives = new();
-
-                    alternatives
+                    // for commands with multiple parsers with single arguments, list them with "|" on one line
+                    builder
                         .Append(prefix)
                         .Append(cmd.ID)
                         .Append(" ");
+
                     foreach (ArgParser args in parsers) {
-                        alternatives
+                        builder
                             .Append(args.ToString())
                             .Append(args == parsers.Last() ? "" : " | ");
+                        // I almost rewrote this loop to be a do/while with MoveNext on an Enumerator
+                        // but then I felt rather silly for trying to optimize away this call to Last()
+                        // on a list enumerable that most likely has one or two elements. - Red
                     }
-                    builder
-                        .Append(alternatives.ToString())
-                        .AppendLine();
+
+                    builder.AppendLine();
                 } else if (cmd.ArgParsers.Count >= 1) {
+                    // otherwise, list all the parsers on separate lines
                     foreach (ArgParser args in parsers) {
                         builder
                             .Append(prefix)
@@ -105,6 +105,7 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
                             .AppendLine();
                     }
                 } else {
+                    // or just this when there's not even ArgParsers
                     builder
                         .Append(prefix)
                         .Append(cmd.ID)
@@ -146,14 +147,12 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
                     .Append(" ")
                     .Append(args.ToString())
                     .AppendLine();
-                //if (parsers.Any(ap => ap.NeededParamCount > 0)) {
-                    builderExamples
-                        .Append(prefix)
-                        .Append(cmd.ID)
-                        .Append(" ")
-                        .Append(args.ToExample())
-                        .AppendLine();
-                //}
+                builderExamples
+                    .Append(prefix)
+                    .Append(cmd.ID)
+                    .Append(" ")
+                    .Append(args.ToExample())
+                    .AppendLine();
             }
 
             if (cmd.ArgParsers.Count == 0) {

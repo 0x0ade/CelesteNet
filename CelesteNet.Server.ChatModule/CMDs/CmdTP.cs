@@ -54,7 +54,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             CelesteNetPlayerSession? self = env.Session;
 
             if (self == null || Other == null || OtherPlayer == null || OtherState == null)
-                throw new ArgumentNullException("This shouldn't happen, if ArgTypePlayerSession parsed successfully...");
+                throw new InvalidOperationException("This shouldn't happen, if ArgTypePlayerSession parsed successfully...");
 
             DataChat? msg = env.Send($"Teleporting to {OtherPlayer.DisplayName}");
 

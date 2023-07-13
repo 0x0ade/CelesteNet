@@ -40,57 +40,62 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Channels.N
         public override void Run(CmdEnv env, List<ICmdArg>? args) {
             CelesteNetPlayerSession? session = env.Session;
             if (session == null)
-                throw new ArgumentNullException($"Called {Chat.Settings.CommandPrefix}{ID} without player Session.");
+                throw new CommandRunException($"Called {Chat.Settings.CommandPrefix}{ID} without player Session.");
 
             if (args == null || args.Count == 0)
                 throw new ArgumentException($"Called {Chat.Settings.CommandPrefix}{ID} with no Argument?");
 
-            if (args[0] is CmdArgChannelPage argChannelPage) {
-                int page = argChannelPage.Int;
-                ListSnapshot<Channel>? channels = argChannelPage.ChannelList;
+            string commandOutput = args[0] switch {
+                CmdArgChannelPage cmdArg => GetChannelPage(env, cmdArg.Int, cmdArg.ChannelList),
+                CmdArgChannelName cmdArg => SwitchChannel(env, session, cmdArg.Name),
+                _ => throw new CommandRunException($"Failed to parse argument '{args[0]}'."),
+            };
+            env.Send(commandOutput);
 
-                if (channels == null)
-                    throw new CommandRunException($"Server failed to find channels to list.");
+        }
 
-                int pages = (int)Math.Ceiling(channels.Count / (float)pageSize);
-                StringBuilder builder = new();
+        public string GetChannelPage(CmdEnv env, int page, ListSnapshot<Channel>? channels) {
+            if (channels == null)
+                throw new CommandRunException($"Server failed to find channels to list.");
 
-                if (page == 0 && session != null)
-                    builder
-                        .Append("You're in ")
-                        .Append(session.Channel.Name)
-                        .AppendLine();
+            int pages = (int)Math.Ceiling(channels.Count / (float)pageSize);
+            StringBuilder builder = new();
 
-                for (int i = page * pageSize; i < (page + 1) * pageSize && i < channels.Count; i++) {
-                    Channel? c = channels[i];
-                    builder
-                        .Append(c.PublicName)
-                        .Append(" - ")
-                        .Append(c.Players.Count)
-                        .Append(" players")
-                        .AppendLine();
-                }
-
+            if (page == 0 && env.Session != null)
                 builder
-                    .Append("Page ")
-                    .Append(page + 1)
-                    .Append("/")
-                    .Append(pages);
+                    .Append("You're in ")
+                    .Append(env.Session.Channel.Name)
+                    .AppendLine();
 
-                env.Send(builder.ToString().Trim());
-
-            } else if (args[0] is CmdArgChannelName argChannelName) {
-                if (session == null)
-                    throw new CommandRunException("Only Players can switch channels. Are you the server?");
-
-                Tuple<Channel, Channel> tuple = env.Server.Channels.Move(session, argChannelName.Name);
-                if (tuple.Item1 == tuple.Item2) {
-                    env.Send($"Already in {tuple.Item2.Name}");
-                } else {
-                    env.Send($"Moved to {tuple.Item2.Name}");
-                }
+            for (int i = page * pageSize; i < (page + 1) * pageSize && i < channels.Count; i++) {
+                Channel? c = channels[i];
+                builder
+                    .Append(c.PublicName)
+                    .Append(" - ")
+                    .Append(c.Players.Count)
+                    .Append(" players")
+                    .AppendLine();
             }
 
+            builder
+                .Append("Page ")
+                .Append(page + 1)
+                .Append("/")
+                .Append(pages);
+
+            return builder.ToString();
+        }
+
+        public string SwitchChannel(CmdEnv env, CelesteNetPlayerSession session, string channel) {
+            try {
+                Tuple<Channel, Channel> tuple = env.Server.Channels.Move(session, channel);
+                return tuple.Item1 == tuple.Item2 ? $"Already in {tuple.Item2.Name}" : $"Moved to {tuple.Item2.Name}";
+            } catch (Exception e) {
+                if (e.GetType() == typeof(Exception)) {
+                    throw new CommandRunException(e.Message, e);
+                }
+                throw;
+            }
         }
     }
 }

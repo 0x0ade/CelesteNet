@@ -84,9 +84,9 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
                     StringBuilder alternatives = new();
 
                     alternatives
-                            .Append(prefix)
-                            .Append(cmd.ID)
-                            .Append(" ");
+                        .Append(prefix)
+                        .Append(cmd.ID)
+                        .Append(" ");
                     foreach (ArgParser args in parsers) {
                         alternatives
                             .Append(args.ToString())
@@ -95,7 +95,7 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
                     builder
                         .Append(alternatives.ToString())
                         .AppendLine();
-                } else {
+                } else if (cmd.ArgParsers.Count >= 1) {
                     foreach (ArgParser args in parsers) {
                         builder
                             .Append(prefix)
@@ -104,6 +104,11 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
                             .Append(args.ToString())
                             .AppendLine();
                     }
+                } else {
+                    builder
+                        .Append(prefix)
+                        .Append(cmd.ID)
+                        .AppendLine();
                 }
             }
 

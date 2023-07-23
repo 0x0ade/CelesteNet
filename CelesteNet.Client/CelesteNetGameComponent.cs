@@ -1,12 +1,7 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Remoting.Contexts;
-using System.Text;
-using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -40,6 +35,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         public virtual void Init() {
             Enabled = true;
             Client?.Data?.RegisterHandlersIn(this);
+            if (Client?.Data == null) {
+                Logger.Log(LogLevel.WRN, "gamecomp", $"CelesteNetGameComponent: Client?.Data is null during Init");
+            }
         }
 
         public virtual void Start() {

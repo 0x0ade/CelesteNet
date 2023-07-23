@@ -1,16 +1,12 @@
-﻿using Celeste.Editor;
-using Celeste.Mod.CelesteNet.Client.Entities;
-using Celeste.Mod.CelesteNet.DataTypes;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Monocle;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+using Celeste.Editor;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Monocle;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -98,25 +94,24 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             lock (Ghosts) {
-                AreaKey? area = LastArea;
-                if (area == null)
+                if (LastArea is not AreaKey area)
                     return;
 
                 if (Ghosts.TryGetValue(id, out DebugMapGhost ghost) &&
-                    (state.SID != area.Value.SID || state.Mode != area.Value.Mode || state.Level == CelesteNetMainComponent.LevelDebugMap))
+                    (state.SID != area.SID || state.Mode != area.Mode || state.Level == CelesteNetMainComponent.LevelDebugMap))
                     Ghosts.Remove(id);
             }
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
-            if (LastArea == null || Client?.Data == null)
+            if (LastArea is not AreaKey area || Client?.Data == null)
                 return;
 
             lock (Ghosts) {
                 if (!Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
                     Ghosts.TryGetValue(frame.Player.ID, out DebugMapGhost ghost) && (
-                        state.SID != LastArea.Value.SID ||
-                        state.Mode != LastArea.Value.Mode ||
+                        state.SID != area.SID ||
+                        state.Mode != area.Mode ||
                         state.Level == CelesteNetMainComponent.LevelDebugMap
                     )
                 ) {

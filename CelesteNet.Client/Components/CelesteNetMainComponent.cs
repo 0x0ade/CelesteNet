@@ -786,7 +786,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             PlayerNameTag.Alpha = Settings.InGameHUD.ShowOwnName ? 1f : 0f;
 
             if (CurrentChannelName != PreviousChannelName)
+            {
+                PreviousChannelName = CurrentChannelName;
                 StateUpdated = true;
+            }
         }
 
         public override void Tick() {

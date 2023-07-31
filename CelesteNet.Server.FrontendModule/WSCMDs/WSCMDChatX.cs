@@ -50,11 +50,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     .Where(id => id != 0u)
                     .ToArray();
 
-                DataPlayerInfo[] targetSessions = Frontend.Server.PlayersByID
-                    .Where(kv => targetIDs.Contains(kv.Key))
-                    .Select(kv => kv.Value.PlayerInfo)
-                    .Where(playerInfo => playerInfo != null)
-                    .Select(playerInfo => playerInfo!)
+                DataPlayerInfo[] targetSessions = Frontend.Server.Sessions
+                    .Where(s => targetIDs.Contains(s.SessionID) && s.PlayerInfo != null)
+                    .Select(s => s.PlayerInfo!)
                     .ToArray();
 
                 if (targetSessions.Length == 0)

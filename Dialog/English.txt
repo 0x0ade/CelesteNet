@@ -48,7 +48,7 @@
 	MODOPTIONS_CELESTENETCLIENT_RESETGENERALHINT=	Resets the options above to defaults, excluding Name/Key
 	MODOPTIONS_CELESTENETCLIENT_HIDEOWNCHANNEL=			Hide your channel name
 	MODOPTIONS_CELESTENETCLIENT_HIDEOWNCHANNELHINT=		Intended for streamers.{n}Prevents leaking your channel name when receiving a message or opening the player list.
-	MODOPTIONS_CELESTENETCLIENT_HIDEOWNLOCATION=		Hide Your Location
+	MODOPTIONS_CELESTENETCLIENT_HIDEOWNLOCATION=		Location Visibility
 	MODOPTIONS_CELESTENETCLIENT_HIDEOWNLOCATIONHINT=		Hides the map you're playing.{n}Useful when mapping in secret.
 	MODOPTIONS_CELESTENETCLIENT_SETTINGS=			Settings
 

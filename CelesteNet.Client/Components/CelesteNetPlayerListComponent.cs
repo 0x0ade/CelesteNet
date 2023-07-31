@@ -1,10 +1,10 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Microsoft.Xna.Framework;
-using Monocle;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Microsoft.Xna.Framework;
+using Monocle;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -245,14 +245,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!string.IsNullOrEmpty(channel?.Name) && !(HideOwnChannelName && channel == own))
                     blob.Name += $" #{channel.Name}";
 
-                if ((Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) ?? false)) {
+                if (Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) == true) {
                     if (LocationMode != LocationModes.OFF)
                         GetState(blob, state);
 
                     blob.Idle = state.Idle;
                 }
 
-                if (ShowPing && (Client?.Data?.TryGetBoundRef(player, out DataConnectionInfo conInfo) ?? false))
+                if (ShowPing && Client?.Data?.TryGetBoundRef(player, out DataConnectionInfo conInfo) == true)
                     blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
 
                 list.Add(blob);
@@ -487,14 +487,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (player == null)
                 return "9";
 
-            if ((Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) ?? false) && !string.IsNullOrEmpty(state?.SID))
+            if (Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) == true && !string.IsNullOrEmpty(state?.SID))
                 return $"0 {(state.SID.StartsWith("Celeste/") ? "0" : "1") + state.SID + (int) state.Mode} {player.FullName}";
 
             return $"8 {player.FullName}";
         }
 
         private DataPlayerInfo GetPlayerInfo(uint id) {
-            if ((Client?.Data?.TryGetRef(id, out DataPlayerInfo player) ?? false) && !string.IsNullOrEmpty(player?.DisplayName))
+            if (Client?.Data?.TryGetRef(id, out DataPlayerInfo player) == true && !string.IsNullOrEmpty(player?.DisplayName))
                 return player;
             return null;
         }
@@ -505,14 +505,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 blob.Name = player.DisplayName;
 
                 blob.LocationMode = locationMode;
-                if ((Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) ?? false)) {
+                if (Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) == true) {
                     if (locationMode != LocationModes.OFF)
                         GetState(blob, state);
 
                     blob.Idle = state.Idle;
                 }
 
-                if (ShowPing && withPing && (Client?.Data?.TryGetBoundRef(player, out DataConnectionInfo conInfo) ?? false))
+                if (ShowPing && withPing && Client?.Data?.TryGetBoundRef(player, out DataConnectionInfo conInfo) == true)
                     blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
 
                 return player;
@@ -679,7 +679,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             // shouldn't open player list on pause menu, although now with rebindable hotkey, should this still be this way?
-            if (!(Engine.Scene?.Paused ?? false))
+            if (Engine.Scene?.Paused != true)
             {
                 if (Settings.ButtonPlayerList.Pressed && !Active)
                 {
@@ -732,7 +732,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             // adjusting the actual scroll value: Don't scroll player list while chat is open
-            if (InputScrollState != 0 && !(Context?.Chat?.Active ?? false))
+            if (InputScrollState != 0 && Context?.Chat?.Active != true)
             {
                 ScrolledDistance = ScrolledDistance + InputScrollState * 6f;
                 if (ScrolledDistance < 0f)

@@ -1,4 +1,11 @@
-﻿using Celeste.Editor;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Xml.Serialization;
+using Celeste.Editor;
 using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.Core;
@@ -8,13 +15,6 @@ using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Xml.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetMainComponent : CelesteNetGameComponent {
@@ -592,7 +592,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return
                 level == null ||
                 ses == null ||
-                !(Client?.Data?.TryGetBoundRef(player, out state) ?? false) ||
+                Client?.Data?.TryGetBoundRef(player, out state) != true ||
                 state.SID != ses.Area.SID ||
                 state.Mode != ses.Area.Mode ||
                 state.Level == LevelDebugMap;

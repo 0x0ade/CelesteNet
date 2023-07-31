@@ -1,12 +1,12 @@
-﻿using Celeste.Mod.CelesteNet.Client.Entities;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetChatComponent : CelesteNetGameComponent {

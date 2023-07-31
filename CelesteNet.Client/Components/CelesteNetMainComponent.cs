@@ -57,6 +57,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private ILHook ILHookTransitionRoutine;
 
+        private string PreviousChannelName = "main";
+        private string CurrentChannelName => CelesteNetClientModule.Instance.Context.Chat.CurrentChannelName;
+
         public CelesteNetMainComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
@@ -781,6 +784,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
             }
             PlayerNameTag.Alpha = Settings.InGameHUD.ShowOwnName ? 1f : 0f;
+
+            if (CurrentChannelName != PreviousChannelName)
+                StateUpdated = true;
         }
 
         public override void Tick() {
@@ -928,12 +934,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null)),
                     Interactive = Settings.InGame.Interactions
                 };
-                string currentChannel = CelesteNetClientModule.Instance.Context.Chat.CurrentChannelName;
                 bool hideLocation = Client.Settings.PlayerListUI.HideOwnLocation switch
                 {
                     CelesteNetPlayerListComponent.LocationInvisibility.Off => false,
-                    CelesteNetPlayerListComponent.LocationInvisibility.Main => currentChannel == "main",
-                    CelesteNetPlayerListComponent.LocationInvisibility.PublicChannels => !currentChannel.StartsWith("!"),
+                    CelesteNetPlayerListComponent.LocationInvisibility.Main => CurrentChannelName == "main",
+                    CelesteNetPlayerListComponent.LocationInvisibility.PublicChannels => !CurrentChannelName.StartsWith("!"),
                     CelesteNetPlayerListComponent.LocationInvisibility.Always => true,
                     _ => throw new ArgumentException("Invalid LocationInvisibility value!", nameof(Client.Settings.PlayerListUI.HideOwnLocation))
                 };

@@ -58,7 +58,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private ILHook ILHookTransitionRoutine;
 
         private string PreviousChannelName = "main";
-        private string CurrentChannelName => CelesteNetClientModule.Instance.Context.Chat.CurrentChannelName;
+        private string CurrentChannelName => CelesteNetClientModule.Instance.Context?.Chat.CurrentChannelName;
 
         public CelesteNetMainComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {

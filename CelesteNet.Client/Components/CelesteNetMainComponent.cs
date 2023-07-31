@@ -939,11 +939,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 };
                 bool hideLocation = Client.Settings.PlayerListUI.HideOwnLocation switch
                 {
-                    CelesteNetPlayerListComponent.LocationInvisibility.Off => false,
-                    CelesteNetPlayerListComponent.LocationInvisibility.Main => CurrentChannelName == "main",
-                    CelesteNetPlayerListComponent.LocationInvisibility.PublicChannels => !CurrentChannelName.StartsWith("!"),
-                    CelesteNetPlayerListComponent.LocationInvisibility.Always => true,
-                    _ => throw new ArgumentException("Invalid LocationInvisibility value!", nameof(Client.Settings.PlayerListUI.HideOwnLocation))
+                    CelesteNetPlayerListComponent.LocationVisibility.Always => false,
+                    CelesteNetPlayerListComponent.LocationVisibility.HiddenInMain => CurrentChannelName == "main",
+                    CelesteNetPlayerListComponent.LocationVisibility.PrivateChannels => !CurrentChannelName.StartsWith("!"),
+                    CelesteNetPlayerListComponent.LocationVisibility.Never => true,
+                    _ => throw new ArgumentException("Invalid LocationVisibility value!", nameof(Client.Settings.PlayerListUI.HideOwnLocation))
                 };
                 if (hideLocation) {
                     playerState.SID = "";

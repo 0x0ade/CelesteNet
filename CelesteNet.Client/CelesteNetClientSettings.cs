@@ -462,7 +462,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             public bool HideOwnChannelName { get; set; } = false;
 
             [SettingSubText("modoptions_celestenetclient_hideownlocationhint")]
-            public CelesteNetPlayerListComponent.LocationInvisibility HideOwnLocation {
+            public CelesteNetPlayerListComponent.LocationVisibility HideOwnLocation {
                 get => _HideOwnLocation;
                 set
                 {
@@ -476,7 +476,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
             }
 
-            private CelesteNetPlayerListComponent.LocationInvisibility _HideOwnLocation = CelesteNetPlayerListComponent.LocationInvisibility.Off;
+            private CelesteNetPlayerListComponent.LocationVisibility _HideOwnLocation = CelesteNetPlayerListComponent.LocationVisibility.Always;
 
             [SettingSubText("modoptions_celestenetclient_plscrollmodehint")]
             public CelesteNetPlayerListComponent.ScrollModes PlayerListScrollMode { get; set; } = CelesteNetPlayerListComponent.ScrollModes.HoldTab;

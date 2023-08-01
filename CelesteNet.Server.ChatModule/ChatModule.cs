@@ -109,7 +109,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (player.Get<SpamContext>(this)?.IsSpam(msg) ?? false)
                     return null;
 
-            } else if (msg.Targets == null && BroadcastSpamContext.IsSpam(msg)) {
+            } else if ((msg.Targets == null || msg.Targets.Length == 0) && BroadcastSpamContext.IsSpam(msg)) {
                 return null;
             }
 
@@ -211,15 +211,21 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
 
-        public DataChat Broadcast(string text, string? tag = null, Color? color = null) {
-            Logger.Log(LogLevel.INF, "chat", $"Broadcasting: {text}");
+        public DataChat Broadcast(string text, string? tag = null, Color? color = null, DataPlayerInfo[]? targets = null) {
             DataChat msg = new() {
                 Text = text,
                 Tag = tag ?? "",
-                Color = color ?? Settings.ColorBroadcast
+                Color = color ?? Settings.ColorBroadcast,
+                Targets = targets
             };
-            Handle(null, msg);
+            Broadcast(msg);
             return msg;
+        }
+
+        public void Broadcast(DataChat msg)
+        {
+            Logger.Log(LogLevel.INF, "chat", $"Broadcasting: {msg.Text}");
+            Handle(null, msg);
         }
 
         public DataChat? SendTo(CelesteNetPlayerSession? player, string text, string? tag = null, Color? color = null) {

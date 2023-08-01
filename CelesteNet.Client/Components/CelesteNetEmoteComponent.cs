@@ -51,7 +51,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Send(string text) {
-            Client.SendAndHandle(new DataEmote {
+            Client?.SendAndHandle(new DataEmote {
                 Player = Client.PlayerInfo,
                 Text = text?.Trim()
             });
@@ -65,6 +65,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataEmote emoteData) {
             Entity target;
+
+            if (Client == null || Context?.Main == null)
+                return;
 
             if (emoteData.Player.ID == Client.PlayerInfo.ID) {
                 target = Player;

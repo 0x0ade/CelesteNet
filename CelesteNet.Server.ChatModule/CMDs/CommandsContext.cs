@@ -1,10 +1,10 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Microsoft.Xna.Framework;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CommandsContext : IDisposable {

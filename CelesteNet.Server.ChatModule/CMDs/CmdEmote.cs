@@ -1,5 +1,5 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdE : CmdEmote {

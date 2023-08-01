@@ -1,8 +1,7 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using MonoMod.Utils;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using YamlDotNet.Core;
+using Celeste.Mod.CelesteNet.DataTypes;
+using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdBan : ChatCmd {

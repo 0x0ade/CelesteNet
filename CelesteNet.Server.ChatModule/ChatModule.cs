@@ -1,10 +1,10 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
+using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat.Cmd;
 using Microsoft.Xna.Framework;
 using MonoMod.Utils;
-using System;
-using System.Collections.Concurrent;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatModule : CelesteNetServerModule<ChatSettings> {

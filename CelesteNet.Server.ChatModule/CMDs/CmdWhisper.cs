@@ -1,22 +1,15 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
-using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Server.Chat {
-    public class ChatCMDW : ChatCMDWhisper {
+namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
+    public class CmdW : CmdWhisper {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDWhisper>().ID}";
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdWhisper>().ID}";
 
     }
 
-    public class ChatCMDWhisper : ChatCMD {
+    public class CmdWhisper : ChatCmd {
 
         public override string Args => "<user> <text>";
 
@@ -29,7 +22,7 @@ $@"Send a whisper to someone else or toggle whispers.
 To send a whisper to someone, {Chat.Settings.CommandPrefix}{ID} user text
 To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID}";
 
-        public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
+        public override void Run(CmdEnv env, List<CmdArg> args) {
             if (args.Count == 0) {
                 CelesteNetPlayerSession? session = env.Session;
                 if (session == null)

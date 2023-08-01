@@ -1,16 +1,10 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Server.Chat {
-    public class ChatCMDBan : ChatCMD {
+namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
+    public class CmdBan : ChatCmd {
 
         public override string Args => "<user> <text>";
 
@@ -20,7 +14,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override bool MustAuth => true;
 
-        public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
+        public override void Run(CmdEnv env, List<CmdArg> args) {
             if (args.Count == 0)
                 throw new Exception("No user.");
 
@@ -36,13 +30,13 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 From = DateTime.UtcNow
             };
 
-            ChatModule chat = env.Chat.Server.Get<ChatModule>();
+            ChatModule chat = env.Server.Get<ChatModule>();
             new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
             player.Dispose();
             player.Con.Send(new DataDisconnectReason { Text = "Banned: " + ban.Reason });
             player.Con.Send(new DataInternalDisconnect());
 
-            env.Chat.Server.UserData.Save(player.UID, ban);
+            env.Server.UserData.Save(player.UID, ban);
         }
 
     }

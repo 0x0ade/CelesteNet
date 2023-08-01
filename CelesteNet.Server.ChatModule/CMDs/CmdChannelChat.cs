@@ -1,22 +1,15 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
-using MonoMod.Utils;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Server.Chat {
-    public class ChatCMDCC : ChatCMDChannelChat {
+namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
+    public class CmdCC : CmdChannelChat {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDChannelChat>().ID}";
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdChannelChat>().ID}";
 
     }
 
-    public class ChatCMDChannelChat : ChatCMD {
+    public class CmdChannelChat : ChatCmd {
 
         public override string Args => "<text>";
 
@@ -27,7 +20,7 @@ $@"Send a whisper to everyone in the channel or toggle auto channel chat.
 To send a message in the channel, {Chat.Settings.CommandPrefix}{ID} message here
 To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
 
-        public override void ParseAndRun(ChatCMDEnv env) {
+        public override void ParseAndRun(CmdEnv env) {
             CelesteNetPlayerSession? session = env.Session;
             if (session == null)
                 return;

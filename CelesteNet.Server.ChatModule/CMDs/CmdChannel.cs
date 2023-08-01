@@ -1,24 +1,16 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
-using MonoMod.Utils;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Server.Chat {
-    public class ChatCMDJoin : ChatCMDChannel {
+namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
+    public class CmdJoin : CmdChannel {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDChannel>().ID}";
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdChannel>().ID}";
 
         public override bool InternalAliasing => true;
 
     }
 
-    public class ChatCMDChannel : ChatCMD {
+    public class CmdChannel : ChatCmd {
 
         public override string Args => "[page] | [channel]";
 
@@ -32,7 +24,7 @@ To create / join a public channel, {Chat.Settings.CommandPrefix}{ID} channel
 To create / join a private channel, {Chat.Settings.CommandPrefix}{ID} {Channels.PrefixPrivate}channel
 To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Channels.NameDefault}";
 
-        public override void ParseAndRun(ChatCMDEnv env) {
+        public override void ParseAndRun(CmdEnv env) {
             CelesteNetPlayerSession? session = env.Session;
             if (session == null)
                 return;

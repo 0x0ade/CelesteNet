@@ -1,17 +1,11 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Server.Chat {
-    public class ChatCMDTP : ChatCMD {
+namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
+    public class CmdTP : ChatCmd {
 
         public override string Args => "<player>";
 
@@ -19,7 +13,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public override string Info => "Teleport to another player.";
 
-        public override void Run(ChatCMDEnv env, List<ChatCMDArg> args) {
+        public override void Run(CmdEnv env, List<CmdArg> args) {
             CelesteNetPlayerSession? self = env.Session;
             if (self == null || env.Player == null)
                 throw new Exception("Are you trying to TP as the server?");
@@ -55,7 +49,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             );
         }
 
-        private bool SaveAndTeleport(ChatCMDEnv env, DataChat? msg, CelesteNetPlayerSession self, CelesteNetPlayerSession other, DataPlayerInfo otherPlayer, DataPlayerState otherState, DataSession? savedSession, Vector2? savedPos) {
+        private bool SaveAndTeleport(CmdEnv env, DataChat? msg, CelesteNetPlayerSession self, CelesteNetPlayerSession other, DataPlayerInfo otherPlayer, DataPlayerState otherState, DataSession? savedSession, Vector2? savedPos) {
             new DynamicData(self).Set("tpHistory", new TPHistoryEntry {
                 State = env.State,
                 Session = savedSession,
@@ -72,7 +66,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             return true;
         }
 
-        private bool Teleport(ChatCMDEnv env, DataChat? msg, CelesteNetPlayerSession self, CelesteNetPlayerSession other, DataPlayerInfo otherPlayer, DataPlayerState otherState, DataSession? tpSession, Vector2? tpPos) {
+        private bool Teleport(CmdEnv env, DataChat? msg, CelesteNetPlayerSession self, CelesteNetPlayerSession other, DataPlayerInfo otherPlayer, DataPlayerState otherState, DataSession? tpSession, Vector2? tpPos) {
             if (msg != null) {
                 self.WaitFor<DataPlayerState>(6000, (con, state) => {
                     if (state.SID != otherState.SID ||
@@ -112,13 +106,13 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
     }
 
-    public class ChatCMDTPOn : ChatCMD {
+    public class CmdTPOn : ChatCmd {
 
         public override string Args => "";
 
         public override string Info => "Allow others to teleport to you.";
 
-        public override void ParseAndRun(ChatCMDEnv env) {
+        public override void ParseAndRun(CmdEnv env) {
             if (env.Session == null)
                 return;
 
@@ -133,13 +127,13 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
     }
 
-    public class ChatCMDTPOff : ChatCMD {
+    public class CmdTPOff : ChatCmd {
 
         public override string Args => "";
 
         public override string Info => "Prevent others from teleporting to you.";
 
-        public override void ParseAndRun(ChatCMDEnv env) {
+        public override void ParseAndRun(CmdEnv env) {
             if (env.Session == null)
                 return;
 

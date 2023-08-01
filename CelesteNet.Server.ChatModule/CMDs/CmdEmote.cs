@@ -1,22 +1,13 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
-using MonoMod.Utils;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Server.Chat {
-    public class ChatCMDE : ChatCMDEmote {
+namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
+    public class CmdE : CmdEmote {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<ChatCMDEmote>().ID}";
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdEmote>().ID}";
 
     }
 
-    public class ChatCMDEmote : ChatCMD {
+    public class CmdEmote : ChatCmd {
 
         public override string Args => "<text> | i:<img> | p:<img> | g:<img>";
 
@@ -33,7 +24,7 @@ g:TEXTURE shows TEXTURE from the Gameplay atlas.
 p:FRM1 FRM2 FRM3 plays an animation, 7 FPS by default.
 p:10 FRM1 FRM2 FRM3 plays the animation at 10 FPS.";
 
-        public override void ParseAndRun(ChatCMDEnv env) {
+        public override void ParseAndRun(CmdEnv env) {
             if (env.Session == null || string.IsNullOrWhiteSpace(env.Text))
                 return;
 

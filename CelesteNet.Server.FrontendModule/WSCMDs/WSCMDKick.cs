@@ -13,8 +13,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDKick : WSCMD<uint> {
         public override bool MustAuth => true;
-        public override object? Run(uint input)
-        {
+        public override object? Run(uint input) {
             if (!Frontend.Server.PlayersByID.TryGetValue(input, out CelesteNetPlayerSession? player))
                 return false;
 

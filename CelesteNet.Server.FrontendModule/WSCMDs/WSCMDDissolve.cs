@@ -19,8 +19,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             ChatModule chat = Frontend.Server.Get<ChatModule>();
 
             Channels channels = Frontend.Server.Channels;
-            lock (channels.All)
-            {
+            lock (channels.All) {
                 if (!channels.ByID.TryGetValue(input, out Channel? c))
                     return false;
 

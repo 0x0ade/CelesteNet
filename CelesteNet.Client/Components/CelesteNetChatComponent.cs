@@ -1,12 +1,12 @@
-﻿using Celeste.Mod.CelesteNet.Client.Entities;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetChatComponent : CelesteNetGameComponent {
@@ -302,11 +302,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Pending[text] = msg;
                 Log.Add(msg);
                 LogSpecial.Add(msg);
-                Client.Send(msg);
+                Client?.Send(msg);
             }
         }
 
         public void Handle(CelesteNetConnection con, DataChannelList channelList) {
+            if (Client == null)
+                return;
+
             // stolen homework from CelesteNetPlayerListComponent
             string tmp = channelList.List.FirstOrDefault(channel => channel.Players.Contains(Client.PlayerInfo.ID))?.Name;
             if (tmp == null) return;

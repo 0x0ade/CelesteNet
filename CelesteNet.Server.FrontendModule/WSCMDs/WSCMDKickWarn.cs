@@ -17,30 +17,29 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             uint id = (uint) input?.ID;
             string? reason = (string?) input?.Reason ?? "";
 
-            if (Frontend.Server.PlayersByID.TryGetValue(id, out CelesteNetPlayerSession? player)) {
-                string uid = player.UID;
+            if (!Frontend.Server.PlayersByID.TryGetValue(id, out CelesteNetPlayerSession? player)) 
+                return false;
 
-                ChatModule chat = Frontend.Server.Get<ChatModule>();
-                new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
-                player.Dispose();
-                player.Con.Send(new DataDisconnectReason { Text = string.IsNullOrEmpty(reason) ? "Kicked" : $"Kicked: {reason}" });
-                player.Con.Send(new DataInternalDisconnect());
+            string uid = player.UID;
 
-                UserData userData = Frontend.Server.UserData;
-                if (!reason.IsNullOrEmpty() && !userData.GetKey(uid).IsNullOrEmpty()) {
-                    KickHistory kicks = userData.Load<KickHistory>(uid);
-                    kicks.Log.Add(new() {
-                        Reason = reason,
-                        From = DateTime.UtcNow
-                    });
-                    userData.Save(uid, kicks);
-                    Frontend.BroadcastCMD(true, "update", Frontend.Settings.APIPrefix + "/userinfos");
-                }
+            ChatModule chat = Frontend.Server.Get<ChatModule>();
+            new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
+            player.Dispose();
+            player.Con.Send(new DataDisconnectReason { Text = string.IsNullOrEmpty(reason) ? "Kicked" : $"Kicked: {reason}" });
+            player.Con.Send(new DataInternalDisconnect());
 
-                return null;
+            UserData userData = Frontend.Server.UserData;
+            if (!reason.IsNullOrEmpty() && !userData.GetKey(uid).IsNullOrEmpty()) {
+                KickHistory kicks = userData.Load<KickHistory>(uid);
+                kicks.Log.Add(new() {
+                    Reason = reason,
+                    From = DateTime.UtcNow
+                });
+                userData.Save(uid, kicks);
+                Frontend.BroadcastCMD(true, "update", Frontend.Settings.APIPrefix + "/userinfos");
             }
 
-            return null;
+            return true;
         }
     }
 }

@@ -15,12 +15,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public override bool MustAuth => true;
         public override object? Run(string uid) {
             if ((uid = uid?.Trim() ?? "").IsNullOrEmpty())
-                return null;
+                return false;
 
             Frontend.Server.UserData.Delete<BanInfo>(uid);
             Frontend.BroadcastCMD(true, "update", Frontend.Settings.APIPrefix + "/userinfos");
 
-            return null;
+            return true;
         }
     }
 }

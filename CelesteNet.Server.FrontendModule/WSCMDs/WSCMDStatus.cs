@@ -14,13 +14,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public override bool MustAuth => true;
         public override object? Run(object? input) {
             if (input == null)
-                return null;
+                return false;
 
             if (input is string inputText) {
                 Frontend.Server.BroadcastAsync(new DataServerStatus {
                     Text = inputText
                 });
-                return null;
+                return true;
             }
 
             dynamic data = input;
@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             Frontend.Server.BroadcastAsync(status);
 
-            return null;
+            return true;
         }
     }
 }

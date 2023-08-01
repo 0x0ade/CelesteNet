@@ -20,7 +20,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             string? reason = (string?) input?.Reason;
             if (uids == null || uids.Length == 0 ||
                 (reason = reason?.Trim() ?? "").IsNullOrEmpty())
-                return null;
+                return false;
 
             BanInfo ban = new() {
                 UID = uids[0],
@@ -52,7 +52,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 Frontend.Server.UserData.Save(uid, ban);
             Frontend.BroadcastCMD(true, "update", Frontend.Settings.APIPrefix + "/userinfos");
 
-            return null;
+            return true;
         }
     }
 }

@@ -1,11 +1,11 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Monocle;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Monocle;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetPlayerSession : IDisposable {
@@ -483,6 +483,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public bool Filter(CelesteNetConnection con, DataPlayerGraphics graphics) {
             if (graphics.HairCount > Server.Settings.MaxHairLength)
                 graphics.HairCount = Server.Settings.MaxHairLength;
+            // FIXME: Should there be some array resizing here?
             return true;
         }
 

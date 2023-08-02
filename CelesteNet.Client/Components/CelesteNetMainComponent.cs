@@ -964,7 +964,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 animI++;
             }
 
-            int hairCount = player.Sprite.HairCount;
+            int hairCount = Calc.Clamp(player.Sprite.HairCount, 0, 30);
             Vector2[] hairScales = new Vector2[hairCount];
             for (int i = 0; i < hairCount; i++)
                 hairScales[i] = player.Hair.GetHairScale(i) * new Vector2(((i == 0) ? (int) player.Hair.Facing : 1) / Math.Abs(player.Sprite.Scale.X), 1);

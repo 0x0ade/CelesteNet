@@ -1,11 +1,11 @@
-﻿using Celeste.Mod.CelesteNet.Client.Components;
-using Celeste.Mod.CelesteNet.DataTypes;
-using Microsoft.Xna.Framework;
-using Monocle;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Celeste.Mod.CelesteNet.Client.Components;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Microsoft.Xna.Framework;
+using Monocle;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     [Tracked]
@@ -290,6 +290,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 graphics.HairCount = 1;
                 graphics.HairScales = new[] { Vector2.One };
                 graphics.HairTextures = new[] { "characters/player/hair00" };
+            } else if (graphics.HairCount > 30) {
+                graphics.HairCount = 30;
             }
 
             PlayerGraphics = graphics;
@@ -302,6 +304,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.StepInFacingPerSegment = graphics.HairStepInFacingPerSegment;
             Hair.StepApproach = graphics.HairStepApproach;
             Hair.StepYSinePerSegment = graphics.HairStepYSinePerSegment;
+            if (graphics.HairCount > Hair.Nodes.Count)
+                Hair.Nodes.Capacity = graphics.HairCount;
             while (Hair.Nodes.Count < graphics.HairCount)
                 Hair.Nodes.Add(Hair.Nodes.LastOrDefault());
             while (Hair.Nodes.Count > graphics.HairCount)

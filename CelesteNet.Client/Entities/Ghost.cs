@@ -50,6 +50,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         protected List<Action<Ghost>> UpdateQueue = new();
         protected bool IsUpdating;
 
+        public const int MaxHairLength = 30;
+
         public Ghost(CelesteNetClientContext context, DataPlayerInfo playerInfo, PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
             Context = context;
@@ -290,8 +292,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 graphics.HairCount = 1;
                 graphics.HairScales = new[] { Vector2.One };
                 graphics.HairTextures = new[] { "characters/player/hair00" };
-            } else if (graphics.HairCount > 30) {
-                graphics.HairCount = 30;
+            } else if (graphics.HairCount > MaxHairLength) {
+                graphics.HairCount = MaxHairLength;
             }
 
             PlayerGraphics = graphics;

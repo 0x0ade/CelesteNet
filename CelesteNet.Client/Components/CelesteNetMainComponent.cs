@@ -258,6 +258,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Client?.Data == null)
                 return;
 
+            if (frame.HairColors.Length > Ghost.MaxHairLength)
+                Array.Resize(ref frame.HairColors, Ghost.MaxHairLength);
+
             LastFrames[frame.Player.ID] = frame;
 
             Session session = Session;
@@ -964,7 +967,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 animI++;
             }
 
-            int hairCount = Calc.Clamp(player.Sprite.HairCount, 0, 30);
+            int hairCount = Calc.Clamp(player.Sprite.HairCount, 0, Ghost.MaxHairLength);
             Vector2[] hairScales = new Vector2[hairCount];
             for (int i = 0; i < hairCount; i++)
                 hairScales[i] = player.Hair.GetHairScale(i) * new Vector2(((i == 0) ? (int) player.Hair.Facing : 1) / Math.Abs(player.Sprite.Scale.X), 1);
@@ -1061,6 +1064,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 animID = -1;
 
             try {
+                int hairCount = Calc.Clamp(player.Sprite.HairCount, 0, Ghost.MaxHairLength);
+
                 Client?.Send(new DataPlayerFrame {
                     Player = Client.PlayerInfo,
 
@@ -1073,7 +1078,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     CurrentAnimationID = animID,
                     CurrentAnimationFrame = player.Sprite.CurrentAnimationFrame,
 
-                    HairColors = Enumerable.Range(0, player.Sprite.HairCount).Select(i => player.Hair.GetHairColor(i)).ToArray(),
+                    HairColors = Enumerable.Range(0, hairCount).Select(i => player.Hair.GetHairColor(i)).ToArray(),
                     HairTexture0 = player.Hair.GetHairTexture(0).AtlasPath,
                     HairSimulateMotion = player.Hair.SimulateMotion,
 

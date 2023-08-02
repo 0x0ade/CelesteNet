@@ -483,7 +483,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public bool Filter(CelesteNetConnection con, DataPlayerGraphics graphics) {
             if (graphics.HairCount > Server.Settings.MaxHairLength)
                 graphics.HairCount = Server.Settings.MaxHairLength;
-            // FIXME: Should there be some array resizing here?
+            // don't really need to resize arrays if they're bigger; it'll only send up to graphics.HairCount
             return true;
         }
 

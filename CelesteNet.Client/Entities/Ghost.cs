@@ -1,11 +1,11 @@
-﻿using Celeste.Mod.CelesteNet.Client.Components;
-using Celeste.Mod.CelesteNet.DataTypes;
-using Microsoft.Xna.Framework;
-using Monocle;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Celeste.Mod.CelesteNet.Client.Components;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Microsoft.Xna.Framework;
+using Monocle;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     [Tracked]
@@ -49,6 +49,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
         protected List<Action<Ghost>> UpdateQueue = new();
         protected bool IsUpdating;
+
+        public const int MaxHairLength = 30;
 
         public Ghost(CelesteNetClientContext context, DataPlayerInfo playerInfo, PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
@@ -290,6 +292,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 graphics.HairCount = 1;
                 graphics.HairScales = new[] { Vector2.One };
                 graphics.HairTextures = new[] { "characters/player/hair00" };
+            } else if (graphics.HairCount > MaxHairLength) {
+                graphics.HairCount = MaxHairLength;
             }
 
             PlayerGraphics = graphics;
@@ -302,6 +306,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Hair.StepInFacingPerSegment = graphics.HairStepInFacingPerSegment;
             Hair.StepApproach = graphics.HairStepApproach;
             Hair.StepYSinePerSegment = graphics.HairStepYSinePerSegment;
+            if (graphics.HairCount > Hair.Nodes.Count)
+                Hair.Nodes.Capacity = graphics.HairCount;
             while (Hair.Nodes.Count < graphics.HairCount)
                 Hair.Nodes.Add(Hair.Nodes.LastOrDefault());
             while (Hair.Nodes.Count > graphics.HairCount)

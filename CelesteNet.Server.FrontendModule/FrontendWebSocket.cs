@@ -33,6 +33,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         private new EState State = EState.Invalid;
         private WSCMD? CurrentCommand;
 
+        public readonly object MessageLock = new();
+
 #pragma warning disable CS8618 // Fully initialized after construction.
         public FrontendWebSocket() {
 #pragma warning restore CS8618
@@ -46,6 +48,29 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         public void SendRawString(string data) {
             Send(data);
+        }
+
+        public void SendRawObject(object data) {
+            using MemoryStream ms = new();
+            using (StreamWriter sw = new(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
+            using (JsonTextWriter jtw = new(sw))
+                Frontend.Serializer.Serialize(jtw, data);
+
+            ms.Seek(0, SeekOrigin.Begin);
+
+            using StreamReader sr = new(ms, Encoding.UTF8, false, 1024, true);
+            Send(sr.ReadToEnd());
+        }
+
+        public void SendCommand(string command, object data) { 
+            lock (MessageLock) 
+                try { 
+                    SendRawString("cmd");
+                    SendRawString(command);
+                    SendRawObject(data);
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.VVV, "frontend", $"Failed sending command:\n{CurrentEndPoint}\n{e}");
+                }
         }
 
         private void RunCommand(object? input) {

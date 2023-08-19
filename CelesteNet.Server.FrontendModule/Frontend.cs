@@ -134,14 +134,18 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
-            BroadcastCMD(false, "sess_join", PlayerSessionToFrontend(session, shorten: true));
+            Broadcast(frontendWS => frontendWS.SendCommand(
+                "sess_join", PlayerSessionToFrontend(session, frontendWS.IsAuthorized, true)
+            ));
             TryBroadcastUpdate(Settings.APIPrefix + "/status");
             //TryBroadcastUpdate(Settings.APIPrefix + "/players");
             session.OnEnd += OnSessionEnd;
         }
 
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
-            BroadcastCMD(false, "sess_leave", PlayerSessionToFrontend(session, shorten: true));
+            Broadcast(frontendWS => frontendWS.SendCommand(
+                "sess_leave", PlayerSessionToFrontend(session, frontendWS.IsAuthorized, true)
+            ));
             TryBroadcastUpdate(Settings.APIPrefix + "/status");
             //TryBroadcastUpdate(Settings.APIPrefix + "/players");
         }
@@ -410,13 +414,21 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             BroadcastCMD(authOnly, "update", path);
         }
 
-        public void BroadcastCMD(bool authOnly, string id, object obj) {
+        public void BroadcastCMD(bool authOnly, string id, object obj) => Broadcast(frontendWS => {
+            if (!authOnly || frontendWS.IsAuthorized)
+                frontendWS.SendCommand(id, obj);
+        });
+
+        public void Broadcast(Action<FrontendWebSocket> callback) {
             if (WSHost == null)
                 return;
 
             foreach (FrontendWebSocket frontendWS in WSHost.Sessions.Sessions)
-                if (!authOnly || frontendWS.IsAuthorized)
-                    frontendWS.SendCommand(id, obj);
+                try {
+                    callback(frontendWS);
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.VVV, "frontend", $"Failed broadcasting:\n{frontendWS.CurrentEndPoint}\n{e}");
+                }
         }
 
         #region Read / Parse Helpers

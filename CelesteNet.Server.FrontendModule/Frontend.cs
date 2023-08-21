@@ -414,21 +414,24 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             BroadcastCMD(authOnly, "update", path);
         }
 
-        public void BroadcastCMD(bool authOnly, string id, object obj) => Broadcast(frontendWS => {
-            if (!authOnly || frontendWS.IsAuthorized)
-                frontendWS.SendCommand(id, obj);
-        });
+        public void BroadcastCMD(bool authOnly, string id, object obj) {
+            Broadcast(frontendWS => {
+                if (!authOnly || frontendWS.IsAuthorized)
+                    frontendWS.SendCommand(id, obj);
+            });
+        }
 
         public void Broadcast(Action<FrontendWebSocket> callback) {
             if (WSHost == null)
                 return;
 
-            foreach (FrontendWebSocket frontendWS in WSHost.Sessions.Sessions)
+            foreach (FrontendWebSocket frontendWS in WSHost.Sessions.Sessions) {
                 try {
                     callback(frontendWS);
                 } catch (Exception e) {
                     Logger.Log(LogLevel.VVV, "frontend", $"Failed broadcasting:\n{frontendWS.CurrentEndPoint}\n{e}");
                 }
+            }
         }
 
         #region Read / Parse Helpers

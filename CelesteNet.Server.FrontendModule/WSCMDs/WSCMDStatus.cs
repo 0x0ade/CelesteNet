@@ -2,6 +2,7 @@
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using MonoMod.Utils;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,12 +26,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             dynamic data = input;
             DataServerStatus status = new();
-            if (data.Text is string text)
-                status.Text = text;
-            if (data.Time is float time)
-                status.Time = time;
-            if (data.Spin is bool spin)
-                status.Spin = spin;
+            if (data.Text.Type is JTokenType.String)
+                status.Text = (string) data.Text;
+            if (data.Time.Type is (JTokenType.Float or JTokenType.Integer))
+                status.Time = (float) data.Time;
+            if (data.Spin.Type is JTokenType.Boolean)
+                status.Spin = (bool) data.Spin;
 
             Frontend.Server.BroadcastAsync(status);
 

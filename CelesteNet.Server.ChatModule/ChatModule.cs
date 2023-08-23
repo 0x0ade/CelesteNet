@@ -185,7 +185,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             OnReceive?.Invoke(this, msg);
 
-            Server.BroadcastAsync(msg);
+            if (msg.Targets == null){
+                Server.BroadcastAsync(msg);
+                return;
+            }
+
+            DataInternalBlob blob = new(Server.Data, msg);
+            foreach (DataPlayerInfo playerInfo in msg.Targets)
+                if (Server.PlayersByID.TryGetValue(playerInfo.ID, out CelesteNetPlayerSession? player))
+                    player.Con?.Send(blob);
         }
 
         public void Handle(CelesteNetConnection con, DataEmote emote) {

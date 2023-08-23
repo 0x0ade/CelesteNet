@@ -399,34 +399,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             return key;
         }
 
-        public void BroadcastRawString(bool authOnly, string data) {
-            if (WSHost == null)
-                return;
-
-            foreach (FrontendWebSocket session in WSHost.Sessions.Sessions.ToArray())
-                if (!authOnly || session.IsAuthorized)
-                    try {
-                        session.SendRawString(data);
-                    } catch (Exception e) {
-                        Logger.Log(LogLevel.VVV, "frontend", $"Failed broadcast:\n{session.CurrentEndPoint}\n{e}");
-                    }
-        }
-
-        public void BroadcastRawObject(bool authOnly, object obj) {
-            if (WSHost == null)
-                return;
-
-            using MemoryStream ms = new();
-            using (StreamWriter sw = new(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
-            using (JsonTextWriter jtw = new(sw))
-                Serializer.Serialize(jtw, obj);
-
-            ms.Seek(0, SeekOrigin.Begin);
-
-            using StreamReader sr = new(ms, Encoding.UTF8, false, 1024, true);
-            BroadcastRawString(authOnly, sr.ReadToEnd());
-        }
-
         public void TryBroadcastUpdate(string path, bool authOnly = false) {
             WSUpdateCooldowns.TryGetValue(path, out long cd);
             if (cd > DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) {
@@ -439,9 +411,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         public void BroadcastCMD(bool authOnly, string id, object obj) {
-            BroadcastRawString(authOnly, "cmd");
-            BroadcastRawString(authOnly, id);
-            BroadcastRawObject(authOnly, obj);
+            if (WSHost == null)
+                return;
+
+            foreach (FrontendWebSocket frontendWS in WSHost.Sessions.Sessions)
+                if (!authOnly || frontendWS.IsAuthorized)
+                    frontendWS.SendCommand(id, obj);
         }
 
         #region Read / Parse Helpers

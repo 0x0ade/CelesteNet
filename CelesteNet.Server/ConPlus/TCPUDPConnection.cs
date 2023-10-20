@@ -79,6 +79,21 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
+        private readonly object DequeueFilterLock = new();
+        private DataFilter? _OnDequeueFilter;
+        public event DataFilter OnDequeueFilter {
+            add {
+                lock (DequeueFilterLock) {
+                    _OnDequeueFilter += value;
+                }
+            }
+            remove {
+                lock (DequeueFilterLock) {
+                    _OnDequeueFilter -= value;
+                }
+            }
+        }
+
         public bool TCPSendCapped => TCPSendRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkBpTCap || TCPSendRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerTCPUplinkPpTCap;
         public float TCPSendCapDelay => Math.Max(Server.Settings.HeuristicSampleWindow * Math.Max(1 - Server.Settings.PlayerTCPUplinkBpTCap / TCPSendRate.ByteRate, 1 - Server.Settings.PlayerTCPUplinkPpTCap / TCPSendRate.PacketRate), 0);
         public bool UDPSendCapped => UDPSendRate.ByteRate > Server.CurrentTickRate * Server.Settings.PlayerUDPUplinkBpTCap || UDPSendRate.PacketRate > Server.CurrentTickRate * Server.Settings.PlayerUDPUplinkPpTCap;
@@ -349,6 +364,10 @@ namespace Celeste.Mod.CelesteNet.Server {
                         TCPDisconnectAfterSendBufferFlush = true;
                         break;
                     }
+
+                    lock (DequeueFilterLock)
+                        if (!(_OnDequeueFilter?.InvokeWhileTrue(this, packet) ?? true))
+                            continue;
 
                     // Write the packet
                     long origPos = TCPSendBufferStream.Position;

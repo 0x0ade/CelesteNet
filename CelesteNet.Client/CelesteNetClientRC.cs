@@ -318,7 +318,9 @@ header {
                                 Write(c, $"ERROR: No value given.");
                                 return;
                             }
-                            var result =  HttpUtils.Post("https://celeste.centralteam.cn/oauth/token","\r\n{\"client_id\":\"ccE8Ulzu4ObVUlWmSozW7CUtc6zmfAQd\",\r\n\"client_secret\":\"Fzojlor7EuxB6KT2juQoTTuAs9Is2F\",\r\n\"grant_type\":\"authorization_code\",\r\n\"code\":\""+name+"\",\r\n\"redirect_uri\":\"http://localhost:38038/auth\"\r\n}\r\n");
+                            string clientId = "DEV";
+                            string clientSecret ="DEV";
+                            var result =  HttpUtils.Post("https://celeste.centralteam.cn/oauth/token","\r\n{\"client_id\":\""+clientId+"\",\r\n\"client_secret\":\""+clientSecret+"\",\r\n\"grant_type\":\"authorization_code\",\r\n\"code\":\""+name+"\",\r\n\"redirect_uri\":\"http://localhost:38038/auth\"\r\n}\r\n");
                             dynamic json = JsonConvert.DeserializeObject(result);
                             CelesteNetClientModule.Settings.Key = json.access_token;
                             CelesteNetClientModule.Settings.RefreshToken = json.refresh_token;
@@ -327,7 +329,7 @@ header {
                             CelesteNetClientModule.Settings.ExpiredTime = (timeStamp + (int)json.expires_in).ToString();
                             CelesteNetClientModule.Instance.SaveSettings();
                             CelesteNetClientModule.Settings.Connected = true;
-                            Write(c, "OK");
+                            Write(c, "登录成功 请关闭此网页");
                         }
 
                     }

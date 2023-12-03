@@ -9,6 +9,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         protected Camera Camera;
 
+        public Color Color = Color.White;
         public float Alpha = 1f;
 
         public GhostNameTag(Entity tracking, string name)
@@ -76,7 +77,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 pos,
                 new(0.5f, 1f),
                 Vector2.One * 0.5f * scale,
-                Color.White * a,
+                Color * a,
                 2f,
                 Color.Black * (a * a * a)
             );

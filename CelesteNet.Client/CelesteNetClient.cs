@@ -303,11 +303,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                     int i = info.FullName.IndexOf('#');
                     string newName = i > 0 ? info.FullName.Substring(0, i) : info.FullName;
 
-                    // take on the 'generated' Guest name
-                    if (newName != "Guest") {
-                        Logger.Log(LogLevel.INF, "playerinfo", $"Connected as Guest, but got '{newName}'. Saving fixed Guest name to config.");
-                        Settings.Name = newName;
-                    }
                 }
             }
         }

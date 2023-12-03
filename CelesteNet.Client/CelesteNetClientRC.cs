@@ -6,55 +6,72 @@ using System.Text;
 using System.Threading;
 using System.Net;
 using System.Collections.Specialized;
+using Celeste.Mod.CelesteNet.Client.Utils;
+using Newtonsoft.Json;
 
-namespace Celeste.Mod.CelesteNet.Client {
+namespace Celeste.Mod.CelesteNet.Client
+{
     // Based off of Everest's own DebugRC.
-    public static class CelesteNetClientRC {
+    public static class CelesteNetClientRC
+    {
 
         private static readonly char[] URLArgsSeperator = new[] { '&' };
 
         private static HttpListener Listener;
         private static Thread ListenerThread;
 
-        public static void Initialize() {
+        public static void Initialize()
+        {
             if (Listener != null)
                 return;
 
-            try {
+            try
+            {
                 Listener = new();
                 // Port MUST be fixed as the website expects it to be the same for everyone.
                 Listener.Prefixes.Add($"http://localhost:{CelesteNetUtils.ClientRCPort}/");
                 Listener.Start();
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 e.LogDetailed();
-                try {
+                try
+                {
                     Listener?.Stop();
-                } catch { }
+                }
+                catch { }
                 return;
             }
 
-            ListenerThread = new(ListenerLoop) {
+            ListenerThread = new(ListenerLoop)
+            {
                 IsBackground = true,
                 Priority = ThreadPriority.BelowNormal
             };
             ListenerThread.Start();
         }
 
-        public static void Shutdown() {
+        public static void Shutdown()
+        {
             Listener?.Abort();
             ListenerThread?.Abort();
             Listener = null;
             ListenerThread = null;
         }
 
-        private static void ListenerLoop() {
+        private static void ListenerLoop()
+        {
             Logger.Log(LogLevel.INF, "rc", $"Started ClientRC thread, available via http://localhost:{CelesteNetUtils.ClientRCPort}/");
-            try {
-                while (Listener?.IsListening ?? false) {
-                    ThreadPool.QueueUserWorkItem(c => {
+            try
+            {
+                while (Listener?.IsListening ?? false)
+                {
+                    ThreadPool.QueueUserWorkItem(c =>
+                    {
                         HttpListenerContext context = c as HttpListenerContext;
 
-                        if (context.Request.HttpMethod == "OPTIONS") {
+                        if (context.Request.HttpMethod == "OPTIONS")
+                        {
                             context.Response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-Requested-With");
                             context.Response.AddHeader("Access-Control-Allow-Methods", "GET, POST");
                             context.Response.AddHeader("Access-Control-Max-Age", "1728000");
@@ -62,37 +79,55 @@ namespace Celeste.Mod.CelesteNet.Client {
                         }
                         context.Response.AppendHeader("Access-Control-Allow-Origin", "*");
 
-                        try {
+                        try
+                        {
                             using (context.Request.InputStream)
-                            using (context.Response) {
+                            using (context.Response)
+                            {
                                 HandleRequest(context);
                             }
-                        } catch (ThreadAbortException) {
+                        }
+                        catch (ThreadAbortException)
+                        {
                             throw;
-                        } catch (ThreadInterruptedException) {
+                        }
+                        catch (ThreadInterruptedException)
+                        {
                             throw;
-                        } catch (Exception e) {
+                        }
+                        catch (Exception e)
+                        {
                             Logger.Log(LogLevel.INF, "rc", $"ClientRC failed responding: {e}");
                         }
                     }, Listener.GetContext());
                 }
-            } catch (ThreadAbortException) {
+            }
+            catch (ThreadAbortException)
+            {
                 throw;
-            } catch (ThreadInterruptedException) {
+            }
+            catch (ThreadInterruptedException)
+            {
                 throw;
-            } catch (HttpListenerException e) {
+            }
+            catch (HttpListenerException e)
+            {
                 // 500 = Listener closed.
                 // 995 = I/O abort due to thread abort or application shutdown.
                 if (e.ErrorCode != 500 &&
-                    e.ErrorCode != 995) {
+                    e.ErrorCode != 995)
+                {
                     Logger.Log(LogLevel.INF, "rc", $"ClientRC failed listening ({e.ErrorCode}): {e}");
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 Logger.Log(LogLevel.INF, "rc", $"ClientRC failed listening: {e}");
             }
         }
 
-        private static void HandleRequest(HttpListenerContext c) {
+        private static void HandleRequest(HttpListenerContext c)
+        {
             Logger.Log(LogLevel.VVV, "rc", $"Requested: {c.Request.RawUrl}");
 
             string url = c.Request.RawUrl;
@@ -112,7 +147,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region Read / Parse Helpers
 
-        public static NameValueCollection ParseQueryString(string url) {
+        public static NameValueCollection ParseQueryString(string url)
+        {
             NameValueCollection nvc = new();
 
             int indexOfSplit = url.IndexOf('?');
@@ -121,7 +157,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             url = url.Substring(indexOfSplit + 1);
 
             string[] args = url.Split(URLArgsSeperator);
-            foreach (string arg in args) {
+            foreach (string arg in args)
+            {
                 indexOfSplit = arg.IndexOf('=');
                 if (indexOfSplit == -1)
                     continue;
@@ -135,7 +172,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         #region Write Helpers
 
-        public static void WriteHTMLStart(HttpListenerContext c, StringBuilder builder) {
+        public static void WriteHTMLStart(HttpListenerContext c, StringBuilder builder)
+        {
             builder.Append(
 @"<!DOCTYPE html>
 <html>
@@ -192,7 +230,8 @@ header {
             builder.AppendLine(@"<div id=""main"">");
         }
 
-        public static void WriteHTMLEnd(HttpListenerContext c, StringBuilder builder) {
+        public static void WriteHTMLEnd(HttpListenerContext c, StringBuilder builder)
+        {
             builder.AppendLine(@"</div>");
 
             builder.Append(
@@ -203,7 +242,8 @@ header {
             );
         }
 
-        public static void Write(HttpListenerContext c, string str) {
+        public static void Write(HttpListenerContext c, string str)
+        {
             byte[] buf = CelesteNetUtils.UTF8NoBOM.GetBytes(str);
             c.Response.ContentLength64 = buf.Length;
             c.Response.OutputStream.Write(buf, 0, buf.Length);
@@ -262,28 +302,36 @@ header {
                 },
 
                 new RCEndPoint {
-                    Path = "/setkey",
-                    PathHelp = "/setkey?value={key} (Example: ?value=1a2b3d4e)",
-                    PathExample = "/setkey?value=Guest",
-                    Name = "Set Key",
-                    InfoHTML = "Set the key as the client name for the next connection.",
+                    Path = "/auth",
+                    PathHelp = "/auth?code={key} (Example: ?code=1a2b3d4e)",
+                    PathExample = "/auth?code=Guest",
+                    Name = "AuthCode",
+                    InfoHTML = "Set Auth Code to Get Token",
                     Handle = c => {
-                        NameValueCollection data = ParseQueryString(c.Request.RawUrl);
-
-                        string name = data["value"].Trim();
-                        if (string.IsNullOrEmpty(name)) {
-                            c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
-                            Write(c, $"ERROR: No value given.");
-                            return;
+                        NameValueCollection data = ParseQueryString(c.Request.RawUrl.Replace("#","?"));
+                        Console.WriteLine(data);
+                        if (data.AllKeys.Contains("code"))
+                        {
+                            string name = data["code"].Trim();
+                            if (string.IsNullOrEmpty(name)) {
+                                c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
+                                Write(c, $"ERROR: No value given.");
+                                return;
+                            }
+                            var result =  HttpUtils.Post("https://celeste.centralteam.cn/oauth/token","\r\n{\"client_id\":\"ccE8Ulzu4ObVUlWmSozW7CUtc6zmfAQd\",\r\n\"client_secret\":\"Fzojlor7EuxB6KT2juQoTTuAs9Is2F\",\r\n\"grant_type\":\"authorization_code\",\r\n\"code\":\""+name+"\",\r\n\"redirect_uri\":\"http://localhost:38038/auth\"\r\n}\r\n");
+                            dynamic json = JsonConvert.DeserializeObject(result);
+                            CelesteNetClientModule.Settings.Key = json.access_token;
+                            CelesteNetClientModule.Settings.RefreshToken = json.refresh_token;
+                            System.DateTime startTime = TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1)); //
+                            long timeStamp = (long)(DateTime.Now - startTime).TotalSeconds;
+                            CelesteNetClientModule.Settings.ExpiredTime = (timeStamp + (int)json.expires_in).ToString();
+                            CelesteNetClientModule.Instance.SaveSettings();
+                            CelesteNetClientModule.Settings.Connected = true;
+                            Write(c, "OK");
                         }
 
-                        CelesteNetClientModule.Settings.Key = "#" + name;
-                        CelesteNetClientModule.Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Key;
-                        CelesteNetClientModule.Instance.SaveSettings();
-                        Write(c, "OK");
                     }
-                },
-
+                }
             };
 
         #endregion

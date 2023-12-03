@@ -336,23 +336,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         [RCEndpoint(false, "/players", null, null, "Player List", "Basic player list.")]
         public static void Players(Frontend f, HttpRequestEventArgs c) {
-            bool auth = f.IsAuthorized(c);
-
-            // Gate the players endpoint behind control panel auth or player auth, as exposing online player names is a bit eh.
-            if (!auth && (
-                    f.TryGetKeyCookie(c) is not string key || key.IsNullOrEmpty() ||
-                    f.Server.UserData.GetUID(key) is not string uid || uid.IsNullOrEmpty()
-            )) {
-                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
-                f.RespondJSON(c, new {
-                    Error = "Unauthorized."
-                });
-                return;
-            }
-
             object responseObj;
             using (f.Server.ConLock.R()) {
-                responseObj = f.Server.PlayersByID.Values.Select(p => f.PlayerSessionToFrontend(p, auth)).ToArray();
+                responseObj = f.Server.PlayersByID.Values.Select(p => f.PlayerSessionToFrontend(p, true)).ToArray();
             }
             f.RespondJSON(c, responseObj);
         }

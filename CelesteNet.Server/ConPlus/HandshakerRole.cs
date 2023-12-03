@@ -118,7 +118,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 // Do the teapot handshake
                 IConnectionFeature[]? conFeatures = null;
-                string? playerUID = null, playerName = null;
+                string? playerUID = null, playerName = null,playerColor = null,avaterPhotoUrl = null,playerPrefix = null;
                 CelesteNetClientOptions? clientOptions = null;
                 using (CancellationTokenSource tokenSrc = new()) {
                     // .NET is completly stupid, you can't cancel async socket operations
@@ -126,13 +126,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                     tokenSrc.CancelAfter(TeapotTimeout);
                     tokenSrc.Token.Register(() => sock.Close());
                     try {
-                        (IConnectionFeature[], string, string, CelesteNetClientOptions)? teapotRes =
+                        (IConnectionFeature[], string, string, CelesteNetClientOptions,string,string,string)? teapotRes =
                             await TeapotHandshake(
                                 sock, conToken, settings,
                                 ConPlusTCPUDPConnection.GetConnectionUID(remoteEP)
                             );
                         if (teapotRes != null)
-                            (conFeatures, playerUID, playerName, clientOptions) = teapotRes.Value;
+                            (conFeatures, playerUID, playerName, clientOptions,playerColor,avaterPhotoUrl,playerPrefix) = teapotRes.Value;
                     } catch {
                         if (tokenSrc.IsCancellationRequested) {
                             Logger.Log(LogLevel.VVV, "tcpudphs", $"Handshake for connection {remoteEP} timed out, maybe an old client?");
@@ -160,7 +160,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                     // Better safe than sorry
                     if (!alive || !con.IsConnected)
                         return;
-                    Server.CreateSession(con, playerUID, playerName, clientOptions);
+                    Server.CreateSession(con, playerUID, playerName, clientOptions,playerColor,avaterPhotoUrl,playerPrefix);
                 }
             } catch {
                 con?.Dispose();
@@ -171,13 +171,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         // Let's mess with web crawlers even more ;)
         // Also: I'm a Teapot
-        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName, CelesteNetClientOptions clientOptions)?> TeapotHandshake<T>(Socket sock, uint conToken, T settings, string conUID) where T : new() {
+        private async Task<(IConnectionFeature[] conFeatures, string playerUID, string playerName, CelesteNetClientOptions clientOptions,string playerColor,string avaterPhotoUrl,string playerPrefix)?> TeapotHandshake<T>(Socket sock, uint conToken, T settings, string conUID) where T : new() {
             using NetworkStream netStream = new(sock, false);
             BufferedStream bufStream = new(netStream);
             try {
                 using StreamReader reader = new(bufStream, CelesteNetUtils.UTF8NoBOM, false, 1024, true);
                 using StreamWriter writer = new(bufStream, CelesteNetUtils.UTF8NoBOM, 1024, true);
-                async Task<(IConnectionFeature[], string, string, CelesteNetClientOptions)?> Send500() {
+                async Task<(IConnectionFeature[], string, string, CelesteNetClientOptions,string,string,string)?> Send500() {
                     await writer.WriteAsync(
 @"HTTP/1.1 500 Internal Server Error
 Connection: close
@@ -246,11 +246,13 @@ Connection: close
                     return await Send500();
 
                 // Authenticate name-key
-                string? errorReason = AuthenticatePlayerNameKey(playerNameKey, conUID, out string? playerUID, out string? playerName);
+                string? errorReason = AuthenticatePlayerNameKey(playerNameKey, conUID, out string? playerUID, out string? playerName,out string? playerColor,out string? avaterPhotoUrl,out string? playerPrefix);
                 if (playerUID == null)
                     errorReason ??= "No UID";
                 if (playerName == null)
                     errorReason ??= "No name";
+                if (avaterPhotoUrl == null)
+                    avaterPhotoUrl = "https://celeste.centralteam.cn/assets/uploads/profile/default.jpg";
                 if (errorReason != null || playerUID == null || playerName == null) {
                     Logger.Log(LogLevel.VVV, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
                     await writer.WriteAsync(
@@ -334,7 +336,7 @@ Who wants some tea?"
                     .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n" + "\r\n"
                 );
 
-                return (matchedFeats.Select(f => f.feature).ToArray(), playerUID, playerName, clientOptions);
+                return (matchedFeats.Select(f => f.feature).ToArray(), playerUID, playerName, clientOptions,playerColor,avaterPhotoUrl,playerPrefix);
             } finally {
                 // We must try-catch buffered stream disposes as those will try to flush.
                 // If a network stream was torn down out of our control, it will throw!
@@ -358,43 +360,18 @@ Who wants some tea?"
             });
         }
 
-        public string? AuthenticatePlayerNameKey(string nameKey, string conUID, out string? playerUID, out string? playerName) {
+        public string? AuthenticatePlayerNameKey(string nameKey, string conUID, out string? playerUID, out string? playerName,out string? playerColor ,out string? avaterPhotoUrl,out string? playerPrefix) {
             // Get the player UID and name from the player name-key
-            playerUID = playerName = null;
-            if (nameKey.Length > 1 && nameKey[0] == '#') {
-                playerUID = Server.UserData.GetUID(nameKey.Substring(1));
-                if (playerUID != null && Server.UserData.TryLoad(playerUID, out BasicUserInfo info))
-                    playerName = info.Name;
-                else
-                    return string.Format(Server.Settings.MessageInvalidKey, nameKey);
-            } else if (nameKey.Length == 16 && nameKey.All("0123456789abcdefABCDEF".Contains) && (playerUID = Server.UserData.GetUID(nameKey)) != null) {
-                // this is for people who entered 16 hex-digits and probably forgot the # and we don't want to leak their key
-                if (Server.UserData.TryLoad(playerUID, out BasicUserInfo info)) {
-                    playerName = info.Name;
-                } else
-                    return string.Format(Server.Settings.MessageInvalidKey, nameKey);
-            } else if (!Server.Settings.AuthOnly) {
-                playerName = nameKey;
-                playerUID = $"fb-{conUID}";
-            } else
-                return string.Format(Server.Settings.MessageAuthOnly, nameKey);
-
-            // Check if the player's banned
-            BanInfo? ban = null;
-            if (Server.UserData.TryLoad(playerUID, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To))
-                ban = banInfo;
-            if (Server.UserData.TryLoad(conUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To))
-                ban = conBanInfo;
-            if (ban != null)
-                return string.Format(Server.Settings.MessageBan, playerUID, playerName, ban.Reason);
-
-            // Sanitize the player's name
-            playerName = playerName.Sanitize(CelesteNetPlayerSession.IllegalNameChars);
-            if (playerName.Length > Server.Settings.MaxNameLength)
-                playerName = playerName.Substring(0, Server.Settings.MaxNameLength);
-            if (playerName.IsNullOrEmpty())
-                playerName = "Guest";
-
+            playerUID = playerName = avaterPhotoUrl = playerPrefix = playerColor = null;
+            if (nameKey.Length > 1 && nameKey.StartsWith("#"))
+            {
+                playerUID = $"miaoNet-{conUID}";
+                playerName = "TestAccount";
+                avaterPhotoUrl = null;
+                playerColor = "#FFFFFF";
+                playerPrefix = "prefix";
+                return null;
+            }
             return null;
         }
 

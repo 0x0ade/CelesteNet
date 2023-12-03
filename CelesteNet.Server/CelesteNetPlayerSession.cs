@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.Server.Utils;
 using Monocle;
 
 namespace Celeste.Mod.CelesteNet.Server {
@@ -38,6 +39,11 @@ namespace Celeste.Mod.CelesteNet.Server {
             "Heart",    "Rainbow",  "Orb",    "Mountain"
         };
 
+
+        private string playerColor;
+        private string playerPrefix;
+        private string avaterPhotoUrl;
+
         public readonly CelesteNetServer Server;
         public readonly CelesteNetConnection Con;
         public readonly uint SessionID;
@@ -63,11 +69,14 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         private DataNetFilterList? FilterList = null;
 
-        internal CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint sesId, string uid, string name, CelesteNetClientOptions clientOptions) {
+        internal CelesteNetPlayerSession(CelesteNetServer server, CelesteNetConnection con, uint sesId, string uid, string name, CelesteNetClientOptions clientOptions,string playerColor,string avaterPhotoUrl,string playerPrefix) {
             Server = server;
             Con = con;
             SessionID = sesId;
             ClientOptions = clientOptions;
+            this.playerColor = playerColor;
+            this.avaterPhotoUrl = avaterPhotoUrl;
+            this.playerPrefix = playerPrefix;
 
             _Alive = 1;
             UID = uid;
@@ -152,20 +161,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            // generate more easily memorable persistent Guest name like "GuestDashingMadeline"
-            if (Name == "Guest") {
-                Random rnd = new Random(ClientOptions.ClientID != 0 ? (int) ClientOptions.ClientID : UID.GetHashCode());
-                string prefix = "", character = "";
-                while (prefix == character) {
-                    prefix = rnd.Choose(GuestNamePrefixes);
-                    character = rnd.Choose(GuestNameCharacter);
-                }
-                fullName = fullNameSpace = $"Guest{prefix}{character}";
-            }
-
-            using (Server.ConLock.R()) {
+            using (Server.ConLock.R())
+            {
                 int i = 1;
-                while (true) {
+                while (true)
+                {
                     bool conflict = false;
                     foreach (CelesteNetPlayerSession other in Server.Sessions)
                         if (conflict = other.PlayerInfo?.FullName == fullName)
@@ -177,12 +177,15 @@ namespace Celeste.Mod.CelesteNet.Server {
                     fullName = $"{Name}#{i}";
                 }
             }
-
             // Handle avatars
             string displayName = fullNameSpace;
-
-            using (Stream? avatarStream = Server.UserData.ReadFile(UID, "avatar.png")) {
-                if (avatarStream != null) {
+            if (!String.IsNullOrEmpty(playerPrefix))
+                fullNameSpace = $"[{playerPrefix}]{displayName}";
+            string img = HttpUtils.GetImage(avaterPhotoUrl);
+            using (Stream? avatarStream = File.OpenRead(img))
+            {
+                if (avatarStream != null)
+                {
                     string avatarId = $"celestenet_avatar_{SessionID}_";
                     displayName = $":{avatarId}: {fullNameSpace}";
 
@@ -190,12 +193,14 @@ namespace Celeste.Mod.CelesteNet.Server {
                     List<DataNetEmoji> avatarFrags = new();
                     byte[] buf = new byte[Server.Settings.MaxPacketSize / 2];
                     int fragSize, seqNum = 0;
-                    while ((fragSize = avatarStream.Read(buf, 0, buf.Length)) > 0) {
+                    while ((fragSize = avatarStream.Read(buf, 0, buf.Length)) > 0)
+                    {
                         byte[] frag = new byte[fragSize];
                         Buffer.BlockCopy(buf, 0, frag, 0, fragSize);
                         if (avatarFrags.Count > 0)
                             avatarFrags[avatarFrags.Count - 1].MoreFragments = true;
-                        avatarFrags.Add(new DataNetEmoji {
+                        avatarFrags.Add(new DataNetEmoji
+                        {
                             ID = avatarId,
                             Data = frag,
                             SequenceNumber = seqNum++,
@@ -205,16 +210,25 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     // Turn avatar fragments into blobs
                     AvatarFragments = avatarFrags.Select(frag => DataInternalBlob.For(Server.Data, frag)).ToArray();
-                } else
+                }
+                else
                     AvatarFragments = Dummy<DataInternalBlob>.EmptyArray;
             }
-
+            try
+            {
+                File.Delete(img);
+            }
+            catch (Exception e)
+            {
+            }
             // Create the player's PlayerInfo
-            DataPlayerInfo playerInfo = new() {
+            DataPlayerInfo playerInfo = new()
+            {
                 ID = SessionID,
                 Name = Name,
                 FullName = fullName,
-                DisplayName = displayName
+                DisplayName = displayName,
+                NameColor = Calc.HexToColor(playerColor)
             };
             playerInfo.Meta = playerInfo.GenerateMeta(Server.Data);
             Server.Data.SetRef(playerInfo);

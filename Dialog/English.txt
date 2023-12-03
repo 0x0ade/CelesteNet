@@ -33,10 +33,10 @@
 	MODOPTIONS_CELESTENETCLIENT_SERVER=				Server: ((server))
 	MODOPTIONS_CELESTENETCLIENT_LOGINMODE=			Login Mode
 	MODOPTIONS_CELESTENETCLIENT_LOGINMODEHINT=		Guest - set "Name" below and connect as Guest{n}Key - see note on "Key" input below when enabled{n}NOTE: Name/Key can only be edited when you're disconnected/offline!
-	MODOPTIONS_CELESTENETCLIENT_NAME=				Name: ((name))
 	MODOPTIONS_CELESTENETCLIENT_NAMEHINT=			A guest name - will not use linked account or have profile pic.
 	MODOPTIONS_CELESTENETCLIENT_KEY=				Key: ((key))
-	MODOPTIONS_CELESTENETCLIENT_KEYHINT=			Get key by linking a Discord account on celestenet.0x0a.de (in web browser).
+	MODOPTIONS_CELESTENETCLIENT_KEYHINT=			They will auto set by mode,donot edit unless you know what you're doing!{n}NOTE: Name/Key can only be edited when you're disconnected/offline!
+	MODOPTIONS_CELESTENETCLIENT_LOGIN=			    LOGIN
 
 	MODOPTIONS_CELESTENETCLIENT_KEYDISPLAY_HIDE=\#\#\#HIDDEN\#\#\#
 	MODOPTIONS_CELESTENETCLIENT_KEYDISPLAY_NONE=-

@@ -17,6 +17,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public static CelesteNetServer? Server;
 
+        //日志头
         private static void LogHeader(TextWriter w) {
             w.WriteLine("CelesteNet.Server");
             w.WriteLine($"Server v.{typeof(CelesteNetServer).Assembly.GetName().Version}");
@@ -24,6 +25,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             w.WriteLine();
         }
 
+        //从目录中加载动态库
         private static ResolveEventHandler GetAssemblyResolverForDirectory(string dir) => (asmSender, asmArgs) => {
             if (asmArgs.Name == null)
                 return null;
@@ -34,10 +36,13 @@ namespace Celeste.Mod.CelesteNet.Server {
             return File.Exists(path) ? Assembly.LoadFrom(path) : null;
         };
 
+        //程序入口点
         public static void Main(string[] args) {
+            //区域性兼容处理
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
             CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
+            //加载动态库 加载Celeste主程序做依赖
             string? serverPath = typeof(CelesteNetServer).Assembly.Location;
             if (!serverPath.IsNullOrEmpty() && !(serverPath = Path.GetDirectoryName(Path.GetFullPath(serverPath))).IsNullOrEmpty())
                 AppDomain.CurrentDomain.AssemblyResolve += GetAssemblyResolverForDirectory(serverPath);
@@ -50,7 +55,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 AppDomain.CurrentDomain.AssemblyResolve += GetAssemblyResolverForDirectory(celestePath);
             }
 #endif
-
+            
             MainMain(args);
         }
 

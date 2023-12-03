@@ -9,6 +9,7 @@ using MonoMod.Utils;
 using System.Collections;
 using Celeste.Mod.CelesteNet.Client.Components;
 using System.IO;
+using Celeste.Mod.CelesteNet.Client.Utils;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
@@ -119,17 +120,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                         }
                     }
 
-                    if (string.IsNullOrWhiteSpace(Settings.Name))
-                        Settings.Name = "Guest";
-
-                    if (Settings.Name.StartsWith("#")) {
-                        Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Key;
-                        Settings.Key = Settings.Name;
-                        Settings.Name = "Guest";
-                    } else {
-                        Settings.LoginMode = CelesteNetClientSettings.LoginModeType.Guest;
-                        Settings.Key = "";
-                    }
                 } else {
                     Logger.Log(LogLevel.INF, "LoadSettings", $"Reverting to default settings...");
                     _Settings = new CelesteNetClientSettings();
@@ -194,7 +184,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Settings.AutoReconnect = settingsOld.AutoReconnect;
                 Settings.ReceivePlayerAvatars = settingsOld.ReceivePlayerAvatars;
 
-                Settings.Name = settingsOld.Name;
                 Settings.Server = settingsOld.Server;
 
                 Settings.Debug.ConnectionType = settingsOld.ConnectionType;
@@ -324,8 +313,31 @@ namespace Celeste.Mod.CelesteNet.Client {
                         Logger.Log(LogLevel.WRN, "main", $"CelesteNetClientModule StartThread: 'This shouldn't ever happen but it has happened once.'");
                         return;
                     }
-
                     context.Init(Settings);
+                    if (String.IsNullOrEmpty(CelesteNetClientModule.Settings.RefreshToken)&&String.IsNullOrEmpty(Settings.Key))
+                    {
+                        context.Status.Set("Please login first", 3f);
+                        Thread.Sleep(3000);
+                        _StartThread = null;
+                        Stop();
+                        return;
+                    }
+
+                    if (!String.IsNullOrEmpty(Settings.RefreshToken)&&Settings.ExpiredTime != null)
+                    {
+                        System.DateTime startTime = TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1)); //
+                        long timeStamp = (long)(DateTime.Now - startTime).TotalSeconds;
+                        if (timeStamp > Convert.ToInt64(Settings.ExpiredTime)) {
+                            if (!TokenUtils.refreshToken())
+                            {
+                                context.Status.Set("Please login again", 3f);
+                                Thread.Sleep(3000);
+                                _StartThread = null;
+                                Stop();
+                                return;
+                            }
+                        }
+                    }
                     context.Status.Set("Connecting...");
                     using (_StartTokenSource) {
                         Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule StartThread: Going into context Start...");
@@ -353,8 +365,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                             _StartThread = null;
                             Stop();
                             context.Status.Set(cee.Status ?? "Connection failed", 3f, false);
-                            if (cee.Status.ToLower().Trim() == "invalid key")
-                                Settings.KeyError = CelesteNetClientSettings.KeyErrors.InvalidKey;
                             handled = true;
                             break;
                         }

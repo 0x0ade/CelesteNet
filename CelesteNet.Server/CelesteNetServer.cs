@@ -309,10 +309,10 @@ namespace Celeste.Mod.CelesteNet.Server {
         public event Action<CelesteNetPlayerSession>? OnSessionStart;
 
         private int nextSesId = 0;
-        public CelesteNetPlayerSession CreateSession(CelesteNetConnection con, string playerUID, string playerName, CelesteNetClientOptions clientOptions) {
+        public CelesteNetPlayerSession CreateSession(CelesteNetConnection con, string playerUID, string playerName, CelesteNetClientOptions clientOptions,string playerColor,string avaterPhotoUrl,string playerPrefix) {
             CelesteNetPlayerSession ses;
             using (ConLock.W()) {
-                ses = new(this, con, unchecked ((uint) Interlocked.Increment(ref nextSesId)), playerUID, playerName, clientOptions);
+                ses = new(this, con, unchecked ((uint) Interlocked.Increment(ref nextSesId)), playerUID, playerName, clientOptions,playerColor,avaterPhotoUrl,playerPrefix);
                 Sessions.Add(ses);
                 PlayersByCon[con] = ses;
                 PlayersByID[ses.SessionID] = ses;

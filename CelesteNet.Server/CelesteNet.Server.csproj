@@ -21,7 +21,7 @@
 
   <Target Name="ClearModulesFolder" AfterTargets="AfterBuild" Condition="false">
     <ItemGroup>
-      <FilesToDelete Include="bin\$(Configuration)\$(TargetFramework)\Modules\**\*"/>
+      <FilesToDelete Include="bin\$(Configuration)\$(TargetFramework)\Modules\**\*" />
     </ItemGroup>
     <Delete Files="@(FilesToDelete)" />
   </Target>

@@ -27,11 +27,16 @@ namespace Celeste.Mod.CelesteNet.Client {
                     Logger.LogDetailed(LogLevel.WRN, "CelesteNetClientSettings", $"Attempt to change Settings.Version from {SettingsVersionDoNotEdit} to {value} which is not allowed!");
             }
         }
+        public string RefreshToken { get; set; }
 
+        public string ExpiredTime { get; set; }
         #region Top Level Settings
 
         [SettingIgnore]
         public bool WantsToBeConnected { get; set; }
+
+        [SettingIgnore, YamlIgnore]
+        public TextMenu.Button LoginButton { get; protected set; }
 
         [YamlIgnore]
         public bool Connected {
@@ -48,8 +53,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                     Engine.Scene.OnEndOfFrame += () => EnabledEntry?.LeftPressed();
                 if (ServerEntry != null)
                     ServerEntry.Disabled = value || !(Engine.Scene is Overworld);
-                if (NameEntry != null)
-                    NameEntry.Disabled = value || !(Engine.Scene is Overworld) || _loginMode != LoginModeType.Guest;
                 if (KeyEntry != null)
                     SetKeyEntryDisabled(value || !(Engine.Scene is Overworld) || _loginMode != LoginModeType.Key);
                 if (ExtraServersEntry != null)
@@ -69,7 +72,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public TextMenu.OnOff ReceivePlayerAvatarsEntry { get; protected set; }
 
-        public const string DefaultServer = "celeste.0x0a.de";
+        public const string DefaultServer = "localhost";
 #if DEBUG
         [SettingSubHeader("modoptions_celestenetclient_subheading_general")]
 #else
@@ -93,8 +96,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ServerEntry { get; protected set; }
 
-        [SettingIgnore]
+        [SettingIgnore, YamlIgnore]
         public string[] ExtraServers { get; set; }
+
         [SettingIgnore, YamlIgnore]
         public TextMenu.Slider ExtraServersEntry { get; protected set; }
 
@@ -109,30 +113,17 @@ namespace Celeste.Mod.CelesteNet.Client {
             set {
                 _loginMode = value;
                 switch (value) {
-                    case LoginModeType.Guest:
-                        // Enable Name (unless in-game), disable Key input
-                        if (NameEntry != null)
-                            NameEntry.Disabled = !(Engine.Scene is Overworld) || Connected;
-                        if (KeyEntry != null)
-                            SetKeyEntryDisabled();
-                        break;
                     case LoginModeType.Key:
                         // Enable Key (unless in-game), disable Name input
-                        if (NameEntry != null) {
-                            NameEntry.Disabled = true;
-                        }
                         if (KeyEntry != null)
                             SetKeyEntryDisabled(!(Engine.Scene is Overworld) || Connected);
                         break;
                 }
             }
         }
-        private LoginModeType _loginMode = LoginModeType.Guest;
+        private LoginModeType _loginMode = LoginModeType.Key;
 
-        public string Name { get; set; } = "Guest";
 
-        [SettingIgnore, YamlIgnore]
-        public TextMenu.Button NameEntry { get; protected set; }
 
 
         public string Key {
@@ -141,15 +132,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
             set {
                 value = value.TrimStart('#');
-
-                if (value.Length != 16) {
-                    KeyError = KeyErrors.InvalidLength;
-                } else if (!value.All("0123456789abcdefABCDEF".Contains)) {
-                    KeyError = KeyErrors.InvalidChars;
-                } else {
-                    KeyError = KeyErrors.None;
-                }
-
+                KeyError = KeyErrors.None;
                 _Key = "#" + value;
             }
         }
@@ -161,7 +144,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public TextMenu.Button KeyEntry { get; protected set; }
 
         [SettingIgnore, YamlIgnore]
-        public string NameKey => _loginMode == LoginModeType.Guest ? Name : Key;
+        public string NameKey =>  Key;
 
         [SettingIgnore, YamlIgnore]
         public KeyErrors KeyError {
@@ -185,6 +168,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ResetGeneralButton { get; protected set; }
+
 
         #endregion
 
@@ -300,12 +284,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             [SettingRange(1, 12)]
             public int ScreenMargins { get; set; } = 4;
-
-            public void CreateNameOpacityEntry(TextMenuExt.SubMenu menu, bool inGame) {
-                menu.Add(
-                    new TextMenu.Slider("modoptions_celestenetclient_nameopacity".DialogClean(), i => $"{i * 5}%", 0, 20, NameOpacity).Change(v => NameOpacity = v)
-                );
-            }
 
             public void CreateEmoteOpacityEntry(TextMenuExt.SubMenu menu, bool inGame) {
                 menu.Add(
@@ -771,6 +749,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             return item;
         }
 
+
         public TextMenu.Button CreateMenuButton(TextMenu menu, string dialogLabel, Func<string, string>? dialogTransform, Action onPress)
         {
             string label = $"modoptions_celestenetclient_{dialogLabel}".DialogClean();
@@ -779,6 +758,16 @@ namespace Celeste.Mod.CelesteNet.Client {
             menu.Add(item);
             return item;
         }
+        public void CreateLoginButtonEntry(TextMenu menu, bool inGame)
+        {
+            LoginButton = CreateMenuButton(menu, "Login", null, () =>
+            {
+                System.Diagnostics.Process.Start("https://celeste.centralteam.cn/oauth/authorize?client_id=ccE8Ulzu4ObVUlWmSozW7CUtc6zmfAQd&response_type=code&redirect_uri=http://localhost:38038/auth&scope=celeste.read");
+            });
+            LoginButton.Disabled = Connected;
+        }
+
+
         public TextMenu.Button CreateMenuStringInput(TextMenu menu, string dialogLabel, Func<string, string>? dialogTransform, int maxValueLength, Func<string> currentValue, Action<string> newValue) {
             string label = $"modoptions_celestenetclient_{dialogLabel}".DialogClean();
             TextMenu.Button item = new TextMenu.Button(dialogTransform?.Invoke(label) ?? label);
@@ -810,11 +799,13 @@ namespace Celeste.Mod.CelesteNet.Client {
 #endif
         }
 
-        public void CreateNameEntry(TextMenu menu, bool inGame)
+        public void CreateRefreshTokenEntry(TextMenu menu,bool inGame)
         {
-            NameEntry = CreateMenuStringInput(menu, "NAME", s => s.Replace("((name))", Name), 20, () => Name, newVal => Name = newVal);
-            NameEntry.AddDescription(menu, "modoptions_celestenetclient_namehint".DialogClean());
-            NameEntry.Disabled = inGame || Connected || _loginMode != LoginModeType.Guest;
+
+        }
+        public void CreateExpiredTimeEntry(TextMenu menu, bool inGame)
+        {
+
         }
         public void CreateKeyEntry(TextMenu menu, bool inGame)
         {
@@ -962,7 +953,6 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public enum LoginModeType
         {
-            Guest = 0,
             Key = 1
         }
         public enum OffScreenModes {
@@ -989,9 +979,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool ReceivePlayerAvatars { get; set; } = true;
 
-        public string Name { get; set; } = "Guest";
 
-        public string Server { get; set; } = "celeste.0x0a.de";
+        public string Server { get; set; } = "localhost";
 
         public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
 
@@ -1039,6 +1028,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         public ButtonBinding ButtonChat { get; set; }
 
         public string[] Emotes { get; set; }
+
+        public string refreshToken { get; set; }
 
     }
 }

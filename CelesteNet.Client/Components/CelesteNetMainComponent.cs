@@ -797,7 +797,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (PlayerNameTag == null || PlayerNameTag.Tracking != Player || PlayerNameTag.Scene != level) {
                 PlayerNameTag?.RemoveSelf();
-                level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
+                level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName) { Color = Client.PlayerInfo.NameColor });
             }
             PlayerNameTag.Alpha = Settings.InGameHUD.ShowOwnName ? 1f : 0f;
         }

@@ -136,8 +136,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Logger.Log(LogLevel.INF, "LoadSettings", $"Settings Migration done, set Version to {Settings.Version}");
             }
 
-            // .ga domains have become inaccessible for some people.
-            if (string.IsNullOrWhiteSpace(Settings.Server) || Settings.Server == "celeste.0x0ade.ga" || Settings.Server == "celestenet.0x0ade.ga")
                 Settings.Server = CelesteNetClientSettings.DefaultServer;
 
             if (Settings.Emotes == null || Settings.Emotes.Length == 0) {

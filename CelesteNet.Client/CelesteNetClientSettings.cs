@@ -6,7 +6,9 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Policy;
+using System.Windows.Forms;
 using YamlDotNet.Serialization;
+using Keys = Microsoft.Xna.Framework.Input.Keys;
 
 namespace Celeste.Mod.CelesteNet.Client {
     [SettingName("modoptions_celestenetclient_title")]
@@ -775,8 +777,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
                 catch (Exception e)
                 {
-                    CelesteNetClientModule.Instance.Context.Status.Set("Login Failed,Please see the log.",5f);
-                    Logger.Log(LogLevel.INF, "celestemodcore", "Login Failed");
+                    CelesteNetClientModule.Instance.Context.Status.Set("The login link has been copied to the clipboard, please access the login yourself.", 5f);
+                    Clipboard.SetText("https://celeste.centralteam.cn/oauth/authorize?client_id=FSygRsIuDy0edjcJzYuw2PpJL1TwkWa&response_type=code&redirect_uri=http://localhost:38038/auth&scope=celeste.read");
+                    Logger.Log(LogLevel.INF, "celestemodcore", "Login Failed , The login link has been copied to the clipboard, please access the login yourself.");
                 }
             });
             LoginButton.Disabled = Connected;

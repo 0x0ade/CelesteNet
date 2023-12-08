@@ -3,7 +3,9 @@ using Celeste.Mod.UI;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Security.Policy;
 using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -72,7 +74,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public TextMenu.OnOff ReceivePlayerAvatarsEntry { get; protected set; }
 
-        public const string DefaultServer = "localhost";
+        public const string DefaultServer = "celesteserver.centralteam.cn";
 #if DEBUG
         [SettingSubHeader("modoptions_celestenetclient_subheading_general")]
 #else
@@ -762,7 +764,20 @@ namespace Celeste.Mod.CelesteNet.Client {
         {
             LoginButton = CreateMenuButton(menu, "Login", null, () =>
             {
-                System.Diagnostics.Process.Start("https://celeste.centralteam.cn/oauth/authorize?client_id=ccE8Ulzu4ObVUlWmSozW7CUtc6zmfAQd&response_type=code&redirect_uri=http://localhost:38038/auth&scope=celeste.read");
+                try
+                {
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = "https://celeste.centralteam.cn/oauth/authorize?client_id=FSygRsIuDy0edjcJzYuw2PpJL1TwkWa&response_type=code&redirect_uri=http://localhost:38038/auth&scope=celeste.read",
+                        UseShellExecute = true
+                    };
+                    System.Diagnostics.Process.Start(psi);
+                }
+                catch (Exception e)
+                {
+                    CelesteNetClientModule.Instance.Context.Status.Set("Login Failed,Please see the log.",5f);
+                    Logger.Log(LogLevel.INF, "celestemodcore", "Login Failed");
+                }
             });
             LoginButton.Disabled = Connected;
         }
@@ -980,7 +995,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public bool ReceivePlayerAvatars { get; set; } = true;
 
 
-        public string Server { get; set; } = "localhost";
+        public string Server { get; set; } = "celesteserver.centralteam.cn";
 
         public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
 

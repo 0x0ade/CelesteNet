@@ -1,4 +1,6 @@
 using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.Server.Utils;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -365,14 +367,20 @@ Who wants some tea?"
             playerUID = playerName = avaterPhotoUrl = playerPrefix = playerColor = null;
             if (nameKey.Length > 1 && nameKey.StartsWith("#"))
             {
+                string key = nameKey.Substring(1);
+                dynamic? json = JsonConvert.DeserializeObject(HttpUtils.Get($"https://celeste.centralteam.cn/api/celeste/user?access_token={key}", 5000));
+                if (json == null||json.id == null)
+                {
+                    return string.Format(Server.Settings.MessageInvalidKey, nameKey);
+                }
                 playerUID = $"miaoNet-{conUID}";
-                playerName = "TestAccount";
-                avaterPhotoUrl = null;
-                playerColor = "#FFFFFF";
-                playerPrefix = "prefix";
+                playerName = (string)json.username;
+                avaterPhotoUrl = (string)json.avatar_url;
+                playerColor = (string)json.color;
+                playerPrefix = (string)json.prefix;
                 return null;
             }
-            return null;
+            return string.Format(Server.Settings.MessageAuthOnly, nameKey);
         }
 
     }

@@ -10,6 +10,7 @@ using System.Collections;
 using Celeste.Mod.CelesteNet.Client.Components;
 using System.IO;
 using Celeste.Mod.CelesteNet.Client.Utils;
+using Celeste.Mod.Helpers;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
@@ -41,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         // This should ideally be part of the "emote module" if emotes were a fully separate thing.
         public VirtualJoystick JoystickEmoteWheel;
-
+        public EverestModule CelesteNetModule;
         public CelesteNetClientModule() {
             Instance = this;
         }
@@ -62,6 +63,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             Everest.Events.Celeste.OnShutdown += CelesteNetClientRC.Shutdown;
 
             CelesteNetClientSpriteDB.Load();
+            CelesteNetModule = (EverestModule)Activator.CreateInstance(FakeAssembly.GetFakeEntryAssembly().GetType("Celeste.Mod.NullModule"), new EverestModuleMetadata
+            {
+                Name = "CelesteNet.Client",
+                VersionString = "2.2.2"
+            });
+            Everest.Register(CelesteNetModule);
         }
 
         public override void LoadContent(bool firstLoad) {

@@ -68,17 +68,22 @@ namespace Celeste.Mod.CelesteNet.Client {
             CelesteNetModule = (EverestModule)Activator.CreateInstance(FakeAssembly.GetFakeEntryAssembly().GetType("Celeste.Mod.NullModule"), new EverestModuleMetadata
             {
                 Name = "CelesteNet.Client",
-                VersionString = "3.3.3"
+                VersionString = "2.2.2"
             });
             Everest.Register(CelesteNetModule);
-            IL.Celeste.OuiMainMenu.Enter += OuiMainMenu_Enter;
+            On.Celeste.OuiMainMenu.Enter += OuiMainMenu_Enter;
         }
 
-        private void OuiMainMenu_Enter(ILContext il)
+        private IEnumerator OuiMainMenu_Enter(On.Celeste.OuiMainMenu.orig_Enter orig, OuiMainMenu self, Oui from)
         {
+            IEnumerator origEnum = orig(self, from);
+            while (origEnum.MoveNext()) {
+                yield return origEnum.Current;
+            }
             if (Settings.AutoConnect)
             {
-                Task.Delay(3000).ContinueWith(t => {
+                Task.Delay(3000).ContinueWith(t =>
+                {
                     CelesteNetClientModule.Settings.Connected = true;
                 });
             }
@@ -103,6 +108,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             UIRenderTarget?.Dispose();
             UIRenderTarget = null;
+
+            On.Celeste.OuiMainMenu.Enter -= OuiMainMenu_Enter;
         }
 
         public override void LoadSettings() {

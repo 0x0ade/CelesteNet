@@ -62,7 +62,7 @@
     <When Condition="'$(CelesteDir)' == ''">
       <!-- Whoops. -->
       <PropertyGroup>
-        <CelesteDir>C:\Program Files (x86)\Steam\steamapps\common\Celeste</CelesteDir>
+        <CelesteDir>C:\Program Files\Epic Games\Celeste</CelesteDir>
         <InCelesteModDir>false</InCelesteModDir>
         <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
       </PropertyGroup>

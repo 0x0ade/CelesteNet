@@ -41,6 +41,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button LoginButton { get; protected set; }
 
+        [SettingName("MODOPTIONS_CELESTENETCLIENT_AUTO_CONNECT")]
+        public bool AutoConnect { get; set; } = true;
+
+        [SettingName("MODOPTIONS_CELESTENETCLIENT_USE_EN_FONT_WHEN_POSSIBLE")]
+        public bool UseENFontWhenPossible { get; set; } = false;
+
         [YamlIgnore]
         public bool Connected {
             get => CelesteNetClientModule.Instance.IsAlive;
@@ -95,6 +101,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
         private string _Server = DefaultServer;
+
 
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ServerEntry { get; protected set; }
@@ -776,8 +783,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
                 catch (Exception e)
                 {
-                    CelesteNetClientModule.Instance.Context.Status.Set("The login link has been copied to the clipboard, please access the login yourself.", 5f);
-                    System.Windows.Forms.Clipboard.SetText("https://celeste.centralteam.cn/oauth/authorize?client_id=FSygRsIuDy0edjcJzYuw2PpJL1TwkWa&response_type=code&redirect_uri=http://localhost:38038/auth&scope=celeste.read");
+                    CelesteNetClientModule.Instance.Context.Status.Set("Please Go to celeste.centralteam.cn Press [CelesteLogin].", 5f);
                     Logger.Log(LogLevel.INF, "celestemodcore", "Login Failed , The login link has been copied to the clipboard, please access the login yourself.");
                 }
             });
@@ -996,6 +1002,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool ReceivePlayerAvatars { get; set; } = true;
 
+        public bool AutoConnect { get; set; } = true;
+
+        public bool UseENFontWhenPossible { get; set; } = false;
 
         public string Server { get; set; } = "celesteserver.centralteam.cn";
 

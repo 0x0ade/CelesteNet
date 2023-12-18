@@ -11,6 +11,8 @@ using Celeste.Mod.CelesteNet.Client.Components;
 using System.IO;
 using Celeste.Mod.CelesteNet.Client.Utils;
 using Celeste.Mod.Helpers;
+using System.Threading.Tasks;
+using MonoMod.Cil;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
@@ -66,9 +68,20 @@ namespace Celeste.Mod.CelesteNet.Client {
             CelesteNetModule = (EverestModule)Activator.CreateInstance(FakeAssembly.GetFakeEntryAssembly().GetType("Celeste.Mod.NullModule"), new EverestModuleMetadata
             {
                 Name = "CelesteNet.Client",
-                VersionString = "2.2.2"
+                VersionString = "3.3.3"
             });
             Everest.Register(CelesteNetModule);
+            IL.Celeste.OuiMainMenu.Enter += OuiMainMenu_Enter;
+        }
+
+        private void OuiMainMenu_Enter(ILContext il)
+        {
+            if (Settings.AutoConnect)
+            {
+                Task.Delay(3000).ContinueWith(t => {
+                    CelesteNetClientModule.Settings.Connected = true;
+                });
+            }
         }
 
         public override void LoadContent(bool firstLoad) {

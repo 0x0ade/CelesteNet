@@ -18,19 +18,14 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Client {
+namespace Celeste.Mod.CelesteNet.Client
+{
     // Copy of ActiveFont that always uses the English font.
-    public static class CelesteNetClientFont {
+    public static class CelesteNetClientFont
+    {
+        public static PixelFont Font => Fonts.Load(Dialog.Languages["schinese"].FontFace);
 
-        public static PixelFont Font
-        {
-            get
-            {
-                return Fonts.Load(Dialog.Languages["schinese"].FontFace);
-            }
-        }
-
-        public static PixelFont FontEN => Fonts.Get(Dialog.Languages["english"].FontFace);
+        public static PixelFont FontEN => Fonts.Load(Dialog.Languages["english"].FontFace);
 
         public static PixelFontSize FontSize => Font.Get(BaseSize);
 

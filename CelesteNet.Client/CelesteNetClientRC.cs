@@ -14,7 +14,7 @@ namespace Celeste.Mod.CelesteNet.Client
     // Based off of Everest's own DebugRC.
     public static class CelesteNetClientRC
     {
-
+        private static CancellationTokenSource tokenSource;
         private static readonly char[] URLArgsSeperator = new[] { '&' };
 
         private static HttpListener Listener;
@@ -24,7 +24,7 @@ namespace Celeste.Mod.CelesteNet.Client
         {
             if (Listener != null)
                 return;
-
+            tokenSource = new();
             try
             {
                 Listener = new();
@@ -48,24 +48,37 @@ namespace Celeste.Mod.CelesteNet.Client
                 IsBackground = true,
                 Priority = ThreadPriority.BelowNormal
             };
-            ListenerThread.Start();
+            ListenerThread.Start(tokenSource.Token);
         }
 
         public static void Shutdown()
         {
             Listener?.Abort();
-            ListenerThread?.Abort();
+            tokenSource.Cancel();
             Listener = null;
             ListenerThread = null;
         }
 
-        private static void ListenerLoop()
+        private static void ListenerLoop(object param)
         {
+            CancellationToken token = (CancellationToken)param;
             Logger.Log(LogLevel.INF, "rc", $"Started ClientRC thread, available via http://localhost:{CelesteNetUtils.ClientRCPort}/");
             try
             {
-                while (Listener?.IsListening ?? false)
+                while (true)
                 {
+                    if (!(Listener?.IsListening ?? false))
+                        break;
+                    var task = Listener.GetContextAsync();
+                    try
+                    {
+                        task.Wait(token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    HttpListenerContext context = task.Result;
                     ThreadPool.QueueUserWorkItem(c =>
                     {
                         HttpListenerContext context = c as HttpListenerContext;
@@ -99,7 +112,7 @@ namespace Celeste.Mod.CelesteNet.Client
                         {
                             Logger.Log(LogLevel.INF, "rc", $"ClientRC failed responding: {e}");
                         }
-                    }, Listener.GetContext());
+                    }, context);
                 }
             }
             catch (ThreadAbortException)

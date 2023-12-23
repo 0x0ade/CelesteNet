@@ -123,8 +123,6 @@ namespace Celeste.Mod.CelesteNet {
                     if (!space) {
                         for (int i = value.Length; i > 0; --i) {
                             char c = *from++;
-                            if (!EnglishFontCharsSet.Contains(c))
-                                continue;
                             if (char.IsWhiteSpace(c))
                                 continue;
                             else
@@ -135,8 +133,6 @@ namespace Celeste.Mod.CelesteNet {
                         bool isStart = true;
                         for (int i = value.Length; i > 0; --i) {
                             char c = *from++;
-                            if (!EnglishFontCharsSet.Contains(c))
-                                continue;
                             if (isStart && char.IsWhiteSpace(c))
                                 continue;
                             else

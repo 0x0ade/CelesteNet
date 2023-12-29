@@ -58,19 +58,27 @@ namespace Celeste.Mod.CelesteNet.Server.Utils
 
             return retString;
         }
-        public static string GetImage(string url)
+        public static string GetImage(string url,string fileName)
         {
-            WebRequest webRequest = WebRequest.Create(url);
-            WebResponse webResponse = webRequest.GetResponse();
-            Stream myStream = webResponse.GetResponseStream();
-            System.Drawing.Image img = System.Drawing.Image.FromStream(myStream);
             if (!Directory.Exists("temp"))
             {
                 Directory.CreateDirectory("temp");
             }
-            string filename = "temp/" + Guid.NewGuid().ToString("N") + ".png";
-            resizeImage(img, new Size(64, 64)).Save(filename, System.Drawing.Imaging.ImageFormat.Png);
-            return filename;
+            string filePath = "temp/" + fileName + ".png";
+
+            if (File.Exists(filePath))
+            {
+                Logger.Log(LogLevel.VVV, "Avater", "Cache Exists");
+                return filePath;
+            }
+
+            WebRequest webRequest = WebRequest.Create(url);
+            WebResponse webResponse = webRequest.GetResponse();
+            Stream myStream = webResponse.GetResponseStream();
+            System.Drawing.Image img = System.Drawing.Image.FromStream(myStream);
+            resizeImage(img, new Size(64, 64)).Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+            Logger.Log(LogLevel.VVV, "Avater", "Cache Created");
+            return filePath;
         }
 
         private static System.Drawing.Image resizeImage(System.Drawing.Image imgToResize, Size size)

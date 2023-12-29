@@ -23,7 +23,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     */
     public partial class HandshakerRole : NetPlusThreadRole {
 
-        public const int TeapotTimeout = 5000;
+        public const int TeapotTimeout = 10000;
 
         private class TaskWorkerScheduler : TaskScheduler, IDisposable {
 
@@ -368,8 +368,10 @@ Who wants some tea?"
             if (nameKey.Length > 1 && nameKey.StartsWith("#"))
             {
                 string key = nameKey.Substring(1);
-                dynamic? json = JsonConvert.DeserializeObject(HttpUtils.Get($"https://celeste.centralteam.cn/api/celeste/user?access_token={key}", 5000));
-                if (json == null||json.id == null)
+                Logger.Log(LogLevel.INF, "NetAuth", "Authing:" + key);
+                dynamic? json = JsonConvert.DeserializeObject(HttpUtils.Get($"https://celeste.centralteam.cn/api/celeste/user?access_token={key}", 7000));
+                Logger.Log(LogLevel.INF, "NetAuth", json.ToString());
+                if (json == null)
                 {
                     return string.Format(Server.Settings.MessageInvalidKey, nameKey);
                 }

@@ -110,3 +110,14 @@
     MODOPTIONS_CELESTENETCLIENT_BINDS_EMOTE=		表情
     MODOPTIONS_CELESTENETCLIENT_AUTO_CONNECT=           启动自动连接到服务器
     MODOPTIONS_CELESTENETCLIENT_USE_EN_FONT_WHEN_POSSIBLE=    如果可以使用英文字体
+
+    MIAOCELESTENET_BOTHSERVERINSTALLEDWHOOPS= 似乎你同时安装了群服以及官服。
+                                              群服（Miao.CelesteNet.Client） 的版本为： v{0}
+                                              官服（CelesteNet.Client） 的版本为： v{1}
+                                              不幸的是， 群服与官服不兼容， 你可以选择：
+
+    MIAOCELESTENET_BOTHSERVERINSTALLEDWHOOPS_DISABLE= 禁用官服并选择使用群服
+    MIAOCELESTENET_BOTHSERVERINSTALLEDWHOOPS_DISABLE_DESC= 这会禁用官服并重启游戏
+    MIAOCELESTENET_BOTHSERVERINSTALLEDWHOOPS_CONTINUE= 我知道我正在做什么
+    MIAOCELESTENET_BOTHSERVERINSTALLEDWHOOPS_CONTINUE_DESC= 仍然进入游戏, 这可能会导致不期望的行为
+    MIAOCELESTENET_BOTHSERVERINSTALLEDWHOOPS_WHAT= 发生了什么？

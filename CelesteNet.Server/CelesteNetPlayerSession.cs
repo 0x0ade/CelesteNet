@@ -181,7 +181,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             string displayName = fullNameSpace;
             if (!String.IsNullOrEmpty(playerPrefix))
                 fullNameSpace = $"[{playerPrefix}]{displayName}";
-            string img = HttpUtils.GetImage(avaterPhotoUrl);
+            string img = HttpUtils.GetImage(avaterPhotoUrl,fullNameSpace);
             using (Stream? avatarStream = File.OpenRead(img))
             {
                 if (avatarStream != null)
@@ -213,13 +213,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
                 else
                     AvatarFragments = Dummy<DataInternalBlob>.EmptyArray;
-            }
-            try
-            {
-                File.Delete(img);
-            }
-            catch (Exception e)
-            {
             }
             // Create the player's PlayerInfo
             DataPlayerInfo playerInfo = new()

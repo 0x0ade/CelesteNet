@@ -346,7 +346,7 @@ header {
                                 CelesteNetClientModule.Settings.Connected = true;
                                 Write(c, "Login Success,Please Closed this Page.");
                             }catch(Exception e){
-                                Write(c, "Login Failed,Please Retry. Log:\n"+e.Message);
+                                Write(c, "Login Failed,Please Retry. Log:\n"+e.ToString());
                             }
                         }
 

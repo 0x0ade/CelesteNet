@@ -69,8 +69,39 @@
     </When>
   </Choose>
 
+  <Choose>
+    <When Condition="Exists('..\..\..\Celeste.dll')">
+      <PropertyGroup>
+        <CelesteDir>..\..\..\legacyRef</CelesteDir>
+        <CelesteIsCore>true</CelesteIsCore>
+        <InCelesteModDir>true</InCelesteModDir>
+        <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="Exists('..\..\Celeste\Celeste.dll')">
+      <PropertyGroup>
+        <CelesteDir>..\..\Celeste\legacyRef</CelesteDir>
+        <CelesteIsCore>true</CelesteIsCore>
+        <InCelesteModDir>false</InCelesteModDir>
+        <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
+      </PropertyGroup>
+    </When>
+
+    <Otherwise>
+      <PropertyGroup>
+        <CelesteIsCore>false</CelesteIsCore>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+
   <Target Name="CheckCelesteDir" BeforeTargets="PreBuildEvent">
     <Error Condition="'$(CelesteDir)' == ''" Text="Cannot find Celeste." />
+  </Target>
+
+  <Target Name="CheckCoreInstall" BeforeTargets="PrepareForBuild" Condition="$(CelesteIsCore)">
+	<Error Condition="!Exists('$(CelesteDir)')" Text="Detected a .NET Core Everest install without the required legacyRef install needed to build .NET Framework mods - see the Everest wiki (https://github.com/EverestAPI/Resources/wiki/Code-Mod-Core-Migration-Guide) for info on how to set it up" />
+	<Message Text="Building against .NET Core Everest legacyRef install" Importance="high" />
   </Target>
 
   <ItemGroup>

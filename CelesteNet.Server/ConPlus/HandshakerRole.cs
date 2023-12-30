@@ -229,6 +229,34 @@ Connection: close
                     return null;
                 }
 
+                if (!headers.TryGetValue("CelesteNet-ClientVersion",out string? clientVersion))
+                {
+                    if (clientVersion != "3.1.5")
+                    {
+                        await writer.WriteAsync(
+$@"HTTP/1.1 403 Access Denied
+Connection: close
+
+Client is so Old. Need Client Version 3.1.5!"
+    .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n")
+);
+                        return null;
+                    }
+                }
+                else
+                {
+                    if (clientVersion != "3.1.5")
+                    {
+                        await writer.WriteAsync(
+$@"HTTP/1.1 403 Access Denied
+Connection: close
+
+Client is so Old. Need Client Version 3.1.5!"
+    .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n")
+);
+                        return null;
+                    }
+                }
                 // Get the list of supported connection features
                 HashSet<string> conFeatures;
                 if (headers.TryGetValue("CelesteNet-ConnectionFeatures", out string? conFeaturesRaw))
@@ -367,6 +395,7 @@ Who wants some tea?"
             playerUID = playerName = avaterPhotoUrl = playerPrefix = playerColor = null;
             if (nameKey.Length > 1 && nameKey.StartsWith("#"))
             {
+                
                 string key = nameKey.Substring(1);
                 Logger.Log(LogLevel.INF, "NetAuth", "Authing:" + key);
                 dynamic? json = JsonConvert.DeserializeObject(HttpUtils.Get($"https://celeste.centralteam.cn/api/celeste/user?access_token={key}", 7000));

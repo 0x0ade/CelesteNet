@@ -1,5 +1,5 @@
 - Name: Miao.CelesteNet.Client
-  Version: 3.1.4
+  Version: 3.1.5
   DLL: CelesteNet.Client.dll
   Dependencies:
     - Name: EverestCore

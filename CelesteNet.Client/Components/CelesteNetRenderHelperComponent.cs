@@ -1,17 +1,10 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
-using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
@@ -130,6 +123,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     // It might already be too late to tell the main thread to do anything.
                 }
             }
+        }
+
+        public string GetAdapterInfo() {
+            string info = "";
+            GraphicsAdapter adapter = GraphicsAdapter.DefaultAdapter;
+            // some of these tend to throw NotImplementedExceptions but we'll just move on...
+            try {
+                info += adapter.VendorId.ToString();
+            } catch { }
+            try {
+                info += ":" + adapter.DeviceId.ToString();
+            } catch { }
+            try {
+                info += " " + adapter.DeviceName;
+            } catch { }
+            try {
+                info += " " + adapter.Description;
+            } catch { }
+            return info;
         }
 
         private RenderTarget2D GetFakeRT(RenderTarget2D realRT) {

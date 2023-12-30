@@ -1,6 +1,6 @@
 using Celeste.Mod.CelesteNet.DataTypes;
 using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -31,6 +31,7 @@ namespace Celeste.Mod.CelesteNet {
 
         public readonly uint ConnectionToken;
         public readonly Settings ConnectionSettings;
+        public Dictionary<string, string> ConnFeatureData = new();
 
         public Socket TCPSocket => _TCPSock;
 

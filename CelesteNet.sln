@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30011.22
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Shared", "CelesteNet.Shared\CelesteNet.Shared.csproj", "{DF8E8764-60D1-4EC8-9997-4208551B4EC1}"
 EndProject
@@ -62,6 +62,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "emoji", "emoji", "{273EB989
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Server.SqliteModule", "CelesteNet.Server.SqliteModule\CelesteNet.Server.SqliteModule.csproj", "{A43B6AC6-3305-4DCC-B8AE-A3FD7ACB3547}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CelesteNet.Extras", "CelesteNet.Extras", "{3C38147E-7144-4987-9381-2CF997084C50}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -106,6 +108,7 @@ Global
 		{835CD78E-3E88-46F8-81EE-FC42E1D8FB38} = {9AE35793-3E94-4E8C-BDA7-C314BA7012FA}
 		{02E424ED-285B-453B-997F-3C4AC74DB4F6} = {835CD78E-3E88-46F8-81EE-FC42E1D8FB38}
 		{273EB989-5755-4F5C-A630-574B7F197C27} = {9AE35793-3E94-4E8C-BDA7-C314BA7012FA}
+		{3C38147E-7144-4987-9381-2CF997084C50} = {A2A695E6-AD24-4BF9-AE44-3B3FC4F0A0B3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7FDFC39A-82B7-4B23-8208-F246E9B3A7A2}

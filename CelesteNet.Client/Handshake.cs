@@ -1,5 +1,7 @@
+using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -7,19 +9,21 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Client {
-    public static class Handshake {
+namespace Celeste.Mod.CelesteNet {
+    namespace Client {
+        public static class Handshake {
 
-        // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
-        public static Tuple<uint, IConnectionFeature[], T> DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey, CelesteNetClientOptions options) where T : new() {
-            // Find connection features
-            // We don't buffer, as we could read actual packet data
-            using NetworkStream netStream = new(sock, false);
-            using StreamReader reader = new(netStream);
-            using StreamWriter writer = new(netStream);
-            // Send the "HTTP" request
-            StringBuilder reqBuilder = new($@"
+            // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
+            public static Tuple<uint, IConnectionFeature[], T> DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey, CelesteNetClientOptions options) where T : new() {
+                // Find connection features
+                // We don't buffer, as we could read actual packet data
+                using NetworkStream netStream = new(sock, false);
+                using StreamReader reader = new(netStream);
+                using StreamWriter writer = new(netStream);
+                // Send the "HTTP" request
+                StringBuilder reqBuilder = new($@"
 TEAREQ /teapot HTTP/4.2
 Connection: keep-alive
 CelesteNet-TeapotVersion: {CelesteNetUtils.LoadedVersion}
@@ -27,79 +31,99 @@ CelesteNet-ConnectionFeatures: {features.Select(f => f.GetType().FullName).Aggre
 CelesteNet-PlayerNameKey: {nameKey}
 ");
 
-            foreach (FieldInfo field in typeof(CelesteNetClientOptions).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
-                switch (Type.GetTypeCode(field.FieldType)) {
-                    case TypeCode.Boolean:
-                    case TypeCode.Int16:
-                    case TypeCode.Int32:
-                    case TypeCode.Int64:
-                    case TypeCode.UInt16:
-                    case TypeCode.UInt32:
-                    case TypeCode.UInt64:
-                    case TypeCode.Single:
-                    case TypeCode.Double: {
-                        reqBuilder.AppendLine($"CelesteNet-ClientOptions-{field.Name}: {field.GetValue(options)}");
-                    } break;
+                foreach (FieldInfo field in typeof(CelesteNetClientOptions).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+                    switch (Type.GetTypeCode(field.FieldType)) {
+                        case TypeCode.Boolean:
+                        case TypeCode.Int16:
+                        case TypeCode.Int32:
+                        case TypeCode.Int64:
+                        case TypeCode.UInt16:
+                        case TypeCode.UInt32:
+                        case TypeCode.UInt64:
+                        case TypeCode.Single:
+                        case TypeCode.Double: {
+                            reqBuilder.AppendLine($"CelesteNet-ClientOptions-{field.Name}: {field.GetValue(options)}");
+                        } break;
+                    }
                 }
-            }
 
-            writer.Write(reqBuilder.ToString().Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n\r\n");
-            writer.Flush();
+                writer.Write(reqBuilder.ToString().Trim().Replace("\r\n", "\n").Replace("\n", "\r\n") + "\r\n\r\n");
+                writer.Flush();
 
-            // Read the "HTTP" response
-            string statusLine = reader.ReadLine();
-            string[] statusSegs = statusLine.Split(new[] { ' ' }, 3);
-            if (statusSegs.Length != 3)
-                throw new InvalidDataException($"Invalid HTTP response status line: '{statusLine}'");
-            int statusCode = int.Parse(statusSegs[1]);
+                // Read the "HTTP" response
+                string statusLine = reader.ReadLine();
+                string[] statusSegs = statusLine.Split(new[] { ' ' }, 3);
+                if (statusSegs.Length != 3)
+                    throw new InvalidDataException($"Invalid HTTP response status line: '{statusLine}'");
+                int statusCode = int.Parse(statusSegs[1]);
 
-            Dictionary<string, string> headers = new();
-            for (string line = reader.ReadLine(); !string.IsNullOrEmpty(line); line = reader.ReadLine()) {
-                int split = line.IndexOf(':');
-                if (split == -1)
-                    throw new InvalidDataException($"Invalid HTTP header: '{line}'");
-                headers[line.Substring(0, split).Trim()] = line.Substring(split + 1).Trim();
-            }
+                Dictionary<string, string> headers = new();
+                for (string line = reader.ReadLine(); !string.IsNullOrEmpty(line); line = reader.ReadLine()) {
+                    int split = line.IndexOf(':');
+                    if (split == -1)
+                        throw new InvalidDataException($"Invalid HTTP header: '{line}'");
+                    headers[line.Substring(0, split).Trim()] = line.Substring(split + 1).Trim();
+                }
 
-            string content = "";
-            for (string line = reader.ReadLine(); !string.IsNullOrEmpty(line); line = reader.ReadLine())
-                content += line + "\n";
+                string content = "";
+                for (string line = reader.ReadLine(); !string.IsNullOrEmpty(line); line = reader.ReadLine())
+                    content += line + "\n";
 
-            // Parse the "HTTP response"
-            if (statusCode != 418)
-                throw new ConnectionErrorException($"Server rejected teapot handshake (status {statusCode})", content.Trim());
+                // Parse the "HTTP response"
+                if (statusCode != 418)
+                    throw new ConnectionErrorException($"Server rejected teapot handshake (status {statusCode})", content.Trim());
 
-            uint conToken = uint.Parse(headers["CelesteNet-ConnectionToken"], NumberStyles.HexNumber);
-            IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[] { ',' }).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray();
+                uint conToken = uint.Parse(headers["CelesteNet-ConnectionToken"], NumberStyles.HexNumber);
+                IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[] { ',' }).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray();
 
-            T settings = new();
-            foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
-                string headerName = $"CelesteNet-Settings-{field.Name}";
+                T settings = new();
+                foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+                    string headerName = $"CelesteNet-Settings-{field.Name}";
 #pragma warning disable IDE0049 // Simplify Names
-                switch (Type.GetTypeCode(field.FieldType)) {
-                    case TypeCode.Boolean: field.SetValue(settings, Boolean.Parse(headers[headerName])); break;
-                    case TypeCode.Int16:   field.SetValue(settings,   Int16.Parse(headers[headerName])); break;
-                    case TypeCode.Int32:   field.SetValue(settings,   Int32.Parse(headers[headerName])); break;
-                    case TypeCode.Int64:   field.SetValue(settings,   Int64.Parse(headers[headerName])); break;
-                    case TypeCode.UInt16:  field.SetValue(settings,  UInt16.Parse(headers[headerName])); break;
-                    case TypeCode.UInt32:  field.SetValue(settings,  UInt32.Parse(headers[headerName])); break;
-                    case TypeCode.UInt64:  field.SetValue(settings,  UInt64.Parse(headers[headerName])); break;
-                    case TypeCode.Single:  field.SetValue(settings,  Single.Parse(headers[headerName])); break;
-                    case TypeCode.Double:  field.SetValue(settings,  Double.Parse(headers[headerName])); break;
-                }
+                    switch (Type.GetTypeCode(field.FieldType)) {
+                        case TypeCode.Boolean: field.SetValue(settings, Boolean.Parse(headers[headerName])); break;
+                        case TypeCode.Int16:   field.SetValue(settings,   Int16.Parse(headers[headerName])); break;
+                        case TypeCode.Int32:   field.SetValue(settings,   Int32.Parse(headers[headerName])); break;
+                        case TypeCode.Int64:   field.SetValue(settings,   Int64.Parse(headers[headerName])); break;
+                        case TypeCode.UInt16:  field.SetValue(settings,  UInt16.Parse(headers[headerName])); break;
+                        case TypeCode.UInt32:  field.SetValue(settings,  UInt32.Parse(headers[headerName])); break;
+                        case TypeCode.UInt64:  field.SetValue(settings,  UInt64.Parse(headers[headerName])); break;
+                        case TypeCode.Single:  field.SetValue(settings,  Single.Parse(headers[headerName])); break;
+                        case TypeCode.Double:  field.SetValue(settings,  Double.Parse(headers[headerName])); break;
+                    }
 #pragma warning restore IDE0049
+                }
+
+                return new(conToken, conFeatures, (T) settings);
             }
 
-            return new(conToken, conFeatures, (T) settings);
+            public static void DoConnectionHandshake(CelesteNetConnection con, IConnectionFeature[] features, CancellationToken token) {
+                // Handshake connection features
+                foreach (IConnectionFeature feature in features)
+                    feature.Register(con, true);
+                foreach (IConnectionFeature feature in features)
+                    feature.DoHandshake(con, true).Wait(token);
+            }
+
+        }
+    }
+
+    public class ExtendedHandshake : IConnectionFeature {
+
+        public Task DoHandshake(CelesteNetConnection con, bool isClient) {
+            if (!isClient)
+                throw new InvalidOperationException($"HandshakeFeature was called with 'isClient == false' in Client context!");
+
+            // Handler for DataClientInfoRequest is implemented in CelesteNetClient
+
+            return Task.Run(() => {
+                Logger.Log(LogLevel.VVV, "handshakeFeature", $"Connection uses ExtendedHandshake");
+            });
         }
 
-        public static void DoConnectionHandshake(CelesteNetConnection con, IConnectionFeature[] features, CancellationToken token) {
-            // Handshake connection features
-            foreach (IConnectionFeature feature in features)
-                feature.Register(con, true);
-            foreach (IConnectionFeature feature in features)
-                feature.DoHandshake(con, true).Wait(token);
+        public void Register(CelesteNetConnection con, bool isClient) {
+            if (!isClient)
+                throw new InvalidOperationException($"HandshakeFeature was called with 'isClient == false' in Client context!");
         }
-
     }
 }

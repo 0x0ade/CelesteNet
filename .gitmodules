@@ -1,0 +1,3 @@
+[submodule "CelesteNet.Extras"]
+	path = CelesteNet.Extras
+	url = https://github.com/CelestialNetworkingEngineers/CelesteNet.Extras

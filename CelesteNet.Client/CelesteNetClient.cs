@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClient : IDisposable {

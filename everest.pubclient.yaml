@@ -1,11 +1,8 @@
 - Name: Miao.CelesteNet.Client
-  Version: 3.1.3
+  Version: 3.1.4
   DLL: CelesteNet.Client.dll
   Dependencies:
     - Name: EverestCore
       Version: 1.4465.0
     - Name: ExtendedChineseFont
       Version: 1.0.0
-  OptionalDependencies:
-    - Name: CelesteNet.Client
-      Version: 2.0.0

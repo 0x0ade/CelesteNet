@@ -288,6 +288,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (string.IsNullOrEmpty(ghost.NameTag.Name))
                     return;
                 ghost.NameTag.Name = frame.Player.DisplayName;
+                ghost.NameTag.Color = frame.Player.NameColor;
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
                 ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, frame.Facing, frame.Speed);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);

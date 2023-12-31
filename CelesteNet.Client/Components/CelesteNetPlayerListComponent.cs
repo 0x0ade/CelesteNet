@@ -238,7 +238,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 BlobPlayer blob = new() {
                     Player = player,
                     Name = player.DisplayName,
-                    ScaleFactor = 0.75f
+                    Color = player.NameColor,
+                    ScaleFactor = 0.75f,
                 };
 
                 DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
@@ -353,6 +354,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 list.Add(new() {
                     Name = player.DisplayName,
+                    Color = player.NameColor,
                     ScaleFactor = 1f
                 });
             }

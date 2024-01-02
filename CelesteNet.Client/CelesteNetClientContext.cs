@@ -17,7 +17,6 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetChatComponent Chat;
 
         public Dictionary<Type, CelesteNetGameComponent> Components = new();
-        public Dictionary<Type, GameComponent> SimpleComponents = new();
         public List<CelesteNetGameComponent> DrawableComponents;
 
         // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
@@ -64,12 +63,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Add((CelesteNetGameComponent) Activator.CreateInstance(type, this, game));
             }
 
-            foreach (Type type in FakeAssembly.GetFakeEntryAssembly().GetTypes()) {
-                if (type.IsAbstract || !typeof(GameComponent).IsAssignableFrom(type) || Components.ContainsKey(type) || SimpleComponents.ContainsKey(type) || !type.FullName.StartsWith("Celeste.Mod.CelesteNet.Client.Components"))
-                    continue;
-
-                AddSimple((GameComponent)Activator.CreateInstance(type, game));
-            }
             Main = Get<CelesteNetMainComponent>();
             RenderHelper = Get<CelesteNetRenderHelperComponent>();
             Status = Get<CelesteNetStatusComponent>();
@@ -84,17 +77,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             Game.Components.Add(component);
         }
 
-        protected void AddSimple(GameComponent component) {
-            Logger.Log(LogLevel.INF, "clientcomp", $"Added simple component: {component}");
-            SimpleComponents[component.GetType()] = component;
-            Game.Components.Add(component);
-        }
-
         public T Get<T>() where T : CelesteNetGameComponent
             => Components.TryGetValue(typeof(T), out CelesteNetGameComponent component) ? (T) component : null;
-
-        public T GetSimple<T>() where T : GameComponent
-            => SimpleComponents.TryGetValue(typeof(T), out GameComponent component) ? (T)component : null;
 
         public static event Action<CelesteNetClientContext> OnInit;
 
@@ -106,10 +90,6 @@ namespace Celeste.Mod.CelesteNet.Client {
             foreach (CelesteNetGameComponent component in Components.Values) {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Init: Init comp {component.GetType()}");
                 component.Init();
-            }
-            foreach(GameComponent component in SimpleComponents.Values) {
-                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Init: RegisterHandlersIn simple comp {component.GetType()}");
-                Client.Data?.RegisterHandlersIn(component);
             }
             OnInit?.Invoke(this);
         }

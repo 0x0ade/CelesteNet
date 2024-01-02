@@ -10,7 +10,6 @@
   <ItemGroup>
     <Compile Remove="..\CelesteNet.Shared\NullableAttributes.cs" />
     <Compile Remove="ConnectionFeatures\ConnFeatureUtils.cs" />
-      <Compile Condition="Exists('..\CelesteNet.Extras\DataClientInfo.cs')" Include="..\CelesteNet.Extras\DataClientInfo.cs" Link="DataTypes\DataClientInfo.cs" />
     <EmbeddedResource Include="TokenGenerator.Polynomials.bin" LogicalName="polynomials.bin" />
   </ItemGroup>
 

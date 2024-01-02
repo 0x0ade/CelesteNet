@@ -4,3 +4,9 @@
   Dependencies:
     - Name: Everest
       Version: 1.3761.0
+- Name: CelesteNet.Extras
+  Version: 2.2.2
+  DLL: CelesteNet.Extras/bin/Release/net452/CelesteNet.Extras.dll
+  Dependencies:
+    - Name: Everest
+      Version: 1.3761.0

@@ -125,25 +125,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
-        public string GetAdapterInfo() {
-            string info = "";
-            GraphicsAdapter adapter = GraphicsAdapter.DefaultAdapter;
-            // some of these tend to throw NotImplementedExceptions but we'll just move on...
-            try {
-                info += adapter.VendorId.ToString();
-            } catch { }
-            try {
-                info += ":" + adapter.DeviceId.ToString();
-            } catch { }
-            try {
-                info += " " + adapter.DeviceName;
-            } catch { }
-            try {
-                info += " " + adapter.Description;
-            } catch { }
-            return info;
-        }
-
         private RenderTarget2D GetFakeRT(RenderTarget2D realRT) {
             if (realRT != null)
                 return realRT;

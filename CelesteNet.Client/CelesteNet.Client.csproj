@@ -17,11 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Condition="Exists('..\CelesteNet.Extras\ClientInfoComponent.cs')" Include="..\CelesteNet.Extras\ClientInfoComponent.cs" Link="ClientInfoComponent.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
+      <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
   </ItemGroup>
 
 </Project>

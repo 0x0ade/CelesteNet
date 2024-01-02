@@ -64,6 +64,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Server.SqliteMod
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CelesteNet.Extras", "CelesteNet.Extras", "{3C38147E-7144-4987-9381-2CF997084C50}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Extras", "CelesteNet.Extras\CelesteNet.Extras.csproj", "{7D416F3C-F603-4C58-BEDA-CAAB49A661EB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -96,6 +98,10 @@ Global
 		{A43B6AC6-3305-4DCC-B8AE-A3FD7ACB3547}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A43B6AC6-3305-4DCC-B8AE-A3FD7ACB3547}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A43B6AC6-3305-4DCC-B8AE-A3FD7ACB3547}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D416F3C-F603-4C58-BEDA-CAAB49A661EB}.Debug|Any CPU.ActiveCfg = Release|Any CPU
+		{7D416F3C-F603-4C58-BEDA-CAAB49A661EB}.Debug|Any CPU.Build.0 = Release|Any CPU
+		{7D416F3C-F603-4C58-BEDA-CAAB49A661EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D416F3C-F603-4C58-BEDA-CAAB49A661EB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

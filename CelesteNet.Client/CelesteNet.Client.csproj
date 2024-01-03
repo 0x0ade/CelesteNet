@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-      <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
+    <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
   </ItemGroup>
 
 </Project>

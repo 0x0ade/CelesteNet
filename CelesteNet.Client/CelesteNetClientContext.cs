@@ -1,10 +1,15 @@
 ﻿using Celeste.Mod.CelesteNet.Client.Components;
 using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+using MDraw = Monocle.Draw;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientContext : DrawableGameComponent {

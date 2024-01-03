@@ -1,13 +1,16 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet {

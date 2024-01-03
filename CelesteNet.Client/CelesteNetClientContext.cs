@@ -76,6 +76,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             OnCreate?.Invoke(this);
         }
+
         protected void Add(CelesteNetGameComponent component) {
             Logger.Log(LogLevel.INF, "clientcomp", $"Added component: {component}");
             Components[component.GetType()] = component;

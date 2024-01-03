@@ -100,5 +100,6 @@ CelesteNet-PlayerNameKey: {nameKey}
             foreach (IConnectionFeature feature in features)
                 feature.DoHandshake(con, true).Wait(token);
         }
+
     }
 }

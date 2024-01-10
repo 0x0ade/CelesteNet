@@ -305,4 +305,81 @@ export class FrontendDialog {
     return dialog;
   }
 
+  banExt(opts) {
+    const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
+    const group = (...items) => el => {
+      el = rd$(el)`<ul class="settings-group"></ul>`;
+
+      let list = new RDOMListHelper(el);
+      for (let i in items) {
+        list.add(i, items[i]);
+      }
+      list.end();
+
+      return el;
+    }
+
+    let optKeys = Array.from(Object.getOwnPropertyNames(opts));
+    const emptyStrArr = Array.from([""]);
+
+    let el = this.elPopupBanExt = mdcrd.dialog({
+      title: "Ban Ext",
+      body: el => rd$(el)`
+      <div>
+        ${group(
+          row( el => {
+            el = mdcrd.dropdown("primary", optKeys, optKeys[0])(el);
+            return el;
+          }),
+          row( el => {
+            el = mdcrd.dropdown("secondary", emptyStrArr.concat(optKeys), "")(el);
+            return el;
+          }),
+        )}
+
+        ${group(
+          row("Reason:", el => {
+            el = mdcrd.textField("", "", null, e => {
+              if (e.keyCode === 13) {
+                this.elPopupBanExt["MDCDialog"].close("0");
+              }
+            })(el);
+            const input = el.querySelector("input");
+            input.id = "ban-reason";
+            return el;
+          }),
+        )}
+      </div>`,
+      defaultButton: "yes",
+      buttons: ["OK"],
+    })(this.elPopupBanExt);
+
+    document.body.appendChild(el);
+
+    /** @type {import("@material/dialog").MDCDialog & Promise<{ uids: string[], reason: string }>} */
+    let dialog = el["MDCDialog"];
+
+    dialog.open();
+
+    // Blame the Material Design Web Components checkbox stealing focus for this horrible hack.
+    //setTimeout(() => el.querySelector("input#ban-reason")["focus"](), 200);
+
+    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
+        selection: Array.from(el.querySelectorAll(".mdc-select__selected-text")).map(e => opts[e.value]),
+        reason: el.querySelector("input#ban-reason")["value"],
+    }), { once: true }));
+    dialog["then"] = promise.then.bind(promise);
+    dialog["catch"] = promise.catch.bind(promise);
+
+    dialog.then(
+      ban => {
+        if (!ban || !(ban.reason = ban.reason.trim()))
+          return;
+        this.frontend.sync.run("banext", { ConnInfo: ban.selection, Reason: ban.reason });
+      }
+    );
+
+    return dialog;
+  }
+
 }

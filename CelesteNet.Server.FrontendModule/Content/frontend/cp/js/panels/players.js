@@ -22,7 +22,8 @@ const mdc = window["mdc"]; // mdc
   TCPDownlinkBpS: number?, TCPDownlinkPpS: number?,
   UDPDownlinkBpS: number?, UDPDownlinkPpS: number?,
   TCPUplinkBpS: number?, TCPUplinkPpS: number?,
-  UDPUplinkBpS: number?, UDPUplinkPpS: number?
+  UDPUplinkBpS: number?, UDPUplinkPpS: number?,
+  ConnInfo: Map<string, string>?
 }} PlayerData
  */
 
@@ -110,14 +111,24 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
             <code>TCP ↓:${` ${p.TCPDownlinkBpS ? `${p.TCPDownlinkBpS.toFixed(3)} BpS` : '-'} | ${p.TCPDownlinkPpS ? `${p.TCPDownlinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
             <code>UDP ↓:${` ${p.UDPDownlinkBpS ? `${p.UDPDownlinkBpS.toFixed(3)} BpS` : '-'} | ${p.UDPDownlinkPpS ? `${p.UDPDownlinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
             <code>TCP ↑:${` ${p.TCPUplinkBpS ? `${p.TCPUplinkBpS.toFixed(3)} BpS` : '-'} | ${p.TCPUplinkPpS ? `${p.TCPUplinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
-            <code>UDP ↑:${` ${p.UDPUplinkBpS ? `${p.UDPUplinkBpS.toFixed(3)} BpS` : '-'} | ${p.UDPUplinkPpS ? `${p.UDPUplinkPpS.toFixed(3)} PpS` : '-'}`}</code>
+            <code>UDP ↑:${` ${p.UDPUplinkBpS ? `${p.UDPUplinkBpS.toFixed(3)} BpS` : '-'} | ${p.UDPUplinkPpS ? `${p.UDPUplinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
+            ${el => {
+              el = rd$(el)`<span></span>`;
+              let list = new RDOMListHelper(el);
+              for (let ci of Object.getOwnPropertyNames(p.ConnInfo)) {
+                list.add(ci, el => rd$(el)`<code>${ci}:&nbsp;${p.ConnInfo[ci]}<br></code>`);
+              }
+              list.end();
+              return el;
+            }}
           </span>`}
         </span>`
       )(el);
 
       this.frontend.dom.setContext(el,
         [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.ID) ],
-        [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ]
+        [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ],
+        [ "gavel", `BanExt ${p.FullName}`, () => this.frontend.dialog.banExt(p.ConnInfo) ]
       );
 
       return el;

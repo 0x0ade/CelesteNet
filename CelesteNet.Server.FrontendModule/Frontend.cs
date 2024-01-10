@@ -17,6 +17,7 @@ using Celeste.Mod.Helpers;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat;
 using System.Timers;
+using System.Dynamic;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : CelesteNetServerModule<FrontendSettings> {
@@ -199,41 +200,49 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         public object PlayerSessionToFrontend(CelesteNetPlayerSession p, bool auth = false, bool shorten = false) {
-            // This sucks c:
-            return shorten ? new {
-                ID = p.SessionID,
-                UID = auth ? p.UID : null,
-                p.PlayerInfo?.Name,
-                p.PlayerInfo?.FullName,
-                p.PlayerInfo?.DisplayName,
-                Avatar = Server.UserData.HasFile(p.UID, "avatar.png") ? $"{Settings.APIPrefix}/avatar?uid={p.UID}" : null,
+            
+            dynamic player = new ExpandoObject();
 
-                Connection = auth ? p.Con.ID : null,
-                ConnectionUID = auth ? p.Con.UID : null
+            player.ID = p.SessionID;
+            player.Name = p.PlayerInfo?.Name;
+            player.FullName = p.PlayerInfo?.FullName;
+            player.DisplayName = p.PlayerInfo?.DisplayName;
+            if (Server.UserData.HasFile(p.UID, "avatar.png"))
+                player.Avatar =  $"{Settings.APIPrefix}/avatar?uid={p.UID}";
+
+            if (auth) {
+                player.UID = p.UID;
+                player.Connection = p.Con.ID;
+                player.ConnectionUID = p.Con.UID;
+                player.DisplayName = p.PlayerInfo?.DisplayName;
             }
-            : new {
-                ID = p.SessionID,
-                UID = auth ? p.UID : null,
-                p.PlayerInfo?.Name,
-                p.PlayerInfo?.FullName,
-                p.PlayerInfo?.DisplayName,
-                Avatar = Server.UserData.HasFile(p.UID, "avatar.png") ? $"{Settings.APIPrefix}/avatar?uid={p.UID}" : null,
 
-                Connection = auth ? p.Con.ID : null,
-                ConnectionUID = auth ? p.Con.UID : null,
+            ConPlusTCPUDPConnection? pCon = p.Con as ConPlusTCPUDPConnection;
 
-                TCPPingMs = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPPingMs : null,
-                UDPPingMs = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPPingMs : null,
+            if (!shorten && auth) {
+                player.TCPPingMs = pCon?.TCPPingMs;
+                player.UDPPingMs = pCon?.UDPPingMs;
+                player.TCPDownlinkBpS = pCon?.TCPRecvRate.ByteRate;
+                player.TCPDownlinkPpS = pCon?.TCPRecvRate.PacketRate;
+                player.TCPUplinkBpS = pCon?.TCPSendRate.ByteRate;
+                player.TCPUplinkPpS = pCon?.TCPSendRate.PacketRate;
+                player.UDPDownlinkBpS = pCon?.UDPRecvRate.ByteRate;
+                player.UDPDownlinkPpS = pCon?.UDPRecvRate.PacketRate;
+                player.UDPUplinkBpS = pCon?.UDPSendRate.ByteRate;
+                player.UDPUplinkPpS = pCon?.UDPSendRate.PacketRate;
+            }
 
-                TCPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.ByteRate : null,
-                TCPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPRecvRate.PacketRate : null,
-                TCPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.ByteRate : null,
-                TCPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.TCPSendRate.PacketRate : null,
-                UDPDownlinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPRecvRate.ByteRate : null,
-                UDPDownlinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPRecvRate.PacketRate : null,
-                UDPUplinkBpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendRate.ByteRate : null,
-                UDPUplinkPpS = auth ? (p.Con as ConPlusTCPUDPConnection)?.UDPSendRate.PacketRate : null,
-            };
+            if (pCon?.ConnFeatureData.Count > 0) {
+                /*
+                var x = (IDictionary<string, object>)player;
+                foreach (var kvp in pCon.ConnFeatureData) {
+                    x[kvp.Key] = kvp.Value;
+                }
+                */
+                player.ConnInfo = new Dictionary<string, string>(pCon.ConnFeatureData);
+            }
+
+            return player;
         }
 
         private string? GetContentType(string path) {
@@ -495,7 +504,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             using (StreamWriter sw = new(ms, CelesteNetUtils.UTF8NoBOM, 1024, true))
             using (JsonTextWriter jtw = new(sw))
                 Serializer.Serialize(jtw, obj);
-
+            
             ms.Seek(0, SeekOrigin.Begin);
 
             c.Response.ContentType = "application/json";

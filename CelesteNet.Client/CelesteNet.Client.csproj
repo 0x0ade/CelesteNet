@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <LangVersion>9</LangVersion> <!-- FIXME: Figure out why dotnet needs this! -->
-    <TargetFrameworks>net452</TargetFrameworks>
+    <TargetFrameworks>net6.0</TargetFrameworks>
     <AssemblyName>CelesteNet.Client</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Client</RootNamespace>
     <Nullable>disable</Nullable>

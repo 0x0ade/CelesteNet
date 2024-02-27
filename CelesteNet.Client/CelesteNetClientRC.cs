@@ -42,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public static void Shutdown() {
             Listener?.Abort();
-            ListenerThread?.Abort();
+            //ListenerThread?.Abort();
             Listener = null;
             ListenerThread = null;
         }

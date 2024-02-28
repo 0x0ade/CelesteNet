@@ -29,7 +29,7 @@
   <!-- dotnet is stupid. The modules depend on this, but those deps (and their deps' deps) aren't shipped. -->
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <Choose>

@@ -52,7 +52,7 @@
   </Choose>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="5.0.9" Condition="$(TargetFramework.Contains('.'))" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.2" Condition="$(TargetFramework.Contains('.'))" />
     <PackageReference Include="MessagePack" Version="2.5.140" Condition="$(TargetFramework.Contains('.'))" />
     <PackageReference Include="MessagePackAnalyzer" Version="2.5.140" Condition="$(TargetFramework.Contains('.'))">
       <PrivateAssets>all</PrivateAssets>

@@ -14,7 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="System.Net.Http" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <!-- PackageReference Include="WebSocketSharp" Version="1.0.3-rc11" /-->
     <Reference Include="WebSocketSharp.CustomHeaders.CustomHttpServer" HintPath="..\lib\$(TargetFramework)\WebSocketSharp.CustomHeaders.CustomHttpServer.dll" />

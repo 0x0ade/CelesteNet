@@ -113,7 +113,7 @@
       <PrivateAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">all</PrivateAssets>
       <ExcludeAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="YamlDotNet" Version="8.1.2">
+    <PackageReference Include="YamlDotNet" Version="15.1.2">
       <PrivateAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">all</PrivateAssets>
       <ExcludeAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">runtime</ExcludeAssets>
     </PackageReference>

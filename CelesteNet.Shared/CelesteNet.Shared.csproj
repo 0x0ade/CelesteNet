@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <LangVersion>9</LangVersion> <!-- FIXME: Figure out why dotnet needs this! -->
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <LangVersion>9</LangVersion>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
     <AssemblyName>CelesteNet.Shared</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet</RootNamespace>
   </PropertyGroup>

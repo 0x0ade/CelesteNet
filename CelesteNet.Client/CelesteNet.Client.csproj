@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <LangVersion>9</LangVersion> <!-- FIXME: Figure out why dotnet needs this! -->
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <LangVersion>11</LangVersion>
+    <TargetFrameworks>net7.0</TargetFrameworks>
     <AssemblyName>CelesteNet.Client</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Client</RootNamespace>
     <Nullable>disable</Nullable>

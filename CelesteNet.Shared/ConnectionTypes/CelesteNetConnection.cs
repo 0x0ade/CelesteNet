@@ -1,19 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
-using System.IO;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.Helpers;
-using Monocle;
 
-namespace Celeste.Mod.CelesteNet {
+namespace Celeste.Mod.CelesteNet
+{
     public abstract class CelesteNetConnection : IDisposable {
 
         public readonly string Creator = "Unknown";

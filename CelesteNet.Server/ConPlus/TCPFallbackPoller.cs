@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace Celeste.Mod.CelesteNet.Server {
+namespace Celeste.Mod.CelesteNet.Server
+{
     /*
     This poller is slower, but it works on all platforms. Using the EPoll poller
     on Linux is recommended for optimal performance.

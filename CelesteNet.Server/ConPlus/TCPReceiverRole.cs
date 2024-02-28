@@ -1,10 +1,9 @@
-using Celeste.Mod.CelesteNet.Server;
 using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
 using System.Threading;
 
-namespace Celeste.Mod.CelesteNet.Server {
+namespace Celeste.Mod.CelesteNet.Server
+{
     public class TCPReceiverRole : NetPlusThreadRole {
 
         public interface IPoller : IDisposable {

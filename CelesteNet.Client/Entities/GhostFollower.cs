@@ -1,12 +1,7 @@
-﻿using Microsoft.Xna.Framework;
-using Monocle;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Monocle;
 
-namespace Celeste.Mod.CelesteNet.Client.Entities {
+namespace Celeste.Mod.CelesteNet.Client.Entities
+{
     public class GhostFollower : GhostEntity {
 
         public Follower Follower;

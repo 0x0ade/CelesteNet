@@ -1,9 +1,9 @@
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
 
-namespace Celeste.Mod.CelesteNet.Client.Entities {
+namespace Celeste.Mod.CelesteNet.Client.Entities
+{
     public class GhostDeadBody : Entity {
         private Color initialHairColor;
 

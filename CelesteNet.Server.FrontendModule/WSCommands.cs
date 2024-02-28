@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using Celeste.Mod.Helpers;
 
-namespace Celeste.Mod.CelesteNet.Server.Control {
+namespace Celeste.Mod.CelesteNet.Server.Control
+{
     public class WSCommands {
         public readonly Dictionary<string, WSCMD> All = new Dictionary<string, WSCMD>();
 

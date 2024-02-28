@@ -1,16 +1,8 @@
-﻿using Microsoft.Xna.Framework;
-using Mono.Options;
-using Monocle;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Newtonsoft.Json;
 using YamlDotNet.Serialization;
 
-namespace Celeste.Mod.CelesteNet.Server {
+namespace Celeste.Mod.CelesteNet.Server
+{
     public class CelesteNetServerSettings : CelesteNetServerModuleSettings {
 
         [YamlIgnore]

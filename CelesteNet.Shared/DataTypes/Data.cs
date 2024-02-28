@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.IO;
-using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.DataTypes {
+namespace Celeste.Mod.CelesteNet.DataTypes
+{
     public abstract class DataType {
 
         public virtual DataFlags DataFlags => DataFlags.None;

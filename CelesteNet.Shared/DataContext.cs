@@ -1,21 +1,16 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.Helpers;
-using Monocle;
 using MonoMod.Utils;
 
-namespace Celeste.Mod.CelesteNet {
+namespace Celeste.Mod.CelesteNet
+{
     public delegate void DataHandler(CelesteNetConnection con, DataType data);
     public delegate void DataHandler<T>(CelesteNetConnection con, T data) where T : DataType<T>;
     public delegate bool DataFilter(CelesteNetConnection con, DataType data);

@@ -1,16 +1,9 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Options;
-using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Server {
+namespace Celeste.Mod.CelesteNet.Server
+{
     public class Channels : IDisposable {
 
         public const string NameDefault = "main";

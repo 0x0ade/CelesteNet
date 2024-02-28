@@ -1,18 +1,7 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.Helpers;
-using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace Celeste.Mod.CelesteNet {
+namespace Celeste.Mod.CelesteNet
+{
     public static class Dummy<T> {
 
         public static readonly T[] EmptyArray = new T[0];

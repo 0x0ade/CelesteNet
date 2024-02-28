@@ -1,9 +1,9 @@
-using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace Celeste.Mod.CelesteNet.Server {
+namespace Celeste.Mod.CelesteNet.Server
+{
     public partial class TCPAcceptorRole : MultipleSocketBinderRole {
 
         public const int MaxWorkerBacklog = 32;

@@ -1,17 +1,11 @@
 ﻿using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MDraw = Monocle.Draw;
 
-namespace Celeste.Mod.CelesteNet.Client.Components {
+namespace Celeste.Mod.CelesteNet.Client.Components
+{
     public class CelesteNetEmoteComponent : CelesteNetGameComponent {
 
         public Player Player;

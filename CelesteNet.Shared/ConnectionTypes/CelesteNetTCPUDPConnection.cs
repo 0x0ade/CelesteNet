@@ -1,11 +1,11 @@
 using Celeste.Mod.CelesteNet.DataTypes;
 using System;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace Celeste.Mod.CelesteNet {
+namespace Celeste.Mod.CelesteNet
+{
     public abstract class CelesteNetTCPUDPConnection : CelesteNetConnection {
 
         public class Settings {

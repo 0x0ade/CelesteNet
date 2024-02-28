@@ -1,14 +1,9 @@
-﻿using Microsoft.Xna.Framework;
-using Monocle;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Web;
 using YamlDotNet.Serialization;
 
-namespace Celeste.Mod.CelesteNet.Server.Control {
+namespace Celeste.Mod.CelesteNet.Server.Control
+{
     public class FrontendSettings : CelesteNetServerModuleSettings {
 
         // Make sure to update your index.html as well!

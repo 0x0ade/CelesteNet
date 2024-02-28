@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat;
 using Newtonsoft.Json;
@@ -18,10 +17,10 @@ using System.Runtime.Loader;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
-using Microsoft.CodeAnalysis.Text;
 #endif
 
-namespace Celeste.Mod.CelesteNet.Server.Control {
+namespace Celeste.Mod.CelesteNet.Server.Control
+{
     public static partial class RCEndpoints {
 
         [RCEndpoint(false, "/auth", null, null, "Authenticate", "Basic POST authentication endpoint.")]

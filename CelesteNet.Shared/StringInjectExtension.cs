@@ -1,11 +1,11 @@
 ﻿// Taken from http://mo.notono.us/2008/07/c-stringinject-format-strings-by-key.html
-using System;
 using System.Text.RegularExpressions;
 using System.Collections;
 using System.Globalization;
 using System.ComponentModel;
 
-namespace Celeste.Mod.CelesteNet {
+namespace Celeste.Mod.CelesteNet
+{
     public static class StringInjectExtension {
         /// <summary>
         /// Extension method that replaces keys in a string with the values of matching object properties.

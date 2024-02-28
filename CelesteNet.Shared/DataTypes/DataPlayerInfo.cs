@@ -1,16 +1,7 @@
-﻿using Microsoft.Xna.Framework;
-using Monocle;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System;
 
-namespace Celeste.Mod.CelesteNet.DataTypes {
+namespace Celeste.Mod.CelesteNet.DataTypes
+{
     public class DataPlayerInfo : DataType<DataPlayerInfo> {
 
         static DataPlayerInfo() {

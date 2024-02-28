@@ -1,20 +1,12 @@
-﻿using Celeste.Mod.CelesteNet.Client.Entities;
-using Celeste.Mod.CelesteNet.DataTypes;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.UI;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
-using MonoMod.Cil;
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MDraw = Monocle.Draw;
 
-namespace Celeste.Mod.CelesteNet.Client.Components {
+namespace Celeste.Mod.CelesteNet.Client.Components
+{
     public class CelesteNetModShareComponent : CelesteNetGameComponent {
 
         public List<EverestModuleMetadata> Requested = new();

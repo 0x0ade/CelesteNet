@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
-namespace Celeste.Mod.CelesteNet.Server {
+namespace Celeste.Mod.CelesteNet.Server
+{
     /*
     A thread role represents something a thread could be doing, e.g. waiting for
     TCP connections, polling sockets, flushing send queues, or just ideling. The

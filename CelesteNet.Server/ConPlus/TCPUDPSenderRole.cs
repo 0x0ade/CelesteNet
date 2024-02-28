@@ -2,12 +2,12 @@ using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace Celeste.Mod.CelesteNet.Server {
+namespace Celeste.Mod.CelesteNet.Server
+{
     /*
     The TCP/UDP sender role gets specified as the queue flusher for the TCP/UDP
     send queues. When a queue needs to be flushed, it get's added to a queue of

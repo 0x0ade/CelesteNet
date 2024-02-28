@@ -53,8 +53,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="5.0.9" Condition="$(TargetFramework.Contains('.'))" />
-    <PackageReference Include="MessagePack" Version="2.3.75" Condition="$(TargetFramework.Contains('.'))" />
-    <PackageReference Include="MessagePackAnalyzer" Version="2.3.75" Condition="$(TargetFramework.Contains('.'))" />
+    <PackageReference Include="MessagePack" Version="2.5.140" Condition="$(TargetFramework.Contains('.'))" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.5.140" Condition="$(TargetFramework.Contains('.'))">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

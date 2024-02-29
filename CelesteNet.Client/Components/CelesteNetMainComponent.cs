@@ -68,9 +68,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             base.Initialize();
 
             MainThreadHelper.Do(() => {
-                using (new DetourContext("CelesteNetMain") {
-                    Before = { "*" }
-                }) {
+                // modern monomod does detourcontexts differently
+                using (new DetourConfigContext(new DetourConfig(
+                    "CelesteNetMain",
+                    before: new[] { "*" }
+                )).Use()) {
                     On.Monocle.Scene.SetActualDepth += OnSetActualDepth;
                     On.Celeste.Level.LoadLevel += OnLoadLevel;
                     Everest.Events.Level.OnExit += OnExitLevel;

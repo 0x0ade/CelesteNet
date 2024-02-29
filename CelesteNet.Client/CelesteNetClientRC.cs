@@ -1,5 +1,4 @@
-﻿using MonoMod.Utils;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -26,7 +25,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Listener.Prefixes.Add($"http://localhost:{CelesteNetUtils.ClientRCPort}/");
                 Listener.Start();
             } catch (Exception e) {
-                e.LogDetailed();
+                Logger.LogDetailedException(e);
                 try {
                     Listener?.Stop();
                 } catch { }

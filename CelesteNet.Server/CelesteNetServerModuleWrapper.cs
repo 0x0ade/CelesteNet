@@ -97,7 +97,6 @@ namespace Celeste.Mod.CelesteNet.Server
 
             Module = null;
 
-            Server.DetourModManager.Unload(Assembly);
             Server.Data.RemoveDataTypes(Assembly.GetTypes());
 
             UnloadAssembly();

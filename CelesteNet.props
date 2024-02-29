@@ -105,11 +105,11 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="MonoMod.RuntimeDetour" Version="21.07.22.03">
+    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.0.2">
       <PrivateAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">all</PrivateAssets>
       <ExcludeAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="MonoMod.Utils" Version="21.07.22.03">
+    <PackageReference Include="MonoMod.Utils" Version="25.0.3">
       <PrivateAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">all</PrivateAssets>
       <ExcludeAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">runtime</ExcludeAssets>
     </PackageReference>

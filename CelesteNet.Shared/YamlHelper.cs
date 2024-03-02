@@ -1,16 +1,13 @@
 ﻿using Microsoft.Xna.Framework;
 using Monocle;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.ObjectFactories;
 
-namespace Celeste.Mod.CelesteNet {
+namespace Celeste.Mod.CelesteNet
+{
     // Based off of Everest's YamlHelper.
     public static class YamlHelper {
 

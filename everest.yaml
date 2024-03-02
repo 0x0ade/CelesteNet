@@ -1,12 +1,12 @@
 - Name: CelesteNet.Client
   Version: 2.2.2
-  DLL: CelesteNet.Client/bin/Debug/net452/CelesteNet.Client.dll
+  DLL: CelesteNet.Client/bin/Debug/net7.0/CelesteNet.Client.dll
   Dependencies:
-    - Name: Everest
-      Version: 1.3761.0
+    - Name: EverestCore
+      Version: 1.4465.0
 - Name: CelesteNet.Extras
   Version: 2.2.2
   DLL: CelesteNet.Extras/bin/Release/net6.0/CelesteNet.Extras.dll
   Dependencies:
-    - Name: Everest
-      Version: 1.3761.0
+    - Name: EverestCore
+      Version: 1.4465.0

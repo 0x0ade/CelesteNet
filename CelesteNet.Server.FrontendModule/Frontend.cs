@@ -9,17 +9,14 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using System.Web;
 using WebSocketSharp.Server;
-using Celeste.Mod.Helpers;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat;
 using System.Timers;
 using System.Dynamic;
 
-namespace Celeste.Mod.CelesteNet.Server.Control {
+namespace Celeste.Mod.CelesteNet.Server.Control
+{
     public class Frontend : CelesteNetServerModule<FrontendSettings> {
 
         public static readonly string COOKIE_SESSION = "celestenet-session";

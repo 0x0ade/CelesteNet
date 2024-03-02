@@ -1,15 +1,14 @@
 using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-namespace Celeste.Mod.CelesteNet.Client {
+namespace Celeste.Mod.CelesteNet.Client
+{
     public class CelesteNetClientTCPUDPConnection : CelesteNetTCPUDPConnection {
 
         public const int UDPBufferSize = 65536;

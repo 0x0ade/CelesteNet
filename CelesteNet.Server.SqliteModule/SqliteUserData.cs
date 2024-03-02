@@ -1,19 +1,15 @@
 ﻿using MessagePack;
 using Microsoft.Data.Sqlite;
-using Microsoft.Xna.Framework;
-using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Transactions;
 
-namespace Celeste.Mod.CelesteNet.Server.Sqlite {
+namespace Celeste.Mod.CelesteNet.Server.Sqlite
+{
     public sealed class SqliteUserData : UserData {
 
         public static readonly HashSet<char> Illegal = new("`´'\"^[]\\//");

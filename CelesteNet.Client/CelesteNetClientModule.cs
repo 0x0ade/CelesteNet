@@ -9,6 +9,7 @@ using MonoMod.Utils;
 using System.Collections;
 using Celeste.Mod.CelesteNet.Client.Components;
 using System.IO;
+using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
@@ -35,6 +36,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         private Thread _StartThread;
         private CancellationTokenSource _StartTokenSource;
         public bool IsAlive => Context != null;
+
+        public DataDisconnectReason lastDisconnectReason;
 
         public VirtualRenderTarget UIRenderTarget;
 
@@ -292,6 +295,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: StartThread Join done");
             }
             _StartTokenSource?.Dispose();
+
+            lastDisconnectReason = null;
 
             lock (ClientLock) {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: old ctx: {Context} {Context?.IsDisposed}");

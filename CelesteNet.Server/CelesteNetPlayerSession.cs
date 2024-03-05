@@ -83,6 +83,11 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public T? Get<T>(object ctx) where T : class {
+            if (!Alive) {
+                Logger.Log(LogLevel.INF, "playersession", $"Early return on attempt to 'Get<{typeof(T)}>' when session is already !Alive");
+                return null;
+            }
+
             using (StateLock.R()) {
                 if (!StateContexts.TryGetValue(ctx, out Dictionary<Type, object>? states))
                     return null;
@@ -99,6 +104,11 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (state == null)
                 return Remove<T>(ctx);
 
+            if (!Alive) {
+                Logger.Log(LogLevel.INF, "playersession", $"Early return on attempt to 'Set<{typeof(T)}>' when session is already !Alive");
+                return state;
+            }
+
             using (StateLock.W()) {
                 if (!StateContexts.TryGetValue(ctx, out Dictionary<Type, object>? states))
                     StateContexts[ctx] = states = new();
@@ -109,6 +119,11 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public T? Remove<T>(object ctx) where T : class {
+            if (!Alive) {
+                Logger.Log(LogLevel.INF, "playersession", $"Early return on attempt to 'Remove<{typeof(T)}>' when session is already !Alive");
+                return null;
+            }
+
             using (StateLock.W()) {
                 if (!StateContexts.TryGetValue(ctx, out Dictionary<Type, object>? states))
                     return null;

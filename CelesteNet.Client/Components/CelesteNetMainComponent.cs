@@ -148,7 +148,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #region Handlers
 
         public void Handle(CelesteNetConnection con, DataDisconnectReason reason) {
-            CelesteNetClientModule.Settings.Connected = false;
+            CelesteNetClientModule.Instance.lastDisconnectReason = reason;
+            // attempting to disconnect from within TCP recv thread here could cause game freeze
+            // if StartThread was also trying to dispose client context at the same time.
+            // So this will be handled within Client Context instead, based on lastDisconnectReason being set.
+            //CelesteNetClientModule.Settings.Connected = false;
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {

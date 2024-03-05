@@ -335,6 +335,7 @@ export class FrontendDialog {
             el = mdcrd.dropdown("secondary", emptyStrArr.concat(optKeys), "")(el);
             return el;
           }),
+          row("Hint: You most likely want to leave 'secondary' empty."),
         )}
 
         ${group(

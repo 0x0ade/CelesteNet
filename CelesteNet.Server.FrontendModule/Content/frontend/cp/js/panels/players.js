@@ -114,6 +114,8 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
             <code>UDP ↑:${` ${p.UDPUplinkBpS ? `${p.UDPUplinkBpS.toFixed(3)} BpS` : '-'} | ${p.UDPUplinkPpS ? `${p.UDPUplinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
             ${el => {
               el = rd$(el)`<span></span>`;
+              if (!p.hasOwnProperty("ConnInfo"))
+                return el;
               let list = new RDOMListHelper(el);
               for (let ci of Object.getOwnPropertyNames(p.ConnInfo)) {
                 list.add(ci, el => rd$(el)`<code>${ci}:&nbsp;${p.ConnInfo[ci]}<br></code>`);
@@ -128,7 +130,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
       this.frontend.dom.setContext(el,
         [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.ID) ],
         [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ],
-        [ "gavel", `BanExt ${p.FullName}`, () => this.frontend.dialog.banExt(p.ConnInfo) ]
+        [ "gavel", `BanExt ${p.FullName}`, () => p.hasOwnProperty("ConnInfo") ? this.frontend.dialog.banExt(p.ConnInfo) : null ]
       );
 
       return el;

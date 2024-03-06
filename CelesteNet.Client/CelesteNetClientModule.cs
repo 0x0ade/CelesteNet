@@ -353,12 +353,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                 } catch (Exception e) {
                     bool handled = false;
                     for (Exception ie = e; ie != null; ie = ie.InnerException) {
-                        if (ie is ConnectionErrorException cee) {
+                        if (ie is ConnectionErrorCodeException ceee) {
                             Logger.Log(LogLevel.CRI, "clientmod", $"Connection error:\n{e}");
                             _StartThread = null;
                             Stop();
-                            context.Status.Set(cee.Status ?? "Connection failed", 3f, false);
-                            if (cee.Status.ToLower().Trim() == "invalid key")
+                            context.Status.Set(ceee.Status ?? "Connection failed", 3f, false);
+                            if (ceee.StatusCode == 403)
                                 Settings.KeyError = CelesteNetClientSettings.KeyErrors.InvalidKey;
                             handled = true;
                             break;

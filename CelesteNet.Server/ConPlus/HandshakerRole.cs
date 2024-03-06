@@ -246,11 +246,22 @@ Connection: close
                     return await Send500();
 
                 // Authenticate name-key
-                string? errorReason = AuthenticatePlayerNameKey(playerNameKey, conUID, out string? playerUID, out string? playerName);
+                string? errorReason = AuthenticatePlayerNameKey(playerNameKey, conUID, out string? playerUID, out string? playerName, out BanInfo? banReason);
                 if (playerUID == null)
                     errorReason ??= "No UID";
                 if (playerName == null)
                     errorReason ??= "No name";
+                if (errorReason != null && banReason != null) {
+                    Logger.Log(LogLevel.VVV, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
+                    await writer.WriteAsync(
+$@"HTTP/1.1 401 Unauthorized
+Connection: close
+
+{errorReason}"
+                        .Trim().Replace("\r\n", "\n").Replace("\n", "\r\n")
+                    );
+                    return null;
+                }
                 if (errorReason != null || playerUID == null || playerName == null) {
                     Logger.Log(LogLevel.VVV, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
                     await writer.WriteAsync(
@@ -358,9 +369,10 @@ Who wants some tea?"
             });
         }
 
-        public string? AuthenticatePlayerNameKey(string nameKey, string conUID, out string? playerUID, out string? playerName) {
+        public string? AuthenticatePlayerNameKey(string nameKey, string conUID, out string? playerUID, out string? playerName, out BanInfo? banReason) {
             // Get the player UID and name from the player name-key
             playerUID = playerName = null;
+            banReason = null;
             if (nameKey.Length > 1 && nameKey[0] == '#') {
                 playerUID = Server.UserData.GetUID(nameKey.Substring(1));
                 if (playerUID != null && Server.UserData.TryLoad(playerUID, out BasicUserInfo info))
@@ -380,13 +392,12 @@ Who wants some tea?"
                 return string.Format(Server.Settings.MessageAuthOnly, nameKey);
 
             // Check if the player's banned
-            BanInfo? ban = null;
             if (Server.UserData.TryLoad(playerUID, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To))
-                ban = banInfo;
+                banReason = banInfo;
             if (Server.UserData.TryLoad(conUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To))
-                ban = conBanInfo;
-            if (ban != null)
-                return string.Format(Server.Settings.MessageBan, playerUID, playerName, ban.Reason);
+                banReason = conBanInfo;
+            if (banReason != null)
+                return string.Format(Server.Settings.MessageBan, playerUID, playerName, banReason.Reason);
 
             // Sanitize the player's name
             playerName = playerName.Sanitize(CelesteNetPlayerSession.IllegalNameChars);

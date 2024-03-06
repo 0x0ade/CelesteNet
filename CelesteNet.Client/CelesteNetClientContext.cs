@@ -274,4 +274,13 @@ namespace Celeste.Mod.CelesteNet.Client
             Status = status;
         }
     }
+
+    public class ConnectionErrorCodeException : ConnectionErrorException {
+
+        public readonly int StatusCode;
+
+        public ConnectionErrorCodeException(string msg, int statusCode, string status) : base($"{msg} (status {statusCode})", status) {
+            StatusCode = statusCode;
+        }
+    }
 }

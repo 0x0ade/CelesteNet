@@ -67,7 +67,7 @@ CelesteNet-PlayerNameKey: {nameKey}
 
             // Parse the "HTTP response"
             if (statusCode != 418)
-                throw new ConnectionErrorException($"Server rejected teapot handshake (status {statusCode})", content.Trim());
+                throw new ConnectionErrorCodeException($"Server rejected teapot handshake (status {statusCode})", statusCode, content.Trim());
 
             uint conToken = uint.Parse(headers["CelesteNet-ConnectionToken"], NumberStyles.HexNumber);
             IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[] { ',' }).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray();

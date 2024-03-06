@@ -20,6 +20,18 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                 (reason = reason?.Trim() ?? "").IsNullOrEmpty())
                 return false;
 
+            // for Guests their UID will look like =>   fb-con-tcpudp---ffff-127.0.0.1
+            // and their connection UID will look like =>  con-tcpudp---ffff-127.0.0.1
+
+            // so if we've got a (player-) UID that starts with "fb-"...
+            string? guestFB = uids.FirstOrDefault(uid => uid.StartsWith("fb-"));
+
+            // ...see if the "non-FB" version of the UID (i.e. the Con.UID) is in the list,
+            // don't use fb-UID since it's pointless clutter to ban both. Con.UID ban is enough.
+            if (guestFB != null && uids.Contains(guestFB.Substring(3))) {
+                uids = uids.Where(uid => uid != guestFB).ToArray();
+            }
+
             BanInfo ban = new() {
                 UID = uids[0],
                 Reason = reason,

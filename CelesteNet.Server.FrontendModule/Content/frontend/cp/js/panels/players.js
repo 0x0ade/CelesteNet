@@ -130,7 +130,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
       this.frontend.dom.setContext(el,
         [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.ID) ],
         [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ],
-        [ "gavel", `BanExt ${p.FullName}`, () => p.hasOwnProperty("ConnInfo") ? this.frontend.dialog.banExt(p.ConnInfo) : null ]
+        [ "gavel", `BanExt ${p.FullName}`, () => p.hasOwnProperty("ConnInfo") ? this.frontend.dialog.banExt(p.ConnInfo, p.ConnectionUID) : null ]
       );
 
       return el;

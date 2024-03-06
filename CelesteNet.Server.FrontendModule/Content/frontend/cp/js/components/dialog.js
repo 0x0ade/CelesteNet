@@ -305,7 +305,7 @@ export class FrontendDialog {
     return dialog;
   }
 
-  banExt(opts) {
+  banExt(opts, connectionUID) {
     const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
     const group = (...items) => el => {
       el = rd$(el)`<ul class="settings-group"></ul>`;
@@ -319,8 +319,7 @@ export class FrontendDialog {
       return el;
     }
 
-    let optKeys = Array.from(Object.getOwnPropertyNames(opts));
-    const emptyStrArr = Array.from([""]);
+    let optKeys = Array.from(Object.getOwnPropertyNames(opts)).map(e => e + '#' + opts[e]);
 
     let el = this.elPopupBanExt = mdcrd.dialog({
       title: "Ban Ext",
@@ -328,14 +327,15 @@ export class FrontendDialog {
       <div>
         ${group(
           row( el => {
-            el = mdcrd.dropdown("primary", optKeys, optKeys[0])(el);
+            el = mdcrd.dropdown("connInfo", optKeys, optKeys[0])(el);
             return el;
           }),
           row( el => {
-            el = mdcrd.dropdown("secondary", emptyStrArr.concat(optKeys), "")(el);
+            el = mdcrd.checkbox(`Also ban Conn UID: ${connectionUID}`, true)(el);
+            const input = el.querySelector("input");
+            input.id = "ban-connUID";
             return el;
           }),
-          row("Hint: You most likely want to leave 'secondary' empty."),
         )}
 
         ${group(
@@ -366,7 +366,8 @@ export class FrontendDialog {
     //setTimeout(() => el.querySelector("input#ban-reason")["focus"](), 200);
 
     let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
-        selection: Array.from(el.querySelectorAll(".mdc-select__selected-text")).map(e => opts[e.value]),
+        selection: el.querySelector(".mdc-select__selected-text")["value"],
+        banConnUID: el.querySelector("input#ban-connUID")["checked"],
         reason: el.querySelector("input#ban-reason")["value"],
     }), { once: true }));
     dialog["then"] = promise.then.bind(promise);
@@ -376,7 +377,7 @@ export class FrontendDialog {
       ban => {
         if (!ban || !(ban.reason = ban.reason.trim()))
           return;
-        this.frontend.sync.run("banext", { ConnInfo: ban.selection, Reason: ban.reason });
+        this.frontend.sync.run("banext", { UID: connectionUID, ConnInfo: ban.selection, BanConnUID: ban.banConnUID, Reason: ban.reason });
       }
     );
 

@@ -6,6 +6,8 @@
             if ((uid = uid?.Trim() ?? "").IsNullOrEmpty())
                 return false;
 
+            Logger.Log(LogLevel.VVV, "frontend", $"Unban called: {uid}");
+
             Frontend.Server.UserData.Delete<BanInfo>(uid);
             Frontend.BroadcastCMD(true, "update", Frontend.Settings.APIPrefix + "/userinfos");
 

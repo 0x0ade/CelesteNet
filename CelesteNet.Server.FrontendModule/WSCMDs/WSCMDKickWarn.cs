@@ -22,6 +22,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             player.Con.Send(new DataDisconnectReason { Text = string.IsNullOrEmpty(reason) ? "Kicked" : $"Kicked: {reason}" });
             player.Con.Send(new DataInternalDisconnect());
 
+            Logger.Log(LogLevel.VVV, "frontend", $"Player kicked with reason:\n{id} => {uid}\nReason: {reason}");
+
             UserData userData = Frontend.Server.UserData;
             if (!reason.IsNullOrEmpty() && !userData.GetKey(uid).IsNullOrEmpty()) {
                 KickHistory kicks = userData.Load<KickHistory>(uid);

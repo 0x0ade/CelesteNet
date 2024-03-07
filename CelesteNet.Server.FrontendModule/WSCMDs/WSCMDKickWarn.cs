@@ -10,6 +10,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
         public override object? Run(dynamic? input) {
             uint id = (uint) input?.ID;
             string? reason = (string?) input?.Reason ?? "";
+            bool quiet = ((bool?)input?.Quiet) ?? false;
 
             if (!Frontend.Server.PlayersByID.TryGetValue(id, out CelesteNetPlayerSession? player)) 
                 return false;
@@ -17,12 +18,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             string uid = player.UID;
 
             ChatModule chat = Frontend.Server.Get<ChatModule>();
-            new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
+            if (!quiet)
+                new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
             player.Dispose();
             player.Con.Send(new DataDisconnectReason { Text = string.IsNullOrEmpty(reason) ? "Kicked" : $"Kicked: {reason}" });
             player.Con.Send(new DataInternalDisconnect());
 
-            Logger.Log(LogLevel.VVV, "frontend", $"Player kicked with reason:\n{id} => {uid}\nReason: {reason}");
+            Logger.Log(LogLevel.VVV, "frontend", $"Player kicked with reason:\n{id} => {uid} (q: {quiet})\nReason: {reason}");
 
             UserData userData = Frontend.Server.UserData;
             if (!reason.IsNullOrEmpty() && !userData.GetKey(uid).IsNullOrEmpty()) {

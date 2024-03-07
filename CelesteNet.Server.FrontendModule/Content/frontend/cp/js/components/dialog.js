@@ -200,6 +200,12 @@ export class FrontendDialog {
             input.id = "kick-reason";
             return el;
           }),
+          row( el => {
+            el = mdcrd.checkbox("Quiet (no broadcast)", false)(el);
+            const input = el.querySelector("input");
+            input.id = "check-quiet";
+            return el;
+          }),
         )}
       </div>`,
       defaultButton: "yes",
@@ -216,15 +222,18 @@ export class FrontendDialog {
     // Blame the Material Design Web Components checkbox stealing focus for this horrible hack.
     setTimeout(() => el.querySelector("input#kick-reason")["focus"](), 200);
 
-    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && el.querySelector("input#kick-reason")["value"]), { once: true }));
+    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
+      reason: el.querySelector("input#kick-reason")["value"],
+      quiet: el.querySelector("input#check-quiet")["checked"],
+    }), { once: true }));
     dialog["then"] = promise.then.bind(promise);
     dialog["catch"] = promise.catch.bind(promise);
 
     dialog.then(
       kick => {
-        if (!kick || !(kick = kick.trim()))
+        if (!kick || !(kick.reason = kick.reason.trim()))
           return;
-        this.frontend.sync.run("kickwarn", { ID: id, Reason: kick });
+        this.frontend.sync.run("kickwarn", { ID: id, Reason: kick.reason, Quiet: kick.quiet });
       }
     );
 
@@ -271,6 +280,12 @@ export class FrontendDialog {
             input.id = "ban-reason";
             return el;
           }),
+          row( el => {
+            el = mdcrd.checkbox("Quiet (no broadcast)", false)(el);
+            const input = el.querySelector("input");
+            input.id = "check-quiet";
+            return el;
+          }),
         )}
       </div>`,
       defaultButton: "yes",
@@ -290,6 +305,7 @@ export class FrontendDialog {
     let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
         uids: Array.from(el.querySelectorAll("input.ban-uid")).map(el => el["checked"] ? el["value"] : null).filter(uid => uid),
         reason: el.querySelector("input#ban-reason")["value"],
+        quiet: el.querySelector("input#check-quiet")["checked"],
     }), { once: true }));
     dialog["then"] = promise.then.bind(promise);
     dialog["catch"] = promise.catch.bind(promise);
@@ -298,7 +314,7 @@ export class FrontendDialog {
       ban => {
         if (!ban || !(ban.reason = ban.reason.trim()))
           return;
-        this.frontend.sync.run("ban", { UIDs: ban.uids, Reason: ban.reason });
+        this.frontend.sync.run("ban", { UIDs: ban.uids, Reason: ban.reason, Quiet: ban.quiet });
       }
     );
 
@@ -349,6 +365,12 @@ export class FrontendDialog {
             input.id = "ban-reason";
             return el;
           }),
+          row( el => {
+            el = mdcrd.checkbox("Quiet (no broadcast)", false)(el);
+            const input = el.querySelector("input");
+            input.id = "check-quiet";
+            return el;
+          }),
         )}
       </div>`,
       defaultButton: "yes",
@@ -369,6 +391,7 @@ export class FrontendDialog {
         selection: el.querySelector(".mdc-select__selected-text")["value"],
         banConnUID: el.querySelector("input#ban-connUID")["checked"],
         reason: el.querySelector("input#ban-reason")["value"],
+        quiet: el.querySelector("input#check-quiet")["checked"],
     }), { once: true }));
     dialog["then"] = promise.then.bind(promise);
     dialog["catch"] = promise.catch.bind(promise);
@@ -377,7 +400,7 @@ export class FrontendDialog {
       ban => {
         if (!ban || !(ban.reason = ban.reason.trim()))
           return;
-        this.frontend.sync.run("banext", { UID: connectionUID, ConnInfo: ban.selection, BanConnUID: ban.banConnUID, Reason: ban.reason });
+        this.frontend.sync.run("banext", { UID: connectionUID, ConnInfo: ban.selection, BanConnUID: ban.banConnUID, Reason: ban.reason, Quiet: ban.quiet });
       }
     );
 

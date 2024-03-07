@@ -13,8 +13,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             JArray? uidsRaw = (JArray?) input?.UIDs;
             string[]? uids = uidsRaw?.Select(t => t.ToString()).ToArray();
             string? reason = (string?) input?.Reason;
+            bool quiet = ((bool?) input?.Quiet) ?? false;
 
-            Logger.Log(LogLevel.VVV, "frontend", $"Ban called:\n{uids}\nReason: {reason}");
+            Logger.Log(LogLevel.VVV, "frontend", $"Ban called:\n{uids} (q: {quiet})\nReason: {reason}");
 
             if (uids == null || uids.Length == 0 ||
                 (reason = reason?.Trim() ?? "").IsNullOrEmpty())
@@ -51,7 +52,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                         ban.Name = player.PlayerInfo?.FullName ?? "";
 
                     ChatModule chat = Frontend.Server.Get<ChatModule>();
-                    new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
+                    if (!quiet)
+                        new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
                     player.Dispose();
                     player.Con.Send(new DataDisconnectReason { Text = "Banned: " + reason });
                     player.Con.Send(new DataInternalDisconnect());

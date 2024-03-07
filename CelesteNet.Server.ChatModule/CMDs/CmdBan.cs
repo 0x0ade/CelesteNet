@@ -4,6 +4,16 @@ using System;
 using System.Collections.Generic;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
+
+    public class CmdBanQ : CmdBan {
+
+        public override string Info => $"Same as {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdBan>().ID} but without Broadcast (quiet)";
+
+        public override bool InternalAliasing => true;
+
+        public override bool Quiet => true;
+    }
+
     public class CmdBan : ChatCmd {
 
         public override string Args => "<user> <text>";
@@ -13,6 +23,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public override string Info => "Ban a player from the server with a given reason.";
 
         public override bool MustAuth => true;
+
+        public virtual bool Quiet => false;
 
         public override void Run(CmdEnv env, List<CmdArg> args) {
             if (args.Count == 0)
@@ -31,7 +43,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             };
 
             ChatModule chat = env.Server.Get<ChatModule>();
-            new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
+
+            if (!Quiet)
+                new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
             player.Dispose();
             player.Con.Send(new DataDisconnectReason { Text = "Banned: " + ban.Reason });
             player.Con.Send(new DataInternalDisconnect());

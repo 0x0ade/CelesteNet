@@ -111,13 +111,13 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
       if (p.Key)
         contextOpts = [
           ...contextOpts,
-          [ "content_copy", `Copy Key`, () =>  navigator.clipboard.writeText(p.Key) ]
+          [ "content_copy", "Copy Key", () =>  navigator.clipboard.writeText(p.Key) ]
         ];
 
       if (p.Ban)
         contextOpts = [
           ...contextOpts,
-          [ "content_copy", `Copy Ban reason`, () =>  navigator.clipboard.writeText(p.Ban.Reason) ]
+          [ "content_copy", "Copy Ban reason", () =>  navigator.clipboard.writeText(p.Ban.Reason) ]
         ];
 
       this.frontend.dom.setContext(el, ...contextOpts);

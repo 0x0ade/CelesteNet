@@ -117,8 +117,8 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
               if (!p.hasOwnProperty("ConnInfo"))
                 return el;
               let list = new RDOMListHelper(el);
-              for (let ci of Object.getOwnPropertyNames(p.ConnInfo)) {
-                list.add(ci, el => rd$(el)`<code>${ci}:&nbsp;${p.ConnInfo[ci]}<br></code>`);
+              for (const [cikey, civalue] of Object.entries(p.ConnInfo)) {
+                list.add(cikey, el => rd$(el)`<code>${cikey}:&nbsp;${civalue}<br></code>`);
               }
               list.end();
               return el;
@@ -130,7 +130,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
       this.frontend.dom.setContext(el,
         [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.ID) ],
         [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ],
-        [ "gavel", `BanExt ${p.FullName}`, () => p.hasOwnProperty("ConnInfo") ? this.frontend.dialog.banExt(p.ConnInfo, p.ConnectionUID) : null ]
+        [ "gavel", `BanExt ${p.FullName}`, () => p.hasOwnProperty("ConnInfo") ? this.frontend.dialog.banExt(Object.entries(p.ConnInfo), p.ConnectionUID) : null ]
       );
 
       return el;

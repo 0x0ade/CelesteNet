@@ -489,7 +489,7 @@ var mdcrd = {
   /**
    * @param {string} label
    * @param {string[]} choices
-   * @param {string} preselect
+   * @param {number} preselect
    */
   dropdown: (label, choices, preselect) =>
   /**
@@ -497,11 +497,11 @@ var mdcrd = {
    */
   el => {
     el = rd$(el)`
-    <div class="mdc-select mdc-select--filled" style="width: fit-content;">
-      <div class="mdc-select__anchor">
+    <div class="mdc-select mdc-select--filled">
+      <div class="mdc-select__anchor" style="width: 100%; min-width:400px">
         <span class="mdc-select__ripple"></span>
         <span class="mdc-floating-label mdc-floating-label--float-above">${label}</span>
-          <input class="mdc-select__selected-text" value=${preselect} />
+          <input type="text" disabled readonly class="mdc-select__selected-text" value="" />
         <span class="mdc-select__dropdown-icon">
           <svg
               class="mdc-select__dropdown-icon-graphic"
@@ -516,13 +516,13 @@ var mdcrd = {
         <span class="mdc-line-ripple"></span>
       </div>
 
-      <div class="mdc-select__menu mdc-menu mdc-menu-surface" style="width: 100%;">
+      <div class="mdc-select__menu mdc-menu mdc-menu-surface" style="width: 100%; min-width:400px">
         ${el => {
           el = rd$(el)`<ul class="mdc-list"></ul>`;
           let list = new RDOMListHelper(el);
           for (let i in choices) {
             list.add(i, el => rd$(el)`
-            <li class=${choices[i] === preselect ? "mdc-list-item mdc-list-item--selected" : "mdc-list-item"} data-value=${choices[i]}  aria-selected=${choices[i] === preselect}>
+            <li class="mdc-list-item mdc-list-item--selected" data-value=${choices[i]} >
             <span class="mdc-list-item__ripple"></span>
             <span class="mdc-list-item__text">${choices[i]}</span>
             </li>
@@ -535,7 +535,10 @@ var mdcrd = {
     </div>
     ${el => {
       el.MDCSelect = new mdc.select.MDCSelect(el);
+      el.MDCSelect.selectedIndex = preselect;
     }}`;
+
+    el["MDCSelect"].selectedIndex = preselect;
 
     return el;
   }

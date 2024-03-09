@@ -335,15 +335,14 @@ export class FrontendDialog {
       return el;
     }
 
-    let optKeys = Array.from(Object.getOwnPropertyNames(opts)).map(e => e + '#' + opts[e]);
-
     let el = this.elPopupBanExt = mdcrd.dialog({
       title: "Ban Ext",
       body: el => rd$(el)`
       <div>
         ${group(
           row( el => {
-            el = mdcrd.dropdown("connInfo", optKeys, optKeys[0])(el);
+            let optKeys = opts.map(e => e[0] + '#' + e[1]);
+            el = mdcrd.dropdown("connInfo", optKeys, 0)(el);
             return el;
           }),
           row( el => {
@@ -385,7 +384,7 @@ export class FrontendDialog {
     dialog.open();
 
     // Blame the Material Design Web Components checkbox stealing focus for this horrible hack.
-    //setTimeout(() => el.querySelector("input#ban-reason")["focus"](), 200);
+    setTimeout(() => el.querySelector("input#ban-reason")["focus"](), 200);
 
     let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
         selection: el.querySelector(".mdc-select__selected-text")["value"],

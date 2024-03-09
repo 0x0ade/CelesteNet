@@ -91,15 +91,36 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
         return el;
       })(el);
 
-      this.frontend.dom.setContext(el,
+      let contextOpts = [
         [ "gavel", p.Ban ? `Unban ${p.Name || p.UID}` : `Ban ${p.Name || p.UID}`, () => {
-          if (!p.Ban) {
-            this.frontend.dialog.ban(p.Name, 0, p.UID);
-          } else {
-            this.frontend.sync.run("unban", p.UID);
-          }
-        } ]
-      );
+            if (!p.Ban) {
+              this.frontend.dialog.ban(p.Name, 0, p.UID);
+            } else {
+              this.frontend.sync.run("unban", p.UID);
+            }
+          } ],
+          [ "content_copy", `Copy UID: ${p.UID}`, () =>  navigator.clipboard.writeText(p.UID) ]
+      ];
+
+      if (p.Name)
+        contextOpts = [
+          ...contextOpts,
+          [ "content_copy", `Copy Name: ${p.Name}`, () =>  navigator.clipboard.writeText(p.Name) ]
+        ];
+
+      if (p.Key)
+        contextOpts = [
+          ...contextOpts,
+          [ "content_copy", `Copy Key`, () =>  navigator.clipboard.writeText(p.Key) ]
+        ];
+
+      if (p.Ban)
+        contextOpts = [
+          ...contextOpts,
+          [ "content_copy", `Copy Ban reason`, () =>  navigator.clipboard.writeText(p.Ban.Reason) ]
+        ];
+
+      this.frontend.dom.setContext(el, ...contextOpts);
 
       return el;
     });

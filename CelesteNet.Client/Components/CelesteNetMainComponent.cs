@@ -71,7 +71,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 // modern monomod does detourcontexts differently
                 using (new DetourConfigContext(new DetourConfig(
                     "CelesteNetMain",
-                    before: new[] { "*" }
+                    int.MinValue  // this simulates before: "*"
                 )).Use()) {
                     On.Monocle.Scene.SetActualDepth += OnSetActualDepth;
                     On.Celeste.Level.LoadLevel += OnLoadLevel;

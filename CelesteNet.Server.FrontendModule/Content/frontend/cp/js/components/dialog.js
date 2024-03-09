@@ -167,7 +167,7 @@ export class FrontendDialog {
     return dialog;
   }
 
-  kick(id) {
+  kick(fullname, id) {
     const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
     const group = (...items) => el => {
       el = rd$(el)`<ul class="settings-group"></ul>`;
@@ -182,7 +182,7 @@ export class FrontendDialog {
     }
 
     let el = this.elPopupKick = mdcrd.dialog({
-      title: "Kick",
+      title: `Kick ${fullname} (#${id})`,
       body: el => rd$(el)`
       <div>
         ${group(
@@ -240,7 +240,7 @@ export class FrontendDialog {
     return dialog;
   }
 
-  ban(...uids) {
+  ban(fullname, id, ...uids) {
     const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
     const group = (...items) => el => {
       el = rd$(el)`<ul class="settings-group"></ul>`;
@@ -255,7 +255,7 @@ export class FrontendDialog {
     }
 
     let el = this.elPopupBan = mdcrd.dialog({
-      title: "Ban",
+      title: `Ban ${fullname} ${id > 0 ? `(#${id})` : ""}`,
       body: el => rd$(el)`
       <div>
         ${group(
@@ -321,7 +321,7 @@ export class FrontendDialog {
     return dialog;
   }
 
-  banExt(opts, connectionUID) {
+  banExt(fullname, id, opts, connectionUID) {
     const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
     const group = (...items) => el => {
       el = rd$(el)`<ul class="settings-group"></ul>`;
@@ -336,7 +336,7 @@ export class FrontendDialog {
     }
 
     let el = this.elPopupBanExt = mdcrd.dialog({
-      title: "Ban Ext",
+      title: `Ban ${fullname} ${id > 0 ? `(#${id})` : ""}`,
       body: el => rd$(el)`
       <div>
         ${group(
@@ -399,7 +399,7 @@ export class FrontendDialog {
       ban => {
         if (!ban || !(ban.reason = ban.reason.trim()))
           return;
-        this.frontend.sync.run("banext", { UID: connectionUID, ConnInfo: ban.selection, BanConnUID: ban.banConnUID, Reason: ban.reason, Quiet: ban.quiet });
+        this.frontend.sync.run("banext", { ID: id, ConnUID: connectionUID, ConnInfo: ban.selection, BanConnUID: ban.banConnUID, Reason: ban.reason, Quiet: ban.quiet });
       }
     );
 

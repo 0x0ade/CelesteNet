@@ -128,9 +128,9 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
       )(el);
 
       this.frontend.dom.setContext(el,
-        [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.ID) ],
-        [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ],
-        [ "gavel", `BanExt ${p.FullName}`, () => p.hasOwnProperty("ConnInfo") ? this.frontend.dialog.banExt(Object.entries(p.ConnInfo), p.ConnectionUID) : null ]
+        [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.FullName, p.ID) ],
+        [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.FullName, p.ID, p.UID, p.ConnectionUID) ],
+        [ "gavel", `BanExt ${p.FullName}`, () => p.hasOwnProperty("ConnInfo") ? this.frontend.dialog.banExt(p.FullName, p.ID, Object.entries(p.ConnInfo), p.ConnectionUID) : null ]
       );
 
       return el;

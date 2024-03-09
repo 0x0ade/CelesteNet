@@ -94,7 +94,7 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
       this.frontend.dom.setContext(el,
         [ "gavel", p.Ban ? `Unban ${p.Name || p.UID}` : `Ban ${p.Name || p.UID}`, () => {
           if (!p.Ban) {
-            this.frontend.dialog.ban(p.UID);
+            this.frontend.dialog.ban(p.Name, 0, p.UID);
           } else {
             this.frontend.sync.run("unban", p.UID);
           }

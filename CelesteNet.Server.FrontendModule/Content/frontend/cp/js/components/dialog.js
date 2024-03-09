@@ -398,12 +398,13 @@ export class FrontendDialog {
     // Blame the Material Design Web Components checkbox stealing focus for this horrible hack.
     setTimeout(() => el.querySelector("input#ban-reason")["focus"](), 200);
 
-    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
-        selection: el.querySelector("#connInfo-select .mdc-select__selected-text")["value"],
-        banConnUID: el.querySelector("#banext-connUID input")["checked"],
-        reason: el.querySelector("#banext-reason input")["value"],
-        quiet: el.querySelector("#banext-quiet input")["checked"],
-    }), { once: true }));
+    let promise = new Promise(
+        resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
+          selection: el.querySelector("#connInfo-select .mdc-select__selected-text")["value"],
+          banConnUID: el.querySelector("#banext-connUID input")["checked"],
+          reason: el.querySelector("#banext-reason input")["value"],
+          quiet: el.querySelector("#banext-quiet input")["checked"],
+      }), { once: true }));
     dialog["then"] = promise.then.bind(promise);
     dialog["catch"] = promise.catch.bind(promise);
 

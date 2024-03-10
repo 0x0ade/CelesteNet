@@ -121,7 +121,7 @@ namespace Celeste.Mod.CelesteNet.Server
             if (File.Exists(Path.ChangeExtension(AssemblyPath, "pdb")))
                 File.Copy(Path.ChangeExtension(AssemblyPath, "pdb"), Path.ChangeExtension(path, "pdb"));
 
-            ALC = new ModuleAssemblyLoadContext($"ModCtx.{stamp}.{ID}");
+            ALC = new AssemblyLoadContext($"ModCtx.{stamp}.{ID}", isCollectible: true);
             ALC.Resolving += (ctx, name) => {
                 foreach (CelesteNetServerModuleWrapper wrapper in Server.ModuleWrappers)
                     if (wrapper.ID == name.Name)
@@ -142,21 +142,5 @@ namespace Celeste.Mod.CelesteNet.Server
             ALC?.Unload();
             ALC = null;
         }
-
-        public class ModuleAssemblyLoadContext : AssemblyLoadContext
-        {
-
-            public ModuleAssemblyLoadContext(string name)
-                : base(name, isCollectible: true)
-            {
-            }
-
-            protected override Assembly? Load(AssemblyName name)
-            {
-                return null;
-            }
-
-        }
-
     }
 }

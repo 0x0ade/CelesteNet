@@ -494,7 +494,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                 return;
             }
 
-            ExecALC? alc = null;
+            AssemblyLoadContext? alc = null;
 
             try {
                 string name = $"CelesteNet.Server.FrontendModule.REPL.{Guid.NewGuid().ToString().Replace("-", "")}";
@@ -539,7 +539,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
                 ms.Seek(0, SeekOrigin.Begin);
 
-                alc = new(name);
+                alc = new AssemblyLoadContext(name, isCollectible: true);
                 alc.Resolving += (ctx, name) => {
                     foreach (CelesteNetServerModuleWrapper wrapper in f.Server.ModuleWrappers)
                         if (wrapper.ID == name.Name)
@@ -566,18 +566,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             } finally {
                 alc?.Unload();
             }
-        }
-
-        private class ExecALC : AssemblyLoadContext {
-
-            public ExecALC(string name)
-                : base(name, isCollectible: true) {
-            }
-
-            protected override Assembly? Load(AssemblyName name) {
-                return null;
-            }
-
         }
 
     }

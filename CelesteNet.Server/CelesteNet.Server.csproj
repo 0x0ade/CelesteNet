@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFramework>net7.0</TargetFramework>
     <AssemblyName>CelesteNet.Server</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Server</RootNamespace>
     <OutputType>Exe</OutputType>
@@ -58,6 +58,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+
+    <Reference Include="websocket-sharp-customheaders.dll" HintPath="..\lib\websocket-sharp-customheaders.dll" />
   </ItemGroup>
 
 </Project>

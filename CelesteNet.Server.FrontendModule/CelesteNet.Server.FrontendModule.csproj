@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <LangVersion>9</LangVersion> <!-- FIXME: Figure out why dotnet needs this! -->
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFramework>net7.0</TargetFramework>
     <AssemblyName>CelesteNet.Server.FrontendModule</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Server.Control</RootNamespace>
   </PropertyGroup>
@@ -15,8 +14,11 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <!-- PackageReference Include="WebSocketSharp" Version="1.0.3-rc11" /-->
-    <Reference Include="WebSocketSharp.CustomHeaders.CustomHttpServer" HintPath="..\lib\$(TargetFramework)\WebSocketSharp.CustomHeaders.CustomHttpServer.dll" />
+    <!--
+      this is a build of [websocket-sharp with custom headers](https://github.com/felixhao28/websocket-sharp)
+      i just had to merge main into it (since it was severely out of date) and converted the .csproj to build against .net 7
+      -->
+    <Reference Include="websocket-sharp-customheaders.dll" HintPath="..\lib\websocket-sharp-customheaders.dll" />
   </ItemGroup>
 
   <Choose>

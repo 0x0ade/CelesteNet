@@ -9,7 +9,6 @@
     <IsModule>$(AssemblyName.EndsWith('Module'))</IsModule>
 
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
-    <DefineConstants>INTERNAL_NULLABLE_ATTRIBUTES;$(DefineConstants)</DefineConstants>
     <Version>2.0.0.0</Version>
 
     <CelestePrefix Condition="'$(CelestePrefix)' == '' And Exists('..\..\..\Celeste.dll')">..\..\..</CelestePrefix>
@@ -17,10 +16,6 @@
 
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="..\CelesteNet.Shared\NullableAttributes.cs" />
-  </ItemGroup>
 
   <Choose>
     <When Condition="$(TargetFramework.Contains('.'))">

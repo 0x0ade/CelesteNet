@@ -68,7 +68,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override void LoadContent(bool firstLoad) {
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule LoadContent ({firstLoad})");
-            MainThreadHelper.Do(() => {
+            MainThreadHelper.Schedule(() => {
                 UIRenderTarget?.Dispose();
                 UIRenderTarget = VirtualContent.CreateRenderTarget("celestenet-hud-target", 1922, 1082, false, true, 0);
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule LoadContent created RT");
@@ -173,7 +173,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool LoadOldSettings() {
 
-            CelesteNetClientSettingsBeforeVersion2 settingsOld = (CelesteNetClientSettingsBeforeVersion2)typeof(CelesteNetClientSettingsBeforeVersion2).GetConstructor(Everest._EmptyTypeArray).Invoke(Everest._EmptyObjectArray);
+            CelesteNetClientSettingsBeforeVersion2 settingsOld = (CelesteNetClientSettingsBeforeVersion2)typeof(CelesteNetClientSettingsBeforeVersion2).GetConstructor(Type.EmptyTypes).Invoke(Array.Empty<object>());
             string path = UserIO.GetSaveFilePath("modsettings-" + Metadata.Name);
 
             if (!File.Exists(path)) {
@@ -310,7 +310,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 oldCtx = ContextLast;
                 if (oldCtx != null) {
                     Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: ContextLast wasn't null");
-                    MainThreadHelper.Do(() => {
+                    MainThreadHelper.Schedule(() => {
                         foreach (CelesteNetGameComponent comp in oldCtx.Components.Values)
                             comp.Disconnect(true);
                     });

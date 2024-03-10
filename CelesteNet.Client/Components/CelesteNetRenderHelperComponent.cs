@@ -107,7 +107,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
 
             if (!_disconnected) {
                 try {
-                    MainThreadHelper.Do(() => {
+                    MainThreadHelper.Schedule(() => {
                         Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"Main thread disposing Render Helper");
                         IL.Celeste.Level.Render -= ILRenderLevel;
                         IL.Monocle.Engine.RenderCore -= ILRenderCore;

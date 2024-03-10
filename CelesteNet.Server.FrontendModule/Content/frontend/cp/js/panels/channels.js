@@ -107,7 +107,8 @@ export class FrontendChannelsPanel extends FrontendBasicPanel {
       )(el);
 
       this.frontend.dom.setContext(el,
-        [ "error_outline", `Dissolve ${c.Name}`, () => this.frontend.sync.run("dissolve", c.ID) ]
+        [ "error_outline", `Dissolve ${c.Name}`, () => this.frontend.sync.run("dissolve", c.ID) ],
+        [ "content_copy", `Copy Name: ${c.Name}`, () =>  navigator.clipboard.writeText(c.Name) ]
       );
 
       return el;

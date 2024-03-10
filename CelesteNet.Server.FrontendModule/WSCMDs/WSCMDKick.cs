@@ -10,6 +10,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             if (!Frontend.Server.PlayersByID.TryGetValue(input, out CelesteNetPlayerSession? player))
                 return false;
 
+            Logger.Log(LogLevel.VVV, "frontend", $"Kick called: {input} => {player.UID}");
+
             ChatModule chat = Frontend.Server.Get<ChatModule>();
             new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
             player.Dispose();

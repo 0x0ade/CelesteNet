@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Monocle;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Celeste.Mod.CelesteNet.DataTypes;
-using Monocle;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetPlayerSession : IDisposable {
@@ -281,9 +281,21 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (!Server.Channels.SessionStartupMove(this))
                 ResendPlayerStates();
 
-            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} ClientGUID: {ClientOptions.ClientID} InstanceID: {ClientOptions.InstanceID}");
-            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
-            Con.Send(new DataReady());
+            string? clientDisconnectReason = null;
+            if (Server.Settings.ClientChecks && Con is ConPlusTCPUDPConnection cpCon)
+                clientDisconnectReason = ConnFeatureUtils.ClientCheck(cpCon);
+
+            if (clientDisconnectReason == null) {
+                Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} ClientID: {ClientOptions.ClientID} InstanceID: {ClientOptions.InstanceID}");
+                Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
+                Con.Send(new DataReady());
+            } else {
+                Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} disconnecting because ClientCheck returned: '{clientDisconnectReason}'");
+                Con.Send(new DataDisconnectReason { Text = clientDisconnectReason });
+                Con.Send(new DataInternalDisconnect());
+                Dispose();
+            }
+
         }
 
         public Action WaitFor<T>(DataFilter<T> cb) where T : DataType<T>

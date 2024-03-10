@@ -22,7 +22,8 @@ const mdc = window["mdc"]; // mdc
   TCPDownlinkBpS: number?, TCPDownlinkPpS: number?,
   UDPDownlinkBpS: number?, UDPDownlinkPpS: number?,
   TCPUplinkBpS: number?, TCPUplinkPpS: number?,
-  UDPUplinkBpS: number?, UDPUplinkPpS: number?
+  UDPUplinkBpS: number?, UDPUplinkPpS: number?,
+  ConnInfo: Map<string, string>?
 }} PlayerData
  */
 
@@ -110,14 +111,29 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
             <code>TCP ↓:${` ${p.TCPDownlinkBpS ? `${p.TCPDownlinkBpS.toFixed(3)} BpS` : '-'} | ${p.TCPDownlinkPpS ? `${p.TCPDownlinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
             <code>UDP ↓:${` ${p.UDPDownlinkBpS ? `${p.UDPDownlinkBpS.toFixed(3)} BpS` : '-'} | ${p.UDPDownlinkPpS ? `${p.UDPDownlinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
             <code>TCP ↑:${` ${p.TCPUplinkBpS ? `${p.TCPUplinkBpS.toFixed(3)} BpS` : '-'} | ${p.TCPUplinkPpS ? `${p.TCPUplinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
-            <code>UDP ↑:${` ${p.UDPUplinkBpS ? `${p.UDPUplinkBpS.toFixed(3)} BpS` : '-'} | ${p.UDPUplinkPpS ? `${p.UDPUplinkPpS.toFixed(3)} PpS` : '-'}`}</code>
+            <code>UDP ↑:${` ${p.UDPUplinkBpS ? `${p.UDPUplinkBpS.toFixed(3)} BpS` : '-'} | ${p.UDPUplinkPpS ? `${p.UDPUplinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
+            ${el => {
+              el = rd$(el)`<span></span>`;
+              if (!p.hasOwnProperty("ConnInfo"))
+                return el;
+              let list = new RDOMListHelper(el);
+              for (const [cikey, civalue] of Object.entries(p.ConnInfo)) {
+                list.add(cikey, el => rd$(el)`<code>${cikey}:&nbsp;${civalue}<br></code>`);
+              }
+              list.end();
+              return el;
+            }}
           </span>`}
         </span>`
       )(el);
 
       this.frontend.dom.setContext(el,
-        [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.ID) ],
-        [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.UID, p.ConnectionUID) ]
+        [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.FullName, p.ID) ],
+        [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.FullName, p.ID, p.UID, p.ConnectionUID) ],
+        [ "gavel", `BanExt ${p.FullName}`, () => p.hasOwnProperty("ConnInfo") ? this.frontend.dialog.banExt(p.FullName, p.ID, Object.entries(p.ConnInfo), p.ConnectionUID) : null ],
+        [ "content_copy", `Copy FullName: ${p.FullName}`, () =>  navigator.clipboard.writeText(p.FullName) ],
+        [ "content_copy", `Copy UID: ${p.UID}`, () =>  navigator.clipboard.writeText(p.UID) ],
+        [ "content_copy", `Copy Con: ${p.ConnectionUID}`, () =>  navigator.clipboard.writeText(p.ConnectionUID) ],
       );
 
       return el;

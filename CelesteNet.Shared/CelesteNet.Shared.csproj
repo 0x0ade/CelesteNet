@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Remove="..\CelesteNet.Shared\NullableAttributes.cs" />
+    <Compile Remove="ConnectionFeatures\ConnFeatureUtils.cs" />
     <EmbeddedResource Include="TokenGenerator.Polynomials.bin" LogicalName="polynomials.bin" />
   </ItemGroup>
 

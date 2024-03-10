@@ -17,6 +17,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public CelesteNetConnection Con;
         public readonly IConnectionFeature[] ConFeatures;
         public volatile bool EndOfStream = false, SafeDisposeTriggered = false;
+        public ConnectionErrorCodeException LastConnectionError;
 
         private bool _IsAlive;
         public bool IsAlive {
@@ -106,6 +107,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         if (Socket.OSSupportsIPv4)
                             sockAll.Add(new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp));
                         Socket sock = null;
+                        LastConnectionError = null;
                         try {
                             uint conToken;
                             IConnectionFeature[] conFeatures;
@@ -138,6 +140,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                                             sock = sockTry;
                                             sock.ReceiveTimeout = sock.SendTimeout = 2000;
                                             sock.Connect(address, Settings.Port);
+
+                                            LastConnectionError = sockEx as ConnectionErrorCodeException;
+
                                             // Do the teapot handshake here, as a successful "connection" doesn't mean that the server can handle IPv6.
                                             teapotRes = Handshake.DoTeapotHandshake<CelesteNetClientTCPUDPConnection.Settings>(sock, ConFeatures, Settings.NameKey, Options);
                                             Logger.Log(LogLevel.INF, "main", $"Connecting to {address} ({address.AddressFamily}) succeeded");

@@ -11,6 +11,13 @@
   <Import Project="..\CelesteNet.props" />
 
   <ItemGroup>
+      <Compile Condition="Exists('..\CelesteNet.Extras\ConPlus\ConnFeatureUtils.cs')" Include="..\CelesteNet.Extras\ConPlus\ConnFeatureUtils.cs" Link="ConPlus\ConnFeatureUtils.cs" />
+      <Compile Condition="!Exists('..\CelesteNet.Extras\ConPlus\ConnFeatureUtils.cs')" Include="..\CelesteNet.Shared\ConnectionFeatures\ConnFeatureUtils.cs" Link="ConPlus\ConnFeatureUtils.cs" />
+      <Compile Condition="Exists('..\CelesteNet.Extras\DataClientInfo.cs')" Include="..\CelesteNet.Extras\DataClientInfo.cs" Link="DataTypes\DataClientInfo.cs" />
+      <Compile Condition="Exists('..\CelesteNet.Extras\ConPlus\HandshakeFeature.cs')" Include="..\CelesteNet.Extras\ConPlus\HandshakeFeature.cs" Link="ConPlus\HandshakeFeature.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CelesteNet.Shared\CelesteNet.Shared.csproj" />
   </ItemGroup>
 

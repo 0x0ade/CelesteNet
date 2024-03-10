@@ -27,7 +27,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		CelesteNet.props = CelesteNet.props
+		everest.pubclient.yaml = everest.pubclient.yaml
 		everest.yaml = everest.yaml
+		PublishClient.ps1 = PublishClient.ps1
+		PublishClient.sh = PublishClient.sh
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dialog", "Dialog", "{30CD2B21-9175-456F-AF35-57BC9E735E9E}"
@@ -61,8 +65,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "emoji", "emoji", "{273EB989
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Server.SqliteModule", "CelesteNet.Server.SqliteModule\CelesteNet.Server.SqliteModule.csproj", "{A43B6AC6-3305-4DCC-B8AE-A3FD7ACB3547}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CelesteNet.Extras", "CelesteNet.Extras", "{3C38147E-7144-4987-9381-2CF997084C50}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CelesteNet.Extras", "CelesteNet.Extras\CelesteNet.Extras.csproj", "{7D416F3C-F603-4C58-BEDA-CAAB49A661EB}"
 EndProject
@@ -114,7 +116,6 @@ Global
 		{835CD78E-3E88-46F8-81EE-FC42E1D8FB38} = {9AE35793-3E94-4E8C-BDA7-C314BA7012FA}
 		{02E424ED-285B-453B-997F-3C4AC74DB4F6} = {835CD78E-3E88-46F8-81EE-FC42E1D8FB38}
 		{273EB989-5755-4F5C-A630-574B7F197C27} = {9AE35793-3E94-4E8C-BDA7-C314BA7012FA}
-		{3C38147E-7144-4987-9381-2CF997084C50} = {A2A695E6-AD24-4BF9-AE44-3B3FC4F0A0B3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7FDFC39A-82B7-4B23-8208-F246E9B3A7A2}

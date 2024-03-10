@@ -13,7 +13,7 @@
     <CelestePrefix Condition="'$(CelestePrefix)' == '' And Exists('..\..\..\Celeste.dll')">..\..\..</CelestePrefix>
     <CelestePrefix Condition="'$(CelestePrefix)' == ''">lib-stripped</CelestePrefix>
 
-    <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
+    <CopyCeleste Condition="'$(CopyCeleste)' == ''">$(IsServer)</CopyCeleste>
   </PropertyGroup>
 
   <ItemGroup>

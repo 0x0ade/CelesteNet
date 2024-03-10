@@ -4,12 +4,18 @@
     <LangVersion>9</LangVersion>
     <Nullable Condition="'$(Nullable)' == ''">enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
+
     <IsServer>$(AssemblyName.EndsWith('Server'))</IsServer>
     <IsModule>$(AssemblyName.EndsWith('Module'))</IsModule>
+
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
     <DefineConstants>INTERNAL_NULLABLE_ATTRIBUTES;$(DefineConstants)</DefineConstants>
     <Version>2.0.0.0</Version>
+
+    <CelestePrefix Condition="'$(CelestePrefix)' == '' And Exists('..\..\..\Celeste.dll')">..\..\..</CelestePrefix>
+    <CelestePrefix Condition="'$(CelestePrefix)' == ''">lib-stripped</CelestePrefix>
+
+    <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
   </PropertyGroup>
 
   <ItemGroup>
@@ -42,81 +48,16 @@
     <ProjectReference Include="..\CelesteNet.Server\CelesteNet.Server.csproj" Private="false" Condition="$(IsModule)" />
   </ItemGroup>
 
-  <Choose>
-    <When Condition="Exists('..\..\..\Celeste.exe')">
-      <PropertyGroup>
-        <CelesteDir>..\..\..</CelesteDir>
-        <InCelesteModDir>true</InCelesteModDir>
-        <CopyCeleste Condition="'$(CopyCeleste)' == ''">false</CopyCeleste>
-      </PropertyGroup>
-    </When>
-
-    <When Condition="Exists('..\..\Celeste\Celeste.exe')">
-      <PropertyGroup>
-        <CelesteDir>..\..\Celeste</CelesteDir>
-        <InCelesteModDir>false</InCelesteModDir>
-        <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
-      </PropertyGroup>
-    </When>
-
-    <When Condition="'$(CelesteDir)' == ''">
-      <!-- Whoops. -->
-      <PropertyGroup>
-        <CelesteDir></CelesteDir>
-        <InCelesteModDir>false</InCelesteModDir>
-        <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
-      </PropertyGroup>
-    </When>
-  </Choose>
-
-  <Choose>
-    <When Condition="Exists('..\..\..\Celeste.dll')">
-      <PropertyGroup>
-        <CelesteDir>..\..\..\legacyRef</CelesteDir>
-        <CelesteIsCore>true</CelesteIsCore>
-        <InCelesteModDir>true</InCelesteModDir>
-        <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
-      </PropertyGroup>
-    </When>
-
-    <When Condition="Exists('..\..\Celeste\Celeste.dll')">
-      <PropertyGroup>
-        <CelesteDir>..\..\Celeste\legacyRef</CelesteDir>
-        <CelesteIsCore>true</CelesteIsCore>
-        <InCelesteModDir>false</InCelesteModDir>
-        <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
-      </PropertyGroup>
-    </When>
-
-    <Otherwise>
-      <PropertyGroup>
-        <CelesteIsCore>false</CelesteIsCore>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-
-  <Target Name="CheckCelesteDir" BeforeTargets="PreBuildEvent">
-    <Error Condition="'$(CelesteDir)' == ''" Text="Cannot find Celeste." />
-  </Target>
-
-  <Target Name="CheckCoreInstall" BeforeTargets="PrepareForBuild" Condition="$(CelesteIsCore)">
-	<Error Condition="!Exists('$(CelesteDir)')" Text="Detected a .NET Core Everest install without the required legacyRef install needed to build .NET Framework mods - see the Everest wiki (https://github.com/EverestAPI/Resources/wiki/Code-Mod-Core-Migration-Guide) for info on how to set it up" />
-	<Message Text="Building against .NET Core Everest legacyRef install" Importance="high" />
+  <Target Name="EnsureCelesteExists" BeforeTargets="PreBuildEvent">
+    <Error
+      Condition="!Exists('$(CelestePrefix)\Celeste.dll')"
+      Text="Cannot find Celeste. Make sure CelesteNet is cloned in your Celeste/Mods folder. Alternatively, copy Celeste.dll, FNA.dll and MMHOOK_Celeste.dll to a folder called 'lib-stripped' in the repository root." />
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.0.2">
-      <PrivateAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">all</PrivateAssets>
-      <ExcludeAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">runtime</ExcludeAssets>
-    </PackageReference>
-    <PackageReference Include="MonoMod.Utils" Version="25.0.3">
-      <PrivateAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">all</PrivateAssets>
-      <ExcludeAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">runtime</ExcludeAssets>
-    </PackageReference>
-    <PackageReference Include="YamlDotNet" Version="15.1.2">
-      <PrivateAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">all</PrivateAssets>
-      <ExcludeAssets Condition="$(InCelesteModDir) And $(IsNetFramework)">runtime</ExcludeAssets>
-    </PackageReference>
+    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.0.2" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="MonoMod.Utils" Version="25.0.3" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="YamlDotNet" Version="15.1.2" />
     <!-- .NET Framework 4.0+ reference assemblies aren't always available system-wide. -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.*">
       <PrivateAssets>all</PrivateAssets>
@@ -125,31 +66,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Celeste" HintPath="$(CelesteDir)\Celeste.exe" Private="$(CopyCeleste)" />
-    <Reference Include="MMHOOK_Celeste" HintPath="$(CelesteDir)\MMHOOK_Celeste.dll" Private="$(CopyCeleste)" />
+    <Reference Include="Celeste" HintPath="$(CelestePrefix)\Celeste.dll" Private="$(CopyCeleste)" />
+    <Reference Include="MMHOOK_Celeste" HintPath="$(CelestePrefix)\MMHOOK_Celeste.dll" Private="$(CopyCeleste)" />
+    <!-- core is always FNA, so we can ditch XNA :lfgeline: -->
+    <Reference Include="FNA" HintPath="$(CelestePrefix)\FNA.dll" Private="$(CopyCeleste)" />
   </ItemGroup>
-
-  <Choose>
-    <When Condition="!Exists('$(CelesteDir)\BuildIsXNA.txt') And $(IsNetCore)">
-      <ItemGroup>
-        <Reference Include="FNA" HintPath="..\lib\net6.0\FNA.dll" Private="!$(IsModule)" />
-      </ItemGroup>
-    </When>
-
-    <When Condition="'$(OS)' != 'Windows_NT' Or (!Exists('$(CelesteDir)\BuildIsXNA.txt') And Exists('$(CelesteDir)\FNA.dll'))">
-      <ItemGroup>
-        <Reference Include="FNA" HintPath="$(CelesteDir)\FNA.dll" Private="$(CopyCeleste)" />
-      </ItemGroup>
-    </When>
-
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="Microsoft.Xna.Framework" HintPath="$(WINDIR)\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.dll" Private="false" />
-        <Reference Include="Microsoft.Xna.Framework.Game" HintPath="$(WINDIR)\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework.Game\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.Game.dll" Private="false" />
-        <Reference Include="Microsoft.Xna.Framework.Graphics" HintPath="$(WINDIR)\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework.Graphics\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.Graphics.dll" Private="false" />
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
 
   <Target Name="CopyModuleAssembly" AfterTargets="PostBuildEvent" Condition="$(IsModule)">
     <ItemGroup>

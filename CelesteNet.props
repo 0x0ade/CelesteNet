@@ -127,7 +127,6 @@
   <ItemGroup>
     <Reference Include="Celeste" HintPath="$(CelesteDir)\Celeste.exe" Private="$(CopyCeleste)" />
     <Reference Include="MMHOOK_Celeste" HintPath="$(CelesteDir)\MMHOOK_Celeste.dll" Private="$(CopyCeleste)" />
-    <Reference Include="Stearmworks.NET.dll" HintPath="..\lib\Steamworks.NET.dll" Private="$(CopyCeleste)" />
   </ItemGroup>
 
   <Choose>

@@ -1,6 +1,4 @@
-﻿#if NETCORE
-using Microsoft.AspNetCore.StaticFiles;
-#endif
+﻿using Microsoft.AspNetCore.StaticFiles;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -33,9 +31,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
         private readonly Dictionary<string, long> WSUpdateCooldowns = new();
         public static readonly long WSUpdateCooldownTime = 1000;
 
-#if NETCORE
         private readonly FileExtensionContentTypeProvider ContentTypeProvider = new();
-#endif
 
         public JsonSerializer Serializer = new() {
             Formatting = Formatting.Indented
@@ -234,13 +230,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control
         }
 
         private string? GetContentType(string path) {
-#if NETCORE
-            if (ContentTypeProvider.TryGetContentType(path, out string contentType))
-                return contentType;
-            return null;
-#else
-            return MimeMapping.GetMimeMapping(path);
-#endif
+            return ContentTypeProvider.TryGetContentType(path, out string contentType)
+                ? contentType
+                : null;
         }
 
         public Stream? OpenContent(string path, out string pathNew, out DateTime? lastMod, out string? contentType) {

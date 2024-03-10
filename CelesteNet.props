@@ -16,28 +16,6 @@
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">!$(IsModule)</CopyCeleste>
   </PropertyGroup>
 
-  <Choose>
-    <When Condition="$(TargetFramework.Contains('.'))">
-      <PropertyGroup>
-        <IsNetCore>true</IsNetCore>
-        <IsNetFramework>false</IsNetFramework>
-        <DefineConstants>NETCORE;$(DefineConstants)</DefineConstants>
-      </PropertyGroup>
-    </When>
-
-    <Otherwise>
-      <PropertyGroup>
-        <IsNetCore>false</IsNetCore>
-        <IsNetFramework>true</IsNetFramework>
-        <DefineConstants>NETFRAMEWORK;$(DefineConstants)</DefineConstants>
-      </PropertyGroup>
-      <ItemGroup>
-        <Reference Include="Microsoft.CSharp" />
-        <PackageReference Include="System.ValueTuple" Version="4.5.0" Condition="$(IsServer) Or $(IsModule)" />
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
-
   <ItemGroup>
     <ProjectReference Include="..\CelesteNet.Server\CelesteNet.Server.csproj" Private="false" Condition="$(IsModule)" />
   </ItemGroup>

@@ -10,9 +10,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
 
-#if NETCORE
-#endif
-
 namespace Celeste.Mod.CelesteNet.Server.Control
 {
     public static partial class RCEndpoints {

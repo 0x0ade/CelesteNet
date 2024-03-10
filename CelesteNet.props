@@ -58,11 +58,6 @@
     <PackageReference Include="MonoMod.RuntimeDetour" Version="25.0.2" PrivateAssets="all" ExcludeAssets="runtime" />
     <PackageReference Include="MonoMod.Utils" Version="25.0.3" PrivateAssets="all" ExcludeAssets="runtime" />
     <PackageReference Include="YamlDotNet" Version="15.1.2" />
-    <!-- .NET Framework 4.0+ reference assemblies aren't always available system-wide. -->
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.*">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>

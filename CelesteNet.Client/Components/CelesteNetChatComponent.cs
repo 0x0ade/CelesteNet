@@ -38,6 +38,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected Overlay _DummyOverlay = new PauseUpdateOverlay();
 
         public List<DataChat> Log = new();
+        public List<DataChat> LogChat = new();
         public List<DataChat> LogSpecial = new();
         public Dictionary<string, DataChat> Pending = new();
         public string Typing = "";
@@ -62,6 +63,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public enum ChatMode {
             All,
+            Chat,
             Special,
             Off
         }
@@ -356,25 +358,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Pending.Clear();
                 }
 
-                int index = Log.FindLastIndex(other => other.ID == msg.ID);
-                if (index == -1) {
-                    index = Log.FindLastIndex(other => other.ID < msg.ID);
-                    if (index == -1)
-                        index = Log.Count - 1;
-                    Log.Insert(index + 1, msg);
-                } else if (Log[index].Version <= msg.Version) {
-                    Log[index] = msg;
-                }
-                if (msg.Color != PublicChatColor) {
-                    index = LogSpecial.FindLastIndex(other => other.ID == msg.ID);
+                static void AddToChatLog(List<DataChat> chatLog, DataChat msg) {
+                    int index = chatLog.FindLastIndex(other => other.ID == msg.ID);
                     if (index == -1) {
-                        index = LogSpecial.FindLastIndex(other => other.ID < msg.ID);
-                        if (index == -1)
-                            index = LogSpecial.Count - 1;
-                        LogSpecial.Insert(index + 1, msg);
-                    } else if (LogSpecial[index].Version <= msg.Version) {
-                        LogSpecial[index] = msg;
+                        index = chatLog.FindLastIndex(other => other.ID < msg.ID);
+                        if (index == -1) index = chatLog.Count - 1;
+                        chatLog.Insert(index + 1, msg);
+                    } else if (chatLog[index].Version <= msg.Version) {
+                        chatLog[index] = msg;
                     }
+                }
+
+                AddToChatLog(Log, msg);
+                if (msg.Color != PublicChatColor) {
+                    AddToChatLog(LogSpecial, msg);
+                } else {
+                    AddToChatLog(LogChat, msg);
                 }
             }
         }
@@ -798,6 +797,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             lock (Log) {
                 List<DataChat> log = Mode switch {
+                    ChatMode.Chat => LogChat,
                     ChatMode.Special => LogSpecial,
                     ChatMode.Off => Dummy<DataChat>.EmptyList,
                     _ => Log,

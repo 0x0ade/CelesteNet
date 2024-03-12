@@ -316,7 +316,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     lastPossibleSplit = list.Count - 1;
 
                 foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
-                    BlobPlayer blob = new() { ScaleFactor = scaleFactor };
+                    BlobPlayer blob = new() { ScaleFactor = scaleFactor, Color = player.NameColor };
                     listed.Add(ListPlayerUnderChannel(blob, player, locationMode, channel == own));
                     list.Add(blob);
                 }

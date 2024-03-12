@@ -85,10 +85,7 @@ namespace Celeste.Mod.CelesteNet.Client
                 InstalledBothServer = true;
                 CurrentCelesteNetVersion = module.Metadata.VersionString;
             }
-            if (Everest.Loader.TryGetDependency(new() { Name = "Miao.CelesteNet.Client", Version = new(3, 0, 0) }, out var moduleMiao))
-            {
-                CurrentVersion = moduleMiao.Metadata.VersionString;
-            }
+            CurrentVersion = Metadata.VersionString;
 
             CelesteNetClientSpriteDB.Load();
             CelesteNetModule = (EverestModule)Activator.CreateInstance(FakeAssembly.GetFakeEntryAssembly().GetType("Celeste.Mod.NullModule"), new EverestModuleMetadata
@@ -97,6 +94,9 @@ namespace Celeste.Mod.CelesteNet.Client
                 VersionString = "2.2.2"
             });
             Everest.Register(CelesteNetModule);
+            var methodRegisterMod = typeof(EverestModuleMetadata).GetMethod("RegisterMod", BindingFlags.Instance | BindingFlags.NonPublic);
+            methodRegisterMod.Invoke(CelesteNetModule.Metadata, new object[] { });
+
             On.Celeste.OuiMainMenu.Enter += OuiMainMenu_Enter;
         }
 

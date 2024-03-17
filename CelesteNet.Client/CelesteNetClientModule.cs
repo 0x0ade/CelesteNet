@@ -94,8 +94,16 @@ namespace Celeste.Mod.CelesteNet.Client
                 VersionString = "2.2.2"
             });
             Everest.Register(CelesteNetModule);
-            var methodRegisterMod = typeof(EverestModuleMetadata).GetMethod("RegisterMod", BindingFlags.Instance | BindingFlags.NonPublic);
-            methodRegisterMod.Invoke(CelesteNetModule.Metadata, new object[] { });
+
+            try
+            {
+                var methodRegisterMod = typeof(EverestModuleMetadata).GetMethod("RegisterMod", BindingFlags.Instance | BindingFlags.NonPublic);
+                methodRegisterMod?.Invoke(CelesteNetModule.Metadata, new object[] { });
+            }
+            catch (Exception ex)
+            {
+                Logger.LogDetailedException(ex);
+            }
 
             On.Celeste.OuiMainMenu.Enter += OuiMainMenu_Enter;
         }

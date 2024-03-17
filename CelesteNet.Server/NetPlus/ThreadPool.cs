@@ -63,14 +63,14 @@ namespace Celeste.Mod.CelesteNet.Server {
             using (_PoolLock.W())
             using (_RoleLock.W()) {
                 // Stop threads
-                TokenSrc.Dispose();
+                TokenSrc.Cancel();
                 foreach (NetPlusThread thread in Threads)
                     thread.Thread.Join();
-
+                TokenSrc.Dispose();
                 RuntimeWatch.Stop();
-                _RoleLock.Dispose();
-                _PoolLock.Dispose();
             }
+            _RoleLock.Dispose();
+            _PoolLock.Dispose();
         }
 
         public float IterateSteadyHeuristic(ref float lastVal, ref long lastUpdate, float curVal, bool update = false) {

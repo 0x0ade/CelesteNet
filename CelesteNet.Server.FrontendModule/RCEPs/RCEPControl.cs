@@ -414,12 +414,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                 }
             }
 
+            CelesteNetServerModule? module = null;
             CelesteNetServerModuleSettings? settings;
+
             if (moduleID == "CelesteNet.Server") {
                 settings = f.Server.Settings;
             } else {
-                lock (f.Server.Modules)
-                    settings = f.Server.Modules.FirstOrDefault(m => m.Wrapper.ID == moduleID)?.GetSettings();
+                lock (f.Server.Modules) {
+                    module = f.Server.Modules.FirstOrDefault(m => m.Wrapper.ID == moduleID);
+                    settings = module?.GetSettings();
+                }
+
             }
 
             if (settings == null) {
@@ -434,7 +439,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                 try {
                     using (StreamReader sr = new(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
                         settings.Load(sr);
-                    settings.Save();
+                    if (module != null) {
+                        // necessary to trigegr subclass overrides of this like in SqliteModule
+                        module.SaveSettings();
+                    } else {
+                        settings.Save();
+                    }
                     f.RespondJSON(c, new {
                         Info = "Success."
                     });

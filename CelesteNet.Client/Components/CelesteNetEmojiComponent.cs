@@ -40,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                 Type = typeof(Texture2D);
                 Format = "png";
                 PathVirtual = $"emoji/{ID}";
-                MainThreadHelper.Do(() => {
+                MainThreadHelper.Schedule(() => {
                     Emoji.Register(ID, GFX.Misc["whiteCube"]);
                     Emoji.Fill(CelesteNetClientFont.Font);
                 });
@@ -49,7 +49,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             public void Dispose() {
                 Buffer.Dispose();
                 if (!Pending) {
-                    MainThreadHelper.Do(() => {
+                    MainThreadHelper.Schedule(() => {
                         Emoji.Register(ID, GFX.Misc["whiteCube"]);
                         Emoji.Fill(CelesteNetClientFont.Font);
                     });
@@ -111,7 +111,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
 
                     // Register the emoji
                     try {
-                        MainThreadHelper.Do(() => {
+                        MainThreadHelper.Schedule(() => {
                             VirtualTexture vtex;
                             try {
                                 vtex = VirtualContent.CreateTexture(asset);

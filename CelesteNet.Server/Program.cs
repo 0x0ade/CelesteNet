@@ -1,6 +1,4 @@
-﻿#define INMODDIR
-
-using Mono.Options;
+﻿using Mono.Options;
 using System;
 using System.Globalization;
 using System.IO;
@@ -37,15 +35,6 @@ namespace Celeste.Mod.CelesteNet.Server
             string? serverPath = typeof(CelesteNetServer).Assembly.Location;
             if (!serverPath.IsNullOrEmpty() && !(serverPath = Path.GetDirectoryName(Path.GetFullPath(serverPath))).IsNullOrEmpty())
                 AppDomain.CurrentDomain.AssemblyResolve += GetAssemblyResolverForDirectory(serverPath);
-
-#if INMODDIR && NETFRAMEWORK
-            string? celestePath = Path.GetFullPath(Path.Combine("..", "..", "..", "..", "..", ".."));
-            if (!File.Exists(Path.Combine(celestePath, "Celeste.exe"))) {
-                celestePath = null;
-            } else {
-                AppDomain.CurrentDomain.AssemblyResolve += GetAssemblyResolverForDirectory(celestePath);
-            }
-#endif
 
             MainMain(args);
         }

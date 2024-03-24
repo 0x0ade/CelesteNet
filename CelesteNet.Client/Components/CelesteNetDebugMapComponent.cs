@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public override void Initialize() {
             base.Initialize();
 
-            MainThreadHelper.Do(() => {
+            MainThreadHelper.Schedule(() => {
                 On.Celeste.Editor.MapEditor.ctor += OnMapEditorCtor;
                 On.Celeste.Editor.MapEditor.Render += OnMapEditorRender;
             });
@@ -44,7 +44,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             base.Dispose(disposing);
 
             try {
-                MainThreadHelper.Do(() => {
+                MainThreadHelper.Schedule(() => {
                     On.Celeste.Editor.MapEditor.ctor -= OnMapEditorCtor;
                     On.Celeste.Editor.MapEditor.Render -= OnMapEditorRender;
                 });

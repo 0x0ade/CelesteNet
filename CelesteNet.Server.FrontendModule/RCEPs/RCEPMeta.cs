@@ -2,9 +2,6 @@
 using WebSocketSharp.Net;
 using WebSocketSharp.Server;
 
-#if NETCORE
-#endif
-
 namespace Celeste.Mod.CelesteNet.Server.Control
 {
     public static partial class RCEndpoints {

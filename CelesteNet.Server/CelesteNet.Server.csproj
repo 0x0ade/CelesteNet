@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFramework>net7.0</TargetFramework>
     <AssemblyName>CelesteNet.Server</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Server</RootNamespace>
     <OutputType>Exe</OutputType>
@@ -22,13 +22,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Mono.Options" Version="6.6.0.161" />
+    <PackageReference Include="Mono.Options" Version="6.12.0.148" />
     <PackageReference Include="Mono.Cecil" Version="0.11.4" />
   </ItemGroup>
 
   <Target Name="ClearModulesFolder" AfterTargets="AfterBuild" Condition="false">
     <ItemGroup>
-      <FilesToDelete Include="bin\$(Configuration)\$(TargetFramework)\Modules\**\*"/>
+      <FilesToDelete Include="bin\$(Configuration)\$(TargetFramework)\Modules\**\*" />
     </ItemGroup>
     <Delete Files="@(FilesToDelete)" />
   </Target>
@@ -36,31 +36,22 @@
   <!-- dotnet is stupid. The modules depend on this, but those deps (and their deps' deps) aren't shipped. -->
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-  </ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 
-  <Choose>
-    <When Condition="$(TargetFramework.Contains('.'))">
-      <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
-        <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
-        <PackageReference Include="Microsoft.CodeAnalysis.Compilers" Version="3.11.0" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.11.0" />
-      </ItemGroup>
-    </When>
+    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Compilers" Version="4.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+      
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.2" />
+    <PackageReference Include="MessagePack" Version="2.5.140" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.5.140">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
 
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="System.Web" />
-        <Reference Include="System.Drawing" />
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="5.0.9" Condition="$(TargetFramework.Contains('.'))" />
-    <PackageReference Include="MessagePack" Version="2.3.75" Condition="$(TargetFramework.Contains('.'))" />
-    <PackageReference Include="MessagePackAnalyzer" Version="2.3.75" Condition="$(TargetFramework.Contains('.'))" />
+    <Reference Include="websocket-sharp-customheaders.dll" HintPath="..\lib\websocket-sharp-customheaders.dll" />
   </ItemGroup>
 
 </Project>

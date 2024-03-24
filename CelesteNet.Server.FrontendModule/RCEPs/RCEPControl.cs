@@ -11,13 +11,10 @@ using Celeste.Mod.CelesteNet.Server.Chat;
 using Newtonsoft.Json;
 using WebSocketSharp.Net;
 using WebSocketSharp.Server;
-
-#if NETCORE
 using System.Runtime.Loader;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
-#endif
 
 namespace Celeste.Mod.CelesteNet.Server.Control
 {
@@ -154,12 +151,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             f.RespondJSON(c, AppDomain.CurrentDomain.GetAssemblies().Select(asm => new {
                 asm.GetName().Name,
                 Version = asm.GetName().Version?.ToString() ?? "",
-                Context =
-#if NETCORE
-                    (AssemblyLoadContext.GetLoadContext(asm) ?? AssemblyLoadContext.Default)?.Name ?? "Unknown",
-#else
-                    AppDomain.CurrentDomain.FriendlyName
-#endif
+                Context = (AssemblyLoadContext.GetLoadContext(asm) ?? AssemblyLoadContext.Default)?.Name ?? "Unknown"
             }).ToList());
         }
 
@@ -494,7 +486,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             }
         }
 
-#if NETCORE
         [RCEndpoint(true, "/exec", "", "", "Execute C#", "Run some C# code. Highly dangerous!")]
         public static void Exec(Frontend f, HttpRequestEventArgs c) {
             if (!f.IsAuthorizedExec(c)) {
@@ -503,7 +494,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                 return;
             }
 
-            ExecALC? alc = null;
+            AssemblyLoadContext? alc = null;
 
             try {
                 string name = $"CelesteNet.Server.FrontendModule.REPL.{Guid.NewGuid().ToString().Replace("-", "")}";
@@ -548,7 +539,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
                 ms.Seek(0, SeekOrigin.Begin);
 
-                alc = new(name);
+                alc = new AssemblyLoadContext(name, isCollectible: true);
                 alc.Resolving += (ctx, name) => {
                     foreach (CelesteNetServerModuleWrapper wrapper in f.Server.ModuleWrappers)
                         if (wrapper.ID == name.Name)
@@ -576,19 +567,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                 alc?.Unload();
             }
         }
-
-        private class ExecALC : AssemblyLoadContext {
-
-            public ExecALC(string name)
-                : base(name, isCollectible: true) {
-            }
-
-            protected override Assembly? Load(AssemblyName name) {
-                return null;
-            }
-
-        }
-#endif
 
     }
 }

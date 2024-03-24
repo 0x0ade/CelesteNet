@@ -21,7 +21,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
         public override void Initialize() {
             base.Initialize();
 
-            MainThreadHelper.Do(() => {
+            MainThreadHelper.Schedule(() => {
                 On.Celeste.HeartGem.Collect += OnHeartGemCollect;
                 On.Celeste.HeartGem.EndCutscene += OnHeartGemEndCutscene;
                 On.Celeste.Player.Die += OnPlayerDie;
@@ -34,7 +34,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             Wheel?.RemoveSelf();
 
             try {
-                MainThreadHelper.Do(() => {
+                MainThreadHelper.Schedule(() => {
                     On.Celeste.HeartGem.Collect -= OnHeartGemCollect;
                     On.Celeste.HeartGem.EndCutscene -= OnHeartGemEndCutscene;
                     On.Celeste.Player.Die -= OnPlayerDie;

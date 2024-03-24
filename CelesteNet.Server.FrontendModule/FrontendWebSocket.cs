@@ -22,7 +22,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
         public IPEndPoint? CurrentEndPoint { get; private set; }
 
-        private new EState State = EState.Invalid;
+        private EState State = EState.Invalid;
         private WSCMD? CurrentCommand;
 
         public readonly object MessageLock = new();
@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
         private void Close(string reason) {
             State = EState.Invalid;
-            Context.WebSocket.Close(CloseStatusCode.Normal, reason);
+            Close(CloseStatusCode.Normal, reason);
         }
 
         public void SendRawString(string data) {
@@ -94,8 +94,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
         protected override void OnOpen() {
             base.OnOpen();
-            Logger.Log(LogLevel.INF, "frontend-ws", $"Opened connection: {Context.UserEndPoint}");
-            CurrentEndPoint = Context.UserEndPoint;
+            Logger.Log(LogLevel.INF, "frontend-ws", $"Opened connection: {UserEndPoint}");
+            CurrentEndPoint = UserEndPoint;
             State = EState.WaitForType;
             CurrentCommand = null;
         }
@@ -133,7 +133,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
 
                 case EState.WaitForCMDID:
-                    Logger.Log(LogLevel.DEV, "frontend-ws", $"CMD: {Context.UserEndPoint} - {c.Data}");
+                    Logger.Log(LogLevel.DEV, "frontend-ws", $"CMD: {UserEndPoint} - {c.Data}");
                     WSCMD? cmd = Commands.Get(c.Data);
                     if (cmd == null) {
                         Close("unknown cmd");

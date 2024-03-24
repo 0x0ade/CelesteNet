@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,8 +35,6 @@ namespace Celeste.Mod.CelesteNet.Server
         public readonly List<CelesteNetServerModule> Modules = new();
         public readonly Dictionary<Type, CelesteNetServerModule> ModuleMap = new();
         public readonly FileSystemWatcher ModulesFSWatcher;
-
-        public readonly DetourModManager DetourModManager;
 
         public int PlayerCounter = 0;
         public readonly TokenGenerator ConTokenGenerator = new();
@@ -76,8 +75,6 @@ namespace Celeste.Mod.CelesteNet.Server
             Timestamp = StartupTime.Ticks / TimeSpan.TicksPerMillisecond;
 
             Settings = settings;
-
-            DetourModManager = new();
 
             AppDomain.CurrentDomain.AssemblyResolve += (sender, args) => {
                 if (args.Name == null)
@@ -183,7 +180,7 @@ namespace Celeste.Mod.CelesteNet.Server
             Logger.Log(LogLevel.INF, "server", $"Starting server on {serverEP}");
             ThreadPool.Scheduler.AddRole(new HandshakerRole(ThreadPool, this));
             ThreadPool.Scheduler.AddRole(new TCPUDPSenderRole(ThreadPool, this, serverEP));
-            ThreadPool.Scheduler.AddRole(new TCPReceiverRole(ThreadPool, this, (PlatformHelper.Is(MonoMod.Utils.Platform.Linux) && Settings.TCPRecvUseEPoll) ? new TCPEPollPoller() : new TCPFallbackPoller()));
+            ThreadPool.Scheduler.AddRole(new TCPReceiverRole(ThreadPool, this, (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Settings.TCPRecvUseEPoll) ? new TCPEPollPoller() : new TCPFallbackPoller()));
             ThreadPool.Scheduler.AddRole(new UDPReceiverRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()?.UDPSocket));
             ThreadPool.Scheduler.AddRole(new TCPAcceptorRole(ThreadPool, this, serverEP, ThreadPool.Scheduler.FindRole<HandshakerRole>()!, ThreadPool.Scheduler.FindRole<TCPReceiverRole>()!, ThreadPool.Scheduler.FindRole<UDPReceiverRole>()!, ThreadPool.Scheduler.FindRole<TCPUDPSenderRole>()!, tcpUdpConSettings));
 

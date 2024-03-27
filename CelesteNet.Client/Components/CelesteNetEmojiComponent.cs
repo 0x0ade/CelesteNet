@@ -1,19 +1,13 @@
-﻿using Celeste.Mod.CelesteNet.Client.Entities;
-using Celeste.Mod.CelesteNet.DataTypes;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MDraw = Monocle.Draw;
 
-namespace Celeste.Mod.CelesteNet.Client.Components {
+namespace Celeste.Mod.CelesteNet.Client.Components
+{
     public class CelesteNetEmojiComponent : CelesteNetGameComponent {
 
         public class NetEmojiContent : ModContent {
@@ -46,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Type = typeof(Texture2D);
                 Format = "png";
                 PathVirtual = $"emoji/{ID}";
-                MainThreadHelper.Do(() => {
+                MainThreadHelper.Schedule(() => {
                     Emoji.Register(ID, GFX.Misc["whiteCube"]);
                     Emoji.Fill(CelesteNetClientFont.Font);
                 });
@@ -55,7 +49,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             public void Dispose() {
                 Buffer.Dispose();
                 if (!Pending) {
-                    MainThreadHelper.Do(() => {
+                    MainThreadHelper.Schedule(() => {
                         Emoji.Register(ID, GFX.Misc["whiteCube"]);
                         Emoji.Fill(CelesteNetClientFont.Font);
                     });
@@ -117,7 +111,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     // Register the emoji
                     try {
-                        MainThreadHelper.Do(() => {
+                        MainThreadHelper.Schedule(() => {
                             VirtualTexture vtex;
                             try {
                                 vtex = VirtualContent.CreateTexture(asset);

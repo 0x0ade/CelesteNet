@@ -83,6 +83,11 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public T? Get<T>(object ctx) where T : class {
+            if (!Alive) {
+                Logger.Log(LogLevel.INF, "playersession", $"Early return on attempt to 'Get<{typeof(T)}>' when session is already !Alive");
+                return null;
+            }
+
             using (StateLock.R()) {
                 if (!StateContexts.TryGetValue(ctx, out Dictionary<Type, object>? states))
                     return null;
@@ -99,6 +104,11 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (state == null)
                 return Remove<T>(ctx);
 
+            if (!Alive) {
+                Logger.Log(LogLevel.INF, "playersession", $"Early return on attempt to 'Set<{typeof(T)}>' when session is already !Alive");
+                return state;
+            }
+
             using (StateLock.W()) {
                 if (!StateContexts.TryGetValue(ctx, out Dictionary<Type, object>? states))
                     StateContexts[ctx] = states = new();
@@ -109,6 +119,11 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public T? Remove<T>(object ctx) where T : class {
+            if (!Alive) {
+                Logger.Log(LogLevel.INF, "playersession", $"Early return on attempt to 'Remove<{typeof(T)}>' when session is already !Alive");
+                return null;
+            }
+
             using (StateLock.W()) {
                 if (!StateContexts.TryGetValue(ctx, out Dictionary<Type, object>? states))
                     return null;
@@ -266,9 +281,21 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (!Server.Channels.SessionStartupMove(this))
                 ResendPlayerStates();
 
-            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} ClientGUID: {ClientOptions.ClientID} InstanceID: {ClientOptions.InstanceID}");
-            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
-            Con.Send(new DataReady());
+            string? clientDisconnectReason = null;
+            if (Server.Settings.ClientChecks && Con is ConPlusTCPUDPConnection cpCon)
+                clientDisconnectReason = ConnFeatureUtils.ClientCheck(cpCon);
+
+            if (clientDisconnectReason == null) {
+                Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} ClientID: {ClientOptions.ClientID} InstanceID: {ClientOptions.InstanceID}");
+                Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
+                Con.Send(new DataReady());
+            } else {
+                Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} disconnecting because ClientCheck returned: '{clientDisconnectReason}'");
+                Con.Send(new DataDisconnectReason { Text = clientDisconnectReason });
+                Con.Send(new DataInternalDisconnect());
+                Dispose();
+            }
+
         }
 
         public Action WaitFor<T>(DataFilter<T> cb) where T : DataType<T>
@@ -483,6 +510,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         public bool Filter(CelesteNetConnection con, DataPlayerGraphics graphics) {
             if (graphics.HairCount > Server.Settings.MaxHairLength)
                 graphics.HairCount = Server.Settings.MaxHairLength;
+            // don't really need to resize arrays if they're bigger; it'll only send up to graphics.HairCount
             return true;
         }
 

@@ -1,14 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <LangVersion>9</LangVersion> <!-- FIXME: Figure out why dotnet needs this! -->
-    <TargetFrameworks>net452;net6.0</TargetFrameworks>
+    <TargetFramework>net7.0</TargetFramework>
     <AssemblyName>CelesteNet.Shared</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="..\CelesteNet.Shared\NullableAttributes.cs" />
+    <Compile Remove="ConnectionFeatures\ConnFeatureUtils.cs" />
     <EmbeddedResource Include="TokenGenerator.Polynomials.bin" LogicalName="polynomials.bin" />
   </ItemGroup>
 

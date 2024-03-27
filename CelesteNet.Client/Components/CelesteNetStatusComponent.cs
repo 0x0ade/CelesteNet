@@ -1,15 +1,9 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MDraw = Monocle.Draw;
 
-namespace Celeste.Mod.CelesteNet.Client.Components {
+namespace Celeste.Mod.CelesteNet.Client.Components
+{
     public class CelesteNetStatusComponent : CelesteNetGameComponent {
 
         private bool show;
@@ -29,6 +23,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public string Text => show ? text : null;
         public float Time => show ? timeTextMax : timeText;
         public bool Spin => spin;
+        public bool IsVisible => show;
 
         public CelesteNetStatusComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -52,13 +47,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataDisconnectReason reason) {
-            Set(reason.Text, 8f, false);
+            Set(reason.Text, 8f, spin: false, dcReason: false);
         }
 
-        public void Set(string text, float timeText = timeTextMax, bool spin = true) {
+        public void Set(string text, float timeText = timeTextMax, bool spin = true, bool dcReason = true) {
             if (string.IsNullOrEmpty(text)) {
                 show = false;
                 return;
+            }
+
+            DataDisconnectReason reason = CelesteNetClientModule.Instance.lastDisconnectReason;
+
+            if (dcReason && reason != null && !reason.Text.IsNullOrEmpty()) {
+                text += $" ({reason.Text})";
             }
 
             this.text = text;

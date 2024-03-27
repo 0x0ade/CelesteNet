@@ -4,6 +4,16 @@ using Celeste.Mod.CelesteNet.DataTypes;
 using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
+
+    public class CmdBanQ : CmdBan {
+
+        public override string Info => $"Same as {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdBan>().ID} but without Broadcast (quiet)";
+
+        public override bool InternalAliasing => true;
+
+        public override bool Quiet => true;
+    }
+
     public class CmdBan : ChatCmd {
 
         public override CompletionType Completion => CompletionType.Player;
@@ -11,6 +21,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public override string Info => "Ban a player from the server with a given reason.";
 
         public override bool MustAuth => true;
+
+        public virtual bool Quiet => false;
 
         public override void Init(ChatModule chat) {
             Chat = chat;
@@ -41,7 +53,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             };
 
             ChatModule chat = env.Server.Get<ChatModule>();
-            new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
+
+            if (!Quiet)
+                new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
             player.Dispose();
             player.Con.Send(new DataDisconnectReason { Text = "Banned: " + ban.Reason });
             player.Con.Send(new DataInternalDisconnect());

@@ -1,40 +1,33 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
-using MonoMod.Utils;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
-namespace Celeste.Mod.CelesteNet.Server.Control {
+namespace Celeste.Mod.CelesteNet.Server.Control
+{
     public class WSCMDStatus : WSCMD {
         public override bool MustAuth => true;
         public override object? Run(object? input) {
             if (input == null)
-                return null;
+                return false;
 
             if (input is string inputText) {
                 Frontend.Server.BroadcastAsync(new DataServerStatus {
                     Text = inputText
                 });
-                return null;
+                return true;
             }
 
             dynamic data = input;
             DataServerStatus status = new();
-            if (data.Text is string text)
-                status.Text = text;
-            if (data.Time is float time)
-                status.Time = time;
-            if (data.Spin is bool spin)
-                status.Spin = spin;
+            if (data.Text.Type is JTokenType.String)
+                status.Text = (string) data.Text;
+            if (data.Time.Type is (JTokenType.Float or JTokenType.Integer))
+                status.Time = (float) data.Time;
+            if (data.Spin.Type is JTokenType.Boolean)
+                status.Spin = (bool) data.Spin;
 
             Frontend.Server.BroadcastAsync(status);
 
-            return null;
+            return true;
         }
     }
 }

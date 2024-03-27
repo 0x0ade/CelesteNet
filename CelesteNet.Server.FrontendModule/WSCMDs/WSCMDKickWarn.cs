@@ -1,46 +1,43 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
 using MonoMod.Utils;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet.Server.Control {
+namespace Celeste.Mod.CelesteNet.Server.Control
+{
     public class WSCMDKickWarn : WSCMD {
         public override bool MustAuth => true;
         public override object? Run(dynamic? input) {
             uint id = (uint) input?.ID;
             string? reason = (string?) input?.Reason ?? "";
+            bool quiet = ((bool?)input?.Quiet) ?? false;
 
-            if (Frontend.Server.PlayersByID.TryGetValue(id, out CelesteNetPlayerSession? player)) {
-                string uid = player.UID;
+            if (!Frontend.Server.PlayersByID.TryGetValue(id, out CelesteNetPlayerSession? player)) 
+                return false;
 
-                ChatModule chat = Frontend.Server.Get<ChatModule>();
+            string uid = player.UID;
+
+            ChatModule chat = Frontend.Server.Get<ChatModule>();
+            if (!quiet)
                 new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
-                player.Dispose();
-                player.Con.Send(new DataDisconnectReason { Text = string.IsNullOrEmpty(reason) ? "Kicked" : $"Kicked: {reason}" });
-                player.Con.Send(new DataInternalDisconnect());
+            player.Dispose();
+            player.Con.Send(new DataDisconnectReason { Text = string.IsNullOrEmpty(reason) ? "Kicked" : $"Kicked: {reason}" });
+            player.Con.Send(new DataInternalDisconnect());
 
-                UserData userData = Frontend.Server.UserData;
-                if (!reason.IsNullOrEmpty() && !userData.GetKey(uid).IsNullOrEmpty()) {
-                    KickHistory kicks = userData.Load<KickHistory>(uid);
-                    kicks.Log.Add(new() {
-                        Reason = reason,
-                        From = DateTime.UtcNow
-                    });
-                    userData.Save(uid, kicks);
-                    Frontend.BroadcastCMD(true, "update", Frontend.Settings.APIPrefix + "/userinfos");
-                }
+            Logger.Log(LogLevel.VVV, "frontend", $"Player kicked with reason:\n{id} => {uid} (q: {quiet})\nReason: {reason}");
 
-                return null;
+            UserData userData = Frontend.Server.UserData;
+            if (!reason.IsNullOrEmpty() && !userData.GetKey(uid).IsNullOrEmpty()) {
+                KickHistory kicks = userData.Load<KickHistory>(uid);
+                kicks.Log.Add(new() {
+                    Reason = reason,
+                    From = DateTime.UtcNow
+                });
+                userData.Save(uid, kicks);
+                Frontend.BroadcastCMD(true, "update", Frontend.Settings.APIPrefix + "/userinfos");
             }
 
-            return null;
+            return true;
         }
     }
 }

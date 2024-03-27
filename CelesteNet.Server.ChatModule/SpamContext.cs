@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Monocle;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Celeste.Mod.CelesteNet.DataTypes;
-using Monocle;
 
-namespace Celeste.Mod.CelesteNet.Server.Chat {
+namespace Celeste.Mod.CelesteNet.Server.Chat
+{
     public class SpamContext : IDisposable {
 
         public readonly ChatModule Chat;

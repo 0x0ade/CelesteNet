@@ -195,14 +195,14 @@ export class FrontendChatPanel extends FrontendBasicPanel {
    */
   createEntry(text, color, data) {
     return el => {
-      let opts = [];
+      let contextOpts = [];
       let name = "";
       let targets = [];
       let tag = "";
 
       if (data) {
-        opts = [
-          ...opts,
+        contextOpts = [
+          ...contextOpts,
           [ "delete", `Delete #${data.ID}`, () => this.frontend.sync.run("chatedit", {
             ID: data.ID,
             Color: "#ee2233",
@@ -221,11 +221,17 @@ export class FrontendChatPanel extends FrontendBasicPanel {
               FrontendPlayersPanel["instance"].refresh();
             name = player && player.FullName || data.Name || ("#" + data.PlayerID);
 
-            opts = [
-              ...opts,
-              ["error_outline", `Kick ${name}`, () => this.frontend.dialog.kick(data.PlayerID)],
-              ["gavel", `Ban ${name}`, () => this.frontend.dialog.ban(player && player.UID, player && player.ConnectionUID)]
+            contextOpts = [
+              ...contextOpts,
+              ["error_outline", `Kick ${name}`, () => this.frontend.dialog.kick(name, data.PlayerID)]
             ];
+            if (player) {
+              contextOpts = [
+                ...contextOpts,
+                ["gavel", `Ban ${name}`, () => this.frontend.dialog.ban(name, data.PlayerID, player.UID, player.ConnectionUID)],
+                ["content_copy", `Copy UID: ${player.UID}`, () =>  navigator.clipboard.writeText(player.UID)],
+              ];
+            }
           } else {
             name = " ** SERVER ** ";
           }
@@ -251,8 +257,12 @@ export class FrontendChatPanel extends FrontendBasicPanel {
       else
         el.style.color = "#000000";
 
+      contextOpts = [
+        ...contextOpts,
+        [ "content_copy", "Copy message", () =>  navigator.clipboard.writeText(chatText) ]
+      ];
 
-      this.frontend.dom.setContext(el, ...opts);
+      this.frontend.dom.setContext(el, ...contextOpts);
 
       if (data.Targets && !this.frontend.settings.sensitive)
         el.classList.add("hidden");

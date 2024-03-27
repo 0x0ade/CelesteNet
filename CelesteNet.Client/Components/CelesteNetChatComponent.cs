@@ -762,7 +762,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         // throw the "i:" / "g:" / "p:" back into prefix
                         prefix = CompletionPartial.Substring(0, 2) + " " + prefix;
 
-                        foreach (string key in CompletionEmoteAtlas.GetTextures().Keys) {
+                        foreach (string key in CompletionEmoteAtlas.Textures.Keys) {
                             if (!key.StartsWith(subpartial))
                                 continue;
 

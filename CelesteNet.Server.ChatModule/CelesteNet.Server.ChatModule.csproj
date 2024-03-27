@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <LangVersion>9</LangVersion> <!-- FIXME: Figure out why dotnet needs this! -->
-    <TargetFrameworks>net452;net6.0</TargetFrameworks>
+    <TargetFramework>net7.0</TargetFramework>
     <AssemblyName>CelesteNet.Server.ChatModule</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Server.Chat</RootNamespace>
   </PropertyGroup>

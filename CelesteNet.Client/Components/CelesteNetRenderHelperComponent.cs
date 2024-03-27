@@ -1,20 +1,14 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
-using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using MDraw = Monocle.Draw;
 
-namespace Celeste.Mod.CelesteNet.Client.Components {
+namespace Celeste.Mod.CelesteNet.Client.Components
+{
     public unsafe class CelesteNetRenderHelperComponent : CelesteNetGameComponent {
 
         public int BlurScale => Settings.UIBlur switch {
@@ -113,7 +107,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (!_disconnected) {
                 try {
-                    MainThreadHelper.Do(() => {
+                    MainThreadHelper.Schedule(() => {
                         Logger.Log(LogLevel.VVV, "cnet-rndrhlp", $"Main thread disposing Render Helper");
                         IL.Celeste.Level.Render -= ILRenderLevel;
                         IL.Monocle.Engine.RenderCore -= ILRenderCore;

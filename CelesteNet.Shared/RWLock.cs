@@ -1,19 +1,8 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.Helpers;
-using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace Celeste.Mod.CelesteNet {
+namespace Celeste.Mod.CelesteNet
+{
     public class RWLock : IDisposable {
 
         public readonly ReaderWriterLockSlim Inner = new(LockRecursionPolicy.SupportsRecursion);

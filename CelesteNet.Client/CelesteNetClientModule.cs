@@ -9,6 +9,7 @@ using MonoMod.Utils;
 using System.Collections;
 using Celeste.Mod.CelesteNet.Client.Components;
 using System.IO;
+using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {
@@ -35,6 +36,8 @@ namespace Celeste.Mod.CelesteNet.Client {
         private Thread _StartThread;
         private CancellationTokenSource _StartTokenSource;
         public bool IsAlive => Context != null;
+
+        public DataDisconnectReason lastDisconnectReason;
 
         public VirtualRenderTarget UIRenderTarget;
 
@@ -65,7 +68,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override void LoadContent(bool firstLoad) {
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule LoadContent ({firstLoad})");
-            MainThreadHelper.Do(() => {
+            MainThreadHelper.Schedule(() => {
                 UIRenderTarget?.Dispose();
                 UIRenderTarget = VirtualContent.CreateRenderTarget("celestenet-hud-target", 1922, 1082, false, true, 0);
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule LoadContent created RT");
@@ -170,7 +173,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool LoadOldSettings() {
 
-            CelesteNetClientSettingsBeforeVersion2 settingsOld = (CelesteNetClientSettingsBeforeVersion2)typeof(CelesteNetClientSettingsBeforeVersion2).GetConstructor(Everest._EmptyTypeArray).Invoke(Everest._EmptyObjectArray);
+            CelesteNetClientSettingsBeforeVersion2 settingsOld = (CelesteNetClientSettingsBeforeVersion2)typeof(CelesteNetClientSettingsBeforeVersion2).GetConstructor(Type.EmptyTypes).Invoke(Array.Empty<object>());
             string path = UserIO.GetSaveFilePath("modsettings-" + Metadata.Name);
 
             if (!File.Exists(path)) {
@@ -293,6 +296,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
             _StartTokenSource?.Dispose();
 
+            lastDisconnectReason = null;
+
             lock (ClientLock) {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: old ctx: {Context} {Context?.IsDisposed}");
                 CelesteNetClientContext oldCtx = Context;
@@ -305,7 +310,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 oldCtx = ContextLast;
                 if (oldCtx != null) {
                     Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: ContextLast wasn't null");
-                    MainThreadHelper.Do(() => {
+                    MainThreadHelper.Schedule(() => {
                         foreach (CelesteNetGameComponent comp in oldCtx.Components.Values)
                             comp.Disconnect(true);
                     });
@@ -348,12 +353,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                 } catch (Exception e) {
                     bool handled = false;
                     for (Exception ie = e; ie != null; ie = ie.InnerException) {
-                        if (ie is ConnectionErrorException cee) {
+                        if (ie is ConnectionErrorCodeException ceee) {
                             Logger.Log(LogLevel.CRI, "clientmod", $"Connection error:\n{e}");
                             _StartThread = null;
                             Stop();
-                            context.Status.Set(cee.Status ?? "Connection failed", 3f, false);
-                            if (cee.Status.ToLower().Trim() == "invalid key")
+                            context.Status.Set(ceee.Status ?? "Connection failed", 3f, false);
+                            if (ceee.StatusCode == 403)
                                 Settings.KeyError = CelesteNetClientSettings.KeyErrors.InvalidKey;
                             handled = true;
                             break;

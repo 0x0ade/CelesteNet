@@ -484,6 +484,63 @@ var mdcrd = {
       el.querySelector("input").checked = !!value;
 
     return el;
+  },
+
+  /**
+   * @param {string} label
+   * @param {string[]} choices
+   * @param {number} preselect
+   */
+  dropdown: (label, choices, preselect) =>
+  /**
+   * @param {HTMLElement} el
+   */
+  el => {
+    el = rd$(el)`
+    <div class="mdc-select mdc-select--filled">
+      <div class="mdc-select__anchor" style="width: 100%; min-width:400px">
+        <span class="mdc-select__ripple"></span>
+        <span class="mdc-floating-label mdc-floating-label--float-above">${label}</span>
+          <input type="text" disabled readonly class="mdc-select__selected-text" value="" />
+        <span class="mdc-select__dropdown-icon">
+          <svg
+              class="mdc-select__dropdown-icon-graphic"
+              viewBox="7 10 10 5" focusable="false">
+            <polygon
+                stroke="none"
+                fill-rule="evenodd"
+                points="7 10 12 15 17 10">
+            </polygon>
+          </svg>
+        </span>
+        <span class="mdc-line-ripple"></span>
+      </div>
+
+      <div class="mdc-select__menu mdc-menu mdc-menu-surface" style="width: 100%; min-width:400px">
+        ${el => {
+          el = rd$(el)`<ul class="mdc-list"></ul>`;
+          let list = new RDOMListHelper(el);
+          for (let i in choices) {
+            list.add(i, el => rd$(el)`
+            <li class="mdc-list-item mdc-list-item--selected" data-value=${choices[i]} >
+            <span class="mdc-list-item__ripple"></span>
+            <span class="mdc-list-item__text">${choices[i]}</span>
+            </li>
+            ${el => el.MDCRipple = new mdc.ripple.MDCRipple(el)}`);
+          }
+          list.end();
+          return el;
+        }}
+      </div>
+    </div>
+    ${el => {
+      el.MDCSelect = new mdc.select.MDCSelect(el);
+      el.MDCSelect.selectedIndex = preselect;
+    }}`;
+
+    el["MDCSelect"].selectedIndex = preselect;
+
+    return el;
   }
 
 };

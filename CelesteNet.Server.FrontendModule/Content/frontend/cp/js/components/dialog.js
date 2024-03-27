@@ -167,7 +167,17 @@ export class FrontendDialog {
     return dialog;
   }
 
-  kick(id) {
+  kick(fullname, id) {
+    const input = (id, gen) => el => {
+      el = gen(el);
+      el.id = id;
+      let input = el.querySelector("input");
+      let label = el.querySelector("label");
+      input.id = `${id}-kick-input`;
+      if (label)
+        label.setAttribute("for", input.id);
+      return el;
+    }
     const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
     const group = (...items) => el => {
       el = rd$(el)`<ul class="settings-group"></ul>`;
@@ -182,25 +192,28 @@ export class FrontendDialog {
     }
 
     let el = this.elPopupKick = mdcrd.dialog({
-      title: "Kick",
+      title: `Kick ${fullname} (#${id})`,
       body: el => rd$(el)`
       <div>
         ${group(
-          row(`Player ID: ${id}`),
-        )}
+            row(`Player ID: ${id}`),
+          )
+        }
 
         ${group(
-          row("Reason:", el => {
-            el = mdcrd.textField("", "", null, e => {
-              if (e.keyCode === 13) {
-                this.elPopupKick["MDCDialog"].close("0");
-              }
-            })(el);
-            const input = el.querySelector("input");
-            input.id = "kick-reason";
-            return el;
-          }),
-        )}
+            row("Reason:",
+              input("kick-reason",
+                mdcrd.textField("", "", null, e => {
+                  if (e.keyCode === 13) {
+                    this.elPopupKick["MDCDialog"].close("0");
+                  }
+                }))
+              ),
+            row(
+              input("kick-quiet", mdcrd.checkbox("Quiet (no broadcast)", false))
+            )
+          )
+        }
       </div>`,
       defaultButton: "yes",
       buttons: ["OK"],
@@ -214,24 +227,40 @@ export class FrontendDialog {
     dialog.open();
 
     // Blame the Material Design Web Components checkbox stealing focus for this horrible hack.
-    setTimeout(() => el.querySelector("input#kick-reason")["focus"](), 200);
+    setTimeout(() => el.querySelector("#kick-reason input")["focus"](), 200);
 
-    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && el.querySelector("input#kick-reason")["value"]), { once: true }));
+    let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
+      reason: el.querySelector("#kick-reason input")["value"],
+      quiet: el.querySelector("#kick-quiet input")["checked"],
+    }), { once: true }));
     dialog["then"] = promise.then.bind(promise);
     dialog["catch"] = promise.catch.bind(promise);
 
     dialog.then(
       kick => {
-        if (!kick || !(kick = kick.trim()))
+        if (!kick || !(kick.reason = kick.reason.trim()))
           return;
-        this.frontend.sync.run("kickwarn", { ID: id, Reason: kick });
+        this.frontend.sync.run("kickwarn", { ID: id, Reason: kick.reason, Quiet: kick.quiet });
       }
     );
 
     return dialog;
   }
 
-  ban(...uids) {
+  ban(fullname, id, ...uids) {
+    const input = (id, cls, val, gen) => el => {
+      el = gen(el);
+      el.id = id;
+      if (cls)
+        el.classList.add(cls);
+      let input = el.querySelector("input");
+      let label = el.querySelector("label");
+      input.id = `${id}-ban-input`;
+      input.value = val;
+      if (label)
+        label.setAttribute("for", input.id);
+      return el;
+    }
     const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
     const group = (...items) => el => {
       el = rd$(el)`<ul class="settings-group"></ul>`;
@@ -246,31 +275,33 @@ export class FrontendDialog {
     }
 
     let el = this.elPopupBan = mdcrd.dialog({
-      title: "Ban",
+      title: `Ban ${fullname} ${id > 0 ? `(#${id})` : ""}`,
       body: el => rd$(el)`
       <div>
         ${group(
           row("UIDs:"),
-          ...(uids.filter(uid => uid).map(uid => el => {
-            el = mdcrd.checkbox(uid, true)(el);
-            const input = el.querySelector("input");
-            input.classList.add("ban-uid");
-            input.value = uid;
-            return el;
-          }))
+          ...(uids.filter(uid => uid).map(uid => input(
+              `ban-uid-${uids.indexOf(uid)}`,
+              "ban-uid",
+              uid,
+              mdcrd.checkbox(uid, true),
+            ))
+          )
         )}
 
         ${group(
-          row("Reason:", el => {
-            el = mdcrd.textField("", "", null, e => {
-              if (e.keyCode === 13) {
-                this.elPopupBan["MDCDialog"].close("0");
-              }
-            })(el);
-            const input = el.querySelector("input");
-            input.id = "ban-reason";
-            return el;
-          }),
+          row("Reason:", input(
+            "ban-reason",
+            "",
+            "",
+            mdcrd.textField("", "", null, e => {
+                if (e.keyCode === 13) {
+                  this.elPopupBan["MDCDialog"].close("0");
+                }
+              })
+            )
+          ),
+          row(input("ban-quiet", "", "", mdcrd.checkbox("Quiet (no broadcast)", false))),
         )}
       </div>`,
       defaultButton: "yes",
@@ -285,11 +316,12 @@ export class FrontendDialog {
     dialog.open();
 
     // Blame the Material Design Web Components checkbox stealing focus for this horrible hack.
-    setTimeout(() => el.querySelector("input#ban-reason")["focus"](), 200);
+    setTimeout(() => el.querySelector("#ban-reason input")["focus"](), 200);
 
     let promise = new Promise(resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
-        uids: Array.from(el.querySelectorAll("input.ban-uid")).map(el => el["checked"] ? el["value"] : null).filter(uid => uid),
-        reason: el.querySelector("input#ban-reason")["value"],
+        uids: Array.from(el.querySelectorAll(".ban-uid input")).map(el => el["checked"] ? el["value"] : null).filter(uid => uid),
+        reason: el.querySelector("#ban-reason input")["value"],
+        quiet: el.querySelector("#ban-quiet input")["checked"],
     }), { once: true }));
     dialog["then"] = promise.then.bind(promise);
     dialog["catch"] = promise.catch.bind(promise);
@@ -298,7 +330,89 @@ export class FrontendDialog {
       ban => {
         if (!ban || !(ban.reason = ban.reason.trim()))
           return;
-        this.frontend.sync.run("ban", { UIDs: ban.uids, Reason: ban.reason });
+        this.frontend.sync.run("ban", { UIDs: ban.uids, Reason: ban.reason, Quiet: ban.quiet });
+      }
+    );
+
+    return dialog;
+  }
+
+  banExt(fullname, id, opts, connectionUID) {
+    const input = (id, gen) => el => {
+      el = gen(el);
+      el.id = id;
+      let input = el.querySelector("input");
+      let label = el.querySelector("label");
+      input.id = `${id}-banext-input`;
+      if (label)
+        label.setAttribute("for", input.id);
+      return el;
+    }
+    const row = (label, body) => el => rd$(el)`<span class="row"><span class="label">${label}</span><span class="body">${body}</span></span>`;
+    const group = (...items) => el => {
+      el = rd$(el)`<ul class="settings-group"></ul>`;
+
+      let list = new RDOMListHelper(el);
+      for (let i in items) {
+        list.add(i, items[i]);
+      }
+      list.end();
+
+      return el;
+    }
+
+    let el = this.elPopupBanExt = mdcrd.dialog({
+      title: `Ban ${fullname} ${id > 0 ? `(#${id})` : ""}`,
+      body: el => rd$(el)`
+      <div>
+        ${group(
+          row( el => {
+            let optKeys = opts.map(e => e[0] + '#' + e[1]);
+            el = mdcrd.dropdown("connInfo", optKeys, 0)(el);
+            el.id = "connInfo-select";
+            return el;
+          }),
+          row(input("banext-connUID", mdcrd.checkbox(`Also ban Conn UID: ${connectionUID}`, true))),
+        )}
+
+        ${group(
+          row("Reason:", input("banext-reason", mdcrd.textField("", "", null, e => {
+              if (e.keyCode === 13) {
+                this.elPopupBanExt["MDCDialog"].close("0");
+              }
+            }))),
+          row( input("banext-quiet", mdcrd.checkbox("Quiet (no broadcast)", false))),
+        )}
+      </div>`,
+      defaultButton: "yes",
+      buttons: ["OK"],
+    })(this.elPopupBanExt);
+
+    document.body.appendChild(el);
+
+    /** @type {import("@material/dialog").MDCDialog & Promise<{ uids: string[], reason: string }>} */
+    let dialog = el["MDCDialog"];
+
+    dialog.open();
+
+    // Blame the Material Design Web Components checkbox stealing focus for this horrible hack.
+    setTimeout(() => el.querySelector("input#ban-reason")["focus"](), 200);
+
+    let promise = new Promise(
+        resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
+          selection: el.querySelector("#connInfo-select .mdc-select__selected-text")["value"],
+          banConnUID: el.querySelector("#banext-connUID input")["checked"],
+          reason: el.querySelector("#banext-reason input")["value"],
+          quiet: el.querySelector("#banext-quiet input")["checked"],
+      }), { once: true }));
+    dialog["then"] = promise.then.bind(promise);
+    dialog["catch"] = promise.catch.bind(promise);
+
+    dialog.then(
+      ban => {
+        if (!ban || !(ban.reason = ban.reason.trim()))
+          return;
+        this.frontend.sync.run("banext", { ID: id, ConnUID: connectionUID, ConnInfo: ban.selection, BanConnUID: ban.banConnUID, Reason: ban.reason, Quiet: ban.quiet });
       }
     );
 

@@ -1,19 +1,7 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Microsoft.Xna.Framework;
-using MonoMod.Utils;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.IO;
 
-namespace Celeste.Mod.CelesteNet.Server.Sqlite {
+namespace Celeste.Mod.CelesteNet.Server.Sqlite
+{
     public class SqliteModule : CelesteNetServerModule<SqliteSettings> {
 
         public override void LoadSettings() {
@@ -37,6 +25,12 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
         public void UpdateUserData(bool enabled) {
             bool active = Server.UserData is SqliteUserData;
 
+            Logger.Log(LogLevel.VVV, "sqliteModule", $"UpdateUserData {active} {enabled} {Settings.RunSelfTests}");
+
+            if (enabled && Settings.RunSelfTests) {
+                RunSelfTests();
+            }
+
             if (!active && enabled) {
                 Server.UserData.Dispose();
                 Server.UserData = new SqliteUserData(this);
@@ -47,5 +41,25 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
             }
         }
 
+        private void RunSelfTests() {
+            Logger.Log(LogLevel.VVV, "sqliteModule", $"Start self tests");
+
+            string selftestDB = "selftest.db";
+
+            string selftestDBPath = Path.Combine(Settings.UserDataRoot, selftestDB);
+
+            if (File.Exists(selftestDBPath)) {
+                Logger.Log(LogLevel.INF, "sqlite", $"... Deleting old {selftestDBPath} ...");
+                File.Delete(selftestDBPath);
+            }
+
+            using (SqliteUserData selfTestUserData = new SqliteUserData(this, null, selftestDB)) {
+                Logger.Log(LogLevel.INF, "sqlite", $"\n====\n Running basic SQLiteModule Self Tests on {selfTestUserData.DBPath}...\n====\n");
+
+                selfTestUserData.RunSelfTests();
+
+                Logger.Log(LogLevel.INF, "sqlite", "\n====\n Finished basic SQLiteModule Self Tests.\n====\n");
+            }
+        }
     }
 }

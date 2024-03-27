@@ -1,21 +1,14 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Mono.Cecil;
-using Mono.Options;
+﻿using Mono.Cecil;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Runtime.Loader;
 
-namespace Celeste.Mod.CelesteNet.Server {
-    public partial class CelesteNetServerModuleWrapper {
+namespace Celeste.Mod.CelesteNet.Server
+{
+    public class CelesteNetServerModuleWrapper {
 
         public readonly CelesteNetServer Server;
         public readonly string AssemblyPath;
@@ -26,6 +19,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public HashSet<string> References;
         public HashSet<CelesteNetServerModuleWrapper> ReferredBy = new();
+
+        private AssemblyLoadContext? ALC;
 
         public CelesteNetServerModuleWrapper(CelesteNetServer server, string path) {
             Server = server;
@@ -106,12 +101,46 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Module = null;
 
-            Server.DetourModManager.Unload(Assembly);
             Server.Data.RemoveDataTypes(Assembly.GetTypes());
 
             UnloadAssembly();
             Assembly = null;
         }
 
+        private void LoadAssembly()
+        {
+            long stamp = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
+
+            string dir = Path.Combine(Path.GetTempPath(), $"CelesteNetServerModuleCache.{Server.Timestamp}");
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            string path = Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(AssemblyPath)}.{stamp}.dll");
+            File.Copy(AssemblyPath, path);
+
+            if (File.Exists(Path.ChangeExtension(AssemblyPath, "pdb")))
+                File.Copy(Path.ChangeExtension(AssemblyPath, "pdb"), Path.ChangeExtension(path, "pdb"));
+
+            ALC = new AssemblyLoadContext($"ModCtx.{stamp}.{ID}", isCollectible: true);
+            ALC.Resolving += (ctx, name) => {
+                foreach (CelesteNetServerModuleWrapper wrapper in Server.ModuleWrappers)
+                    if (wrapper.ID == name.Name)
+                        return wrapper.Assembly;
+                AssemblyLoadContext? parent = AssemblyLoadContext.GetLoadContext(typeof(CelesteNetServerModuleWrapper).Assembly);
+                if (parent != null)
+                    foreach (Assembly asm in parent.Assemblies)
+                        if (asm.GetName().Name == name.Name)
+                            return asm;
+                return null;
+            };
+
+            Assembly = ALC.LoadFromAssemblyPath(path);
+        }
+
+        private void UnloadAssembly()
+        {
+            ALC?.Unload();
+            ALC = null;
+        }
     }
 }

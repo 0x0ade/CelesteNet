@@ -1,15 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
-using Monocle;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MessagePack;
 using MessagePack.Formatters;
 using MessagePack.Resolvers;
 
-namespace Celeste.Mod.CelesteNet.Server.Sqlite {
+namespace Celeste.Mod.CelesteNet.Server.Sqlite
+{
     public static class MessagePackHelper {
 
         public static readonly MessagePackSerializerOptions Options = ContractlessStandardResolver.Options

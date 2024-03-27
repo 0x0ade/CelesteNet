@@ -1,17 +1,14 @@
 ﻿using Celeste.Mod.CelesteNet.Client.Components;
+using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using MDraw = Monocle.Draw;
 
-namespace Celeste.Mod.CelesteNet.Client {
+namespace Celeste.Mod.CelesteNet.Client
+{
     public class CelesteNetClientContext : DrawableGameComponent {
 
         public CelesteNetClient Client;
@@ -141,6 +138,20 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             // This must happen at the very end, as XNA / FNA won't update their internal lists, causing "dead" components to update.
 
+            DataDisconnectReason reason = CelesteNetClientModule.Instance.lastDisconnectReason;
+
+            if (reason != null) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Draw: Disposing because Client's lastDisconnectReason != null");
+
+                if (!Status.IsVisible)
+                    Status.Set(reason.Text, 8f, spin: false, dcReason: false);
+
+                if (!IsDisposed)
+                    Dispose();
+                return;
+            }
+
+
             if (SafeDisposeTriggered) {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Draw: Disposing because SafeDisposeTriggered");
                 if (!IsDisposed)
@@ -261,6 +272,15 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public ConnectionErrorException(string msg, string status) : base($"{msg}: {status}") {
             Status = status;
+        }
+    }
+
+    public class ConnectionErrorCodeException : ConnectionErrorException {
+
+        public readonly int StatusCode;
+
+        public ConnectionErrorCodeException(string msg, int statusCode, string status) : base($"{msg} (status {statusCode})", status) {
+            StatusCode = statusCode;
         }
     }
 }

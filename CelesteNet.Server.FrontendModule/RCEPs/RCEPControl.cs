@@ -6,22 +6,18 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat;
 using Newtonsoft.Json;
 using WebSocketSharp.Net;
 using WebSocketSharp.Server;
-
-#if NETCORE
 using System.Runtime.Loader;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
-using Microsoft.CodeAnalysis.Text;
-#endif
 
-namespace Celeste.Mod.CelesteNet.Server.Control {
+namespace Celeste.Mod.CelesteNet.Server.Control
+{
     public static partial class RCEndpoints {
 
         [RCEndpoint(false, "/auth", null, null, "Authenticate", "Basic POST authentication endpoint.")]
@@ -155,12 +151,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             f.RespondJSON(c, AppDomain.CurrentDomain.GetAssemblies().Select(asm => new {
                 asm.GetName().Name,
                 Version = asm.GetName().Version?.ToString() ?? "",
-                Context =
-#if NETCORE
-                    (AssemblyLoadContext.GetLoadContext(asm) ?? AssemblyLoadContext.Default)?.Name ?? "Unknown",
-#else
-                    AppDomain.CurrentDomain.FriendlyName
-#endif
+                Context = (AssemblyLoadContext.GetLoadContext(asm) ?? AssemblyLoadContext.Default)?.Name ?? "Unknown"
             }).ToList());
         }
 
@@ -415,12 +406,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 }
             }
 
+            CelesteNetServerModule? module = null;
             CelesteNetServerModuleSettings? settings;
+
             if (moduleID == "CelesteNet.Server") {
                 settings = f.Server.Settings;
             } else {
-                lock (f.Server.Modules)
-                    settings = f.Server.Modules.FirstOrDefault(m => m.Wrapper.ID == moduleID)?.GetSettings();
+                lock (f.Server.Modules) {
+                    module = f.Server.Modules.FirstOrDefault(m => m.Wrapper.ID == moduleID);
+                    settings = module?.GetSettings();
+                }
+
             }
 
             if (settings == null) {
@@ -435,7 +431,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 try {
                     using (StreamReader sr = new(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
                         settings.Load(sr);
-                    settings.Save();
+                    if (module != null) {
+                        // necessary to trigegr subclass overrides of this like in SqliteModule
+                        module.SaveSettings();
+                    } else {
+                        settings.Save();
+                    }
                     f.RespondJSON(c, new {
                         Info = "Success."
                     });
@@ -495,7 +496,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
         }
 
-#if NETCORE
         [RCEndpoint(true, "/exec", "", "", "Execute C#", "Run some C# code. Highly dangerous!")]
         public static void Exec(Frontend f, HttpRequestEventArgs c) {
             if (!f.IsAuthorizedExec(c)) {
@@ -504,7 +504,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
-            ExecALC? alc = null;
+            AssemblyLoadContext? alc = null;
 
             try {
                 string name = $"CelesteNet.Server.FrontendModule.REPL.{Guid.NewGuid().ToString().Replace("-", "")}";
@@ -549,7 +549,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
                 ms.Seek(0, SeekOrigin.Begin);
 
-                alc = new(name);
+                alc = new AssemblyLoadContext(name, isCollectible: true);
                 alc.Resolving += (ctx, name) => {
                     foreach (CelesteNetServerModuleWrapper wrapper in f.Server.ModuleWrappers)
                         if (wrapper.ID == name.Name)
@@ -577,19 +577,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 alc?.Unload();
             }
         }
-
-        private class ExecALC : AssemblyLoadContext {
-
-            public ExecALC(string name)
-                : base(name, isCollectible: true) {
-            }
-
-            protected override Assembly? Load(AssemblyName name) {
-                return null;
-            }
-
-        }
-#endif
 
     }
 }

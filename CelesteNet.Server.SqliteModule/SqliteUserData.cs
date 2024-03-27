@@ -1,7 +1,5 @@
 ﻿using MessagePack;
 using Microsoft.Data.Sqlite;
-using Microsoft.Xna.Framework;
-using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,10 +8,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Transactions;
 
-namespace Celeste.Mod.CelesteNet.Server.Sqlite {
+namespace Celeste.Mod.CelesteNet.Server.Sqlite
+{
     public sealed class SqliteUserData : UserData {
 
         public static readonly HashSet<char> Illegal = new("`´'\"^[]\\//");
@@ -22,15 +19,23 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
 
         public readonly SqliteModule Module;
 
-        public string UserRoot => Path.Combine(Module.Settings.UserDataRoot, "User");
-        public string DBPath => Path.Combine(Module.Settings.UserDataRoot, "main.db");
+        private string? _userDataRoot;
+        public string UserDataRoot => _userDataRoot ??= Module.Settings.UserDataRoot;
+
+        private string? _dbName;
+        public string DBName => _dbName ??= "main.db";
+
+        public string DBPath => Path.Combine(UserDataRoot, DBName);
 
         private readonly ThreadLocal<BatchContext> _Batch = new();
         public BatchContext Batch => _Batch.Value ??= new(this);
 
-        public SqliteUserData(SqliteModule module)
+        public SqliteUserData(SqliteModule module, string? userDataRoot = null, string? dbName = null)
             : base(module.Server) {
             Module = module;
+
+            _userDataRoot = userDataRoot;
+            _dbName = dbName;
 
             if (!File.Exists(DBPath)) {
                 using MiniCommand mini = new(this) {
@@ -896,6 +901,304 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
             using SqliteBlob blob = new(con, table, "value", rowid);
             ms.CopyTo(blob);
             blob.Dispose();
+        }
+
+        public void RunSelfTests() {
+
+            int tests = 0, warnings = 0;
+
+            #region Test Expectations
+
+            var expected = new List<List<string>>() {
+                new List<string>() { "123" },
+                new List<string>() { "123", "124" },
+                new List<string>() { "124" },
+            };
+
+            var holdTestUserData = new List<Dictionary<string, string>>();
+
+            bool checkExpected(int idx, string[] uids, string test) {
+                bool res = true;
+                var ex = expected[idx];
+
+                if (ex.Count != uids.Length)
+                    res = false;
+
+                foreach (string u in uids) {
+                    if (!ex.Contains(u))
+                        res = false;
+                }
+
+                if (!res)
+                    log($"{test} did not match expected {l2s(ex)}", LogLevel.WRN);
+
+                return res;
+            }
+
+            int recordTestUserData() {
+                holdTestUserData.Add(new Dictionary<string, string>());
+
+                var dict = holdTestUserData[^1];
+
+                foreach (string uid in GetAll()) {
+                    dict.Add(uid, GetKey(uid));
+                }
+
+                return holdTestUserData.Count - 1;
+            }
+
+            void compareTestUserData(int idx, Dictionary<string, bool> shouldEqual) {
+                var dict = holdTestUserData[idx];
+
+                foreach (string uid in shouldEqual.Keys) {
+                    if (!dict.ContainsKey(uid)) {
+                        log($"Unknown uid {uid} that didn't exist in {a2s(dict.Keys.ToArray())}", LogLevel.WRN);
+                        continue;
+                    }
+
+                    var key = GetKey(uid);
+                    if (key.Equals(dict[uid]) != shouldEqual[uid]) {
+                        if (shouldEqual[uid])
+                            log($"Key {key} of {uid} should've equaled {dict[uid]} but didn't", LogLevel.WRN);
+                        else
+                            log($"Key {key} of {uid} should've changed from {dict[uid]} but didn't", LogLevel.WRN);
+                    }
+                }
+            }
+
+            BanInfo biExample = new BanInfo {
+                Name = "the name",
+                UID = "the uid",
+                From = new DateTime(2024, 03, 23, 13, 37, 42, 666, DateTimeKind.Utc),
+                To = DateTime.UtcNow
+            };
+
+            bool compareBanInfo(BanInfo got) {
+                if (got == null) return false;
+
+                if (got.Name != biExample.Name) return false;
+                if (got.UID != biExample.UID) return false;
+
+                if (got.From == null || biExample.From == null) return false;
+
+                var c = DateTime.Compare(got.From.Value, biExample.From.Value);
+                if (c != 0) {
+                    log($"From dates {got.From.Value} {(c > 0 ? ">" : "<")} {biExample.From.Value}");
+                    return false;
+                }
+                if (got.To == null || biExample.To == null) return false;
+                c = DateTime.Compare(got.To.Value, biExample.To.Value);
+                if (c != 0) {
+                    log($"To dates {got.To.Value} {(c > 0 ? ">" : "<")} {biExample.To.Value}");
+                    return false;
+                }
+
+                return true;
+            }
+
+            string testContent = @"
+            This is test content
+            And it has multiple lines
+            very cool
+            ";
+
+            #endregion
+
+            #region Test logging
+
+            void log(string msg, LogLevel ll = LogLevel.INF) {
+                Logger.Log(ll, "sqlite", msg);
+                if (ll > LogLevel.INF)
+                    warnings++;
+            }
+
+            void logTest(string title) => log($"\n === Test {++tests}: {title}");
+
+            void logKeyUID(string uid) {
+                log($"{uid} => {GetKey(uid)} => {GetUID(GetKey(uid))}");
+            }
+
+            static string a2s(string[] a) => "[ " + string.Join(", ", a) + " ]";
+            static string l2s(List<string> l) => "[ " + string.Join(", ", l) + " ]";
+
+            void logCurrentState() {
+
+                log($"Counts: {GetRegisteredCount()} / {GetAllCount()}");
+                log($"Registered: {a2s(GetRegistered())}");
+                log($"All: {a2s(GetAll())}");
+
+                log("");
+            }
+
+            #endregion
+
+            if (GetAllCount() > 0) {
+                log("Aborting self tests because meta is not empty.", LogLevel.WRN);
+                return;
+            }
+
+            log($"All Tables:\n\t{string.Join(", ", GetAllTables())}");
+
+            log($"AllCount: {GetAllCount()}");
+            log( $"RegisteredCount: {GetRegisteredCount()}");
+
+            #region UID / Key Tests
+
+            logTest("Create 123 false =====================");
+            Create("123", false);
+            logKeyUID("123");
+
+            logCurrentState();
+
+            checkExpected(0, GetAll(), "GetAll()");
+            checkExpected(0, GetRegistered(), "GetRegistered()");
+            var test1 = recordTestUserData();
+
+            logTest("Create 123 false =====================");
+            Create("123", false);
+            logKeyUID("123");
+
+            logCurrentState();
+
+            checkExpected(0, GetAll(), "GetAll()");
+            checkExpected(0, GetRegistered(), "GetRegistered()");
+            compareTestUserData(test1, new Dictionary<string, bool> { { "123", true } });
+
+            logTest("Create 123 true =====================");
+            Create("123", true);
+            logKeyUID("123");
+
+            logCurrentState();
+
+            checkExpected(0, GetAll(), "GetAll()");
+            checkExpected(0, GetRegistered(), "GetRegistered()");
+            compareTestUserData(test1, new Dictionary<string, bool> { { "123", false } });
+
+            var test2 = recordTestUserData();
+
+            logTest("Create 124 true =====================");
+            Create("124", true);
+            logKeyUID("123");
+            logKeyUID("124");
+
+            logCurrentState();
+
+            checkExpected(1, GetAll(), "GetAll()");
+            checkExpected(1, GetRegistered(), "GetRegistered()");
+            compareTestUserData(test1, new Dictionary<string, bool> { { "123", false } });
+            compareTestUserData(test2, new Dictionary<string, bool> { { "123", true } });
+
+            var test3 = recordTestUserData();
+
+            logTest("Revoke 123's key =====================");
+            RevokeKey(GetKey("123"));
+            logKeyUID("123");
+            logKeyUID("124");
+
+            logCurrentState();
+
+            // I thought revoke deletes the UID entirely like I think it does in FileSystemUserData, but guess it doesn't
+            checkExpected(1, GetAll(), "GetAll()");
+            checkExpected(1, GetRegistered(), "GetRegistered()");
+            compareTestUserData(test3, new Dictionary<string, bool> { { "123", false }, { "124", true } });
+
+            logTest("Create 123 false =====================");
+            Create("123", false);
+            logKeyUID("123");
+
+            logCurrentState();
+
+            checkExpected(1, GetAll(), "GetAll()");
+            checkExpected(1, GetRegistered(), "GetRegistered()");
+            compareTestUserData(test1, new Dictionary<string, bool> { { "123", false } });
+            compareTestUserData(test2, new Dictionary<string, bool> { { "123", false } });
+            compareTestUserData(test3, new Dictionary<string, bool> { { "123", false }, { "124", true } });
+
+            #endregion
+
+            #region Generics Data Tests
+
+            BanInfo bi;
+
+            logTest("TryLoad 123 BanInfo =====================");
+
+            if (TryLoad("123", out bi))
+                log($"Expected to fail TryLoad but got BanInfo {bi}", LogLevel.WRN);
+
+            logTest("Save 123 BanInfo =====================");
+
+            Save("123", biExample);
+
+            logTest("TryLoad 123 BanInfo =====================");
+
+            if (TryLoad("123", out bi)) {
+                if (!compareBanInfo(bi))
+                    log($"BanInfo {bi} did not match input {biExample}", LogLevel.WRN);
+            } else
+                log("Expected to TryLoad but got no BanInfo", LogLevel.WRN);
+
+            logTest("Delete 123 BanInfo =====================");
+
+            Delete<BanInfo>("123");
+
+            logTest("TryLoad 123 BanInfo =====================");
+
+            if (TryLoad("123", out bi))
+                log($"Expected to fail TryLoad but got BanInfo {bi}", LogLevel.WRN);
+
+            #endregion
+
+            #region File Data Tests
+
+            logTest("HasFile 123 test =====================");
+
+            if (HasFile("123", "test"))
+                log("Expected to fail HasFile", LogLevel.WRN);
+
+            logTest("WriteFile 123 test =====================");
+
+            using (var stream = WriteFile("123", "test")) {
+                if (stream == null || !stream.CanWrite) {
+                    log("WriteFile didn't open a stream or cannot write", LogLevel.WRN);
+                } else {
+                    stream.Write(Encoding.UTF8.GetBytes(testContent));
+                }
+            }
+
+            logTest("HasFile 123 test =====================");
+
+            if (!HasFile("123", "test"))
+                log("Expected to succeed HasFile", LogLevel.WRN);
+
+            logTest("ReadFile 123 test =====================");
+
+            using (var stream = ReadFile("123", "test")) {
+                if (stream == null || !stream.CanRead) {
+                    log("ReadFile didn't open a stream or cannot read", LogLevel.WRN);
+                } else {
+                    byte[] buf = new byte[testContent.Length + 5];
+                    var read = stream.Read(buf, 0, buf.Length);
+                    if (read == -1)
+                        log("ReadFile read returned -1", LogLevel.WRN);
+                    else if (read != testContent.Length)
+                        log($"ReadFile read {read} bytes instead of testContent.Length == {testContent.Length}", LogLevel.WRN);
+                    else if (Encoding.UTF8.GetString(buf, 0, read) != testContent)
+                        log("ReadFile read UTF8 didn't match testContent", LogLevel.WRN);
+                }
+            }
+
+            logTest("DeleteFile 123 test =====================");
+
+            DeleteFile("123", "test");
+
+            logTest("HasFile 123 test =====================");
+
+            if (HasFile("123", "test"))
+                log("Expected to fail HasFile", LogLevel.WRN);
+
+            #endregion
+
+            log($" === {tests} tests done, {warnings} warnings logged. === ", warnings > 0 ? LogLevel.WRN : LogLevel.INF);
         }
 
         public struct MiniCommand : IDisposable, IEnumerable<(string, object)> {

@@ -84,36 +84,33 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             session.Remove<SpamContext>(this)?.Dispose();
         }
 
-        public DataChat? PrepareAndLog(CelesteNetConnection? from, DataChat msg, bool invokeReceive = true) {
+        public DataChat? PrepareAndLog(CelesteNetPlayerSession? session, DataChat msg, bool invokeReceive = true) {
             lock (ChatLog)
                 msg.ID = NextID++;
             msg.Date = DateTime.UtcNow;
 
+            if (msg.Text.Length == 0)
+                return null;
+
             if (!msg.CreatedByServer) {
                 // This condition matches DataChat when it's been read from a CelesteNetBinaryReader
 
-                if (from == null)
+                if (session == null || session.PlayerInfo == null)
                     return null;
 
-                if (!Server.PlayersByCon.TryGetValue(from, out CelesteNetPlayerSession? player))
-                    return null;
+                msg.Player = session.PlayerInfo;
+                msg.Text = msg.Text.Trim().Replace("\r", "").Replace("\n", "");
 
-                msg.Player = player.PlayerInfo;
-                if (msg.Player == null)
-                    return null;
-
-                msg.Text = msg.Text.Trim();
                 if (msg.Text.IsNullOrEmpty())
                     return null;
 
-                msg.Text = msg.Text.Replace("\r", "").Replace("\n", "");
                 if (msg.Text.Length > Settings.MaxChatTextLength)
                     msg.Text = msg.Text.Substring(0, Settings.MaxChatTextLength);
 
                 msg.Tag = "";
                 msg.Color = Color.White;
 
-                if (player.Get<SpamContext>(this)?.IsSpam(msg) ?? false)
+                if (session.Get<SpamContext>(this)?.IsSpam(msg) ?? false)
                     return null;
 
             } else if (msg.Player != null && (msg.Targets == null || msg.Targets.Length > 0)) {
@@ -139,9 +136,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 return null;
             }
 
-            if (msg.Text.Length == 0)
-                return null;
-
             lock (ChatBuffer) {
                 DataChat? prev = ChatBuffer.Get();
                 if (prev != null)
@@ -164,7 +158,12 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public void Handle(CelesteNetConnection? con, DataChat msg) {
             // don't dedupe the text messages, they should repeat very rarely
             msg.Text = msg.Text.Sanitize(null, true, false);
-            if (PrepareAndLog(con, msg, false) == null)
+
+            CelesteNetPlayerSession? session = null;
+            if (con != null)
+                Server.PlayersByCon.TryGetValue(con, out session);
+
+            if (PrepareAndLog(session, msg, false) == null)
                 return;
 
             if ((!msg.CreatedByServer || msg.Player == null) && msg.Text.StartsWith(Settings.CommandPrefix)) {
@@ -202,7 +201,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 return;
             }
 
-            if (msg.Player != null && Server.PlayersByID.TryGetValue(msg.Player.ID, out CelesteNetPlayerSession? session) &&
+            if (msg.Player != null && Server.PlayersByID.TryGetValue(msg.Player.ID, out session) &&
                 Server.UserData.Load<UserChatSettings>(session.UID).AutoChannelChat) {
                 msg.Target = msg.Player;
                 Commands.Get<CmdChannelChat>().ParseAndRun(new CmdEnv(this, msg));
@@ -235,14 +234,14 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             DataChat msg = new() {
                 Player = playerInfo,
-                Targets = new DataPlayerInfo[0],
+                Targets = Array.Empty<DataPlayerInfo>(),
                 Text = emote.Text,
                 Tag = "emote",
                 Color = Settings.ColorLogEmote
             };
 
             if (Settings.LogEmotes) {
-                PrepareAndLog(con, msg);
+                PrepareAndLog(player, msg);
             } else {
                 Logger.Log(LogLevel.INF, "chatemote", msg.ToString(false, true));
             }

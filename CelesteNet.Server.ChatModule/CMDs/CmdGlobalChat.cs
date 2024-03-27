@@ -46,7 +46,7 @@ To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
             env.Msg.Text = text;
             env.Msg.Tag = "";
             env.Msg.Color = Color.White;
-            env.Msg.Target = null;
+            env.Msg.Targets = null;
             Chat.ForceSend(env.Msg);
         }
 

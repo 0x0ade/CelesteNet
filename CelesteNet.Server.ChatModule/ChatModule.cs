@@ -67,7 +67,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             SpamContext spam = session.Set(this, new SpamContext(this));
             spam.OnSpam += (msg, timeout) => {
-                msg.Target = session.PlayerInfo;
+                if (session.PlayerInfo == null)
+                    return;
+                msg.Targets = [session.PlayerInfo];
                 ForceSend(msg);
                 SendTo(session, Settings.MessageSpam, null, Settings.ColorError);
             };
@@ -170,7 +172,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (msg.Player != null) {
                     // Player should at least receive msg ack.
                     msg.Color = Settings.ColorCommand;
-                    msg.Target = msg.Player;
+                    msg.Targets = [msg.Player];
                     ForceSend(msg);
                 }
 
@@ -203,7 +205,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             if (msg.Player != null && Server.PlayersByID.TryGetValue(msg.Player.ID, out session) &&
                 Server.UserData.Load<UserChatSettings>(session.UID).AutoChannelChat) {
-                msg.Target = msg.Player;
+                msg.Targets = [msg.Player];
                 Commands.Get<CmdChannelChat>().ParseAndRun(new CmdEnv(this, msg));
                 return;
             }
@@ -267,18 +269,20 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public DataChat? SendTo(CelesteNetPlayerSession? player, string text, string? tag = null, Color? color = null) {
             DataChat msg = new() {
-                Target = player?.PlayerInfo,
                 Text = text,
                 Tag = tag ?? "",
                 Color = color ?? Settings.ColorServer
             };
-            if (player == null || msg.Target == null) {
+            if (player?.PlayerInfo == null) {
                 Logger.Log(LogLevel.INF, "chat", $"Sending to nobody: {text}");
                 PrepareAndLog(null, msg);
                 return null;
             }
 
-            Logger.Log(LogLevel.INF, "chat", $"Sending to {msg.Target}: {text}");
+            Logger.Log(LogLevel.INF, "chat", $"Sending to {player.PlayerInfo}: {text}");
+
+            msg.Targets = [player.PlayerInfo];
+
             player.Con.Send(PrepareAndLog(null, msg));
             return msg;
         }

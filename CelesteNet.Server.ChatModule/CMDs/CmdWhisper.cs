@@ -63,7 +63,7 @@ To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID
 
             other.Con.Send(Chat.PrepareAndLog(null, new DataChat {
                 Player = player,
-                Target = otherPlayer,
+                Targets = [otherPlayer],
                 Tag = "whisper",
                 Text = text,
                 Color = Chat.Settings.ColorWhisper

@@ -432,7 +432,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                     using (StreamReader sr = new(c.Request.InputStream, Encoding.UTF8, false, 1024, true))
                         settings.Load(sr);
                     if (module != null) {
-                        // necessary to trigegr subclass overrides of this like in SqliteModule
+                        // necessary to trigger subclass overrides of this like in SqliteModule
                         module.SaveSettings();
                     } else {
                         settings.Save();

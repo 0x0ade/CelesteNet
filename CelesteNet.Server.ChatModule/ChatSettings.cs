@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Monocle;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatSettings : CelesteNetServerModuleSettings {
@@ -15,6 +16,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public int SpamCountMax { get; set; } = 4;
         public double SpamTimeout { get; set; } = 4;
         public double SpamTimeoutAdd { get; set; } = 5;
+
+        public List<string> FilterDrop {  get; set; } = new List<string>();
+        public List<string> FilterKick { get; set; } = new List<string>();
+        public List<string> FilterWarnOnce { get; set; } = new List<string>();
 
         public Color ColorBroadcast { get; set; } = Calc.HexToColor("#00adee");
         public Color ColorServer { get; set; } = Calc.HexToColor("#9e24f5");

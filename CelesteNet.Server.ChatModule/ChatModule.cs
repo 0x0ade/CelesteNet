@@ -21,12 +21,24 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public override void Init(CelesteNetServerModuleWrapper wrapper) {
             base.Init(wrapper);
 
+            Logger.Log(LogLevel.INF, "chat", $"FilterDrop: {Settings.FilterDrop.Count} entries.");
+            Logger.Log(LogLevel.INF, "chat", $"FilterKick: {Settings.FilterKick.Count} entries.");
+            Logger.Log(LogLevel.INF, "chat", $"FilterWarnOnce: {Settings.FilterWarnOnce.Count} entries.");
+
             BroadcastSpamContext = new(this);
             Commands = new(this);
             Server.OnSessionStart += OnSessionStart;
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession session in Server.Sessions)
                     session.OnEnd += OnSessionEnd;
+        }
+
+        public override void SaveSettings() {
+            base.SaveSettings();
+
+            Logger.Log(LogLevel.INF, "chat", $"FilterDrop: {Settings.FilterDrop.Count} entries.");
+            Logger.Log(LogLevel.INF, "chat", $"FilterKick: {Settings.FilterKick.Count} entries.");
+            Logger.Log(LogLevel.INF, "chat", $"FilterWarnOnce: {Settings.FilterWarnOnce.Count} entries.");
         }
 
         public override void Dispose() {
@@ -78,6 +90,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             msg.Date = DateTime.UtcNow;
 
             if (!msg.CreatedByServer) {
+                // This condition matches DataChat when it's been read from a CelesteNetBinaryReader
+
                 if (from == null)
                     return null;
 
@@ -92,7 +106,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (msg.Text.IsNullOrEmpty())
                     return null;
 
-                msg.Text.Replace("\r", "").Replace("\n", "");
+                msg.Text = msg.Text.Replace("\r", "").Replace("\n", "");
                 if (msg.Text.Length > Settings.MaxChatTextLength)
                     msg.Text = msg.Text.Substring(0, Settings.MaxChatTextLength);
 
@@ -102,7 +116,18 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (player.Get<SpamContext>(this)?.IsSpam(msg) ?? false)
                     return null;
 
-            } else if (msg.Player != null && (msg.Targets?.Length ?? 1) > 0) {
+            } else if (msg.Player != null && (msg.Targets == null || msg.Targets.Length > 0)) {
+                /* This condition matches messages created by server but with a valid Player:
+                 *  - messages generated from a /cc, /gc or /w chat by a player
+                 *  - the chat module logging emotes in a handler further down here
+                 *  
+                 *  The second part of the conditional matches any message where:
+                 *  - Targets is null or
+                 *  - Targets isn't an empty array?...
+                 */
+
+                // Is the sole practical purpose of this clause to spam-filter /gc'd and /cc'd chats properly?
+
                 if (!Server.PlayersByID.TryGetValue(msg.Player.ID, out CelesteNetPlayerSession? player))
                     return null;
 
@@ -110,6 +135,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     return null;
 
             } else if ((msg.Targets == null || msg.Targets.Length == 0) && BroadcastSpamContext.IsSpam(msg)) {
+                // if we're here, msg.Player must be null
                 return null;
             }
 

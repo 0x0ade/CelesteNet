@@ -14,7 +14,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 $@"Reply to the most recent whisper.
 Sends a whisper to recipient or sender of the most recent whisper.";
 
-        private ParamPlayerSession playerSessionParam;
+        private ParamPlayerSession? playerSessionParam;
 
         public override void Init(ChatModule chat) {
             Chat = chat;
@@ -37,6 +37,8 @@ Sends a whisper to recipient or sender of the most recent whisper.";
 
             if (args == null || args.Count == 0 || args[0] is not CmdArgString)
                 throw new CommandRunException("No text.");
+
+            playerSessionParam ??= new ParamPlayerSession(Chat);
 
             bool parsedSessionID = playerSessionParam.TryParse(lastWhisperID.ToString(), env, out ICmdArg? sessionArg);
 

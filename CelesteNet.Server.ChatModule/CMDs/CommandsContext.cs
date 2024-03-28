@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
 using System.Text;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
-    public class CommandsContext : IDisposable {
+    public class CommandsContext {
 
         public readonly List<ChatCmd> All = new();
         public readonly Dictionary<string, ChatCmd> ByID = new();
@@ -56,23 +58,18 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             All = All.OrderBy(cmd => cmd.HelpOrder).ToList();
         }
 
-        public void Dispose() {
-            foreach (ChatCmd cmd in All)
-                cmd.Dispose();
-        }
-
         public ChatCmd? Get(string id)
-            => ByID.TryGetValue(id, out ChatCmd cmd) ? cmd : null;
+            => ByID.TryGetValue(id, out ChatCmd? cmd) ? cmd : null;
 
         public T? Get<T>(string id) where T : ChatCmd
-            => ByID.TryGetValue(id, out ChatCmd cmd) ? (T)cmd : null;
+            => ByID.TryGetValue(id, out ChatCmd? cmd) ? (T)cmd : null;
 
         public T Get<T>() where T : ChatCmd
-            => ByType.TryGetValue(typeof(T), out ChatCmd cmd) ? (T)cmd : throw new KeyNotFoundException($"Invalid CMD type {typeof(T).FullName}");
+            => ByType.TryGetValue(typeof(T), out ChatCmd? cmd) ? (T)cmd : throw new KeyNotFoundException($"Invalid CMD type {typeof(T).FullName}");
 
     }
 
-    public abstract class ChatCmd : IDisposable {
+    public abstract class ChatCmd {
 
         public static readonly char[] NameDelimiters = {
             ' ', '\n'
@@ -82,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public ChatModule Chat;
 #pragma warning restore CS8618
 
-        public List<ArgParser> ArgParsers = new();
+        public List<ArgParser> ArgParsers = [];
 
         public virtual string ID => GetType().Name.Substring(3).ToLowerInvariant();
 
@@ -99,9 +96,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public virtual void Init(ChatModule chat) {
             Chat = chat;
-        }
-
-        public virtual void Dispose() {
         }
 
         public virtual void ParseAndRun(CmdEnv env) {
@@ -145,7 +139,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                 if (e is not ArgParserException ape)
                     continue;
                 Logger.Log(LogLevel.DEV, "chatcmd", $"(ArgParserException: {ape.paramsParsed} parsed, {ape.cmd}, {ape.args}, {ape.innerParam}");
-                if (ape.paramsParsed >  maxArgsParsed)
+                if (ape.paramsParsed > maxArgsParsed)
                     maxArgsParsed = ape.paramsParsed;
                 argParserExceptions++;
             }
@@ -162,7 +156,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                 caught = caught.Where(e => e is not ArgParserException ape || ape.innerParam != null).ToList();
             }
 
-            IEnumerable<Exception> cmd_exceptions = caught.Where(e => CmdEnv.IsCmdException(e));
+            IEnumerable<Exception> cmd_exceptions = caught.Where(CmdEnv.IsCmdException);
             IEnumerable<Exception> cmdrun_exceptions = caught.Where(e => e is CommandRunException);
 
             // if there are any of our custom exceptions, only report those to the player
@@ -196,8 +190,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     }
 
-    [Serializable]
-    public class CommandRunException : Exception {
+    public sealed class CommandRunException : Exception {
 
         public CommandRunException() { }
 

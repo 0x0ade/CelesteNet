@@ -14,7 +14,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
             DynamicData selfData = new(self);
             TPHistoryEntry? back = selfData.Get<TPHistoryEntry>("tpHistory");
-            if (back?.State == null || back?.Session == null)
+            if (back?.State == null || back.Session == null)
                 throw new CommandRunException("Got nowhere to teleport back to.");
             selfData.Set("tpHistory", null);
 

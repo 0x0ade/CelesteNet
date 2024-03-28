@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class ArgParser {
@@ -172,6 +173,22 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             args = ap.ToString();
             innerParam = pe;
             paramsParsed = parsed;
+        }
+
+        protected ArgParserException(SerializationInfo info, StreamingContext context) : base(info, context) {
+            cmd = info.GetString("ArgParserException.cmd") ?? "";
+            args = info.GetString("ArgParserException.args") ?? "";
+            innerParam = (ParamException?) info.GetValue("ArgParserException.innerParam", typeof(ParamException));
+            paramsParsed = info.GetInt32("ArgParserException.paramsParsed");
+        }
+
+        public override void GetObjectData(SerializationInfo info, StreamingContext context) {
+            base.GetObjectData(info, context);
+
+            info.AddValue("ArgParserException.cmd", cmd);
+            info.AddValue("ArgParserException.args", args);
+            info.AddValue("ArgParserException.innerParam", innerParam, typeof(ParamException));
+            info.AddValue("ArgParserException.paramsParsed", paramsParsed);
         }
     }
 }

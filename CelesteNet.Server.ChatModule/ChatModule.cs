@@ -33,7 +33,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             base.Dispose();
 
             BroadcastSpamContext.Dispose();
-            Commands.Dispose();
 
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession session in Server.Sessions)

@@ -46,7 +46,7 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
                 string helpOutput = args[0] switch {
                     CmdArgInt getPageNum    => GetCommandPage(env, getPageNum.Int),
                     CmdArgString cmdNameArg => GetCommandSnippet(env, cmdNameArg.String),
-                    _ => GetCommandSnippet(env, args[0].ToString()),
+                    _ => GetCommandSnippet(env, args[0].ToString() ?? ""),
                 };
 
                 env.Send(helpOutput);
@@ -123,6 +123,9 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
         }
 
         public string GetCommandSnippet(CmdEnv env, string cmdName) {
+            if (cmdName.IsNullOrEmpty())
+                throw new CommandRunException($"Command not found.");
+
             ChatCmd? cmd = Chat.Commands.Get(cmdName.TrimStart('/'));
             if (cmd == null)
                 throw new CommandRunException($"Command {cmdName} not found.");

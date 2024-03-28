@@ -45,10 +45,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
             CelesteNetPlayerSession player = sessionArg.Session ?? throw new CommandRunException("Invalid username or ID.");
 
+            string? banReason = args[1].ToString();
+
+            if (banReason.IsNullOrEmpty())
+                throw new CommandRunException("No reason given.");
+
             BanInfo ban = new() {
                 UID = player.UID,
                 Name = player.PlayerInfo?.FullName ?? "",
-                Reason = args[1].ToString(),
+                Reason = banReason,
                 From = DateTime.UtcNow
             };
 

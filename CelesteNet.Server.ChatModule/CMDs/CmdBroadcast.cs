@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdBC : CmdBroadcast {
@@ -10,17 +9,23 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     public class CmdBroadcast : ChatCmd {
 
-        public override string Args => "<text>";
-
         public override string Info => "Send a server broadcast to everyone in the server, as the server.";
 
         public override bool MustAuth => true;
 
-        public override void Run(CmdEnv env, List<CmdArg> args) {
-            if (args.Count == 0)
-                throw new Exception("No text.");
+        public override void Init(ChatModule chat) {
+            Chat = chat;
 
-            Chat.Broadcast(args[0].Rest);
+            ArgParser parser = new(chat, this);
+            parser.AddParameter(new ParamString(chat), "message", "Announcement: meow.");
+            ArgParsers.Add(parser);
+        }
+
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
+            if (args == null || args.Count == 0 || args[0] is not CmdArgString argMsg)
+                throw new CommandRunException("No text.");
+
+            Chat.Broadcast(argMsg);
         }
 
     }

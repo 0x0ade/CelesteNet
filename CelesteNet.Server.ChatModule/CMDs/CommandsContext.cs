@@ -1,11 +1,15 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
+using System.Text;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Microsoft.Xna.Framework;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
-    public class CommandsContext : IDisposable {
+    public class CommandsContext {
 
         public readonly List<ChatCmd> All = new();
         public readonly Dictionary<string, ChatCmd> ByID = new();
@@ -18,9 +22,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                     continue;
 
                 ChatCmd? cmd = (ChatCmd?)Activator.CreateInstance(type);
-                if (cmd == null)
-                    throw new Exception($"Cannot create instance of CMD {type.FullName}");
-                Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd.ID.ToLowerInvariant()} ({type.FullName}, {cmd.Completion})");
+                // TODO: We have a lot of things in the server that throw Exceptions to indicate we can't properly run,
+                // we should perhaps convert those to Trace.Assert?
+                Trace.Assert(cmd is not null, $"Cannot create instance of CMD {type.FullName}");
+                Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd!.ID.ToLowerInvariant()} ({type.FullName}, {cmd.Completion})");
                 All.Add(cmd);
                 ByID[cmd.ID.ToLowerInvariant()] = cmd;
                 ByType[type] = cmd;
@@ -53,11 +58,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             All = All.OrderBy(cmd => cmd.HelpOrder).ToList();
         }
 
-        public void Dispose() {
-            foreach (ChatCmd cmd in All)
-                cmd.Dispose();
-        }
-
         public ChatCmd? Get(string id)
             => ByID.TryGetValue(id, out ChatCmd? cmd) ? cmd : null;
 
@@ -65,11 +65,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             => ByID.TryGetValue(id, out ChatCmd? cmd) ? (T)cmd : null;
 
         public T Get<T>() where T : ChatCmd
-            => ByType.TryGetValue(typeof(T), out ChatCmd? cmd) ? (T)cmd : throw new Exception($"Invalid CMD type {typeof(T).FullName}");
+            => ByType.TryGetValue(typeof(T), out ChatCmd? cmd) ? (T)cmd : throw new KeyNotFoundException($"Invalid CMD type {typeof(T).FullName}");
 
     }
 
-    public abstract class ChatCmd : IDisposable {
+    public abstract class ChatCmd {
 
         public static readonly char[] NameDelimiters = {
             ' ', '\n'
@@ -78,9 +78,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 #pragma warning disable CS8618 // Set manually after construction.
         public ChatModule Chat;
 #pragma warning restore CS8618
+
+        public List<ArgParser> ArgParsers = [];
+
         public virtual string ID => GetType().Name.Substring(3).ToLowerInvariant();
 
-        public abstract string Args { get; }
         public abstract string Info { get; }
         public virtual string Help => Info;
         public virtual int HelpOrder => 0;
@@ -96,176 +98,107 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             Chat = chat;
         }
 
-        public virtual void Dispose() {
-        }
-
         public virtual void ParseAndRun(CmdEnv env) {
-            if (MustAuth && !env.IsAuthorized || MustAuthExec && !env.IsAuthorizedExec)
-                throw new Exception("Unauthorized!");
+            if (MustAuth && !env.IsAuthorized || MustAuthExec && !env.IsAuthorizedExec) {
+                env.Error(new CommandRunException("Unauthorized!"));
+                return;
+            }
 
-            // TODO: Improve or rewrite. This comes from GhostNet, which adopted it from disbot (0x0ade's C# Discord bot).
+            List<Exception> caught = new();
 
-            string raw = env.FullText;
-
-            int index = Chat.Settings.CommandPrefix.Length + ID.Length - 1; // - 1 because next space required
-            List<CmdArg> args = new();
-            while (
-                index + 1 < raw.Length &&
-                (index = raw.IndexOf(' ', index + 1)) >= 0
-            ) {
-                if (index + 1 < raw.Length && raw[index + 1] == ' ')
-                    continue;
-
-                int next = index + 1 < raw.Length ? raw.IndexOf(' ', index + 1) : -2;
-                if (next < 0)
-                    next = raw.Length;
-
-                int argIndex = index + 1;
-                int argLength = next - index - 1;
-
-                // + 1 because space
-                args.Add(new CmdArg(env).Parse(raw, argIndex, argLength));
-
-                // Parse a split up range (with spaces) into a single range arg
-                if (args.Count >= 3 &&
-                    args[args.Count - 3].Type == CmdArgType.Int &&
-                    (args[args.Count - 2].String == "-" || args[args.Count - 2].String == "+") &&
-                    args[args.Count - 1].Type == CmdArgType.Int
-                ) {
-                    args.Add(new CmdArg(env).Parse(raw, args[args.Count - 3].Index, next - args[args.Count - 3].Index));
-                    args.RemoveRange(args.Count - 4, 3);
-                    continue;
+            if (ArgParsers.Count == 0) {
+                try {
+                    ParseAndRun(env, null);
+                    return;
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.DEV, "ChatCMD", $"ParseAndRun exception caught: {e.Message} (no parsers)");
+                    caught.Add(e);
                 }
             }
+
+            foreach (ArgParser parser in ArgParsers) {
+                try {
+                    ParseAndRun(env, parser);
+                    return;
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.DEV, "ChatCMD", $"ParseAndRun exception caught: {e.Message} ({ArgParsers.IndexOf(parser)})");
+                    caught.Add(e);
+                }
+            }
+
+            // We should only reach this point if something went wrong; otherwise we'd have returned already.
+
+            if (caught.Count == 0) {
+                env.Error(new CommandRunException("Could not parse command."));
+                return;
+            }
+
+            int maxArgsParsed = 0, argParserExceptions = 0;
+            foreach (Exception e in caught) {
+                Logger.Log(LogLevel.VVV, "chatcmd", $"Caught exception: {e.GetType().Name} {e.Message}");
+                if (e is not ArgParserException ape)
+                    continue;
+                Logger.Log(LogLevel.DEV, "chatcmd", $"(ArgParserException: {ape.paramsParsed} parsed, {ape.cmd}, {ape.args}, {ape.innerParam}");
+                if (ape.paramsParsed > maxArgsParsed)
+                    maxArgsParsed = ape.paramsParsed;
+                argParserExceptions++;
+            }
+
+            Logger.Log(LogLevel.DEV, "chatcmd", $"maxArgsParsed {maxArgsParsed}, parseExceptions {argParserExceptions}");
+
+            // get rid of arg parser exceptions that got less far in parsing than another parser
+            if (argParserExceptions > 1 && maxArgsParsed > 0)
+                caught = caught.Where(e => e is not ArgParserException ape || ape.paramsParsed >= maxArgsParsed).ToList();
+
+            // The reasoning here is that if there's any parsing exception that came from parsing a single param,
+            // then other more 'generic' parser exceptions probably don't matter (e.g. number of parameters didn't match anyways)
+            if (caught.Any(e => e is ArgParserException ape && ape.innerParam != null)) {
+                caught = caught.Where(e => e is not ArgParserException ape || ape.innerParam != null).ToList();
+            }
+
+            IEnumerable<Exception> cmd_exceptions = caught.Where(CmdEnv.IsCmdException);
+            IEnumerable<Exception> cmdrun_exceptions = caught.Where(e => e is CommandRunException);
+
+            // if there are any of our custom exceptions, only report those to the player
+            if (cmd_exceptions.Any()) {
+                // if there were CommandRunException, only report that, ignore argparser/param exceptions?
+                if (cmdrun_exceptions.Any())
+                    caught = cmdrun_exceptions.ToList();
+                else
+                    caught = cmd_exceptions.ToList();
+            }
+
+            if (caught.Count > 0) {
+                env.Errors(caught);
+                return;
+            }
+
+            // just to make sure we always return at least a generic error when ParseAndRun failed. Other 'env.Error(s)' returned early.
+            env.Error();
+        }
+
+        public virtual void ParseAndRun(CmdEnv env, ArgParser? parser) {
+            string raw = env.FullText.Substring(Chat.Settings.CommandPrefix.Length + ID.Length);
+
+            List<ICmdArg>? args = parser?.Parse(raw, env);
 
             Run(env, args);
         }
 
-        public virtual void Run(CmdEnv env, List<CmdArg> args) {
+        public virtual void Run(CmdEnv env, List<ICmdArg>? args) {
         }
 
     }
 
-    public class CmdArg {
+    public sealed class CommandRunException : Exception {
 
-        public CmdEnv Env;
+        public CommandRunException() { }
 
-        public string RawText = "";
-        public string String = "";
-        public int Index;
+        public CommandRunException(string message)
+            : base(message) { }
 
-        public CmdArgType Type;
-
-        public int Int;
-        public long Long;
-        public ulong ULong;
-        public float Float;
-
-        public int IntRangeFrom;
-        public int IntRangeTo;
-        public int IntRangeMin => Math.Min(IntRangeFrom, IntRangeTo);
-        public int IntRangeMax => Math.Max(IntRangeFrom, IntRangeTo);
-
-        public CelesteNetPlayerSession? Session {
-            get {
-                if (Type == CmdArgType.Int || Type == CmdArgType.Long) {
-                    if (Env.Server.PlayersByID.TryGetValue((uint)Long, out CelesteNetPlayerSession? session))
-                        return session;
-                }
-
-                using (Env.Server.ConLock.R())
-                    return
-                        // check for exact name
-                        Env.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.Equals(String, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
-                        // check for partial name in channel
-                        Env.Session?.Channel.Players.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
-                        // check for partial name elsewhere
-                        Env.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(String, StringComparison.InvariantCultureIgnoreCase) ?? false);
-            }
-        }
-
-        public CmdArg(CmdEnv env) {
-            Env = env;
-        }
-
-        public virtual CmdArg Parse(string raw, int index) {
-            RawText = raw;
-            if (index < 0 || raw.Length <= index) {
-                String = "";
-                Index = 0;
-                return this;
-            }
-            String = raw.Substring(index);
-            Index = index;
-
-            return Parse();
-        }
-        public virtual CmdArg Parse(string raw, int index, int length) {
-            RawText = raw;
-            String = raw.Substring(index, length);
-            Index = index;
-
-            return Parse();
-        }
-
-        public virtual CmdArg Parse() {
-            // TODO: Improve or rewrite. This comes from GhostNet, which adopted it from disbot (0x0ade's C# Discord bot).
-
-            if (int.TryParse(String, out Int)) {
-                Type = CmdArgType.Int;
-                Long = IntRangeFrom = IntRangeTo = Int;
-                ULong = (ulong)Int;
-
-            } else if (long.TryParse(String, out Long)) {
-                Type = CmdArgType.Long;
-                ULong = (ulong)Long;
-
-            } else if (ulong.TryParse(String, out ULong)) {
-                Type = CmdArgType.ULong;
-
-            } else if (float.TryParse(String, out Float)) {
-                Type = CmdArgType.Float;
-            }
-
-            if (Type == CmdArgType.String) {
-                string[] split;
-                int from, to;
-                if ((split = String.Split('-')).Length == 2) {
-                    if (int.TryParse(split[0].Trim(), out from) && int.TryParse(split[1].Trim(), out to)) {
-                        Type = CmdArgType.IntRange;
-                        IntRangeFrom = from;
-                        IntRangeTo = to;
-                    }
-                } else if ((split = String.Split('+')).Length == 2) {
-                    if (int.TryParse(split[0].Trim(), out from) && int.TryParse(split[1].Trim(), out to)) {
-                        Type = CmdArgType.IntRange;
-                        IntRangeFrom = from;
-                        IntRangeTo = from + to;
-                    }
-                }
-            }
-
-            return this;
-        }
-
-        public string Rest => RawText.Substring(Index);
-
-        public override string ToString() => String;
-
-        public static implicit operator string(CmdArg arg) => arg.String;
-
-    }
-
-    public enum CmdArgType {
-        String,
-
-        Int,
-        IntRange,
-
-        Long,
-        ULong,
-
-        Float,
+        public CommandRunException(string message, Exception inner)
+            : base(message, inner) { }
     }
 
     public class CmdEnv {
@@ -283,6 +216,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public uint PlayerID => Msg.Player?.ID ?? uint.MaxValue;
 
         public CelesteNetServer Server => Chat.Server ?? throw new Exception("Not ready.");
+
+        public static bool IsParsingException(Exception e) => e is ArgParserException || e is ParamException;
+        public static bool IsCmdException(Exception e) => e is ArgParserException || e is ParamException || e is CommandRunException;
 
         public CelesteNetPlayerSession? Session {
             get {
@@ -306,10 +242,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public DataChat? Send(string text, string? tag = null, Color? color = null) => Chat.SendTo(Session, text, tag, color ?? Chat.Settings.ColorCommandReply);
 
-        public DataChat? Error(Exception e) {
+        public DataChat? Error(Exception? e = null) {
             string cmdName = Cmd?.ID ?? "?";
 
-            if (e.GetType() == typeof(Exception)) {
+            if (e != null && IsCmdException(e)) {
                 Logger.Log(LogLevel.VVV, "chatcmd", $"Command {cmdName} failed:\n{e}");
                 return Send($"Command {cmdName} failed: {e.Message}", color: Chat.Settings.ColorError);
             }
@@ -318,6 +254,26 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             return Send($"Command {cmdName} failed due to an internal error.", color: Chat.Settings.ColorError);
         }
 
+        public DataChat? Errors(List<Exception> errors) {
+            if (errors.Count == 1)
+                return Error(errors[0]);
+
+            string cmdName = Cmd?.ID ?? "?";
+            StringBuilder errorListing = new();
+
+            try {
+                foreach (Exception e in errors) {
+                    errorListing
+                        .AppendLine()
+                        .Append(" - ")
+                        .Append(e.Message);
+                }
+            } catch (Exception e) {
+                Error(e);
+            }
+
+            return Send($"Command {cmdName} failed:{errorListing}", color: Chat.Settings.ColorError);
+        }
     }
 
 }

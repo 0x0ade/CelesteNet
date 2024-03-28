@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
@@ -12,8 +13,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     public class CmdChannel : ChatCmd {
 
-        public override string Args => "[page] | [channel]";
-
         public override CompletionType Completion => CompletionType.Channel;
 
         public override string Info => "Switch to a different channel.";
@@ -24,66 +23,79 @@ To create / join a public channel, {Chat.Settings.CommandPrefix}{ID} channel
 To create / join a private channel, {Chat.Settings.CommandPrefix}{ID} {Channels.PrefixPrivate}channel
 To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Channels.NameDefault}";
 
-        public override void ParseAndRun(CmdEnv env) {
-            CelesteNetPlayerSession? session = env.Session;
-            if (session == null)
-                return;
+        public const int pageSize = 8;
 
-            Channels channels = env.Server.Channels;
+        public override void Init(ChatModule chat) {
+            Chat = chat;
 
-            Channel? c;
+            ArgParser parser = new(chat, this);
+            parser.AddParameter(new ParamChannelName(chat));
+            ArgParsers.Add(parser);
 
-            if (int.TryParse(env.Text, out int page) ||
-                string.IsNullOrWhiteSpace(env.Text)) {
-
-                if (channels.All.Count == 0) {
-                    env.Send($"No channels. See {Chat.Settings.CommandPrefix}{ID} on how to create one.");
-                    return;
-                }
-
-                const int pageSize = 8;
-
-                StringBuilder builder = new();
-
-                page--;
-                int pages = (int) Math.Ceiling(channels.All.Count / (float) pageSize);
-                if (page < 0 || pages <= page)
-                    throw new Exception("Page out of range.");
-
-                if (page == 0)
-                    builder
-                        .Append("You're in ")
-                        .Append(session.Channel.Name)
-                        .AppendLine();
-
-                for (int i = page * pageSize; i < (page + 1) * pageSize && i < channels.All.Count; i++) {
-                    c = channels.All[i];
-                    builder
-                        .Append(c.PublicName)
-                        .Append(" - ")
-                        .Append(c.Players.Count)
-                        .Append(" players")
-                        .AppendLine();
-                }
-
-                builder
-                    .Append("Page ")
-                    .Append(page + 1)
-                    .Append("/")
-                    .Append(pages);
-
-                env.Send(builder.ToString().Trim());
-
-                return;
-            }
-
-            Tuple<Channel, Channel> tuple = channels.Move(session, env.Text);
-            if (tuple.Item1 == tuple.Item2) {
-                env.Send($"Already in {tuple.Item2.Name}");
-            } else {
-                env.Send($"Moved to {tuple.Item2.Name}");
-            }
+            parser = new(chat, this);
+            parser.AddParameter(new ParamChannelPage(chat));
+            ArgParsers.Add(parser);
         }
 
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
+            CelesteNetPlayerSession? session = env.Session;
+            if (session == null)
+                throw new CommandRunException($"Called {Chat.Settings.CommandPrefix}{ID} without player Session.");
+
+            if (args == null || args.Count == 0)
+                throw new ArgumentException($"Called {Chat.Settings.CommandPrefix}{ID} with no Argument?");
+
+            string commandOutput = args[0] switch {
+                CmdArgChannelPage cmdArg => GetChannelPage(env, cmdArg.Int, cmdArg.ChannelList),
+                CmdArgChannelName cmdArg => SwitchChannel(env, session, cmdArg.Name),
+                _ => throw new CommandRunException($"Failed to parse argument '{args[0]}'."),
+            };
+            env.Send(commandOutput);
+
+        }
+
+        public string GetChannelPage(CmdEnv env, int page, ListSnapshot<Channel>? channels) {
+            if (channels == null)
+                throw new CommandRunException($"Server failed to find channels to list.");
+
+            int pages = (int)Math.Ceiling(channels.Count / (float)pageSize);
+            StringBuilder builder = new();
+
+            if (page == 0 && env.Session != null)
+                builder
+                    .Append("You're in ")
+                    .Append(env.Session.Channel.Name)
+                    .AppendLine();
+
+            for (int i = page * pageSize; i < (page + 1) * pageSize && i < channels.Count; i++) {
+                Channel? c = channels[i];
+                builder
+                    .Append(c.PublicName)
+                    .Append(" - ")
+                    .Append(c.Players.Count)
+                    .Append(" players")
+                    .AppendLine();
+            }
+
+            builder
+                .Append("Page ")
+                .Append(page + 1)
+                .Append("/")
+                .Append(pages);
+
+            return builder.ToString();
+        }
+
+        public string SwitchChannel(CmdEnv env, CelesteNetPlayerSession session, string channel) {
+            try {
+                Tuple<Channel, Channel> tuple = env.Server.Channels.Move(session, channel);
+                return tuple.Item1 == tuple.Item2 ? $"Already in {tuple.Item2.Name}" : $"Moved to {tuple.Item2.Name}";
+            } catch (Exception e) {
+                if (e.GetType() == typeof(Exception)) {
+                    throw new CommandRunException(e.Message, e);
+                }
+                throw;
+            }
+        }
     }
 }

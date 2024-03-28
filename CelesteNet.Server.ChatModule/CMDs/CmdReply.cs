@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
@@ -8,7 +7,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     }
 
     public class CmdReply : ChatCmd {
-        public override string Args => "<text>";
 
         public override string Info => "Reply to the most recent whisper.";
 
@@ -16,22 +14,38 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 $@"Reply to the most recent whisper.
 Sends a whisper to recipient or sender of the most recent whisper.";
 
-        public override void Run(CmdEnv env, List<CmdArg> args) {
+        private ParamPlayerSession? playerSessionParam;
+
+        public override void Init(ChatModule chat) {
+            Chat = chat;
+
+            ArgParser parser = new(chat, this);
+            parser.AddParameter(new ParamString(chat), "message", "I'm replying!");
+            ArgParsers.Add(parser);
+
+            playerSessionParam = new ParamPlayerSession(Chat);
+        }
+
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             if (env.Session == null)
                 return;
 
-            if (env.Session.LastWhisperSessionID == uint.MaxValue)
-                throw new Exception("You have not sent or received any whispers since you last connected.");
+            uint lastWhisperID = env.Session.LastWhisperSessionID;
 
-            if (args.Count == 0)
-                throw new Exception("No text.");
+            if (lastWhisperID == uint.MaxValue)
+                throw new CommandRunException("You have not sent or received any whispers since you last connected.");
 
-            CmdArg sessionArg = new CmdArg(env).Parse(env.Session.LastWhisperSessionID.ToString(), 0);
+            if (args == null || args.Count == 0 || args[0] is not CmdArgString)
+                throw new CommandRunException("No text.");
 
-            if (sessionArg.Session == null)
-                throw new Exception("The player has disconnected from the server.");
+            playerSessionParam ??= new ParamPlayerSession(Chat);
 
-            args.Insert(0, sessionArg);
+            bool parsedSessionID = playerSessionParam.TryParse(lastWhisperID.ToString(), env, out ICmdArg? sessionArg);
+
+            if (!parsedSessionID || sessionArg == null || sessionArg is not CmdArgPlayerSession arg || arg.Session == null)
+                throw new CommandRunException("The player has disconnected from the server.");
+
+            args.Insert(0, arg);
 
             Chat.Commands.Get<CmdWhisper>().Run(env, args);
         }

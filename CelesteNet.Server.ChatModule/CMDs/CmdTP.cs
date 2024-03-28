@@ -7,45 +7,63 @@ using System.Collections.Generic;
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdTP : ChatCmd {
 
-        public override string Args => "<player>";
-
         public override CompletionType Completion => CompletionType.Player;
 
         public override string Info => "Teleport to another player.";
 
-        public override void Run(CmdEnv env, List<CmdArg> args) {
+        private CelesteNetPlayerSession? Other;
+        private DataPlayerInfo? OtherPlayer;
+        private DataPlayerState? OtherState;
+
+        public override void Init(ChatModule chat) {
+            Chat = chat;
+
+            ArgParser parser = new(chat, this);
+            parser.AddParameter(new ParamPlayerSession(chat, ValidatePlayerSession));
+            ArgParsers.Add(parser);
+        }
+
+        private void ValidatePlayerSession(string raw, CmdEnv env, ICmdArg arg) {
             CelesteNetPlayerSession? self = env.Session;
             if (self == null || env.Player == null)
-                throw new Exception("Are you trying to TP as the server?");
+                throw new CommandRunException("Are you trying to TP as the server?");
 
-            if (args.Count == 0)
-                throw new Exception("No username.");
+            if (arg is not CmdArgPlayerSession sessionArg)
+                throw new CommandRunException("Invalid username or ID.");
 
-            if (args.Count > 1)
-                throw new Exception("Invalid username or ID.");
-
-            CelesteNetPlayerSession? other = args[0].Session;
-            DataPlayerInfo otherPlayer = other?.PlayerInfo ?? throw new Exception("Invalid username or ID.");
+            CelesteNetPlayerSession? other = sessionArg.Session;
+            DataPlayerInfo otherPlayer = other?.PlayerInfo ?? throw new CommandRunException("Invalid username or ID.");
 
             if (!env.Server.UserData.Load<TPSettings>(other.UID).Enabled)
-                throw new Exception($"{otherPlayer.DisplayName} has blocked teleports.");
+                throw new CommandRunException($"{otherPlayer.DisplayName} has blocked teleports.");
 
             if (self.Channel != other.Channel)
-                throw new Exception($"{otherPlayer.DisplayName} is in a different channel.");
+                throw new CommandRunException($"{otherPlayer.DisplayName} is in a different channel.");
 
             if (!env.Server.Data.TryGetBoundRef(otherPlayer, out DataPlayerState? otherState) ||
                 otherState == null ||
                 otherState.SID.IsNullOrEmpty())
-                throw new Exception($"{otherPlayer.DisplayName} isn't in-game.");
+                throw new CommandRunException($"{otherPlayer.DisplayName} isn't in-game.");
 
-            DataChat? msg = env.Send($"Teleporting to {otherPlayer.DisplayName}");
+            Other = other;
+            OtherPlayer = otherPlayer;
+            OtherState = otherState;
+        }
+
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
+            CelesteNetPlayerSession? self = env.Session;
+
+            if (self == null || Other == null || OtherPlayer == null || OtherState == null)
+                throw new InvalidOperationException("This shouldn't happen, if ArgTypePlayerSession parsed successfully...");
+
+            DataChat? msg = env.Send($"Teleporting to {OtherPlayer.DisplayName}");
 
             self.Request<DataSession>(400,
                 (con, session) => self.WaitFor<DataPlayerFrame>(400,
-                    (con, frame) => SaveAndTeleport(env, msg, self, other, otherPlayer, otherState, session, frame.Position),
-                    () => SaveAndTeleport(env, msg, self, other, otherPlayer, otherState, session, null)
+                    (con, frame) => SaveAndTeleport(env, msg, self, Other, OtherPlayer, OtherState, session, frame.Position),
+                    () => SaveAndTeleport(env, msg, self, Other, OtherPlayer, OtherState, session, null)
                 ),
-                () => SaveAndTeleport(env, msg, self, other, otherPlayer, otherState, null, null)
+                () => SaveAndTeleport(env, msg, self, Other, OtherPlayer, OtherState, null, null)
             );
         }
 
@@ -108,16 +126,14 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     public class CmdTPOn : ChatCmd {
 
-        public override string Args => "";
-
         public override string Info => "Allow others to teleport to you.";
 
-        public override void ParseAndRun(CmdEnv env) {
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             if (env.Session == null)
                 return;
 
             if (env.Server.UserData.GetKey(env.Session.UID).IsNullOrEmpty())
-                throw new Exception("You must be registered to enable / disable teleports!");
+                throw new CommandRunException("You must be registered to enable / disable teleports!");
 
             env.Server.UserData.Save(env.Session.UID, new TPSettings {
                 Enabled = true
@@ -129,16 +145,14 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     public class CmdTPOff : ChatCmd {
 
-        public override string Args => "";
-
         public override string Info => "Prevent others from teleporting to you.";
 
-        public override void ParseAndRun(CmdEnv env) {
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
             if (env.Session == null)
                 return;
 
             if (env.Server.UserData.GetKey(env.Session.UID).IsNullOrEmpty())
-                throw new Exception("You must be registered to enable / disable teleports!");
+                throw new CommandRunException("You must be registered to enable / disable teleports!");
 
             env.Server.UserData.Save(env.Session.UID, new TPSettings {
                 Enabled = false

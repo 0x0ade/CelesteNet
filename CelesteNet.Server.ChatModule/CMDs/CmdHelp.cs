@@ -4,9 +4,15 @@ using System.Linq;
 using System.Text;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
-    public class CmdHelp : ChatCmd {
 
-        public override string Args => "[page] | [command]";
+    public class CmdH : CmdHelp {
+
+        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdHelp>().ID}";
+
+
+    }
+
+    public class CmdHelp : ChatCmd {
 
         public override CompletionType Completion => CompletionType.Command;
 
@@ -14,22 +20,44 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override int HelpOrder => int.MinValue;
 
-        public override void Run(CmdEnv env, List<CmdArg> args) {
-            if (args.Count == 1) {
-                if (args[0].Type == CmdArgType.Int) {
-                    env.Send(GetCommandPage(env, args[0].Int - 1));
-                    return;
-                }
+        public override string Help =>
+$@"List all commands with {Chat.Settings.CommandPrefix}{ID} [page number]
+Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
+(You did exactly that just now to get here, I assume!)";
 
-                env.Send(GetCommandSnippet(env, args[0].String));
+        public const int pageSize = 8;
+
+        public override void Init(ChatModule chat) {
+            Chat = chat;
+
+            ArgParser parser = new(chat, this);
+            parser.AddParameter(new ParamHelpPage(chat, null, ParamFlags.Optional));
+            parser.HelpOrder = int.MinValue;
+            ArgParsers.Add(parser);
+
+            parser = new(chat, this);
+            parser.AddParameter(new ParamString(chat), "command", "join");
+            ArgParsers.Add(parser);
+        }
+
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
+            if (args?.Count > 0) {
+
+                string helpOutput = args[0] switch {
+                    CmdArgInt getPageNum    => GetCommandPage(env, getPageNum.Int),
+                    CmdArgString cmdNameArg => GetCommandSnippet(env, cmdNameArg.String),
+                    _ => GetCommandSnippet(env, args[0].ToString() ?? ""),
+                };
+
+                env.Send(helpOutput);
                 return;
             }
 
-            env.Send(GetCommandPage(env, 0));
+            Logger.Log(LogLevel.DEV, "cmdhelp", $"Sending zero page");
+            env.Send(GetCommandPage(env));
         }
 
-        public string GetCommandPage(CmdEnv env, int page = 0) {
-            const int pageSize = 8;
+       public string GetCommandPage(CmdEnv env, int page = 0) {
 
             string prefix = Chat.Settings.CommandPrefix;
             StringBuilder builder = new();
@@ -42,16 +70,47 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
             int pages = (int) Math.Ceiling(all.Count / (float) pageSize);
             if (page < 0 || pages <= page)
-                throw new Exception("Page out of range.");
+                throw new CommandRunException("Page out of range.");
 
             for (int i = page * pageSize; i < (page + 1) * pageSize && i < all.Count; i++) {
                 ChatCmd cmd = all[i];
-                builder
-                    .Append(prefix)
-                    .Append(cmd.ID)
-                    .Append(" ")
-                    .Append(cmd.Args)
-                    .AppendLine();
+
+                IOrderedEnumerable<ArgParser> parsers = cmd.ArgParsers.OrderBy(ap => ap.HelpOrder);
+
+                if (cmd.ArgParsers.Count > 1 && cmd.ArgParsers.TrueForAll(ap => ap.Parameters.Count == 1)) {
+                    // for commands with multiple parsers with single arguments, list them with "|" on one line
+                    builder
+                        .Append(prefix)
+                        .Append(cmd.ID)
+                        .Append(" ");
+
+                    foreach (ArgParser args in parsers) {
+                        builder
+                            .Append(args.ToString())
+                            .Append(args == parsers.Last() ? "" : " | ");
+                        // I almost rewrote this loop to be a do/while with MoveNext on an Enumerator
+                        // but then I felt rather silly for trying to optimize away this call to Last()
+                        // on a list enumerable that most likely has one or two elements. - Red
+                    }
+
+                    builder.AppendLine();
+                } else if (cmd.ArgParsers.Count >= 1) {
+                    // otherwise, list all the parsers on separate lines
+                    foreach (ArgParser args in parsers) {
+                        builder
+                            .Append(prefix)
+                            .Append(cmd.ID)
+                            .Append(" ")
+                            .Append(args.ToString())
+                            .AppendLine();
+                    }
+                } else {
+                    // or just this when there's not even ArgParsers
+                    builder
+                        .Append(prefix)
+                        .Append(cmd.ID)
+                        .AppendLine();
+                }
             }
 
             builder
@@ -64,27 +123,60 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         }
 
         public string GetCommandSnippet(CmdEnv env, string cmdName) {
-            ChatCmd? cmd = Chat.Commands.Get(cmdName);
+            if (cmdName.IsNullOrEmpty())
+                throw new CommandRunException($"Command not found.");
+
+            ChatCmd? cmd = Chat.Commands.Get(cmdName.TrimStart('/'));
             if (cmd == null)
-                throw new Exception($"Command {cmdName} not found.");
+                throw new CommandRunException($"Command {cmdName} not found.");
 
             if ((cmd.MustAuth && !env.IsAuthorized) || (cmd.MustAuthExec && !env.IsAuthorizedExec))
-                throw new Exception("Unauthorized!");
+                throw new CommandRunException("Unauthorized!");
 
-            return Help_GetCommandSnippet(env, cmd);
+            return Help_GetCommandSnippet(cmd);
         }
 
-        public string Help_GetCommandSnippet(CmdEnv env, ChatCmd cmd) {
+        public string Help_GetCommandSnippet(ChatCmd cmd) {
             string prefix = Chat.Settings.CommandPrefix;
             StringBuilder builder = new();
+            StringBuilder builderSyntax = new();
+            StringBuilder builderExamples = new();
+
+            IOrderedEnumerable<ArgParser> parsers = cmd.ArgParsers.OrderBy(ap => ap.HelpOrder);
+            foreach (ArgParser args in parsers) {
+                builderSyntax
+                    .Append(prefix)
+                    .Append(cmd.ID)
+                    .Append(" ")
+                    .Append(args.ToString())
+                    .AppendLine();
+                builderExamples
+                    .Append(prefix)
+                    .Append(cmd.ID)
+                    .Append(" ")
+                    .Append(args.ToExample())
+                    .AppendLine();
+            }
+
+            if (cmd.ArgParsers.Count == 0) {
+                builderSyntax
+                    .Append(prefix)
+                    .Append(cmd.ID)
+                    .AppendLine();
+            }
 
             builder
-                .Append(prefix)
-                .Append(cmd.ID)
-                .Append(" ")
-                .Append(cmd.Args)
+                .Append(builderSyntax.ToString())
                 .AppendLine()
                 .AppendLine(cmd.Help);
+
+
+            if (builderExamples.Length > 0) {
+                builder
+                    .AppendLine()
+                    .AppendLine("Examples:")
+                    .Append(builderExamples.ToString());
+            }
 
             return builder.ToString().Trim();
         }

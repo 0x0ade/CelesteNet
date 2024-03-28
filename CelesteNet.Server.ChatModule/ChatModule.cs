@@ -1,10 +1,10 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
+using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat.Cmd;
 using Microsoft.Xna.Framework;
 using MonoMod.Utils;
-using System;
-using System.Collections.Concurrent;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class ChatModule : CelesteNetServerModule<ChatSettings> {
@@ -45,7 +45,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             base.Dispose();
 
             BroadcastSpamContext.Dispose();
-            Commands.Dispose();
 
             using (Server.ConLock.R())
                 foreach (CelesteNetPlayerSession session in Server.Sessions)
@@ -189,11 +188,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (cmd != null) {
                     env.Cmd = cmd;
                     Task.Run(() => {
-                        try {
                             cmd.ParseAndRun(env);
-                        } catch (Exception e) {
-                            env.Error(e);
-                        }
                     });
 
                 } else {

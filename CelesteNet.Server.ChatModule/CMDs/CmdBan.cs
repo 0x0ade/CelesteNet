@@ -1,7 +1,7 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using MonoMod.Utils;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Celeste.Mod.CelesteNet.DataTypes;
+using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
@@ -16,8 +16,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     public class CmdBan : ChatCmd {
 
-        public override string Args => "<user> <text>";
-
         public override CompletionType Completion => CompletionType.Player;
 
         public override string Info => "Ban a player from the server with a given reason.";
@@ -26,19 +24,36 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public virtual bool Quiet => false;
 
-        public override void Run(CmdEnv env, List<CmdArg> args) {
-            if (args.Count == 0)
-                throw new Exception("No user.");
+        public override void Init(ChatModule chat) {
+            Chat = chat;
 
-            if (args.Count == 1)
-                throw new Exception("No text.");
+            ArgParser parser = new(chat, this);
+            parser.AddParameter(new ParamPlayerSession(chat));
+            parser.AddParameter(new ParamString(chat), "reason", "Naughty player.");
+            ArgParsers.Add(parser);
+        }
 
-            CelesteNetPlayerSession player = args[0].Session ?? throw new Exception("Invalid username or ID.");
+        public override void Run(CmdEnv env, List<ICmdArg>? args) {
+            if (args == null || args.Count == 0)
+                throw new CommandRunException("No user.");
+
+            if (args.Count < 2)
+                throw new CommandRunException("No text.");
+
+            if (args[0] is not CmdArgPlayerSession sessionArg)
+                throw new CommandRunException("Invalid username or ID.");
+
+            CelesteNetPlayerSession player = sessionArg.Session ?? throw new CommandRunException("Invalid username or ID.");
+
+            string? banReason = args[1].ToString();
+
+            if (banReason.IsNullOrEmpty())
+                throw new CommandRunException("No reason given.");
 
             BanInfo ban = new() {
                 UID = player.UID,
                 Name = player.PlayerInfo?.FullName ?? "",
-                Reason = args[1].Rest,
+                Reason = banReason,
                 From = DateTime.UtcNow
             };
 

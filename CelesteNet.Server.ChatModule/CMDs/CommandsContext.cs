@@ -83,6 +83,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public virtual string ID => GetType().Name.Substring(3).ToLowerInvariant();
 
+        public string InvokeString => Chat.Settings.CommandPrefix + ID;
+
         public abstract string Info { get; }
         public virtual string Help => Info;
         public virtual int HelpOrder => 0;
@@ -178,9 +180,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         }
 
         public virtual void ParseAndRun(CmdEnv env, ArgParser? parser) {
-            string raw = env.FullText.Substring(Chat.Settings.CommandPrefix.Length + ID.Length);
-
-            List<ICmdArg>? args = parser?.Parse(raw, env);
+            List<ICmdArg>? args = parser?.Parse(env.Text, env);
 
             Run(env, args);
         }
@@ -238,7 +238,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public bool IsAuthorizedExec => !(Session?.UID?.IsNullOrEmpty() ?? true) && Chat.Server.UserData.TryLoad(Session.UID, out BasicUserInfo info) && info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC);
 
         public string FullText => Msg.Text;
-        public string Text => Cmd == null ? Msg.Text : Msg.Text.Substring(Chat.Settings.CommandPrefix.Length + Cmd.ID.Length);
+        public string Text {
+            get {
+                if (Cmd == null || !Msg.Text.StartsWith(Cmd.InvokeString)) {
+                    return Msg.Text;
+                } else {
+                    return Msg.Text.Substring(Cmd.InvokeString.Length);
+                }
+            }
+        }
 
         public DataChat? Send(string text, string? tag = null, Color? color = null) => Chat.SendTo(Session, text, tag, color ?? Chat.Settings.ColorCommandReply);
 

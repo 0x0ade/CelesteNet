@@ -7,7 +7,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     public class CmdH : CmdHelp {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdHelp>().ID}";
+        public override string Info => $"Alias for {Chat.Commands.Get<CmdHelp>().InvokeString}";
 
 
     }
@@ -21,8 +21,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public override int HelpOrder => int.MinValue;
 
         public override string Help =>
-$@"List all commands with {Chat.Settings.CommandPrefix}{ID} [page number]
-Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
+$@"List all commands with {InvokeString} [page number]
+Show help on a command with {InvokeString} <cmd>
 (You did exactly that just now to get here, I assume!)";
 
         public const int pageSize = 8;
@@ -58,8 +58,6 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
         }
 
        public string GetCommandPage(CmdEnv env, int page = 0) {
-
-            string prefix = Chat.Settings.CommandPrefix;
             StringBuilder builder = new();
 
             List<ChatCmd> all = Chat.Commands.All.Where(cmd =>
@@ -80,8 +78,7 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
                 if (cmd.ArgParsers.Count > 1 && cmd.ArgParsers.TrueForAll(ap => ap.Parameters.Count == 1)) {
                     // for commands with multiple parsers with single arguments, list them with "|" on one line
                     builder
-                        .Append(prefix)
-                        .Append(cmd.ID)
+                        .Append(cmd.InvokeString)
                         .Append(" ");
 
                     foreach (ArgParser args in parsers) {
@@ -98,8 +95,7 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
                     // otherwise, list all the parsers on separate lines
                     foreach (ArgParser args in parsers) {
                         builder
-                            .Append(prefix)
-                            .Append(cmd.ID)
+                            .Append(cmd.InvokeString)
                             .Append(" ")
                             .Append(args.ToString())
                             .AppendLine();
@@ -107,8 +103,7 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
                 } else {
                     // or just this when there's not even ArgParsers
                     builder
-                        .Append(prefix)
-                        .Append(cmd.ID)
+                        .Append(cmd.InvokeString)
                         .AppendLine();
                 }
             }
@@ -137,7 +132,6 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
         }
 
         public string Help_GetCommandSnippet(ChatCmd cmd) {
-            string prefix = Chat.Settings.CommandPrefix;
             StringBuilder builder = new();
             StringBuilder builderSyntax = new();
             StringBuilder builderExamples = new();
@@ -145,14 +139,12 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
             IOrderedEnumerable<ArgParser> parsers = cmd.ArgParsers.OrderBy(ap => ap.HelpOrder);
             foreach (ArgParser args in parsers) {
                 builderSyntax
-                    .Append(prefix)
-                    .Append(cmd.ID)
+                    .Append(cmd.InvokeString)
                     .Append(" ")
                     .Append(args.ToString())
                     .AppendLine();
                 builderExamples
-                    .Append(prefix)
-                    .Append(cmd.ID)
+                    .Append(cmd.InvokeString)
                     .Append(" ")
                     .Append(args.ToExample())
                     .AppendLine();
@@ -160,8 +152,7 @@ Show help on a command with {Chat.Settings.CommandPrefix}{ID} <cmd>
 
             if (cmd.ArgParsers.Count == 0) {
                 builderSyntax
-                    .Append(prefix)
-                    .Append(cmd.ID)
+                    .Append(cmd.InvokeString)
                     .AppendLine();
             }
 

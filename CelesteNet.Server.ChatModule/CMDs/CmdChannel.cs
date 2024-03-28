@@ -5,7 +5,7 @@ using System.Text;
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdJoin : CmdChannel {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdChannel>().ID}";
+        public override string Info => $"Alias for {Chat.Commands.Get<CmdChannel>().InvokeString}";
 
         public override bool InternalAliasing => true;
 
@@ -18,10 +18,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public override string Info => "Switch to a different channel.";
         public override string Help =>
 $@"Switch to a different channel.
-To list all public channels, {Chat.Settings.CommandPrefix}{ID}
-To create / join a public channel, {Chat.Settings.CommandPrefix}{ID} channel
-To create / join a private channel, {Chat.Settings.CommandPrefix}{ID} {Channels.PrefixPrivate}channel
-To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Channels.NameDefault}";
+To list all public channels, {InvokeString}
+To create / join a public channel, {InvokeString} channel
+To create / join a private channel, {InvokeString} {Channels.PrefixPrivate}channel
+To go back to the default channel, {InvokeString} {Channels.NameDefault}";
 
         public const int pageSize = 8;
 
@@ -40,10 +40,10 @@ To go back to the default channel, {Chat.Settings.CommandPrefix}{ID} {Channels.N
         public override void Run(CmdEnv env, List<ICmdArg>? args) {
             CelesteNetPlayerSession? session = env.Session;
             if (session == null)
-                throw new CommandRunException($"Called {Chat.Settings.CommandPrefix}{ID} without player Session.");
+                throw new CommandRunException($"Called {InvokeString} without player Session.");
 
             if (args == null || args.Count == 0)
-                throw new ArgumentException($"Called {Chat.Settings.CommandPrefix}{ID} with no Argument?");
+                throw new ArgumentException($"Called {InvokeString} with no Argument?");
 
             string commandOutput = args[0] switch {
                 CmdArgChannelPage cmdArg => GetChannelPage(env, cmdArg.Int, cmdArg.ChannelList),

@@ -3,7 +3,7 @@
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     public class CmdR : CmdReply {
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdReply>().ID}";
+        public override string Info => $"Alias for {Chat.Commands.Get<CmdReply>().InvokeString}";
     }
 
     public class CmdReply : ChatCmd {

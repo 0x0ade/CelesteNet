@@ -20,9 +20,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             ChatModule chat = Frontend.Server.Get<ChatModule>();
             if (!quiet)
                 new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
-            player.Dispose();
             player.Con.Send(new DataDisconnectReason { Text = string.IsNullOrEmpty(reason) ? "Kicked" : $"Kicked: {reason}" });
             player.Con.Send(new DataInternalDisconnect());
+            player.Dispose();
 
             Logger.Log(LogLevel.VVV, "frontend", $"Player kicked with reason:\n{id} => {uid} (q: {quiet})\nReason: {reason}");
 

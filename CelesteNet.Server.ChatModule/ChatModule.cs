@@ -152,7 +152,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
                 CmdEnv env = new(this, msg);
 
-                string cmdName = env.FullText.Substring(Settings.CommandPrefix.Length);
+                string cmdName = msg.Text.Substring(Settings.CommandPrefix.Length);
                 cmdName = cmdName.Split(ChatCmd.NameDelimiters)[0].ToLowerInvariant();
                 if (cmdName.Length == 0)
                     return;

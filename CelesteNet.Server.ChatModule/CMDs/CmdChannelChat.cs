@@ -5,7 +5,7 @@ using Celeste.Mod.CelesteNet.DataTypes;
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdCC : CmdChannelChat {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdChannelChat>().ID}";
+        public override string Info => $"Alias for {Chat.Commands.Get<CmdChannelChat>().InvokeString}";
 
     }
 
@@ -15,8 +15,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override string Help =>
 $@"Send a whisper to everyone in the channel or toggle auto channel chat.
-To send a message in the channel, {Chat.Settings.CommandPrefix}{ID} message here
-To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
+To send a message in the channel, {InvokeString} message here
+To enable / disable auto channel chat mode, {InvokeString}";
 
         public override void Init(ChatModule chat) {
             Chat = chat;

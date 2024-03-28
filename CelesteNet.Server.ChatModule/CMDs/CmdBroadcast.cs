@@ -3,7 +3,7 @@
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdBC : CmdBroadcast {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdBroadcast>().ID}";
+        public override string Info => $"Alias for {Chat.Commands.Get<CmdBroadcast>().InvokeString}";
 
     }
 

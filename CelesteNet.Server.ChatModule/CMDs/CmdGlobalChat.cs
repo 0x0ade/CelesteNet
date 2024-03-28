@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework;
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdGC : CmdGlobalChat {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdGlobalChat>().ID}";
+        public override string Info => $"Alias for {Chat.Commands.Get<CmdGlobalChat>().InvokeString}";
 
     }
 
@@ -15,8 +15,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override string Help =>
 $@"Send a message to everyone in the server.
-To send a message, {Chat.Settings.CommandPrefix}{ID} message here
-To enable / disable auto channel chat mode, {Chat.Settings.CommandPrefix}{ID}";
+To send a message, {InvokeString} message here
+To enable / disable auto channel chat mode, {InvokeString}";
 
         public override void Init(ChatModule chat) {
             Chat = chat;

@@ -54,9 +54,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                     ChatModule chat = Frontend.Server.Get<ChatModule>();
                     if (!quiet)
                         new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
-                    player.Dispose();
                     player.Con.Send(new DataDisconnectReason { Text = "Banned: " + reason });
                     player.Con.Send(new DataInternalDisconnect());
+                    player.Dispose();
                 }
             }
 

@@ -14,9 +14,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
             ChatModule chat = Frontend.Server.Get<ChatModule>();
             new DynamicData(player).Set("leaveReason", chat.Settings.MessageKick);
-            player.Dispose();
             player.Con.Send(new DataDisconnectReason { Text = "Kicked" });
             player.Con.Send(new DataInternalDisconnect());
+            player.Dispose();
             return true;
         }
     }

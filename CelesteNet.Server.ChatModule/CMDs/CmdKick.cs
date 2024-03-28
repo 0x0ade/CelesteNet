@@ -5,7 +5,7 @@ using MonoMod.Utils;
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdKickQ : CmdKick {
 
-        public override string Info => $"Same as {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdKick>().ID} but without Broadcast (quiet)";
+        public override string Info => $"Same as {Chat.Commands.Get<CmdKick>().InvokeString} but without Broadcast (quiet)";
 
         public override bool InternalAliasing => true;
 
@@ -42,9 +42,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
             if (!Quiet)
                 new DynamicData(player).Set("leaveReason", Chat.Settings.MessageKick);
-            player.Dispose();
             player.Con.Send(new DataDisconnectReason { Text = "Kicked" });
             player.Con.Send(new DataInternalDisconnect());
+            player.Dispose();
         }
 
     }

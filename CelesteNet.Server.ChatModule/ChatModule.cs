@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat.Cmd;
@@ -18,12 +21,14 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public CommandsContext Commands;
 #pragma warning restore CS8618
 
+        private HashSet<string> filterDrop = new HashSet<string>();
+        private HashSet<string> filterKick = new HashSet<string>();
+        private HashSet<string> filterWarnOnce = new HashSet<string>();
+
         public override void Init(CelesteNetServerModuleWrapper wrapper) {
             base.Init(wrapper);
 
-            Logger.Log(LogLevel.INF, "chat", $"FilterDrop: {Settings.FilterDrop.Count} entries.");
-            Logger.Log(LogLevel.INF, "chat", $"FilterKick: {Settings.FilterKick.Count} entries.");
-            Logger.Log(LogLevel.INF, "chat", $"FilterWarnOnce: {Settings.FilterWarnOnce.Count} entries.");
+            UpdateFilterLists();
 
             BroadcastSpamContext = new(this);
             Commands = new(this);
@@ -36,9 +41,23 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public override void SaveSettings() {
             base.SaveSettings();
 
-            Logger.Log(LogLevel.INF, "chat", $"FilterDrop: {Settings.FilterDrop.Count} entries.");
-            Logger.Log(LogLevel.INF, "chat", $"FilterKick: {Settings.FilterKick.Count} entries.");
-            Logger.Log(LogLevel.INF, "chat", $"FilterWarnOnce: {Settings.FilterWarnOnce.Count} entries.");
+            UpdateFilterLists();
+        }
+
+        public void UpdateFilterLists() {
+            foreach (string word in Settings.FilterDrop) {
+                filterDrop.Add(word.ToLower().Trim());
+            }
+            foreach (string word in Settings.FilterKick) {
+                filterKick.Add(word.ToLower().Trim());
+            }
+            foreach (string word in Settings.FilterWarnOnce) {
+                filterWarnOnce.Add(word.ToLower().Trim());
+            }
+
+            Logger.Log(LogLevel.INF, "chat", $"FilterDrop: {filterDrop.Count} entries.");
+            Logger.Log(LogLevel.INF, "chat", $"FilterKick: {filterKick.Count} entries.");
+            Logger.Log(LogLevel.INF, "chat", $"FilterWarnOnce: {filterWarnOnce.Count} entries.");
         }
 
         public override void Dispose() {
@@ -56,7 +75,54 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     session.OnEnd -= OnSessionEnd;
         }
 
+        public FilterHandling IsFilteredWord(string word) {
+            word = word.ToLower().Trim();
+
+            FilterHandling filter = FilterHandling.None;
+
+            if (filterDrop.Contains(word))
+                filter |= FilterHandling.Drop;
+
+            if (filterKick.Contains(word))
+                filter |= FilterHandling.Kick;
+
+            if (filterWarnOnce.Contains(word))
+                filter |= FilterHandling.WarnOnce;
+
+            return filter;
+        }
+
+        public FilterHandling ContainsFilteredWord(string text) {
+            text = Regex.Replace(text, @"\s", " ").ToLower().Trim();
+
+            string textStripped = Regex.Replace(text, @"[^a-zA-Z0-9 ]", "");
+            string textSpaced = Regex.Replace(text, @"[^a-zA-Z0-9]", " ");
+
+            Logger.Log(LogLevel.DEV, "word-filter", "[" + string.Join(", ", textStripped.Split(' ')) + "]");
+            Logger.Log(LogLevel.DEV, "word-filter", "[" + string.Join(", ", textSpaced.Split(' ')) + "]");
+
+            FilterHandling sumChecks = FilterHandling.None;
+            foreach (var filter in textStripped.Split(' ').Select(IsFilteredWord))
+                sumChecks |= filter;
+
+            foreach (var filter in textSpaced.Split(' ').Select(IsFilteredWord))
+                sumChecks |= filter;
+
+            return sumChecks;
+        }
+
         private void OnSessionStart(CelesteNetPlayerSession session) {
+            if (Settings.FilterPlayerNames != FilterHandling.None && session.PlayerInfo != null) {
+                FilterHandling check = ContainsFilteredWord(session.PlayerInfo.FullName);
+                if (check != FilterHandling.None && Settings.FilterPlayerNames.HasFlag(check)) {
+                    Logger.Log(LogLevel.INF, "word-filter", $"Disconnecting: Name '{session.PlayerInfo.FullName}' triggered handling '{check}'.");
+                    session.Con.Send(new DataDisconnectReason { Text = $"Disconnected: Name '{session.PlayerInfo.FullName}' not acceptable." });
+                    session.Con.Send(new DataInternalDisconnect());
+                    session.Dispose();
+                    return;
+                }
+            }
+
             if (!session.ClientOptions.IsReconnect) {
                 if (Settings.GreetPlayers)
                     Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.DisplayName ?? "???"));
@@ -113,6 +179,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
                 if (session.Get<SpamContext>(this)?.IsSpam(msg) ?? false)
                     return null;
+
+                SendTo(session, ContainsFilteredWord(msg.Text).ToString());
 
             } else if (msg.Player != null && (msg.Targets == null || msg.Targets.Length > 0)) {
                 /* This condition matches messages created by server but with a valid Player:

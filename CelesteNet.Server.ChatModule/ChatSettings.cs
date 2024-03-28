@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections.Generic;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
@@ -20,6 +21,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public List<string> FilterDrop {  get; set; } = new List<string>();
         public List<string> FilterKick { get; set; } = new List<string>();
         public List<string> FilterWarnOnce { get; set; } = new List<string>();
+        public FilterHandling FilterPlayerNames { get; set; } = FilterHandling.Drop | FilterHandling.Kick;
+        public FilterHandling FilterChannelNames { get; set; } = FilterHandling.Drop | FilterHandling.Kick;
+        public bool FilterOnlyGlobalAndMain { get; set; } = true;
 
         public Color ColorBroadcast { get; set; } = Calc.HexToColor("#00adee");
         public Color ColorServer { get; set; } = Calc.HexToColor("#9e24f5");
@@ -39,5 +43,13 @@ Send /help for a list of all commands.";
         public string MessageBan { get; set; } = "{player} won't come back.";
         public string MessageSpam { get; set; } = "Stop spamming.";
 
+    }
+
+    [Flags]
+    public enum FilterHandling {
+        None = 0,
+        WarnOnce = 1,
+        Drop = 2,
+        Kick = 4,
     }
 }

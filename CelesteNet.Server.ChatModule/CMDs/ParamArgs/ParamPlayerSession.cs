@@ -24,7 +24,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             // 2. check if there's a player with this name, regardless if it's a number
             // 3. only after that do another attempt at interpreting the number as a player ID
             // ... this is of course for the very real scenario of having players "123", "#123" and a player with ID "123" all online, and we can address them all.
-            if (raw.StartsWith("#") && uint.TryParse(raw.Substring(1), out playerID)) {
+            if (raw.StartsWith('#') && uint.TryParse(raw.Substring(1), out playerID)) {
                 Chat.Server.PlayersByID.TryGetValue(playerID, out session);
             } else if (!string.IsNullOrWhiteSpace(raw)) {
                 using (Chat.Server.ConLock.R()) {

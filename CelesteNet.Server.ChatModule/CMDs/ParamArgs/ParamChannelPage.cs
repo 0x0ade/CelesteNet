@@ -12,7 +12,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override bool TryParse(string raw, CmdEnv env, out ICmdArg? arg) {
 
-            CelesteNetPlayerSession? self = env.Session;
             Channels channels = env.Server.Channels;
 
             bool parseSuccess = int.TryParse(raw, out int page);
@@ -49,6 +48,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             ChannelList = channels;
         }
 
-        public override string ToString() => ChannelList != null ? ChannelList.ToString() : Int.ToString();
+        public override string ToString() => ChannelList != null ? ChannelList.ToString() ?? "" : Int.ToString();
     }
 }

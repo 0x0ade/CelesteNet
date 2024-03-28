@@ -5,7 +5,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class ParamInt : Param {
         public override string Help => "An integer value";
         public override string PlaceholderName { get; set; } = "int";
-        protected override string ExampleValue => $"{(Min == int.MinValue ? -999 : Min + (Max == int.MaxValue ? 9999 : Max) / 2):D}";
+        protected override string ExampleValue => $"{(Min == int.MinValue ? -999 : Min) + (Max == int.MaxValue ? 9999 : Max) / 2:D}";
         public int Min, Max;
 
         public ParamInt(ChatModule chat, Action<string, CmdEnv, ICmdArg>? validate = null, ParamFlags flags = ParamFlags.None,

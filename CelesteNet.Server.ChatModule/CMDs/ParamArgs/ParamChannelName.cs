@@ -16,8 +16,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override bool TryParse(string raw, CmdEnv env, out ICmdArg? arg) {
 
-            CelesteNetPlayerSession? self = env.Session;
-
             if (MustExist) {
                 if (env.Server.Channels.ByName.TryGetValue(raw.Trim(), out Channel? channel)) {
                     arg = new CmdArgChannelName(raw, channel);

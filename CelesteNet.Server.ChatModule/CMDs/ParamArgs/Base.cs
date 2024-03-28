@@ -43,7 +43,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     }
 
-    [Serializable]
     public class ParamException : Exception {
 
         public ParamException() {
@@ -63,10 +62,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     [Flags]
     public enum ParamFlags {
-        None,
-        Optional,
-        NonPositive,
-        NonNegative,
-        NonZero
+        None = 0,
+        Optional = 1,
+        NonPositive = 2,
+        NonNegative = 4,
+        NonZero = 8
     }
 }

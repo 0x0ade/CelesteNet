@@ -18,10 +18,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             if (parseSuccess || string.IsNullOrWhiteSpace(raw)) {
 
                 if (channels.All.Count == 0) {
-                    // NB: No point in getting ChatCMDChannel.ID since that's not static - you could
-                    // call Chat.Commands.Get("channel").ID or Chat.Commands.Get<ChatCMDChannel>().ID
-                    // but that's just a longer way of spelling it out :)
-                    throw new ParamException($"No channels. See {Chat.Settings.CommandPrefix}channel on how to create one.");
+                    throw new ParamException($"No channels. See {Chat.Commands.Get<CmdChannel>().InvokeString} on how to create one.");
                 }
 
                 if (parseSuccess)

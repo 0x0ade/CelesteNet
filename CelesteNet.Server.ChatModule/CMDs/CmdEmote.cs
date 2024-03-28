@@ -4,7 +4,7 @@ using Celeste.Mod.CelesteNet.DataTypes;
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdE : CmdEmote {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdEmote>().ID}";
+        public override string Info => $"Alias for {Chat.Commands.Get<CmdEmote>().InvokeString}";
 
     }
 

@@ -4,7 +4,7 @@ using Celeste.Mod.CelesteNet.DataTypes;
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdW : CmdWhisper {
 
-        public override string Info => $"Alias for {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdWhisper>().ID}";
+        public override string Info => $"Alias for {Chat.Commands.Get<CmdWhisper>().InvokeString}";
 
     }
 
@@ -16,8 +16,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
         public override string Help =>
 $@"Send a whisper to someone else or toggle whispers.
-To send a whisper to someone, {Chat.Settings.CommandPrefix}{ID} user text
-To enable / disable whispers being sent to you, {Chat.Settings.CommandPrefix}{ID}";
+To send a whisper to someone, {InvokeString} user text
+To enable / disable whispers being sent to you, {InvokeString}";
 
         public override void Init(ChatModule chat) {
             Chat = chat;

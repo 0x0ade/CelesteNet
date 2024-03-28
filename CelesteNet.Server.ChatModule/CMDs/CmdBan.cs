@@ -7,7 +7,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
     public class CmdBanQ : CmdBan {
 
-        public override string Info => $"Same as {Chat.Settings.CommandPrefix}{Chat.Commands.Get<CmdBan>().ID} but without Broadcast (quiet)";
+        public override string Info => $"Same as {Chat.Commands.Get<CmdBan>().InvokeString} but without Broadcast (quiet)";
 
         public override bool InternalAliasing => true;
 
@@ -61,9 +61,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
             if (!Quiet)
                 new DynamicData(player).Set("leaveReason", chat.Settings.MessageBan);
-            player.Dispose();
             player.Con.Send(new DataDisconnectReason { Text = "Banned: " + ban.Reason });
             player.Con.Send(new DataInternalDisconnect());
+            player.Dispose();
 
             env.Server.UserData.Save(player.UID, ban);
         }

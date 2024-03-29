@@ -192,7 +192,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             BroadcastCMD(msg.Targets != null, "chat", msg.ToDetailedFrontendChat());
         }
 
-        private void OnChatFilter(ChatModule chat, ChatModule.FilterDecision chatFilterDecision) {
+        private void OnChatFilter(ChatModule chat, FilterDecision chatFilterDecision) {
             BroadcastCMD(true, "filter", new {
                 // bit annoying but I'd rather have the enum values as strings in the JSON rather than ints
                 Handling = chatFilterDecision.Handling.ToString(),

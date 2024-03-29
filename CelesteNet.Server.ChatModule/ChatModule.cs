@@ -353,7 +353,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             OnReceive?.Invoke(this, msg);
 
-            if (msg.Targets == null){
+            if (msg.Targets == null) {
                 Server.BroadcastAsync(msg);
                 return;
             }
@@ -402,8 +402,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             return msg;
         }
 
-        public void Broadcast(DataChat msg)
-        {
+        public void Broadcast(DataChat msg) {
             Logger.Log(LogLevel.INF, "chat", $"Broadcasting: {msg.Text}");
             Handle(null, msg);
         }
@@ -450,39 +449,39 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             public bool AutoChannelChat { get; set; } = false;
             public bool Whispers { get; set; } = true;
         }
-
-        public enum FilterDecisionCause {
-            Chat = 0,
-            UserName = 1,
-            ChannelName = 2,
-        }
-
-        public class FilterDecision {
-            public FilterHandling Handling { get; set; } = FilterHandling.None;
-            public FilterDecisionCause Cause { get; set; } = FilterDecisionCause.Chat;
-            public uint chatID { get; set; } = uint.MaxValue;
-            public string chatTag { get; set; } = string.Empty;
-            public string chatText { get; set; } = string.Empty;
-
-            public string playerName { get; set; } = string.Empty;
-            public uint playerID { get; set; } = uint.MaxValue;
-
-            public FilterDecision() {
-            }
-
-            public FilterDecision(DataPlayerInfo? player) {
-                playerID = player?.ID ?? uint.MaxValue;
-                playerName = player?.FullName ?? "";
-            }
-
-            public FilterDecision(DataChat fromChat) {
-                chatID = fromChat.ID;
-                chatTag = fromChat.Tag;
-                chatText = fromChat.Text;
-                playerID = fromChat.Player?.ID ?? uint.MaxValue;
-                playerName = fromChat.Player?.FullName ?? "";
-            }
-        }
-
     }
+
+    public enum FilterDecisionCause {
+        Chat = 0,
+        UserName = 1,
+        ChannelName = 2,
+    }
+
+    public class FilterDecision {
+        public FilterHandling Handling { get; set; } = FilterHandling.None;
+        public FilterDecisionCause Cause { get; set; } = FilterDecisionCause.Chat;
+        public uint chatID { get; set; } = uint.MaxValue;
+        public string chatTag { get; set; } = string.Empty;
+        public string chatText { get; set; } = string.Empty;
+
+        public string playerName { get; set; } = string.Empty;
+        public uint playerID { get; set; } = uint.MaxValue;
+
+        public FilterDecision() {
+        }
+
+        public FilterDecision(DataPlayerInfo? player) {
+            playerID = player?.ID ?? uint.MaxValue;
+            playerName = player?.FullName ?? "";
+        }
+
+        public FilterDecision(DataChat fromChat) {
+            chatID = fromChat.ID;
+            chatTag = fromChat.Tag;
+            chatText = fromChat.Text;
+            playerID = fromChat.Player?.ID ?? uint.MaxValue;
+            playerName = fromChat.Player?.FullName ?? "";
+        }
+    }
+
 }

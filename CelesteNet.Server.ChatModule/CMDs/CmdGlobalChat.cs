@@ -47,6 +47,9 @@ To enable / disable auto channel chat mode, {InvokeString}";
             if (msg == null)
                 return;
 
+            if (Chat.ApplyFilterHandling(env.Session, msg) != FilterHandling.None)
+                return;
+
             env.Msg.Text = argMsg;
             env.Msg.Tag = "";
             env.Msg.Color = Color.White;

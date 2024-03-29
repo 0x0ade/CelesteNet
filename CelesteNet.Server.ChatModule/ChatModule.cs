@@ -45,19 +45,27 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         public void UpdateFilterLists() {
-            foreach (string word in Settings.FilterDrop) {
-                filterDrop.Add(word.ToLower().Trim());
-            }
-            foreach (string word in Settings.FilterKick) {
-                filterKick.Add(word.ToLower().Trim());
-            }
-            foreach (string word in Settings.FilterWarnOnce) {
-                filterWarnOnce.Add(word.ToLower().Trim());
+            if (Settings.FilterDrop != null) {
+                foreach (string word in Settings.FilterDrop) {
+                    filterDrop.Add(word.ToLower().Trim());
+                }
+                Logger.Log(LogLevel.INF, "chat", $"FilterDrop: {filterDrop.Count} entries.");
             }
 
-            Logger.Log(LogLevel.INF, "chat", $"FilterDrop: {filterDrop.Count} entries.");
-            Logger.Log(LogLevel.INF, "chat", $"FilterKick: {filterKick.Count} entries.");
-            Logger.Log(LogLevel.INF, "chat", $"FilterWarnOnce: {filterWarnOnce.Count} entries.");
+            if (Settings.FilterKick != null) {
+                foreach (string word in Settings.FilterKick) {
+                    filterKick.Add(word.ToLower().Trim());
+                }
+                Logger.Log(LogLevel.INF, "chat", $"FilterKick: {filterKick.Count} entries.");
+            }
+
+            if (Settings.FilterWarnOnce != null) {
+                foreach (string word in Settings.FilterWarnOnce) {
+                    filterWarnOnce.Add(word.ToLower().Trim());
+                }
+                Logger.Log(LogLevel.INF, "chat", $"FilterWarnOnce: {filterWarnOnce.Count} entries.");
+            }
+
         }
 
         public override void Dispose() {
@@ -93,6 +101,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         public FilterHandling ContainsFilteredWord(string text) {
+            if ((filterDrop.Count + filterKick.Count + filterWarnOnce.Count) == 0)
+                return FilterHandling.None;
+
             text = Regex.Replace(text, @"\s", " ").ToLower().Trim();
 
             string textStripped = Regex.Replace(text, @"[^a-zA-Z0-9 ]", "");
@@ -109,6 +120,56 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 sumChecks |= filter;
 
             return sumChecks;
+        }
+
+        public event Action<ChatModule, DataChat, FilterHandling>? OnApplyFilter;
+
+        public FilterHandling ApplyFilterHandling(CelesteNetPlayerSession session, DataChat msg) {
+            return ApplyFilterHandling(session, ContainsFilteredWord(msg.Text), msg);
+        }
+
+        public FilterHandling ApplyFilterHandling(CelesteNetPlayerSession session, FilterHandling filter, DataChat msg) {
+            FilterHandling handled = FilterHandling.None;
+
+            if (filter.HasFlag(FilterHandling.Kick)) {
+                Logger.Log(LogLevel.INF, "word-filter", $"Message '{msg.Text}' triggered Kick handling. ({filter})");
+                session.Con.Send(new DataDisconnectReason { Text = $"Disconnected: " + Settings.MessageDefaultKickReason });
+                session.Con.Send(new DataInternalDisconnect());
+                session.Dispose();
+                handled = FilterHandling.Kick;
+            } else if (filter.HasFlag(FilterHandling.Drop)) {
+                if (msg.Player != null) {
+                    // ack the message to clear Pending, but noone else will see it
+                    msg.Targets = [msg.Player];
+                    ForceSend(msg);
+                }
+                handled = FilterHandling.Drop;
+            } else if (filter.HasFlag(FilterHandling.WarnOnce)) {
+                string? warnedOnceFor = new DynamicData(session).Get<string>("warnedOnceFor");
+
+                if (!warnedOnceFor.IsNullOrEmpty() && !msg.Text.IsNullOrEmpty() && warnedOnceFor == msg.Text) {
+                    // Player has been warned once, letting this through but might get reviewed by moderators
+                    handled = FilterHandling.None;
+                } else if (!msg.Text.IsNullOrEmpty()) {
+                    if (msg.Player != null) {
+                        // ack the message to clear Pending, but noone else will see it
+                        msg.Targets = [msg.Player];
+                        ForceSend(msg);
+                    }
+
+                    SendTo(session, Settings.MessageWarnOnce, null, Settings.ColorError);
+
+                    new DynamicData(session).Set("warnedOnceFor", msg.Text);
+                    handled = FilterHandling.WarnOnce;
+                }
+            }
+
+            if (handled != FilterHandling.None) {
+                Logger.Log(LogLevel.INF, "word-filter", $"Message '{msg.Text}' triggered {handled} handling. ({filter})");
+                OnApplyFilter?.Invoke(this, msg, handled);
+            }
+
+            return handled;
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
@@ -180,7 +241,18 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (session.Get<SpamContext>(this)?.IsSpam(msg) ?? false)
                     return null;
 
-                SendTo(session, ContainsFilteredWord(msg.Text).ToString());
+                bool isGlobalChat = !Server.UserData.Load<UserChatSettings>(session.UID).AutoChannelChat;
+
+                // word filtering for command invocations will be done within the commands
+                if (!msg.Text.StartsWith(Settings.CommandPrefix) && (isGlobalChat || !Settings.FilterOnlyGlobalAndMainChat)) {
+                    if (ApplyFilterHandling(session, msg) != FilterHandling.None)
+                        return null;
+                }
+
+                if (filterWarnOnce.Count > 0) {
+                    Logger.Log(LogLevel.DEV, "word-filter", $"Resetting warnedOnceFor for {session}.");
+                    new DynamicData(session).Set("warnedOnceFor", null);
+                }
 
             } else if (msg.Player != null && (msg.Targets == null || msg.Targets.Length > 0)) {
                 /* This condition matches messages created by server but with a valid Player:

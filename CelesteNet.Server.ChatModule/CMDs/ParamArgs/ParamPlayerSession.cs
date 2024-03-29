@@ -36,7 +36,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                         // check for partial name elsewhere
                         env.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(raw, StringComparison.InvariantCultureIgnoreCase) ?? false);
                 }
-            } else if (uint.TryParse(raw, out playerID)) {
+            }
+            if (session == null && uint.TryParse(raw, out playerID)) {
                 Chat.Server.PlayersByID.TryGetValue(playerID, out session);
             }
 

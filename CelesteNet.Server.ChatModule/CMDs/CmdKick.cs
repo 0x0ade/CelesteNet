@@ -42,7 +42,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 
             if (!Quiet)
                 new DynamicData(player).Set("leaveReason", Chat.Settings.MessageKick);
-            player.Con.Send(new DataDisconnectReason { Text = "Kicked" });
+            player.Con.Send(new DataDisconnectReason { Text = Chat.Settings.MessageDefaultKickReason });
             player.Con.Send(new DataInternalDisconnect());
             player.Dispose();
         }

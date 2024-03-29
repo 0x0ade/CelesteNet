@@ -87,6 +87,13 @@ To go back to the default channel, {InvokeString} {Channels.NameDefault}";
         }
 
         public string SwitchChannel(CmdEnv env, CelesteNetPlayerSession session, string channel) {
+            if ((Chat.Settings.FilterPrivateChannelNames || !channel.StartsWith(Channels.PrefixPrivate)) && Chat.Settings.FilterChannelNames != FilterHandling.None) {
+                FilterHandling check = Chat.ContainsFilteredWord(channel);
+                if (check != FilterHandling.None && Chat.Settings.FilterChannelNames.HasFlag(check)) {
+                    throw new CommandRunException("Channel name not allowed.");
+                }
+            }
+
             try {
                 Tuple<Channel, Channel> tuple = env.Server.Channels.Move(session, channel);
                 return tuple.Item1 == tuple.Item2 ? $"Already in {tuple.Item2.Name}" : $"Moved to {tuple.Item2.Name}";

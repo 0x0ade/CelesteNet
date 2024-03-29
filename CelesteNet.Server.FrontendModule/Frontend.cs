@@ -67,6 +67,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
             ChatModule chat = Server.Get<ChatModule>();
             chat.OnReceive += OnChatReceive;
+            chat.OnApplyFilter += OnChatFilter;
             chat.OnForceSend += OnForceSend;
         }
 
@@ -119,6 +120,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
             if (Server.TryGet(out ChatModule? chat)) {
                 chat.OnReceive -= OnChatReceive;
+                chat.OnApplyFilter -= OnChatFilter;
                 chat.OnForceSend -= OnForceSend;
             }
         }
@@ -186,6 +188,17 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
         private void OnChatReceive(ChatModule chat, DataChat msg) {
             BroadcastCMD(msg.Targets != null, "chat", msg.ToDetailedFrontendChat());
+        }
+
+        private void OnChatFilter(ChatModule chat, DataChat msg, FilterHandling handled) {
+            BroadcastCMD(true, "filter", new {
+                msg.ID,
+                PlayerID = msg.Player?.ID ?? uint.MaxValue,
+                Name = msg.Player?.FullName ?? string.Empty,
+                Targets = msg.Targets?.Select(p => p?.ID ?? uint.MaxValue) ?? null,
+                msg.Text,
+                Handling = handled.ToString()
+            });
         }
 
         private void OnForceSend(ChatModule chat, DataChat msg) {

@@ -28,8 +28,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public override void Init(CelesteNetServerModuleWrapper wrapper) {
             base.Init(wrapper);
 
-            UpdateFilterLists();
-
             BroadcastSpamContext = new(this);
             Commands = new(this);
             Server.OnSessionStart += OnSessionStart;
@@ -44,7 +42,17 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             UpdateFilterLists();
         }
 
+        public override void LoadSettings() {
+            base.LoadSettings();
+
+            UpdateFilterLists();
+        }
+
         public void UpdateFilterLists() {
+            filterDrop.Clear();
+            filterKick.Clear();
+            filterWarnOnce.Clear();
+
             if (Settings.FilterDrop != null) {
                 foreach (string word in Settings.FilterDrop) {
                     filterDrop.Add(word.ToLower().Trim());

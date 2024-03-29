@@ -124,32 +124,32 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public event Action<ChatModule, DataChat, FilterHandling>? OnApplyFilter;
 
-        public FilterHandling ApplyFilterHandling(CelesteNetPlayerSession session, DataChat msg) {
-            return ApplyFilterHandling(session, ContainsFilteredWord(msg.Text), msg);
-        }
+        public FilterHandling ApplyFilterHandling(CelesteNetPlayerSession session, DataChat msg, FilterHandling filterAs = FilterHandling.None) {
+            // can set the optional parameter to override word checking
+            if (filterAs == FilterHandling.None)
+                filterAs = ContainsFilteredWord(msg.Text);
 
-        public FilterHandling ApplyFilterHandling(CelesteNetPlayerSession session, FilterHandling filter, DataChat msg) {
-            FilterHandling handled = FilterHandling.None;
+            FilterHandling handledAs = FilterHandling.None;
 
-            if (filter.HasFlag(FilterHandling.Kick)) {
-                Logger.Log(LogLevel.INF, "word-filter", $"Message '{msg.Text}' triggered Kick handling. ({filter})");
+            if (filterAs.HasFlag(FilterHandling.Kick)) {
+                Logger.Log(LogLevel.INF, "word-filter", $"Message '{msg.Text}' triggered Kick handling. ({filterAs})");
                 session.Con.Send(new DataDisconnectReason { Text = $"Disconnected: " + Settings.MessageDefaultKickReason });
                 session.Con.Send(new DataInternalDisconnect());
                 session.Dispose();
-                handled = FilterHandling.Kick;
-            } else if (filter.HasFlag(FilterHandling.Drop)) {
+                handledAs = FilterHandling.Kick;
+            } else if (filterAs.HasFlag(FilterHandling.Drop)) {
                 if (msg.Player != null) {
                     // ack the message to clear Pending, but noone else will see it
                     msg.Targets = [msg.Player];
                     ForceSend(msg);
                 }
-                handled = FilterHandling.Drop;
-            } else if (filter.HasFlag(FilterHandling.WarnOnce)) {
+                handledAs = FilterHandling.Drop;
+            } else if (filterAs.HasFlag(FilterHandling.WarnOnce)) {
                 string? warnedOnceFor = new DynamicData(session).Get<string>("warnedOnceFor");
 
                 if (!warnedOnceFor.IsNullOrEmpty() && !msg.Text.IsNullOrEmpty() && warnedOnceFor == msg.Text) {
                     // Player has been warned once, letting this through but might get reviewed by moderators
-                    handled = FilterHandling.None;
+                    handledAs = FilterHandling.None;
                 } else if (!msg.Text.IsNullOrEmpty()) {
                     if (msg.Player != null) {
                         // ack the message to clear Pending, but noone else will see it
@@ -160,16 +160,16 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     SendTo(session, Settings.MessageWarnOnce, null, Settings.ColorError);
 
                     new DynamicData(session).Set("warnedOnceFor", msg.Text);
-                    handled = FilterHandling.WarnOnce;
+                    handledAs = FilterHandling.WarnOnce;
                 }
             }
 
-            if (handled != FilterHandling.None) {
-                Logger.Log(LogLevel.INF, "word-filter", $"Message '{msg.Text}' triggered {handled} handling. ({filter})");
-                OnApplyFilter?.Invoke(this, msg, handled);
+            if (handledAs != FilterHandling.None) {
+                Logger.Log(LogLevel.INF, "word-filter", $"Message '{msg.Text}' triggered {handledAs} handling. ({filterAs})");
+                OnApplyFilter?.Invoke(this, msg, handledAs);
             }
 
-            return handled;
+            return handledAs;
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {

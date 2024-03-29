@@ -122,7 +122,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             return sumChecks;
         }
 
-        public event Action<ChatModule, DataChat, FilterHandling>? OnApplyFilter;
+        public event Action<ChatModule, FilterDecision>? OnApplyFilter;
+
+        public void InvokeOnApplyFilter(FilterDecision chatFilterDecision) => OnApplyFilter?.Invoke(this, chatFilterDecision);
 
         public FilterHandling ApplyFilterHandling(CelesteNetPlayerSession session, DataChat msg, FilterHandling filterAs = FilterHandling.None) {
             // can set the optional parameter to override word checking
@@ -166,7 +168,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             if (handledAs != FilterHandling.None) {
                 Logger.Log(LogLevel.INF, "word-filter", $"Message '{msg.Text}' triggered {handledAs} handling. ({filterAs})");
-                OnApplyFilter?.Invoke(this, msg, handledAs);
+                OnApplyFilter?.Invoke(this, new FilterDecision(msg) { Handling = handledAs });
             }
 
             return handledAs;
@@ -177,6 +179,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 FilterHandling check = ContainsFilteredWord(session.PlayerInfo.FullName);
                 if (check != FilterHandling.None && Settings.FilterPlayerNames.HasFlag(check)) {
                     Logger.Log(LogLevel.INF, "word-filter", $"Disconnecting: Name '{session.PlayerInfo.FullName}' triggered handling '{check}'.");
+                    OnApplyFilter?.Invoke(this, new FilterDecision(session.PlayerInfo) {
+                        Handling = FilterHandling.Kick,
+                        Cause = FilterDecisionCause.UserName
+                    });
                     session.Con.Send(new DataDisconnectReason { Text = $"Disconnected: Name '{session.PlayerInfo.FullName}' not acceptable." });
                     session.Con.Send(new DataInternalDisconnect());
                     session.Dispose();
@@ -443,6 +449,39 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public class UserChatSettings {
             public bool AutoChannelChat { get; set; } = false;
             public bool Whispers { get; set; } = true;
+        }
+
+        public enum FilterDecisionCause {
+            Chat = 0,
+            UserName = 1,
+            ChannelName = 2,
+        }
+
+        public class FilterDecision {
+            public FilterHandling Handling { get; set; } = FilterHandling.None;
+            public FilterDecisionCause Cause { get; set; } = FilterDecisionCause.Chat;
+            public uint chatID { get; set; } = uint.MaxValue;
+            public string chatTag { get; set; } = string.Empty;
+            public string chatText { get; set; } = string.Empty;
+
+            public string playerName { get; set; } = string.Empty;
+            public uint playerID { get; set; } = uint.MaxValue;
+
+            public FilterDecision() {
+            }
+
+            public FilterDecision(DataPlayerInfo? player) {
+                playerID = player?.ID ?? uint.MaxValue;
+                playerName = player?.FullName ?? "";
+            }
+
+            public FilterDecision(DataChat fromChat) {
+                chatID = fromChat.ID;
+                chatTag = fromChat.Tag;
+                chatText = fromChat.Text;
+                playerID = fromChat.Player?.ID ?? uint.MaxValue;
+                playerName = fromChat.Player?.FullName ?? "";
+            }
         }
 
     }

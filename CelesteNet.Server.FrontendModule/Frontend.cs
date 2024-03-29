@@ -130,10 +130,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
-            Broadcast(frontendWS => frontendWS.SendCommand(
-                "sess_join", PlayerSessionToFrontend(session, frontendWS.IsAuthorized, true)
-            ));
-            TryBroadcastUpdate(Settings.APIPrefix + "/status");
+            if (session.Alive) {
+                Broadcast(frontendWS => frontendWS.SendCommand(
+                    "sess_join", PlayerSessionToFrontend(session, frontendWS.IsAuthorized, true)
+                ));
+                TryBroadcastUpdate(Settings.APIPrefix + "/status");
+            }
             //TryBroadcastUpdate(Settings.APIPrefix + "/players");
             session.OnEnd += OnSessionEnd;
         }
@@ -190,14 +192,16 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             BroadcastCMD(msg.Targets != null, "chat", msg.ToDetailedFrontendChat());
         }
 
-        private void OnChatFilter(ChatModule chat, DataChat msg, FilterHandling handled) {
+        private void OnChatFilter(ChatModule chat, ChatModule.FilterDecision chatFilterDecision) {
             BroadcastCMD(true, "filter", new {
-                msg.ID,
-                PlayerID = msg.Player?.ID ?? uint.MaxValue,
-                Name = msg.Player?.FullName ?? string.Empty,
-                Targets = msg.Targets?.Select(p => p?.ID ?? uint.MaxValue) ?? null,
-                msg.Text,
-                Handling = handled.ToString()
+                // bit annoying but I'd rather have the enum values as strings in the JSON rather than ints
+                Handling = chatFilterDecision.Handling.ToString(),
+                Cause = chatFilterDecision.Cause.ToString(),
+                chatFilterDecision.chatID,
+                chatFilterDecision.chatText,
+                chatFilterDecision.chatTag,
+                chatFilterDecision.playerID,
+                chatFilterDecision.playerName
             });
         }
 

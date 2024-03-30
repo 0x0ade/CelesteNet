@@ -131,7 +131,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         public event Action<ChatModule, FilterDecision>? OnApplyFilter;
-
+        // I'm sure having this extra method is a crime but who's gonna stop me (using this in CmdChannel when filtering channel names)
         public void InvokeOnApplyFilter(FilterDecision chatFilterDecision) => OnApplyFilter?.Invoke(this, chatFilterDecision);
 
         public FilterHandling ApplyFilterHandling(CelesteNetPlayerSession session, DataChat msg, FilterHandling filterAs = FilterHandling.None) {

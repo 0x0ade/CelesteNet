@@ -193,10 +193,17 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            // Handle avatars
+            // Handle avatars (+ crab day)
             string displayName = fullNameSpace;
 
-            using (Stream? avatarStream = Server.UserData.ReadFile(UID, "avatar.png")) {
+            Stream? avatarStream;
+            if (DateTime.Now is { Day: 1, Month: 4 } && File.Exists("crab.png"))
+                // Time for crab :crab:
+                avatarStream = File.OpenRead("crab.png");
+            else
+                avatarStream = Server.UserData.ReadFile(UID, "avatar.png");
+
+            using (avatarStream) {
                 if (avatarStream != null) {
                     string avatarId = $"celestenet_avatar_{SessionID}_";
                     displayName = $":{avatarId}: {fullNameSpace}";

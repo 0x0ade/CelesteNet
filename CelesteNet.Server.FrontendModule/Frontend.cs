@@ -130,12 +130,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control
         }
 
         private void OnSessionStart(CelesteNetPlayerSession session) {
-            if (session.Alive) {
-                Broadcast(frontendWS => frontendWS.SendCommand(
-                    "sess_join", PlayerSessionToFrontend(session, frontendWS.IsAuthorized, true)
-                ));
-                TryBroadcastUpdate(Settings.APIPrefix + "/status");
-            }
+            if (!session.Alive)
+                return;
+            Broadcast(frontendWS => frontendWS.SendCommand(
+                "sess_join", PlayerSessionToFrontend(session, frontendWS.IsAuthorized, true)
+            ));
+            TryBroadcastUpdate(Settings.APIPrefix + "/status");
             //TryBroadcastUpdate(Settings.APIPrefix + "/players");
             session.OnEnd += OnSessionEnd;
         }

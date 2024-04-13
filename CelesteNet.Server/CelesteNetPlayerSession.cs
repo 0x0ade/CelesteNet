@@ -142,6 +142,18 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.INF, "playersession", $"Startup #{SessionID} {Con} (Session UID: {UID}; Connection UID: {Con.UID})");
             Logger.Log(LogLevel.VVV, "playersession", $"Startup #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Startup");
 
+            string? clientDisconnectReason = null;
+            if (Server.Settings.ClientChecks && Con is ConPlusTCPUDPConnection cpCon)
+                clientDisconnectReason = ConnFeatureUtils.ClientCheck(cpCon);
+
+            if (clientDisconnectReason != null) {
+                Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} disconnecting because ClientCheck returned: '{clientDisconnectReason}'");
+                Con.Send(new DataDisconnectReason { Text = clientDisconnectReason });
+                Con.Send(new DataInternalDisconnect());
+                Dispose();
+                return;
+            }
+
             // Resolver player name conflicts
             string nameSpace = Name;
             string fullNameSpace = nameSpace;
@@ -193,10 +205,17 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
             }
 
-            // Handle avatars
+            // Handle avatars (+ crab day)
             string displayName = fullNameSpace;
 
-            using (Stream? avatarStream = Server.UserData.ReadFile(UID, "avatar.png")) {
+            Stream? avatarStream;
+            if (DateTime.Now is { Day: 1, Month: 4 } && File.Exists("crab.png"))
+                // Time for crab :crab:
+                avatarStream = File.OpenRead("crab.png");
+            else
+                avatarStream = Server.UserData.ReadFile(UID, "avatar.png");
+
+            using (avatarStream) {
                 if (avatarStream != null) {
                     string avatarId = $"celestenet_avatar_{SessionID}_";
                     displayName = $":{avatarId}: {fullNameSpace}";
@@ -281,20 +300,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (!Server.Channels.SessionStartupMove(this))
                 ResendPlayerStates();
 
-            string? clientDisconnectReason = null;
-            if (Server.Settings.ClientChecks && Con is ConPlusTCPUDPConnection cpCon)
-                clientDisconnectReason = ConnFeatureUtils.ClientCheck(cpCon);
-
-            if (clientDisconnectReason == null) {
-                Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} ClientID: {ClientOptions.ClientID} InstanceID: {ClientOptions.InstanceID}");
-                Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
-                Con.Send(new DataReady());
-            } else {
-                Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} disconnecting because ClientCheck returned: '{clientDisconnectReason}'");
-                Con.Send(new DataDisconnectReason { Text = clientDisconnectReason });
-                Con.Send(new DataInternalDisconnect());
-                Dispose();
-            }
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} ClientID: {ClientOptions.ClientID} InstanceID: {ClientOptions.InstanceID}");
+            Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Sending DataReady");
+            Con.Send(new DataReady());
 
         }
 

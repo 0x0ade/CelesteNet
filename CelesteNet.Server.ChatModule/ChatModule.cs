@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
@@ -91,8 +92,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     session.OnEnd -= OnSessionEnd;
         }
 
-        public FilterHandling IsFilteredWord(string word) {
-            word = word.ToLower().Trim();
+        public FilterHandling IsFilteredWord(string word, bool toLowerTrim = false) {
+            // optional param I guess as a sort of reminder that filter words are always checked in lowercase - but
+            // currently the only calls are below in ContainsFilteredWord and are guaranteed to be lower & trimmed
+            if (toLowerTrim)
+                word = word.ToLower().Trim();
 
             FilterHandling filter = FilterHandling.None;
 
@@ -109,23 +113,42 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         public FilterHandling ContainsFilteredWord(string text) {
-            if ((filterDrop.Count + filterKick.Count + filterWarnOnce.Count) == 0)
+            if (filterDrop.Count + filterKick.Count + filterWarnOnce.Count == 0)
                 return FilterHandling.None;
 
-            text = Regex.Replace(text, @"\s", " ").ToLower().Trim();
-
-            string textStripped = Regex.Replace(text, @"[^a-zA-Z0-9 ]", "");
-            string textSpaced = Regex.Replace(text, @"[^a-zA-Z0-9]", " ");
-
-            Logger.Log(LogLevel.DEV, "word-filter", "[" + string.Join(", ", textStripped.Split(' ')) + "]");
-            Logger.Log(LogLevel.DEV, "word-filter", "[" + string.Join(", ", textSpaced.Split(' ')) + "]");
-
             FilterHandling sumChecks = FilterHandling.None;
-            foreach (var filter in textStripped.Split(' ').Select(IsFilteredWord))
-                sumChecks |= filter;
 
-            foreach (var filter in textSpaced.Split(' ').Select(IsFilteredWord))
-                sumChecks |= filter;
+            // had some code here to replace all whitespace with actual 0x20, but per CelesteNetUtils.EnglishFontChars we strip all besides 0x20
+            text = text.ToLower().Trim();
+
+            // this function uses two relatively basic ways of splitting text into words for checking
+            StringBuilder builderStripped = new StringBuilder(text.Length);
+            StringBuilder builderSpaced = new StringBuilder(text.Length);
+
+            // adding the extra space to always 'trigger' handling the last word, rather than doing it after the loop
+            foreach (char c in text + ' ') {
+                // only letters and digits are used for comparing against filter lists
+                if (char.IsAsciiLetterOrDigit(c)) {
+                    builderStripped.Append(c);
+                    builderSpaced.Append(c);
+                    continue;
+                } else if (c == ' ' && builderStripped.Length > 0) {
+                    // builderStripped is simply checked on every space and then cleared, as if it were a foreach text.Split(' ')
+                    sumChecks |= IsFilteredWord(builderStripped.ToString());
+                    builderStripped.Clear();
+                }
+                // builderSpaced is checked any time a non-alphanumeric character or space is found (hence no 'continue' above for spaces)
+                // so instead of stripping out the other characters inside words, the words are split at non-alphanumeric as well
+                if (builderSpaced.Length > 0) {
+                    sumChecks |= IsFilteredWord(builderSpaced.ToString());
+                    builderSpaced.Clear();
+                }
+            }
+
+            // NOTE: Things this could also be doing but currently doesn't
+            // - strip out numbers or split at numbers
+            // - replace 1337-speak numbers like 1 -> i, 0 -> o, ...
+            // - but at what point does the matching get so fuzzy that we should rather ping the humans?
 
             return sumChecks;
         }

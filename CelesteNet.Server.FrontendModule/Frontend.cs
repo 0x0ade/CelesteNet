@@ -1,20 +1,19 @@
-﻿using Microsoft.AspNetCore.StaticFiles;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.Server.Chat;
+using Microsoft.AspNetCore.StaticFiles;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
-using WebSocketSharp.Server;
-using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.Server.Chat;
 using System.Timers;
-using System.Dynamic;
+using WebSocketSharp.Server;
 
-namespace Celeste.Mod.CelesteNet.Server.Control
-{
+namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : CelesteNetServerModule<FrontendSettings> {
 
         public static readonly string COOKIE_SESSION = "celestenet-session";
@@ -67,6 +66,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
             ChatModule chat = Server.Get<ChatModule>();
             chat.OnReceive += OnChatReceive;
+            chat.OnApplyFilter += OnChatFilter;
             chat.OnForceSend += OnForceSend;
         }
 
@@ -119,6 +119,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
             if (Server.TryGet(out ChatModule? chat)) {
                 chat.OnReceive -= OnChatReceive;
+                chat.OnApplyFilter -= OnChatFilter;
                 chat.OnForceSend -= OnForceSend;
             }
         }
@@ -188,6 +189,21 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
         private void OnChatReceive(ChatModule chat, DataChat msg) {
             BroadcastCMD(msg.Targets != null, "chat", msg.ToDetailedFrontendChat());
+        }
+
+        private void OnChatFilter(ChatModule chat, FilterDecision chatFilterDecision) {
+            BroadcastCMD(true, "filter", new {
+                // bit annoying but I'd rather have the enum values as strings in the JSON rather than ints
+                Handling = chatFilterDecision.Handling.ToString(),
+                Cause = chatFilterDecision.Cause.ToString(),
+
+                PlayerID = chatFilterDecision.playerID,
+                Name = chatFilterDecision.playerName,
+
+                MsgID = chatFilterDecision.chatID,
+                Text = chatFilterDecision.chatText,
+                Tag = chatFilterDecision.chatTag
+            });
         }
 
         private void OnForceSend(ChatModule chat, DataChat msg) {

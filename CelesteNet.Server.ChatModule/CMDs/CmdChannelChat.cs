@@ -59,6 +59,11 @@ To enable / disable auto channel chat mode, {InvokeString}";
             if (msg == null)
                 return;
 
+            if (channel.Name == Channels.NameDefault || !Chat.Settings.FilterOnlyGlobalAndMainChat) {
+                if (Chat.ApplyFilterHandling(session, msg) != FilterHandling.None)
+                    return;
+            }
+
             if (player != null) {
                 env.Msg.Tag = $"channel {channel.Name}";
                 env.Msg.Text = argMsg;

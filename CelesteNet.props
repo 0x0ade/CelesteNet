@@ -11,7 +11,7 @@
     <Version>2.0.0.0</Version>
 
     <CelestePrefix Condition="'$(CelestePrefix)' == '' And Exists('..\..\..\Celeste.dll')">..\..\..</CelestePrefix>
-    <CelestePrefix Condition="'$(CelestePrefix)' == ''">lib-stripped</CelestePrefix>
+    <CelestePrefix Condition="'$(CelestePrefix)' == ''">..\lib-stripped</CelestePrefix>
 
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">$(IsServer)</CopyCeleste>
   </PropertyGroup>

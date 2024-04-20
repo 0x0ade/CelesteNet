@@ -1,17 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using Newtonsoft.Json;
 using WebSocketSharp.Net;
 using WebSocketSharp.Server;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Drawing.Drawing2D;
 
-namespace Celeste.Mod.CelesteNet.Server.Control
-{
+namespace Celeste.Mod.CelesteNet.Server.Control {
     public static partial class RCEndpoints {
 
         [RCEndpoint(false, "/discordauth", "", "", "Discord OAuth2", "User auth using Discord.")]
@@ -121,44 +122,24 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                     using Stream s = client.GetAsync(
                         $"https://cdn.discordapp.com/avatars/{uid}/{userData.avatar.ToString()}.png?size=64"
                     ).Await().Content.ReadAsStreamAsync().Await();
-                    avatarOrig = Image.FromStream(s);
+                    avatarOrig = Image.Load(s);
                 } catch {
                     using Stream s = client.GetAsync(
                         $"https://cdn.discordapp.com/embed/avatars/{((int) userData.discriminator) % 6}.png"
                     ).Await().Content.ReadAsStreamAsync().Await();
-                    avatarOrig = Image.FromStream(s);
+                    avatarOrig = Image.Load(s);
                 }
             }
-            using (avatarOrig)
-            using (Bitmap avatarScale = new(64, 64, PixelFormat.Format32bppArgb))
-            using (Bitmap avatarFinal = new(64, 64, PixelFormat.Format32bppArgb)) {
-                using (Graphics g = Graphics.FromImage(avatarScale)) {
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
 
-                    g.DrawImage(avatarOrig, 0, 0, 64, 64);
-                }
+            using (avatarOrig)
+            using (Image avatarScale = avatarOrig.Clone(x => x.Resize(64, 64, sampler: KnownResamplers.Lanczos3)))
+            using (Image avatarFinal = avatarOrig.Clone(x => x.Resize(64, 64, sampler: KnownResamplers.Lanczos3).ApplyRoundedCorners(1.0f))) {
 
                 using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.orig.png"))
-                    avatarScale.Save(s, ImageFormat.Png);
-
-                using (Graphics g = Graphics.FromImage(avatarFinal)) {
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-
-                    using (TextureBrush tbr = new(avatarScale))
-                        g.FillEllipse(tbr, 0, 0, 64, 64);
-
-                    foreach (string tagName in info.Tags) {
-                        using Stream? asset = f.OpenContent($"frontend/assets/tags/{tagName}.png", out _, out _, out _);
-                        if (asset == null)
-                            continue;
-
-                        using Image tag = Image.FromStream(asset);
-                        g.DrawImageUnscaled(tag, 0, 0);
-                    }
-                }
+                    avatarScale.SaveAsPng(s);
 
                 using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.png"))
-                    avatarFinal.Save(s, ImageFormat.Png);
+                    avatarFinal.SaveAsPng(s);
             }
 
             c.Response.StatusCode = (int) HttpStatusCode.Redirect;
@@ -168,6 +149,51 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             f.RespondJSON(c, new {
                 Info = "Success - redirecting to /"
             });
+        }
+
+        // These functions copied from ImageSharp's Samples code -- https://github.com/SixLabors/Samples/blob/main/ImageSharp/AvatarWithRoundedCorner/Program.cs
+
+        // This method can be seen as an inline implementation of an `IImageProcessor`:
+        // (The combination of `IImageOperations.Apply()` + this could be replaced with an `IImageProcessor`)
+        private static IImageProcessingContext ApplyRoundedCorners(this IImageProcessingContext context, float cornerRadius) {
+            Size size = context.GetCurrentSize();
+            IPathCollection corners = BuildCorners(size.Width, size.Height, cornerRadius);
+
+            context.SetGraphicsOptions(new GraphicsOptions() {
+                Antialias = true,
+
+                // Enforces that any part of this shape that has color is punched out of the background
+                AlphaCompositionMode = PixelAlphaCompositionMode.DestOut
+            });
+
+            // Mutating in here as we already have a cloned original
+            // use any color (not Transparent), so the corners will be clipped
+            foreach (IPath path in corners) {
+                context = context.Fill(Color.Red, path);
+            }
+
+            return context;
+        }
+
+        private static IPathCollection BuildCorners(int imageWidth, int imageHeight, float cornerRadius) {
+            // First create a square
+            var rect = new RectangularPolygon(-0.5f, -0.5f, cornerRadius, cornerRadius);
+
+            // Then cut out of the square a circle so we are left with a corner
+            IPath cornerTopLeft = rect.Clip(new EllipsePolygon(cornerRadius - 0.5f, cornerRadius - 0.5f, cornerRadius));
+
+            // Corner is now a corner shape positions top left
+            // let's make 3 more positioned correctly, we can do that by translating the original around the center of the image.
+
+            float rightPos = imageWidth - cornerTopLeft.Bounds.Width + 1;
+            float bottomPos = imageHeight - cornerTopLeft.Bounds.Height + 1;
+
+            // Move it across the width of the image - the width of the shape
+            IPath cornerTopRight = cornerTopLeft.RotateDegree(90).Translate(rightPos, 0);
+            IPath cornerBottomLeft = cornerTopLeft.RotateDegree(-90).Translate(0, bottomPos);
+            IPath cornerBottomRight = cornerTopLeft.RotateDegree(180).Translate(rightPos, bottomPos);
+
+            return new PathCollection(cornerTopLeft, cornerBottomLeft, cornerTopRight, cornerBottomRight);
         }
 
         [RCEndpoint(false, "/userinfo", "?uid={uid}&key={keyIfNoUID}", "", "User Info", "Get some basic user info.")]

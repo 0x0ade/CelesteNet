@@ -1,20 +1,19 @@
-﻿using Microsoft.AspNetCore.StaticFiles;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.Server.Chat;
+using Microsoft.AspNetCore.StaticFiles;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
-using WebSocketSharp.Server;
-using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.Server.Chat;
 using System.Timers;
-using System.Dynamic;
+using WebSocketSharp.Server;
 
-namespace Celeste.Mod.CelesteNet.Server.Control
-{
+namespace Celeste.Mod.CelesteNet.Server.Control {
     public class Frontend : CelesteNetServerModule<FrontendSettings> {
 
         public static readonly string COOKIE_SESSION = "celestenet-session";
@@ -197,11 +196,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                 // bit annoying but I'd rather have the enum values as strings in the JSON rather than ints
                 Handling = chatFilterDecision.Handling.ToString(),
                 Cause = chatFilterDecision.Cause.ToString(),
-                chatFilterDecision.chatID,
-                chatFilterDecision.chatText,
-                chatFilterDecision.chatTag,
-                chatFilterDecision.playerID,
-                chatFilterDecision.playerName
+
+                PlayerID = chatFilterDecision.playerID,
+                Name = chatFilterDecision.playerName,
+
+                MsgID = chatFilterDecision.chatID,
+                Text = chatFilterDecision.chatText,
+                Tag = chatFilterDecision.chatTag
             });
         }
 

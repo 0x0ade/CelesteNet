@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat.Cmd;
@@ -22,9 +20,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         public CommandsContext Commands;
 #pragma warning restore CS8618
 
-        private HashSet<string> filterDrop = new HashSet<string>();
-        private HashSet<string> filterKick = new HashSet<string>();
-        private HashSet<string> filterWarnOnce = new HashSet<string>();
+        private HashSet<string> filterDrop = new();
+        private HashSet<string> filterKick = new();
+        private HashSet<string> filterWarnOnce = new();
 
         public override void Init(CelesteNetServerModuleWrapper wrapper) {
             base.Init(wrapper);
@@ -165,7 +163,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             FilterHandling handledAs = FilterHandling.None;
 
             if (filterAs.HasFlag(FilterHandling.Kick)) {
-                Logger.Log(LogLevel.INF, "word-filter", $"Message '{msg.Text}' triggered Kick handling. ({filterAs})");
                 session.Con.Send(new DataDisconnectReason { Text = $"Disconnected: " + Settings.MessageDefaultKickReason });
                 session.Con.Send(new DataInternalDisconnect());
                 session.Dispose();

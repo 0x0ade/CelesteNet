@@ -90,14 +90,12 @@ To go back to the default channel, {InvokeString} {Channels.NameDefault}";
             if ((Chat.Settings.FilterPrivateChannelNames || !channel.StartsWith(Channels.PrefixPrivate)) && Chat.Settings.FilterChannelNames != FilterHandling.None) {
                 FilterHandling check = Chat.ContainsFilteredWord(channel);
                 if (check != FilterHandling.None && Chat.Settings.FilterChannelNames.HasFlag(check)) {
-                    var decision = new FilterDecision(session.PlayerInfo)
-                    {
+                    Chat.InvokeOnApplyFilter(new FilterDecision(session.PlayerInfo) {
                         Handling = FilterHandling.Drop,
                         Cause = FilterDecisionCause.ChannelName,
                         chatTag = channel,
                         chatText = env.FullText
-                    };
-                    Chat.InvokeOnApplyFilter(decision);
+                    });
                     throw new CommandRunException("Channel name not allowed.");
                 }
             }

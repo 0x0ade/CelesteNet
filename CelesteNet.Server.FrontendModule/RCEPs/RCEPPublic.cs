@@ -133,7 +133,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             using (avatarOrig)
             using (Image avatarScale = avatarOrig.Clone(x => x.Resize(64, 64, sampler: KnownResamplers.Lanczos3)))
-            using (Image avatarFinal = avatarOrig.Clone(x => x.Resize(64, 64, sampler: KnownResamplers.Lanczos3).ApplyRoundedCorners(1.0f))) {
+            using (Image avatarFinal = avatarScale.Clone(x => x.ApplyRoundedCorners(1.0f).ApplyTagOverlays(f, info))) {
 
                 using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.orig.png"))
                     avatarScale.SaveAsPng(s);
@@ -149,6 +149,25 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             f.RespondJSON(c, new {
                 Info = "Success - redirecting to /"
             });
+        }
+
+        private static IImageProcessingContext ApplyTagOverlays(this IImageProcessingContext context, Frontend f, BasicUserInfo info) {
+
+            context.SetGraphicsOptions(new GraphicsOptions() {
+                Antialias = true,
+                AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver
+            });
+
+            foreach (string tagName in info.Tags) {
+                using Stream? asset = f.OpenContent($"frontend/assets/tags/{tagName}.png", out _, out _, out _);
+                if (asset == null)
+                    continue;
+
+                using Image tag = Image.Load(asset);
+                context.DrawImage(tag, 1.0f);
+            }
+
+            return context;
         }
 
         // These functions copied from ImageSharp's Samples code -- https://github.com/SixLabors/Samples/blob/main/ImageSharp/AvatarWithRoundedCorner/Program.cs

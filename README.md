@@ -22,3 +22,9 @@ It lets you join levels together with your friends or complete strangers, even j
 
 First, make sure that you've installed [Everest (mod loader) via Olympus (mod manager)][everest-site].
 Click on the "Download CelesteNet" button above, then click the "1-CLICK INSTALL" button on the latest version.
+
+---
+
+#### License notice
+
+The CelesteNet.Server.FrontendModule project/module uses [ImageSharp](https://github.com/SixLabors/ImageSharp/) under Apache 2.0 license terms per [Six Labors Split License 1.0](https://github.com/SixLabors/ImageSharp/blob/main/LICENSE)

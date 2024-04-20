@@ -21,10 +21,12 @@
 
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
 
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
+      <PackageReference Include="SixLabors.ImageSharp" GeneratePathProperty="true" Version="3.1.4" />
 
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.3" />
-    <PackageReference Include="System.Drawing.Common" Version="8.0.2" />
+
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" GeneratePathProperty="true" Version="2.1.3" />
+
+      
     <PackageReference Include="Microsoft.CodeAnalysis.Compilers" Version="4.8.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
@@ -35,5 +37,10 @@
       -->
     <Reference Include="websocket-sharp-customheaders.dll" HintPath="..\lib\websocket-sharp-customheaders.dll" />
   </ItemGroup>
+
+    <Target Name="CopyNugetAssembly" AfterTargets="PostBuildEvent">
+        <Copy SourceFiles="$(PkgSixLabors_ImageSharp)\lib\net6.0\SixLabors.ImageSharp.dll" DestinationFolder="$(OutDir)" />
+        <Copy SourceFiles="$(PkgSixLabors_ImageSharp_Drawing)\lib\net6.0\SixLabors.ImageSharp.Drawing.dll" DestinationFolder="$(OutDir)" />
+    </Target>
 
 </Project>

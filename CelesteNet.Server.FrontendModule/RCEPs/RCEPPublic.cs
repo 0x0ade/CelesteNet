@@ -151,6 +151,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             });
         }
 
+        // These functions copied from ImageSharp's Samples code -- https://github.com/SixLabors/Samples/blob/main/ImageSharp/AvatarWithRoundedCorner/Program.cs
+
         // This method can be seen as an inline implementation of an `IImageProcessor`:
         // (The combination of `IImageOperations.Apply()` + this could be replaced with an `IImageProcessor`)
         private static IImageProcessingContext ApplyRoundedCorners(this IImageProcessingContext context, float cornerRadius) {

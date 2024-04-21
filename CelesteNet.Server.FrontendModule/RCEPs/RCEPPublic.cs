@@ -133,7 +133,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             using (avatarOrig)
             using (Image avatarScale = avatarOrig.Clone(x => x.Resize(64, 64, sampler: KnownResamplers.Lanczos3)))
-            using (Image avatarFinal = avatarScale.Clone(x => x.ApplyRoundedCorners(1.0f).ApplyTagOverlays(f, info))) {
+            using (Image avatarFinal = avatarScale.Clone(x => x.ApplyRoundedCorners().ApplyTagOverlays(f, info))) {
 
                 using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.orig.png"))
                     avatarScale.SaveAsPng(s);
@@ -152,12 +152,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         private static IImageProcessingContext ApplyTagOverlays(this IImageProcessingContext context, Frontend f, BasicUserInfo info) {
-
-            context.SetGraphicsOptions(new GraphicsOptions() {
-                Antialias = true,
-                AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver
-            });
-
             foreach (string tagName in info.Tags) {
                 using Stream? asset = f.OpenContent($"frontend/assets/tags/{tagName}.png", out _, out _, out _);
                 if (asset == null)
@@ -174,9 +168,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
         // This method can be seen as an inline implementation of an `IImageProcessor`:
         // (The combination of `IImageOperations.Apply()` + this could be replaced with an `IImageProcessor`)
-        private static IImageProcessingContext ApplyRoundedCorners(this IImageProcessingContext context, float cornerRadius) {
+        private static IImageProcessingContext ApplyRoundedCorners(this IImageProcessingContext context) {
             Size size = context.GetCurrentSize();
-            IPathCollection corners = BuildCorners(size.Width, size.Height, cornerRadius);
+
+            GraphicsOptions oldGO = context.GetGraphicsOptions();
 
             context.SetGraphicsOptions(new GraphicsOptions() {
                 Antialias = true,
@@ -185,34 +180,16 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 AlphaCompositionMode = PixelAlphaCompositionMode.DestOut
             });
 
+            IPath rect = new RectangularPolygon(0, 0, size.Width, size.Height);
+            rect = rect.Clip(new EllipsePolygon(size.Width / 2, size.Height / 2, size.Width / 2));
+
             // Mutating in here as we already have a cloned original
             // use any color (not Transparent), so the corners will be clipped
-            foreach (IPath path in corners) {
-                context = context.Fill(Color.Red, path);
-            }
+            context = context.Fill(Color.Red, rect);
+
+            context.SetGraphicsOptions(oldGO);
 
             return context;
-        }
-
-        private static IPathCollection BuildCorners(int imageWidth, int imageHeight, float cornerRadius) {
-            // First create a square
-            var rect = new RectangularPolygon(-0.5f, -0.5f, cornerRadius, cornerRadius);
-
-            // Then cut out of the square a circle so we are left with a corner
-            IPath cornerTopLeft = rect.Clip(new EllipsePolygon(cornerRadius - 0.5f, cornerRadius - 0.5f, cornerRadius));
-
-            // Corner is now a corner shape positions top left
-            // let's make 3 more positioned correctly, we can do that by translating the original around the center of the image.
-
-            float rightPos = imageWidth - cornerTopLeft.Bounds.Width + 1;
-            float bottomPos = imageHeight - cornerTopLeft.Bounds.Height + 1;
-
-            // Move it across the width of the image - the width of the shape
-            IPath cornerTopRight = cornerTopLeft.RotateDegree(90).Translate(rightPos, 0);
-            IPath cornerBottomLeft = cornerTopLeft.RotateDegree(-90).Translate(0, bottomPos);
-            IPath cornerBottomRight = cornerTopLeft.RotateDegree(180).Translate(rightPos, bottomPos);
-
-            return new PathCollection(cornerTopLeft, cornerBottomLeft, cornerTopRight, cornerBottomRight);
         }
 
         [RCEndpoint(false, "/userinfo", "?uid={uid}&key={keyIfNoUID}", "", "User Info", "Get some basic user info.")]

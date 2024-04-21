@@ -1,14 +1,13 @@
-﻿using Celeste.Mod.CelesteNet.Client.Components;
-using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.Helpers;
-using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Celeste.Mod.CelesteNet.Client.Components;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.Helpers;
+using Microsoft.Xna.Framework;
 
-namespace Celeste.Mod.CelesteNet.Client
-{
+namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientContext : DrawableGameComponent {
 
         public CelesteNetClient Client;
@@ -127,7 +126,7 @@ namespace Celeste.Mod.CelesteNet.Client
                 MainThreadQueue.Clear();
             }
 
-            if ((Client?.SafeDisposeTriggered ?? false) && (Client?.IsAlive ?? false)) {
+            if (Client != null && Client.SafeDisposeTriggered && (Client.IsAlive || Client.Con != null)) {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Update: Disposing client because Client.SafeDisposeTriggered");
                 Client.Dispose();
             }
@@ -159,7 +158,7 @@ namespace Celeste.Mod.CelesteNet.Client
                 return;
             }
 
-            if (Started && !(Client?.IsAlive ?? false)) {
+            if (Started && (Client == null || !Client.IsAlive)) {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Draw: Client is dead? {Client} {Client?.IsAlive}");
                 // The connection died.
                 if (CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected) {

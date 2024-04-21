@@ -58,6 +58,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public DataInternalBlob[] AvatarFragments = Dummy<DataInternalBlob>.EmptyArray;
 
+        public HashSet<CelesteNetPlayerSession> AvatarSendQueue = new HashSet<CelesteNetPlayerSession>();
+
         private readonly object RequestNextIDLock = new();
         private uint RequestNextID = 0;
 
@@ -287,12 +289,15 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     Con.Send(otherInfo);
                     blobSendsNew++;
+
+                    AvatarSendQueue.Add(other);
+                    /*
                     if (!ClientOptions.AvatarsDisabled) {
                         foreach (DataInternalBlob fragBlob in other.AvatarFragments) {
                             Con.Send(fragBlob);
                             avaSendsNew++;
                         }
-                    }
+                    }*/
                 }
 
             Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} - Done using ConLock -- blobSendsNew/avaSendsNew {blobSendsNew}/{avaSendsNew} - blobSendsOut/avaSendsOut {blobSendsOut}/{avaSendsOut} - boundSends {boundSends}");

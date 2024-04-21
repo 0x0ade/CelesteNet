@@ -29,6 +29,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             get => Active;
             set
             {
+                if (Client == null || !Client.IsReady) {
+                    Active = false;
+                    return;
+                }
                 if (Active == value)
                     return;
                 ScrolledDistance = 0f;

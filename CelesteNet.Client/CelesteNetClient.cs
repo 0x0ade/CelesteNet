@@ -16,7 +16,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetConnection Con;
         public readonly IConnectionFeature[] ConFeatures;
-        public volatile bool EndOfStream = false, SafeDisposeTriggered = false;
+        public volatile bool EndOfStream = false, SafeDisposeTriggered = false, Disposed = false;
         public ConnectionErrorCodeException LastConnectionError;
 
         private bool _IsAlive;
@@ -247,10 +247,11 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void Dispose() {
-            if (!IsAlive) {
-                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient Dispose called but not alive");
+            if (Disposed) {
+                Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient Dispose called but already disposed");
                 return;
             }
+            Disposed = true;
             IsAlive = false;
 
             lock (StartStopLock) {

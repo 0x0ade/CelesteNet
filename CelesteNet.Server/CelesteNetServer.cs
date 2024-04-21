@@ -442,6 +442,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                             }
                             ses.AvatarSendQueue.Remove(other);
                         }
+                        Logger.Log(LogLevel.DBG, "main", $"ClearAvatarQueues: Sent 10 players' avatar frags to {ses.Name}");
+
                     }
                 }
             }

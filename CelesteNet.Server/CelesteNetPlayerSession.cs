@@ -1,11 +1,11 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Monocle;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Monocle;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetPlayerSession : IDisposable {
@@ -290,7 +290,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                     Con.Send(otherInfo);
                     blobSendsNew++;
 
-                    AvatarSendQueue.Add(other);
+                    if (!ClientOptions.AvatarsDisabled)
+                        AvatarSendQueue.Add(other);
                     /*
                     if (!ClientOptions.AvatarsDisabled) {
                         foreach (DataInternalBlob fragBlob in other.AvatarFragments) {

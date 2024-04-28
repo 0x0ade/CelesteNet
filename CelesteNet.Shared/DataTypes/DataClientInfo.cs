@@ -124,9 +124,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 for (int i = 0; i < MapStrings.Length; i++) {
                     MapStrings[i] = DataClientInfo.WireData(reader.ReadNetString(), Nonce);
                     string hash = string.Concat(sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(MapStrings[i])).Select(b => string.Format("{0:x2}", b)));
-                    Logger.Log(LogLevel.VVV, "dataclientinforequest", $"{MapStrings[i]} = {hash}");
                     MapStrings[i] = Encoding.UTF8.GetString(Convert.FromBase64String(MapStrings[i]));
-                    Logger.Log(LogLevel.VVV, "dataclientinforequest", $"= {MapStrings[i]}");
                     if (all_good && hash != checksums[i])
                         all_good = false;
                 }

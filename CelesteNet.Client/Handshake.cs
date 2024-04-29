@@ -16,16 +16,23 @@ namespace Celeste.Mod.CelesteNet.Client {
             //Unbuffered "read line" implementation reading every byte one at a time
             //Extremely slow and inefficient, but otherwise we may gobble up binary packet bytes by accident :catresort:
             List<char> lineChars = new List<char>();
-            while (true) {
+            bool hitEndOfStream = false;
+
+            while (!hitEndOfStream) {
                 int b = netStream.ReadByte();
                 if (b < 0)
-                    throw new EndOfStreamException();
+                    hitEndOfStream = true;
                 else if (b == '\n')
                     break;
                 else
                     lineChars.Add((char)b);
             }
             if (lineChars.Count > 0 && lineChars[^1] == '\r') lineChars.RemoveAt(lineChars.Count - 1);
+
+            // this mimicks what the buffered StreamReader.ReadLine used to do
+            if (hitEndOfStream && lineChars.Count == 0)
+                return null;
+
             return new string(CollectionsMarshal.AsSpan(lineChars));
         }
 

@@ -1,11 +1,10 @@
-﻿using Celeste.Mod.CelesteNet.Client.Entities;
+﻿using System;
+using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 
-namespace Celeste.Mod.CelesteNet.Client.Components
-{
+namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetEmoteComponent : CelesteNetGameComponent {
 
         public Player Player;
@@ -112,6 +111,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                 Wheel.Selected = -1;
             }
 
+            if (Context.Chat == null)
+                goto End;
+
             if (!Context.Chat.Active) {
                 if (Settings.ButtonEmote1.Pressed)
                     Send(0);
@@ -136,6 +138,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             }
 
             End:
+            if (Context?.Main == null)
+                return;
+
             if (Wheel?.Shown ?? false)
                 Context.Main.StateUpdated |= Context.Main.ForceIdle.Add("EmoteWheel");
             else

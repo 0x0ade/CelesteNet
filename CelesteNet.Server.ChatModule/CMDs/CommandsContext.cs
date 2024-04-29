@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.Serialization;
-using System.Security.Permissions;
 using System.Text;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
@@ -79,7 +77,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public ChatModule Chat;
 #pragma warning restore CS8618
 
-        public List<ArgParser> ArgParsers = [];
+        public List<ArgParser> ArgParsers = new();
 
         public virtual string ID => GetType().Name.Substring(3).ToLowerInvariant();
 

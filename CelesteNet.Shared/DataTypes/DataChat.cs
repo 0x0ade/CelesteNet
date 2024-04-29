@@ -1,8 +1,7 @@
-﻿using Microsoft.Xna.Framework;
-using System;
+﻿using System;
+using Microsoft.Xna.Framework;
 
-namespace Celeste.Mod.CelesteNet.DataTypes
-{
+namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataChat : DataType<DataChat> {
 
         static DataChat() {
@@ -36,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes
                 if (value == null) {
                     Targets = null;
                 } else {
-                    Targets = [value];
+                    Targets = new DataPlayerInfo[] { value };
                 }
             }
         }

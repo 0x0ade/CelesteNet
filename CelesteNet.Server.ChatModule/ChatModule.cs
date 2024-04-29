@@ -170,7 +170,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             } else if (filterAs.HasFlag(FilterHandling.Drop)) {
                 if (msg.Player != null) {
                     // ack the message to clear Pending, but noone else will see it
-                    msg.Targets = [msg.Player];
+                    msg.Targets = new DataPlayerInfo[] { msg.Player };
                     ForceSend(msg);
                 }
                 handledAs = FilterHandling.Drop;
@@ -183,7 +183,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 } else if (!msg.Text.IsNullOrEmpty()) {
                     if (msg.Player != null) {
                         // ack the message to clear Pending, but noone else will see it
-                        msg.Targets = [msg.Player];
+                        msg.Targets = new DataPlayerInfo[] { msg.Player };
                         ForceSend(msg);
                     }
 
@@ -229,7 +229,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
             spam.OnSpam += (msg, timeout) => {
                 if (session.PlayerInfo == null)
                     return;
-                msg.Targets = [session.PlayerInfo];
+                msg.Targets = new DataPlayerInfo[] { session.PlayerInfo };
                 ForceSend(msg);
                 SendTo(session, Settings.MessageSpam, null, Settings.ColorError);
             };
@@ -345,7 +345,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 if (msg.Player != null) {
                     // Player should at least receive msg ack.
                     msg.Color = Settings.ColorCommand;
-                    msg.Targets = [msg.Player];
+                    msg.Targets = new DataPlayerInfo[] { msg.Player };
                     ForceSend(msg);
                 }
 
@@ -374,7 +374,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             if (msg.Player != null && Server.PlayersByID.TryGetValue(msg.Player.ID, out session) &&
                 Server.UserData.Load<UserChatSettings>(session.UID).AutoChannelChat) {
-                msg.Targets = [msg.Player];
+                msg.Targets = new DataPlayerInfo[] { msg.Player };
                 Commands.Get<CmdChannelChat>().ParseAndRun(new CmdEnv(this, msg));
                 return;
             }
@@ -449,7 +449,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             Logger.Log(LogLevel.INF, "chat", $"Sending to {player.PlayerInfo}: {text}");
 
-            msg.Targets = [player.PlayerInfo];
+            msg.Targets = new DataPlayerInfo[] { player.PlayerInfo };
 
             player.Con.Send(PrepareAndLog(null, msg));
             return msg;

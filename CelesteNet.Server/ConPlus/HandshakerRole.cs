@@ -1,4 +1,3 @@
-using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -10,6 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Server {
     /*
@@ -93,7 +93,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 IConnectionFeature? feature = (IConnectionFeature?) Activator.CreateInstance(type);
                 if (feature == null)
                     throw new Exception($"Cannot create instance of connection feature {type.FullName}");
-                Logger.Log(LogLevel.VVV, "handshake", $"Found connection feature: {type.FullName}");
+                Logger.Log(LogLevel.DBG, "handshake", $"Found connection feature: {type.FullName}");
                 ConFeatures.Add((type.FullName, feature));
             }
         }
@@ -135,7 +135,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                             (conFeatures, playerUID, playerName, clientOptions) = teapotRes.Value;
                     } catch {
                         if (tokenSrc.IsCancellationRequested) {
-                            Logger.Log(LogLevel.VVV, "tcpudphs", $"Handshake for connection {remoteEP} timed out, maybe an old client?");
+                            Logger.Log(LogLevel.INF, "tcpudphs", $"Handshake for connection {remoteEP} timed out, maybe an old client?");
                             sock.Dispose();
                             return;
                         }
@@ -144,7 +144,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                 }
 
                 if (conFeatures == null || playerUID.IsNullOrEmpty() || playerName.IsNullOrEmpty() || clientOptions == null) {
-                    Logger.Log(LogLevel.VVV, "tcpudphs", $"Connection from {remoteEP} failed teapot handshake");
+                    Logger.Log(LogLevel.INF, "tcpudphs", $"Connection from {remoteEP} failed teapot handshake");
                     sock.ShutdownSafe(SocketShutdown.Both);
                     sock.Close();
                     return;
@@ -216,7 +216,7 @@ The server encountered an internal error while handling the request"
                     return await Send500();
 
                 if (teapotVer != CelesteNetUtils.LoadedVersion) {
-                    Logger.Log(LogLevel.VVV, "teapot", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {CelesteNetUtils.LoadedVersion} [server]");
+                    Logger.Log(LogLevel.DBG, "teapot", $"Teapot version mismatch for connection {sock.RemoteEndPoint}: {teapotVer} [client] != {CelesteNetUtils.LoadedVersion} [server]");
                     await writer.WriteAsync(
 $@"HTTP/1.1 409 Version Mismatch
 Connection: close
@@ -252,7 +252,7 @@ Connection: close
                 if (playerName == null)
                     errorReason ??= "No name";
                 if (errorReason != null && banReason != null) {
-                    Logger.Log(LogLevel.VVV, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
+                    Logger.Log(LogLevel.INF, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
                     await writer.WriteAsync(
 $@"HTTP/1.1 401 Unauthorized
 Connection: close
@@ -263,7 +263,7 @@ Connection: close
                     return null;
                 }
                 if (errorReason != null || playerUID == null || playerName == null) {
-                    Logger.Log(LogLevel.VVV, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
+                    Logger.Log(LogLevel.INF, "teapot", $"Error authenticating name-key '{playerNameKey}' for connection {sock.RemoteEndPoint}: {errorReason}");
                     await writer.WriteAsync(
 $@"HTTP/1.1 403 Access Denied
 Connection: close

@@ -1,8 +1,8 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
+﻿using System;
+using System.Collections.Generic;
+using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 using MonoMod.Utils;
-using System;
-using System.Collections.Generic;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
     public class CmdTP : ChatCmd {
@@ -35,15 +35,15 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             DataPlayerInfo otherPlayer = other?.PlayerInfo ?? throw new CommandRunException("Invalid username or ID.");
 
             if (!env.Server.UserData.Load<TPSettings>(other.UID).Enabled)
-                throw new CommandRunException($"{otherPlayer.DisplayName} has blocked teleports.");
+                throw new CommandRunException($"{otherPlayer.FullName} has blocked teleports.");
 
             if (self.Channel != other.Channel)
-                throw new CommandRunException($"{otherPlayer.DisplayName} is in a different channel.");
+                throw new CommandRunException($"{otherPlayer.FullName} is in a different channel.");
 
             if (!env.Server.Data.TryGetBoundRef(otherPlayer, out DataPlayerState? otherState) ||
                 otherState == null ||
                 otherState.SID.IsNullOrEmpty())
-                throw new CommandRunException($"{otherPlayer.DisplayName} isn't in-game.");
+                throw new CommandRunException($"{otherPlayer.FullName} isn't in-game.");
 
             Other = other;
             OtherPlayer = otherPlayer;
@@ -56,7 +56,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
             if (self == null || Other == null || OtherPlayer == null || OtherState == null)
                 throw new InvalidOperationException("This shouldn't happen, if ArgTypePlayerSession parsed successfully...");
 
-            DataChat? msg = env.Send($"Teleporting to {OtherPlayer.DisplayName}");
+            DataChat? msg = env.Send($"Teleporting to {OtherPlayer.FullName}");
 
             self.Request<DataSession>(400,
                 (con, session) => self.WaitFor<DataPlayerFrame>(400,
@@ -92,12 +92,12 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                         state.Level != otherState.Level)
                         return false;
 
-                    msg.Text = $"Teleported to {otherPlayer.DisplayName}";
+                    msg.Text = $"Teleported to {otherPlayer.FullName}";
                     Chat.ForceSend(msg);
                     return true;
 
                 }, () => {
-                    msg.Text = $"Couldn't teleport to {otherPlayer.DisplayName} - maybe missing map?";
+                    msg.Text = $"Couldn't teleport to {otherPlayer.FullName} - maybe missing map?";
                     Chat.ForceSend(msg);
 
                     other.Request<DataMapModInfo>(1000, (con, info) => {

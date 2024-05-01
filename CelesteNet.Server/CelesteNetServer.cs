@@ -1,5 +1,4 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -10,6 +9,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetServer : IDisposable {
@@ -133,7 +133,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             PingRequestTimer = new(Settings.PingRequestInterval);
             PingRequestTimer.Elapsed += (_, _) => SendPingRequests();
 
-            AvatarSendTimer = new(Settings.HeartbeatInterval);
+            AvatarSendTimer = new(Settings.AvatarQueueInterval);
             AvatarSendTimer.Elapsed += (_, _) => ClearAvatarQueues();
         }
 
@@ -436,13 +436,13 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     if (ses.AvatarSendQueue.Count > 0) {
 
-                        foreach (CelesteNetPlayerSession other in ses.AvatarSendQueue.Take(10).ToList()) {
+                        foreach (CelesteNetPlayerSession other in ses.AvatarSendQueue.Take(Settings.AvatarQueueBatchCount).ToList()) {
                             foreach (DataInternalBlob frag in other.AvatarFragments) {
                                 ses.Con.Send(frag);
                             }
                             ses.AvatarSendQueue.Remove(other);
                         }
-                        Logger.Log(LogLevel.DBG, "main", $"ClearAvatarQueues: Sent 10 players' avatar frags to {ses.Name}");
+                        Logger.Log(LogLevel.DBG, "main", $"ClearAvatarQueues: Sent ~{Settings.AvatarQueueBatchCount} players' avatar frags to {ses.Name}");
 
                     }
                 }

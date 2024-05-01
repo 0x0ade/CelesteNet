@@ -1,8 +1,7 @@
 ﻿using Newtonsoft.Json;
 using YamlDotNet.Serialization;
 
-namespace Celeste.Mod.CelesteNet.Server
-{
+namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetServerSettings : CelesteNetServerModuleSettings {
 
         [YamlIgnore]
@@ -46,6 +45,8 @@ namespace Celeste.Mod.CelesteNet.Server
         public int MaxHeartbeatDelay { get; set; } = 20;
         public float HeartbeatInterval { get; set; } = 250f;
         public float PingRequestInterval { get; set; } = 1500f;
+        public float AvatarQueueInterval { get; set; } = 250f;
+        public int AvatarQueueBatchCount { get; set; } = 10;
 
         public string PacketDumperDirectory { get; set; } = "packetDump";
         public int PacketDumperMaxDumps { get; set; } = 64;

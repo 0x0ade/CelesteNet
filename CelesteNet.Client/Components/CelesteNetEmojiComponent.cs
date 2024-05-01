@@ -1,14 +1,15 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
-using System.Collections.Generic;
-using System.IO;
 
-namespace Celeste.Mod.CelesteNet.Client.Components
-{
+namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetEmojiComponent : CelesteNetGameComponent {
+
+        public const string AvatarMissing = ":celestenet_avatar_missing:";
 
         public class NetEmojiContent : ModContent {
 
@@ -123,12 +124,32 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                             Content.Registered.Add(asset.ID);
                             Emoji.Register(asset.ID, tex);
                             Emoji.Fill(CelesteNetClientFont.Font);
+
+                            // find the corresponding DataPlayerInfo (perhaps DataNetEmoji should hold a Ref)
+                            string[] splitID = netemoji.ID.Split('_');
+                            if (splitID.Length > 2 && uint.TryParse(splitID[2], out uint ID)
+                            && Client?.Data != null && Client.Data.TryGetRef(ID, out DataPlayerInfo player) && player != null) {
+                                // restore the avatar in case it has been set to AvatarMissing by the Filter below
+                                player.DisplayName = $":{netemoji.ID}: {player.FullName}";
+                            }
                         });
                     } catch (ObjectDisposedException) {
                         // Main thread died and queue closed, whoops.
                     }
                 }
             }
+        }
+
+        public bool Filter(CelesteNetConnection con, DataPlayerInfo info) {
+            if (info == null || Client?.Options == null || Client.Options.AvatarsDisabled)
+                return true;
+
+            // catch missing avatars - "restoring" these happens in Handle above when the avatar is fully received
+            string avatar = $"celestenet_avatar_{info.ID}_";
+            if (!Emoji.Registered.Contains(avatar)) {
+                info.DisplayName = info.DisplayName.Replace($":{avatar}:", AvatarMissing);
+            }
+            return true;
         }
 
         protected override void Dispose(bool disposing) {

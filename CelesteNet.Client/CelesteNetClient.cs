@@ -319,8 +319,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public bool Filter(CelesteNetConnection con, DataPlayerInfo info) {
-            if (info != null && Options.AvatarsDisabled)
+            if (info == null)
+                return false;
+
+            if(Options.AvatarsDisabled) {
                 info.DisplayName = info.FullName;
+            }
             return true;
         }
 

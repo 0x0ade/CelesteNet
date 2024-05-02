@@ -46,7 +46,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public Dictionary<string, string> CommandAliasLookup = new();
 
         public ChatMode Mode => Active ? ChatMode.All : Settings.ChatUI.ShowNewMessages;
-        protected Regex AvatarRegex = new Regex(@":celestenet_avatar_\d+_:", RegexOptions.Compiled);
 
         // used for hiding your own channel name
         // match anything other than main
@@ -323,11 +322,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Handle(CelesteNetConnection con, DataChat msg) {
             if (Client == null)
                 return;
-
-            if (Client.Options.AvatarsDisabled) {
-                msg.Text = AvatarRegex.Replace(msg.Text, "");
-                msg.Tag = AvatarRegex.Replace(msg.Tag, "");
-            }
 
             if (Settings.PlayerListUI.HideOwnChannelName) {
                 // don't get too eager, only replace text in ACK'd commands and server responses

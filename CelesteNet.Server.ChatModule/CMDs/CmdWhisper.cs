@@ -61,11 +61,11 @@ To enable / disable whispers being sent to you, {InvokeString}";
             DataPlayerInfo otherPlayer = other?.PlayerInfo ?? throw new CommandRunException("Invalid username or ID.");
 
             if (!env.Server.UserData.Load<ChatModule.UserChatSettings>(other.UID).Whispers)
-                throw new CommandRunException($"{otherPlayer.DisplayName} has blocked whispers.");
+                throw new CommandRunException($"{otherPlayer.FullName} has blocked whispers.");
 
             DataPlayerInfo? player = env.Player;
             if (player != null) {
-                env.Msg.Tag = $"whisper @ {otherPlayer.DisplayName}";
+                env.Msg.Tag = $"whisper @ {otherPlayer.FullName}";
                 env.Msg.Text = argMsg;
                 env.Msg.Color = Chat.Settings.ColorWhisper;
                 Chat.ForceSend(env.Msg);

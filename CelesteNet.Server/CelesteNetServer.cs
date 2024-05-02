@@ -1,7 +1,4 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using MonoMod.RuntimeDetour;
-using MonoMod.Utils;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -12,9 +9,9 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Celeste.Mod.CelesteNet.DataTypes;
 
-namespace Celeste.Mod.CelesteNet.Server
-{
+namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetServer : IDisposable {
 
         public readonly DateTime StartupTime;
@@ -44,7 +41,7 @@ namespace Celeste.Mod.CelesteNet.Server
         public readonly HashSet<CelesteNetPlayerSession> Sessions = new();
         public readonly ConcurrentDictionary<CelesteNetConnection, CelesteNetPlayerSession> PlayersByCon = new();
         public readonly ConcurrentDictionary<uint, CelesteNetPlayerSession> PlayersByID = new();
-        private readonly System.Timers.Timer HeartbeatTimer, PingRequestTimer;
+        private readonly System.Timers.Timer HeartbeatTimer, PingRequestTimer, AvatarSendTimer;
 
         public float CurrentTickRate { get; private set; }
         private float NextTickRate;
@@ -135,6 +132,9 @@ namespace Celeste.Mod.CelesteNet.Server
 
             PingRequestTimer = new(Settings.PingRequestInterval);
             PingRequestTimer.Elapsed += (_, _) => SendPingRequests();
+
+            AvatarSendTimer = new(Settings.AvatarQueueInterval);
+            AvatarSendTimer.Elapsed += (_, _) => ClearAvatarQueues();
         }
 
         private void OnModuleFileUpdate(object sender, FileSystemEventArgs args) {
@@ -186,6 +186,7 @@ namespace Celeste.Mod.CelesteNet.Server
 
             HeartbeatTimer.Start();
             PingRequestTimer.Start();
+            AvatarSendTimer.Start();
             CurrentTickRate = NextTickRate = Settings.MaxTickRate;
             ThreadPool.Scheduler.OnPreScheduling += AdjustTickRate;
 
@@ -424,6 +425,25 @@ namespace Celeste.Mod.CelesteNet.Server
 
                             break;
                         }
+                    }
+                }
+            }
+        }
+
+        private void ClearAvatarQueues() {
+            using (ConLock.R()) {
+                foreach (CelesteNetPlayerSession ses in Sessions) {
+
+                    if (ses.AvatarSendQueue.Count > 0) {
+
+                        foreach (CelesteNetPlayerSession other in ses.AvatarSendQueue.Take(Settings.AvatarQueueBatchCount).ToList()) {
+                            foreach (DataInternalBlob frag in other.AvatarFragments) {
+                                ses.Con.Send(frag);
+                            }
+                            ses.AvatarSendQueue.Remove(other);
+                        }
+                        Logger.Log(LogLevel.DBG, "main", $"ClearAvatarQueues: Sent ~{Settings.AvatarQueueBatchCount} players' avatar frags to {ses.Name}");
+
                     }
                 }
             }

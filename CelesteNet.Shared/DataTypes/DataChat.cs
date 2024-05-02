@@ -1,8 +1,7 @@
-﻿using Microsoft.Xna.Framework;
-using System;
+﻿using System;
+using Microsoft.Xna.Framework;
 
-namespace Celeste.Mod.CelesteNet.DataTypes
-{
+namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataChat : DataType<DataChat> {
 
         static DataChat() {
@@ -114,7 +113,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes
             username ??= "**SERVER**";
 
             if (TryGetSingleTarget(out DataPlayerInfo? target) && target != null)
-                username += " @ " + target.DisplayName;
+                username += " @ " + (useDisplayName ? target.DisplayName : target.FullName);
 
             string prefix = $"{id} {tag} {username}:".TrimStart();
 

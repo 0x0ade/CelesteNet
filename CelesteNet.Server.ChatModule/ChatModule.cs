@@ -220,7 +220,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
             if (!session.ClientOptions.IsReconnect) {
                 if (Settings.GreetPlayers)
-                    Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.DisplayName ?? "???"));
+                    Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.FullName ?? "???"));
                 SendTo(session, Settings.MessageMOTD);
             }
             session.SendCommandList(Commands.DataAll);
@@ -237,11 +237,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
         }
 
         private void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? lastPlayerInfo) {
-            string? displayName = lastPlayerInfo?.DisplayName;
-            if (!displayName.IsNullOrEmpty()) {
+            string? sessionName = lastPlayerInfo?.FullName;
+            if (!sessionName.IsNullOrEmpty()) {
                 string? reason = new DynamicData(session).Get<string>("leaveReason");
                 if (Settings.GreetPlayers || !string.IsNullOrEmpty(reason))
-                    Broadcast((reason ?? Settings.MessageLeave).InjectSingleValue("player", displayName));
+                    Broadcast((reason ?? Settings.MessageLeave).InjectSingleValue("player", sessionName));
             }
             session.Remove<SpamContext>(this)?.Dispose();
         }

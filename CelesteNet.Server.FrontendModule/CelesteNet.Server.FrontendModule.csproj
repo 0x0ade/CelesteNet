@@ -11,10 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="..\CelesteNet.Server.ChatModule\CelesteNet.Server.ChatModule.csproj" Private="false" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <Compile Condition="Exists('..\CelesteNet.Extras\Frontend\WSCMDsExtra.cs')" Include="..\CelesteNet.Extras\Frontend\WSCMDsExtra.cs" Link="WSCMDs\WSCMDsExtra.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 if (value == null) {
                     Targets = null;
                 } else {
-                    Targets = [value];
+                    Targets = new DataPlayerInfo[] { value };
                 }
             }
         }

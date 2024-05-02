@@ -40,7 +40,13 @@ Sends a whisper to recipient or sender of the most recent whisper.";
 
             playerSessionParam ??= new ParamPlayerSession(Chat);
 
-            bool parsedSessionID = playerSessionParam.TryParse(lastWhisperID.ToString(), env, out ICmdArg? sessionArg);
+            bool parsedSessionID = false;
+            ICmdArg? sessionArg = null;
+            try {
+                parsedSessionID = playerSessionParam.TryParse(lastWhisperID.ToString(), env, out sessionArg);
+            } catch (ParamException) {
+                // Don't let this exception through, rather throw the CommandRunException below, since it's more descriptive
+            }
 
             if (!parsedSessionID || sessionArg == null || sessionArg is not CmdArgPlayerSession arg || arg.Session == null)
                 throw new CommandRunException("The player has disconnected from the server.");

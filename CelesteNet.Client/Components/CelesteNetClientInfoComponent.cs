@@ -1,6 +1,6 @@
 ﻿/* FIXME: Warning: Only ever define this for Testing! Not for public builds!
-   Since I've been building Release builds to see full Confuser output, I can't switch this based on Debug builds
-   and we release the client itself as Debug anyways (or not?).
+   Actually as long as we build Release for official mod releases, this could be switched based
+   on DEBUG perhaps
    Conditional Attribute on DebugLog() should make it so that all calls get removed by compiler!
 */
 #define CLIENT_INFO_DEBUG_LOG

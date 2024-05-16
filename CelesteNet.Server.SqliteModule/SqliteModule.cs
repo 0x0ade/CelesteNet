@@ -1,7 +1,6 @@
 ﻿using System.IO;
 
-namespace Celeste.Mod.CelesteNet.Server.Sqlite
-{
+namespace Celeste.Mod.CelesteNet.Server.Sqlite {
     public class SqliteModule : CelesteNetServerModule<SqliteSettings> {
 
         public override void LoadSettings() {

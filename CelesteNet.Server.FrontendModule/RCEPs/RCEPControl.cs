@@ -4,20 +4,23 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text;
 using System.Threading;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat;
-using Newtonsoft.Json;
-using WebSocketSharp.Net;
-using WebSocketSharp.Server;
-using System.Runtime.Loader;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
+using Newtonsoft.Json;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using WebSocketSharp.Net;
+using WebSocketSharp.Server;
 
-namespace Celeste.Mod.CelesteNet.Server.Control
-{
+namespace Celeste.Mod.CelesteNet.Server.Control {
     public static partial class RCEndpoints {
 
         [RCEndpoint(false, "/auth", null, null, "Authenticate", "Basic POST authentication endpoint.")]
@@ -53,25 +56,26 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             string sessionkey;
             if (!key.IsNullOrEmpty() &&
                 f.Server.UserData.GetUID(key) is string uid && !uid.IsNullOrEmpty() &&
-                f.Server.UserData.TryLoad(uid, out BasicUserInfo info)) {
-                    sessionkey = "";
-                    if (info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC)) {
-                        sessionkey = f.GetNewKey(execAuth: true);
-                    } else if (info.Tags.Contains(BasicUserInfo.TAG_AUTH)) {
-                        sessionkey = f.GetNewKey();
-                    } 
-                    if (!sessionkey.IsNullOrEmpty()) {
-                        f.SetSessionAuthCookie(c, sessionkey);
-                        f.RespondJSON(c, new {
-                            Key = sessionkey,
-                            Info = string.IsNullOrEmpty(info.Discrim) || info.Discrim == "0"
-                            ? $"Welcome, {info.Name} ({uid})"
-                            : $"Welcome, {info.Name}#{info.Discrim}"
-                        });
-                        return;
-                    } else {
-                        // Fall through to "previous session" / password checks.
-                    }
+                f.Server.UserData.TryLoad(uid, out BasicUserInfo info))
+            {
+                sessionkey = "";
+                if (info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC)) {
+                    sessionkey = f.GetNewKey(execAuth: true);
+                } else if (info.Tags.Contains(BasicUserInfo.TAG_AUTH)) {
+                    sessionkey = f.GetNewKey();
+                }
+                if (!sessionkey.IsNullOrEmpty()) {
+                    f.SetSessionAuthCookie(c, sessionkey);
+                    f.RespondJSON(c, new {
+                        Key = sessionkey,
+                        Info = string.IsNullOrEmpty(info.Discrim) || info.Discrim == "0"
+                        ? $"Welcome, {info.Name} ({uid})"
+                        : $"Welcome, {info.Name}#{info.Discrim}"
+                    });
+                    return;
+                } else {
+                    // Fall through to "previous session" / password checks.
+                }
             }
 
             if (expired) {
@@ -264,10 +268,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                     PlayersByID = auth ? f.Server.PlayersByID.Count : (int?) null,
                     PlayerRefs = f.Server.Data.GetRefs<DataPlayerInfo>().Length,
 
-                    TCPDownlinkBpS = TCPRecvBpSRate, TCPDownlinkPpS = TCPRecvPpSRate,
-                    UDPDownlinkBpS = UDPRecvBpSRate, UDPDownlinkPpS = UDPRecvPpSRate,
-                    TCPUplinkBpS = TCPSendBpSRate, TCPUplinkPpS = TCPSendPpSRate,
-                    UDPUplinkBpS = UDPSendBpSRate, UDPUplinkPpS = UDPSendPpSRate,
+                    TCPDownlinkBpS = TCPRecvBpSRate,
+                    TCPDownlinkPpS = TCPRecvPpSRate,
+                    UDPDownlinkBpS = UDPRecvBpSRate,
+                    UDPDownlinkPpS = UDPRecvPpSRate,
+                    TCPUplinkBpS = TCPSendBpSRate,
+                    TCPUplinkPpS = TCPSendPpSRate,
+                    UDPUplinkBpS = UDPSendBpSRate,
+                    UDPUplinkPpS = UDPSendPpSRate,
                 });
         }
 
@@ -354,7 +362,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             if (!f.IsAuthorized(c))
                 channels = channels.Where(c => !c.IsPrivate);
             f.RespondJSON(c, channels.Select(c => new {
-                c.ID, c.Name, c.IsPrivate,
+                c.ID,
+                c.Name,
+                c.IsPrivate,
                 Players = c.Players.Select(p => p.SessionID).ToArray()
             }).ToArray());
         }
@@ -578,5 +588,131 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             }
         }
 
+
+        [RCEndpoint(true, "/processavatar", "?uid={uid}&overwrite={true|false}", "", "Re-process Avatar", "Create a 64x64 round user avatar PNG.")]
+        public static void ProcessAvatar(Frontend f, HttpRequestEventArgs c) {
+            NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
+
+            string? uid = args["uid"];
+            if (uid.IsNullOrEmpty()) {
+                c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
+                f.RespondJSON(c, new {
+                    Error = "No UID."
+                });
+                return;
+            }
+
+            Stream? data = f.Server.UserData.ReadFile(uid, "avatar.orig.png");
+
+            if (data == null) {
+                c.Response.StatusCode = (int) HttpStatusCode.NotFound;
+                f.RespondJSON(c, new {
+                    Error = "Not found."
+                });
+                return;
+            }
+
+            bool overwrite = false;
+            bool.TryParse(args["overwrite"], out overwrite);
+
+            if (!f.IsAuthorizedExec(c) && overwrite) {
+                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                f.Respond(c, "Not authorized to overwrite!");
+                return;
+            }
+
+            using (Image avatarOrig = Image.Load<Rgba32>(data))
+            using (Image avatarScale = avatarOrig.Clone(x => x.Resize(64, 64, sampler: KnownResamplers.Lanczos3)))
+            using (Image avatarFinal = avatarScale.Clone(x => x.ApplyRoundedCorners())) {
+
+                if (overwrite) {
+
+                    using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.orig.png"))
+                        avatarScale.SaveAsPng(s, new PngEncoder() { ColorType = PngColorType.RgbWithAlpha });
+
+                    using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.png"))
+                        avatarFinal.SaveAsPng(s, new PngEncoder() { ColorType = PngColorType.RgbWithAlpha });
+                }
+                using MemoryStream stream = new();
+
+                avatarFinal.SaveAsPng(stream, new PngEncoder() { ColorType = PngColorType.RgbWithAlpha });
+
+                c.Response.ContentType = "image/png";
+                f.RespondContent(c, stream);
+            }
+        }
+
+        [RCEndpoint(true, "/processallavatars", "?overwrite={true|false}", "", "Re-process all Avatar", "")]
+        public static void ProcessAllAvatars(Frontend f, HttpRequestEventArgs c) {
+            NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
+
+            if (!f.IsAuthorizedExec(c)) {
+                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                f.Respond(c, "Unauthorized!");
+                return;
+            }
+
+            bool overwrite = false;
+            bool.TryParse(args["overwrite"], out overwrite);
+
+            string[] uids = f.Server.UserData.GetRegistered();
+            foreach (string uid in uids) {
+                ImageInfo info;
+
+                using (Stream? data = f.Server.UserData.ReadFile(uid, "avatar.png")) {
+                    if (data == null)
+                        continue;
+
+                    try {
+                        info = Image.Identify(data);
+                    } catch (UnknownImageFormatException e) {
+                        Logger.Log(LogLevel.INF, "frontend", $"Could not identify avatar: {uid}");
+                        continue;
+                    }
+                }
+
+                try {
+                    if ((info?.Metadata?.TryGetPngMetadata(out var pngMetadata) ?? false) && pngMetadata.ColorType != PngColorType.RgbWithAlpha) {
+                        Logger.Log(LogLevel.INF, "frontend", $"Non-RGBA png avatar: {uid} = {pngMetadata.ColorType}");
+
+                        if (overwrite) {
+                            Logger.Log(LogLevel.INF, "frontend", $"({uid}) Attempting to re-process avatar...");
+
+                            Image avatarOrig;
+                            using (Stream? data = f.Server.UserData.ReadFile(uid, "avatar.orig.png")) {
+                                if (data == null)
+                                    continue;
+
+                                avatarOrig = Image.Load<Rgba32>(data);
+                            }
+
+                            if (avatarOrig == null)
+                                continue;
+
+                            Logger.Log(LogLevel.INF, "frontend", $"({uid}) Loaded avatar.orig.png...");
+
+                            using (Image avatarScale = avatarOrig.Clone(x => x.Resize(64, 64, sampler: KnownResamplers.Lanczos3)))
+                            using (Image avatarFinal = avatarScale.Clone(x => x.ApplyRoundedCorners())) {
+                                Logger.Log(LogLevel.INF, "frontend", $"({uid}) Processing done, saving...");
+
+                                using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.orig.png"))
+                                    avatarScale.SaveAsPng(s, new PngEncoder() { ColorType = PngColorType.RgbWithAlpha });
+
+                                Logger.Log(LogLevel.INF, "frontend", $"({uid}) Saved avatar.orig.png.");
+
+                                using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.png"))
+                                    avatarFinal.SaveAsPng(s, new PngEncoder() { ColorType = PngColorType.RgbWithAlpha });
+
+                                Logger.Log(LogLevel.INF, "frontend", $"({uid}) Saved avatar.png. ");
+                            }
+                        }
+                    }
+
+                } catch (UnknownImageFormatException e) {
+                    Logger.Log(LogLevel.INF, "frontend", $"Could not decode avatar: {uid} = {e}");
+                }
+            }
+            f.Respond(c, "Success");
+        }
     }
 }

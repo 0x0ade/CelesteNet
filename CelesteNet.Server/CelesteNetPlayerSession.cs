@@ -282,9 +282,12 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     other.Con.Send(blobPlayerInfo);
                     blobSendsOut++;
-                    foreach (DataInternalBlob fragBlob in AvatarFragments) {
-                        other.Con.Send(fragBlob);
-                        avaSendsOut++;
+
+                    if (!other.ClientOptions.AvatarsDisabled) {
+                        foreach (DataInternalBlob fragBlob in AvatarFragments) {
+                            other.Con.Send(fragBlob);
+                            avaSendsOut++;
+                        }
                     }
 
                     Con.Send(otherInfo);
@@ -292,13 +295,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     if (!ClientOptions.AvatarsDisabled)
                         AvatarSendQueue.Add(other);
-                    /*
-                    if (!ClientOptions.AvatarsDisabled) {
-                        foreach (DataInternalBlob fragBlob in other.AvatarFragments) {
-                            Con.Send(fragBlob);
-                            avaSendsNew++;
-                        }
-                    }*/
                 }
 
             Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} - Done using ConLock -- blobSendsNew/avaSendsNew {blobSendsNew}/{avaSendsNew} - blobSendsOut/avaSendsOut {blobSendsOut}/{avaSendsOut} - boundSends {boundSends}");

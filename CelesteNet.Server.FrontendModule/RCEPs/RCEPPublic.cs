@@ -1,14 +1,15 @@
-﻿using Newtonsoft.Json;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
-using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using Newtonsoft.Json;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using WebSocketSharp.Net;
 using WebSocketSharp.Server;
 
@@ -122,7 +123,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     using Stream s = client.GetAsync(
                         $"https://cdn.discordapp.com/avatars/{uid}/{userData.avatar.ToString()}.png?size=64"
                     ).Await().Content.ReadAsStreamAsync().Await();
-                    avatarOrig = Image.Load(s);
+                    avatarOrig = Image.Load<Rgba32>(s);
                 } catch {
                     using Stream s = client.GetAsync(
                         $"https://cdn.discordapp.com/embed/avatars/{((int) userData.discriminator) % 6}.png"
@@ -136,10 +137,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             using (Image avatarFinal = avatarScale.Clone(x => x.ApplyRoundedCorners().ApplyTagOverlays(f, info))) {
 
                 using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.orig.png"))
-                    avatarScale.SaveAsPng(s);
+                    avatarScale.SaveAsPng(s, new PngEncoder() { ColorType = PngColorType.RgbWithAlpha });
 
                 using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.png"))
-                    avatarFinal.SaveAsPng(s);
+                    avatarFinal.SaveAsPng(s, new PngEncoder() { ColorType = PngColorType.RgbWithAlpha });
             }
 
             c.Response.StatusCode = (int) HttpStatusCode.Redirect;

@@ -612,11 +612,20 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return;
             }
 
+            bool overwrite = false;
+            bool.TryParse(args["overwrite"], out overwrite);
+
+            if (!f.IsAuthorizedExec(c) && overwrite) {
+                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                f.Respond(c, "Not authorized to overwrite!");
+                return;
+            }
+
             using (Image avatarOrig = Image.Load<Rgba32>(data))
             using (Image avatarScale = avatarOrig.Clone(x => x.Resize(64, 64, sampler: KnownResamplers.Lanczos3)))
             using (Image avatarFinal = avatarScale.Clone(x => x.ApplyRoundedCorners())) {
 
-                if (bool.TryParse(args["overwrite"], out bool overwrite) && overwrite) {
+                if (overwrite) {
 
                     using (Stream s = f.Server.UserData.WriteFile(uid, "avatar.orig.png"))
                         avatarScale.SaveAsPng(s, new PngEncoder() { ColorType = PngColorType.RgbWithAlpha });
@@ -636,6 +645,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         [RCEndpoint(true, "/processallavatars", "?overwrite={true|false}", "", "Re-process all Avatar", "")]
         public static void ProcessAllAvatars(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
+
+            if (!f.IsAuthorizedExec(c)) {
+                c.Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                f.Respond(c, "Unauthorized!");
+                return;
+            }
 
             bool overwrite = false;
             bool.TryParse(args["overwrite"], out overwrite);

@@ -69,10 +69,10 @@ export class FrontendDOM {
       await panel.start();
     this.frontend.render();
 
-    if (panel.ep) {
+    if (typeof panel.ep === "string") {
       let refreshTimeout;
       this.frontend.sync.register("update", data => {
-        if (data !== panel.ep)
+        if (data.startsWith(panel.ep))
           return;
         console.log("update", data);
         panel.refresh();

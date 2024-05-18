@@ -187,6 +187,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected bool _Active;
         public bool Active {
             get => _Active;
+
+            // this setter does important stuff like unpause the game, remove dummy overlay, remove OnInput
+            // and should ALWAYS be run with value = false when closing chat or disposing this component...
             set {
                 var setToActive = value;
                 if (Client == null || !Client.IsReady) {
@@ -221,7 +224,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     if (Engine.Scene is Level level && level.Overlay == _DummyOverlay)
                         level.Overlay = null;
-                    
+
+                    TextInput.OnInput -= OnTextInput;
                 }
 
                 _Active = setToActive;
@@ -1188,6 +1192,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         protected override void Dispose(bool disposing) {
+            // important because of setter side-effects, see comment there
             Active = false;
 
             base.Dispose(disposing);

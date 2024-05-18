@@ -188,17 +188,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public bool Active {
             get => _Active;
             set {
+                var setToActive = value;
                 if (Client == null || !Client.IsReady) {
-                    _Active = false;
-                    return;
+                    setToActive = false;
                 }
-                if (_Active == value)
-                    return;
+
                 ScrolledDistance = 0f;
                 ScrolledFromIndex = 0;
                 SetPromptMessage(PromptMessageTypes.None);
 
-                if (value) {
+                if (setToActive) {
                     _SceneWasPaused = Engine.Scene.Paused;
                     Engine.Scene.Paused = true;
                     // If we're in a level, add a dummy overlay to prevent the pause menu from handling input.
@@ -216,13 +215,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     CursorIndex = 0;
                     UpdateCompletion(CompletionType.None);
                     Engine.Scene.Paused = _SceneWasPaused;
-                    _ConsumeInput = 2;
+                    
+                    if (setToActive != _Active)
+                        _ConsumeInput = 2;
+
                     if (Engine.Scene is Level level && level.Overlay == _DummyOverlay)
                         level.Overlay = null;
-                    TextInput.OnInput -= OnTextInput;
+                    
                 }
 
-                _Active = value;
+                _Active = setToActive;
             }
         }
 
@@ -1186,8 +1188,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         protected override void Dispose(bool disposing) {
-            if (Active)
-                Active = false;
+            Active = false;
 
             base.Dispose(disposing);
         }

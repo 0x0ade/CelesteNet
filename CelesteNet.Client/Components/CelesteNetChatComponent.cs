@@ -187,42 +187,64 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected bool _Active;
         public bool Active {
             get => _Active;
+
+            // this setter does important stuff like unpause the game, remove dummy overlay, remove OnInput
+            // and should ALWAYS be run with value = false when closing chat or disposing this component...
             set {
+                // Override set value to false when not fully connected.
+                var setToActive = value;
                 if (Client == null || !Client.IsReady) {
-                    _Active = false;
-                    return;
+                    setToActive = false;
                 }
-                if (_Active == value)
-                    return;
+
                 ScrolledDistance = 0f;
                 ScrolledFromIndex = 0;
                 SetPromptMessage(PromptMessageTypes.None);
 
-                if (value) {
-                    _SceneWasPaused = Engine.Scene.Paused;
-                    Engine.Scene.Paused = true;
-                    // If we're in a level, add a dummy overlay to prevent the pause menu from handling input.
-                    if (Engine.Scene is Level level)
-                        level.Overlay = _DummyOverlay;
-
+                // --- things that can be done always ---
+                if (setToActive) {
                     _RepeatIndex = 0;
                     _Time = 0;
-                    TextInput.OnInput += OnTextInput;
+                    CompletionHidden = CompletionHiddenBy.None;
 
                     UpdateScrollPromptControls();
-                    CompletionHidden = CompletionHiddenBy.None;
                 } else {
                     Typing = "";
                     CursorIndex = 0;
                     UpdateCompletion(CompletionType.None);
-                    Engine.Scene.Paused = _SceneWasPaused;
-                    _ConsumeInput = 2;
-                    if (Engine.Scene is Level level && level.Overlay == _DummyOverlay)
-                        level.Overlay = null;
-                    TextInput.OnInput -= OnTextInput;
                 }
 
-                _Active = value;
+                // important to e.g. not overwrite _SceneWasPaused with our own value on repeated calls
+                if (setToActive == _Active)
+                    return;
+
+                // --- things that should only happen on actual state transition of this property! ---
+                if (setToActive) {
+                    _SceneWasPaused = Engine.Scene.Paused;
+                    Engine.Scene.Paused = true;
+
+                    TextInput.OnInput += OnTextInput;
+
+                    RefreshButtonsToSuppress();
+                } else {
+                    Engine.Scene.Paused = _SceneWasPaused;
+
+                    TextInput.OnInput -= OnTextInput;
+
+                    _ConsumeInput = 2;
+                }
+
+                // deal with in-game input-eating overlay
+                if (Engine.Scene is Level level) {
+                    // If we're in a level, add a dummy overlay to prevent the pause menu from handling input.
+                    if (setToActive) {
+                        level.Overlay = _DummyOverlay;
+                    } else if (level.Overlay == _DummyOverlay) {
+                        level.Overlay = null;
+                    }
+                }
+
+                _Active = setToActive;
             }
         }
 
@@ -263,31 +285,39 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             ChatClosePressed
         }
 
-        protected List<VirtualButton> ButtonsToSuppress = new() {
-            Input.ESC,
-            Input.QuickRestart,
-
-            // apparently some people put Dash on their Enter key
-            // instead of just doing Dash i'm gonna put other binds too in case
-
-            Input.Grab,
-            Input.Jump,
-            Input.Dash,
-            Input.CrouchDash,
-
-            Input.Talk,
-            Input.Pause,
-            Input.QuickRestart,
-
-            Input.MenuConfirm,
-            Input.MenuCancel
-        };
+        protected List<VirtualButton> ButtonsToSuppress;
 
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;
             DrawOrder = 10100;
+
+            RefreshButtonsToSuppress();
+        }
+
+        public void RefreshButtonsToSuppress() {
+            // seems like we would need to do this after every time someone rebinds something,
+            // because these stop working then? So just rebuild this every time chat opens...
+            ButtonsToSuppress = new() {
+                Input.ESC,
+                Input.QuickRestart,
+
+                // apparently some people put Dash on their Enter key
+                // instead of just doing Dash i'm gonna put other binds too in case
+
+                Input.Grab,
+                Input.Jump,
+                Input.Dash,
+                Input.CrouchDash,
+
+                Input.Talk,
+                Input.Pause,
+                Input.QuickRestart,
+
+                Input.MenuConfirm,
+                Input.MenuCancel
+            };
         }
 
         public void Send(string text) {
@@ -401,19 +431,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             _Time += Engine.RawDeltaTime;
 
             Overworld overworld = Engine.Scene as Overworld;
-            bool isRebinding = Engine.Scene == null ||
+            bool isOtherInputFocused = Engine.Scene == null ||
                 Engine.Scene.Entities.FindFirst<KeyboardConfigUI>() != null ||
                 Engine.Scene.Entities.FindFirst<ButtonConfigUI>() != null ||
                 ((overworld?.Current ?? overworld?.Next) is OuiFileNaming naming && naming.UseKeyboardInput) ||
-                ((overworld?.Current ?? overworld?.Next) is UI.OuiModOptionString stringInput && stringInput.UseKeyboardInput);
+                ((overworld?.Current ?? overworld?.Next) is UI.OuiModOptionString stringInput && stringInput.UseKeyboardInput) ||
+                Engine.Scene.Entities.FindAll<TextMenu>().Exists(m => m.Items.Find(item => item is TextMenuExt.Modal m && m.Visible) != null);
+            // on the above I tried looking for "TextMenuExt.TextBox tb && tb.Typing" but somehow the TextBox isn't in the TextMenu?...
+            // but the Modal's Added() should give assign the TextBox the same Container and call Added() on it, and it should be in Items...
 
-            if (!(Engine.Scene?.Paused ?? true) || isRebinding) {
+            if (!(Engine.Scene?.Paused ?? true) || isOtherInputFocused) {
                 string typing = Typing;
                 Active = false;
                 Typing = typing;
             }
 
-            if (!Active && !isRebinding && Settings.ButtonChat.Button.Pressed) {
+            if (!Active && !isOtherInputFocused && Settings.ButtonChat.Button.Pressed) {
                 Active = true;
 
             } else if (Active) {
@@ -1186,8 +1219,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         protected override void Dispose(bool disposing) {
-            if (Active)
-                Active = false;
+            // important because of setter side-effects, see comment there
+            Active = false;
 
             base.Dispose(disposing);
         }

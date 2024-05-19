@@ -431,19 +431,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             _Time += Engine.RawDeltaTime;
 
             Overworld overworld = Engine.Scene as Overworld;
-            bool isRebinding = Engine.Scene == null ||
+            bool isOtherInputFocused = Engine.Scene == null ||
                 Engine.Scene.Entities.FindFirst<KeyboardConfigUI>() != null ||
                 Engine.Scene.Entities.FindFirst<ButtonConfigUI>() != null ||
                 ((overworld?.Current ?? overworld?.Next) is OuiFileNaming naming && naming.UseKeyboardInput) ||
-                ((overworld?.Current ?? overworld?.Next) is UI.OuiModOptionString stringInput && stringInput.UseKeyboardInput);
+                ((overworld?.Current ?? overworld?.Next) is UI.OuiModOptionString stringInput && stringInput.UseKeyboardInput) ||
+                Engine.Scene.Entities.FindAll<TextMenu>().Exists(m => m.Items.Find(item => item is TextMenuExt.Modal m && m.Visible) != null);
+            // on the above I tried looking for "TextMenuExt.TextBox tb && tb.Typing" but somehow the TextBox isn't in the TextMenu?...
+            // but the Modal's Added() should give assign the TextBox the same Container and call Added() on it, and it should be in Items...
 
-            if (!(Engine.Scene?.Paused ?? true) || isRebinding) {
+            if (!(Engine.Scene?.Paused ?? true) || isOtherInputFocused) {
                 string typing = Typing;
                 Active = false;
                 Typing = typing;
             }
 
-            if (!Active && !isRebinding && Settings.ButtonChat.Button.Pressed) {
+            if (!Active && !isOtherInputFocused && Settings.ButtonChat.Button.Pressed) {
                 Active = true;
 
             } else if (Active) {

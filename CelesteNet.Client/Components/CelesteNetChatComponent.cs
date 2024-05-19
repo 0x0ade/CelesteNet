@@ -191,6 +191,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             // this setter does important stuff like unpause the game, remove dummy overlay, remove OnInput
             // and should ALWAYS be run with value = false when closing chat or disposing this component...
             set {
+                // Override set value to false when not fully connected.
                 var setToActive = value;
                 if (Client == null || !Client.IsReady) {
                     setToActive = false;
@@ -200,32 +201,47 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ScrolledFromIndex = 0;
                 SetPromptMessage(PromptMessageTypes.None);
 
+                // --- things that can be done always ---
                 if (setToActive) {
-                    _SceneWasPaused = Engine.Scene.Paused;
-                    Engine.Scene.Paused = true;
-                    // If we're in a level, add a dummy overlay to prevent the pause menu from handling input.
-                    if (Engine.Scene is Level level)
-                        level.Overlay = _DummyOverlay;
-
                     _RepeatIndex = 0;
                     _Time = 0;
-                    TextInput.OnInput += OnTextInput;
+                    CompletionHidden = CompletionHiddenBy.None;
 
                     UpdateScrollPromptControls();
-                    CompletionHidden = CompletionHiddenBy.None;
                 } else {
                     Typing = "";
                     CursorIndex = 0;
                     UpdateCompletion(CompletionType.None);
-                    Engine.Scene.Paused = _SceneWasPaused;
-                    
-                    if (setToActive != _Active)
-                        _ConsumeInput = 2;
+                }
 
-                    if (Engine.Scene is Level level && level.Overlay == _DummyOverlay)
-                        level.Overlay = null;
+                // important to e.g. not overwrite _SceneWasPaused with our own value on repeated calls
+                if (setToActive == _Active)
+                    return;
+
+                // --- things that should only happen on actual state transition of this property! ---
+                if (setToActive) {
+                    _SceneWasPaused = Engine.Scene.Paused;
+                    Engine.Scene.Paused = true;
+
+                    TextInput.OnInput += OnTextInput;
+
+                    RefreshButtonsToSuppress();
+                } else {
+                    Engine.Scene.Paused = _SceneWasPaused;
 
                     TextInput.OnInput -= OnTextInput;
+
+                    _ConsumeInput = 2;
+                }
+
+                // deal with in-game input-eating overlay
+                if (Engine.Scene is Level level) {
+                    // If we're in a level, add a dummy overlay to prevent the pause menu from handling input.
+                    if (setToActive) {
+                        level.Overlay = _DummyOverlay;
+                    } else if (level.Overlay == _DummyOverlay) {
+                        level.Overlay = null;
+                    }
                 }
 
                 _Active = setToActive;
@@ -269,31 +285,39 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             ChatClosePressed
         }
 
-        protected List<VirtualButton> ButtonsToSuppress = new() {
-            Input.ESC,
-            Input.QuickRestart,
-
-            // apparently some people put Dash on their Enter key
-            // instead of just doing Dash i'm gonna put other binds too in case
-
-            Input.Grab,
-            Input.Jump,
-            Input.Dash,
-            Input.CrouchDash,
-
-            Input.Talk,
-            Input.Pause,
-            Input.QuickRestart,
-
-            Input.MenuConfirm,
-            Input.MenuCancel
-        };
+        protected List<VirtualButton> ButtonsToSuppress;
 
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
             UpdateOrder = 10000;
             DrawOrder = 10100;
+
+            RefreshButtonsToSuppress();
+        }
+
+        public void RefreshButtonsToSuppress() {
+            // seems like we would need to do this after every time someone rebinds something,
+            // because these stop working then? So just rebuild this every time chat opens...
+            ButtonsToSuppress = new() {
+                Input.ESC,
+                Input.QuickRestart,
+
+                // apparently some people put Dash on their Enter key
+                // instead of just doing Dash i'm gonna put other binds too in case
+
+                Input.Grab,
+                Input.Jump,
+                Input.Dash,
+                Input.CrouchDash,
+
+                Input.Talk,
+                Input.Pause,
+                Input.QuickRestart,
+
+                Input.MenuConfirm,
+                Input.MenuCancel
+            };
         }
 
         public void Send(string text) {

@@ -37,6 +37,7 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
     super(frontend);
     this.header = "Accounts";
     this.ep = "/api/userinfos?from=0&count=100000";
+    this.filteredEP = "/api/userinfosfiltered?onlyspecial=true";
     /** @type {UserInfo[]} */
     this.data = [];
 
@@ -62,13 +63,18 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
   }
 
   async update() {
-    this.data = (await fetch(this.ep).then(r => r.json())).sort((a, b) => {
-      if (!a.Name && b.Name)
-        return 1;
-      if (a.Name && !b.Name)
-        return -1;
-      return a.Name.localeCompare(b.Name);
-    });
+    if (!this.frontend.settings.accountsClutter) {
+      this.data = (await fetch(this.filteredEP).then(r => r.json()));
+    } else {
+      this.data = (await fetch(this.ep).then(r => r.json())).sort((a, b) => {
+        if (!a.Name && b.Name)
+          return 1;
+        if (a.Name && !b.Name)
+          return -1;
+        return a.Name.localeCompare(b.Name);
+      });
+    }
+
 
     // @ts-ignore
     this.list = this.data.filter(p => this.frontend.settings.accountsClutter || p.Ban || (p.Kicks && p.Kicks.length) || (p.Tags && p.Tags.length)).map(p => el => {

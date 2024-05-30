@@ -72,10 +72,14 @@ export class FrontendDOM {
     if (typeof panel.ep === "string") {
       let refreshTimeout;
       this.frontend.sync.register("update", data => {
-        if (data.startsWith(panel.ep))
-          return;
-        console.log("update", data);
-        panel.refresh();
+        /* based on panel.ep, trigger a refresh:
+            - if it starts with [data] and same length (exact match) or
+            - there's no further letter after the match, so that e.g. /userinfo wouldn't update panels with /userinfos?
+        */
+        if (data.startsWith(panel.ep) && (panel.ep.length == data.length || /[a-z]/i.test(panel.ep[data.length]))) {
+          console.log("update", data, panel.id);
+          panel.refresh();
+        }
       });
     }
   }

@@ -1,5 +1,4 @@
-namespace Celeste.Mod.CelesteNet.Server.Control
-{
+namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDTagAdd : WSCMD {
         public override bool MustAuth => true;
         public override bool MustAuthExec => true;
@@ -11,6 +10,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                 return false;
             info.Tags.Add(tag);
             Frontend.Server.UserData.Save(uid, info);
+            Frontend.TaggedUsers.Add(uid, info);
             if (tag == BasicUserInfo.TAG_AUTH || tag == BasicUserInfo.TAG_AUTH_EXEC)
                 Frontend.Server.UserData.Create(uid, true);
             return true;
@@ -28,6 +28,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                 return false;
             info.Tags.Remove(tag);
             Frontend.Server.UserData.Save(uid, info);
+            if (info.Tags.Count == 0)
+                Frontend.TaggedUsers.Remove(uid);
             return true;
         }
     }

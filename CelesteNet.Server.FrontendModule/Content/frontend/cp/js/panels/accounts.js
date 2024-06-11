@@ -2,6 +2,7 @@
 import { rd, rdom, rd$, escape$, RDOMListHelper } from "../../../js/rdom.js";
 import mdcrd from "../utils/mdcrd.js";
 import { FrontendBasicPanel } from "./basic.js";
+import { FrontendStatusPanel } from "./status.js";
 
 /**
  * @typedef {import("material-components-web")} mdc
@@ -36,37 +37,160 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
   constructor(frontend) {
     super(frontend);
     this.header = "Accounts";
-    this.ep = "/api/userinfos?from=0&count=100000";
+    this.ep = "/api/userinfos";
     this.filteredEP = "/api/userinfosfiltered?onlyspecial=true";
     /** @type {UserInfo[]} */
     this.data = [];
 
+    this.currPage = 1;
+    this.accountsPerPage = 500;
+    this.totalAccounts = 100 * this.accountsPerPage;
+
     /** @type {[string, string, () => void][]} */
     this.actions = [
       [
-        "Reload", "refresh",
+        "Filter Mode: ...",
+        "cloud_off",
+        () => {
+          this.frontend.settings.accountsFilterLocally = !this.frontend.settings.accountsFilterLocally;
+          this.frontend.settings.save();
+          this.updateActionButtons();
+          this.refresh();
+        }
+      ],
+
+      [
+        "Refresh",
+        "sync",
         () => {
           this.refresh();
         }
       ],
 
       [
-        "Toggle Clutter", this.frontend.settings.accountsClutter ? "visibility" : "visibility_off",
+        "Filter: ...",
+        "filter_alt_off",
         () => {
           this.frontend.settings.accountsClutter = !this.frontend.settings.accountsClutter;
           this.frontend.settings.save();
-          this.actions[1][1] = this.frontend.settings.accountsClutter ? "visibility" : "visibility_off";
+          this.updateActionButtons();
           this.refresh();
         }
       ]
     ];
+
+    this.updateActionButtons();
+  }
+
+  updateActionButtons() {
+    // updates icons & labels (tooltips) of the buttons
+    if (this.frontend.settings.accountsFilterLocally) {
+          // filter modes
+          this.actions[0][0] = "Filter Mode: In Browser";
+          this.actions[0][1] = "cloud_off" ;
+          // refresh / reload
+          this.actions[1][0] = "Reload All";
+          this.actions[1][1] = "update" ;
+
+    } else {
+          // filter modes
+          this.actions[0][0] = "Filter Mode: On Server";
+          this.actions[0][1] = "cloud";
+          // refresh / reload
+          this.actions[1][0] = "Refresh";
+          this.actions[1][1] = "sync";
+    }
+
+    // filter toggle
+    if (this.frontend.settings.accountsClutter) {
+          this.actions[2][0] = "Filter: Kick/Ban/Tag";
+          this.actions[2][1] = "filter_alt";
+    } else {
+          this.actions[2][0] = "Filter: Show All";
+          this.actions[2][1] = "filter_alt_off";
+    }
+  }
+
+  
+  render(el) {
+    this.updateNumbers();
+    return this.el = rd$(el || this.el)`
+    <div class="panel" ${rd.toggleClass("panelType", "panel-" + this.id)}=${true}>
+      ${el => this.renderHeader(el)}
+      ${mdcrd.progress(this.progress)}
+      ${el => this.renderInput(el)}
+      ${el => this.renderBody(el)}
+    </div>`;
+  }
+
+  renderInput(el) {
+    // Render input only once.
+    if (this.elInput)
+      return this.elInput;
+
+    this.updateNumbers();
+
+    this.elInput = rd$(el || this.elInput)`
+    <div class="panel-input">
+      ${mdcrd.textField("", "", null, () => { this.refresh(); })}
+      ${mdcrd.iconButton("Prev", "chevron_left", () => { this.prevPage(); this.refresh(); })}
+      ${el => {
+        el = rd$(el)`<span class="page-counter"></span>`;
+        el.innerHTML = this.currPage + " / " + Math.ceil(this.totalAccounts / this.accountsPerPage);
+        return el;
+      }}
+      ${mdcrd.iconButton("Next", "chevron_right", () => { this.nextPage(); this.refresh(); })}
+    </div>`;
+    
+    // tried to do a this.frontend.dom.setContext to a mdcrd.iconButton but failed because fuck all this rd jazz, I understand none of it :) ~rf
+    return this.elInput;
+  }
+
+  prevPage() {
+    if (this.currPage > 1)
+      this.currPage--;
+  }
+
+  nextPage() {
+    this.currPage++;
+  }
+
+  updateNumbers() {
+    if (this.currPage < 1)
+      this.currPage = 1;
+
+    /*
+    / ** @type {FrontendStatusPanel} * /
+    const sp = FrontendStatusPanel["instance"];
+    if (sp) {
+      let testing = sp.data["Registered"];
+      if (typeof testing === "number") {
+        this.totalAccounts = testing;
+      }
+    }*/
+
+    if (this.data)
+      this.totalAccounts = this.data.length;
+
+    if (this.totalAccounts < 1)
+      this.totalAccounts = 100 * this.accountsPerPage;
+
+    if (this.elInput) {
+      this.counter = this.elInput.getElementsByClassName("page-counter")[0];
+      this.counter.innerHTML = this.currPage + " / " + Math.ceil(this.totalAccounts / this.accountsPerPage);
+    }
+
+    this.subheader = "(" + this.totalAccounts + ")";
   }
 
   async update() {
+    if (this.currPage < 1)
+      this.currPage = 1;
+
     if (!this.frontend.settings.accountsClutter) {
       this.data = (await fetch(this.filteredEP).then(r => r.json()));
     } else {
-      this.data = (await fetch(this.ep).then(r => r.json())).sort((a, b) => {
+      this.data = (await fetch(this.ep + "?from=" + this.accountsPerPage * (this.currPage - 1) + "&count=" + this.accountsPerPage).then(r => r.json())).sort((a, b) => {
         if (!a.Name && b.Name)
           return 1;
         if (a.Name && !b.Name)
@@ -75,6 +199,9 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
       });
     }
 
+    this.updateNumbers();
+
+    this.input = this.elInput.getElementsByTagName("input")[0];
 
     // @ts-ignore
     this.list = this.data.filter(p => this.frontend.settings.accountsClutter || p.Ban || (p.Kicks && p.Kicks.length) || (p.Tags && p.Tags.length)).map(p => el => {

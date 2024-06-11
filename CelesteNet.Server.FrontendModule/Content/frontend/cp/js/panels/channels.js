@@ -78,6 +78,7 @@ export class FrontendChannelsPanel extends FrontendBasicPanel {
 
   async update() {
     this.data = await fetch(this.ep).then(r => r.json());
+    this.subheader = "(" + this.data.length + ")";
     this.rebuildList();
   }
 

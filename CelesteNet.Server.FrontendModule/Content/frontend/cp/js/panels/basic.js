@@ -18,6 +18,7 @@ export class FrontendBasicPanel {
     /** @type {string} */
     this.id = null;
     this.header = "Header";
+    this.subheader = "";
 
     /** @type {HTMLElement} */
     this.elBody = null;
@@ -89,6 +90,7 @@ export class FrontendBasicPanel {
     return this.elHeader = rd$(el || this.elHeader)`
     <h2>
       ${this.header}
+      ${el => this.renderSubheader(el)}
       ${el => {
         el = rd$(el)`<div class="actions"></div>`;
 
@@ -96,12 +98,23 @@ export class FrontendBasicPanel {
         for (let i in this.actions) {
           let action = this.actions[i];
           // @ts-ignore
-          list.add(i, mdcrd.iconButton(...action));
+          let actionEl = list.add(i, mdcrd.iconButton(...action));
+          this.frontend.dom.setTooltip(actionEl, action[0]);
         }
 
         return el;
       }}
     </h2>`;
+  }
+
+  renderSubheader(el) {
+    if (this.subheader.length > 0)
+      return this.elSubheader = rd$(el || this.elSubheader)`
+      <div class="header-small-info">
+      ${this.subheader}
+      </div>`;
+
+    return this.elSubheader = null;
   }
 
   renderBody(el) {

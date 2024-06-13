@@ -4,8 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-namespace Celeste.Mod.CelesteNet.Server
-{
+namespace Celeste.Mod.CelesteNet.Server {
     public class FileSystemUserData : UserData {
 
         public readonly object GlobalLock = new();

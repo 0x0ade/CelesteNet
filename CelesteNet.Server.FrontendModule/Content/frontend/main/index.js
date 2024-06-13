@@ -133,7 +133,12 @@ function renderUser() {
 			<a id="button-revokekey" class="button" onclick=${() => revokeKey()}>
 				<span class="button-icon"></span>
 				<span class="button-text">Revoke Key</span>
+			</a><br>
+			<a id="button-resetuserdata" class="button" onclick=${() => resetUserData()}>
+				<span class="button-icon"></span>
+				<span class="button-text">Reset Extra User Data</span>
 			</a>
+
 		</p>`);
 
 		list.end();
@@ -146,6 +151,10 @@ function deauth() {
 
 function revokeKey() {
 	fetch(`${apiroot}/revokekey?t=${Date.now()}`).then(() => window.location.reload());
+}
+
+function resetUserData() {
+	fetch(`${apiroot}/resetuserdata?t=${Date.now()}`).then(() => window.location.reload());
 }
 
 function dialog(content) {

@@ -1,9 +1,8 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Celeste.Mod.CelesteNet.DataTypes;
 
-namespace Celeste.Mod.CelesteNet.Server
-{
+namespace Celeste.Mod.CelesteNet.Server {
     public class Channels : IDisposable {
 
         public const string NameDefault = "main";
@@ -36,15 +35,28 @@ namespace Celeste.Mod.CelesteNet.Server
         }
 
         public bool SessionStartupMove(CelesteNetPlayerSession session) {
-            if (Server.UserData.TryLoad(session.UID, out LastChannelUserInfo last) &&
-                last.Name != NameDefault) {
-                (Channel curr, Channel prev) = Move(session, last.Name);
-                return curr != prev;
-            } else {
-                Default.Add(session);
-                OnMove?.Invoke(session, null, Default);
-                BroadcastList();
+            if (Server.UserData.TryLoad(session.UID, out LastChannelUserInfo last) && last.Name != NameDefault) {
+                try {
+                    (Channel curr, Channel prev) = Move(session, last.Name);
+                    return curr != prev;
+                } catch (Exception e) {
+                    if (e.GetType() == typeof(Exception)) {
+                        if (!Server.UserData.GetKey(session.UID).IsNullOrEmpty()) {
+                            // Tried to re-join invalid channel somehow, reset LastChannelUserInfo to "main" (NameDefault)
+                            Server.UserData.Save(session.UID, new LastChannelUserInfo {
+                                Name = NameDefault
+                            });
+                        }
+                        // from here, this path should fall through to end of function to properly join main
+                    } else {
+                        throw;
+                    }
+                }
             }
+
+            Default.Add(session);
+            OnMove?.Invoke(session, null, Default);
+            BroadcastList();
             return false;
         }
 

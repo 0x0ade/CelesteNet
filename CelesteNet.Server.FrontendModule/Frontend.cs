@@ -1,8 +1,4 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.Server.Chat;
-using Microsoft.AspNetCore.StaticFiles;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Dynamic;
@@ -11,6 +7,10 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Timers;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.Server.Chat;
+using Microsoft.AspNetCore.StaticFiles;
+using Newtonsoft.Json;
 using WebSocketSharp.Server;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {

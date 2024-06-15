@@ -2,8 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace Celeste.Mod.CelesteNet.Server
-{
+namespace Celeste.Mod.CelesteNet.Server {
     public abstract class UserData : IDisposable {
 
         public readonly CelesteNetServer Server;

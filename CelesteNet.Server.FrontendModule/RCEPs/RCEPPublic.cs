@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using Celeste.Mod.CelesteNet.Server.Chat;
 using Newtonsoft.Json;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
@@ -269,6 +270,39 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             f.RespondJSON(c, new {
                 Info = "Key revoked."
+            });
+        }
+
+        [RCEndpoint(false, "/resetuserdata", "?key={key}", "", "Reset User Data", "Reset/remove extra bits of info stored about the user.")]
+        public static void ResetUserData(Frontend f, HttpRequestEventArgs c) {
+            NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
+
+            string? key = args["key"];
+            if (key.IsNullOrEmpty())
+                key = f.TryGetKeyCookie(c) ?? "";
+            if (key.IsNullOrEmpty()) {
+                c.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                f.RespondJSON(c, new {
+                    Error = "Unauthorized - no key."
+                });
+                return;
+            }
+
+            string uid = f.Server.UserData.GetUID(key);
+            if (uid.IsNullOrEmpty()) {
+                c.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                f.RespondJSON(c, new {
+                    Error = "Unauthorized - invalid key."
+                });
+                return;
+            }
+
+            f.Server.UserData.Delete<LastChannelUserInfo>(uid);
+            f.Server.UserData.Delete<ChatModule.UserChatSettings>(uid);
+            f.Server.UserData.Delete<Chat.Cmd.TPSettings>(uid);
+
+            f.RespondJSON(c, new {
+                Info = "Data reset."
             });
         }
 

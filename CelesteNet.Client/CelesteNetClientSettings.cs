@@ -197,6 +197,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 #endif
         public class DebugMenu {
             [SettingSubText("modoptions_celestenetclient_devonlyhint")]
+            [SettingRange(0, 60)]
+            public int PlayerUpdateRate { get; set; } = 20;
+
+            [SettingSubText("modoptions_celestenetclient_devonlyhint")]
             public ConnectionType ConnectionType { get; set; } = ConnectionType.Auto;
 
             [SettingSubText("modoptions_celestenetclient_devonlyhint")]
@@ -214,6 +218,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         public InGameMenu InGame { get; set; } = new();
         [SettingSubMenu]
         public class InGameMenu {
+
+            [SettingSubText("modoptions_celestenetclient_velocitypredictionhint")]
+            public bool VelocityPrediction { get; set; } = true;
 
             [SettingSubText("modoptions_celestenetclient_interactionshint")]
             public bool Interactions { get; set; } = true;

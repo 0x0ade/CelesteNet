@@ -94,7 +94,6 @@ namespace Celeste.Mod.CelesteNet.Client
                 VersionString = "2.2.2"
             });
             Everest.Register(CelesteNetModule);
-
             try
             {
                 var methodRegisterMod = typeof(EverestModuleMetadata).GetMethod("RegisterMod", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -104,7 +103,6 @@ namespace Celeste.Mod.CelesteNet.Client
             {
                 Logger.LogDetailedException(ex);
             }
-
             On.Celeste.OuiMainMenu.Enter += OuiMainMenu_Enter;
         }
 

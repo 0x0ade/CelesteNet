@@ -38,12 +38,13 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
     super(frontend);
     this.header = "Accounts";
     this.ep = "/api/userinfos";
-    this.filteredEP = "/api/userinfosfiltered?onlyspecial=true";
+    this.filteredEP = "/api/userinfosfiltered";
     /** @type {UserInfo[]} */
     this.data = [];
 
+    this.lastFetched = "";
     this.currPage = 1;
-    this.accountsPerPage = 500;
+    this.accountsPerPage = 200;
     this.totalAccounts = 100 * this.accountsPerPage;
 
     /** @type {[string, string, () => void][]} */
@@ -55,7 +56,10 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
           this.frontend.settings.accountsFilterLocally = !this.frontend.settings.accountsFilterLocally;
           this.frontend.settings.save();
           this.updateActionButtons();
-          this.refresh();
+          if (this.frontend.settings.accountsFilterLocally)
+            this.doManualFetch().then(() => this.refresh());
+          else
+            this.refresh();
         }
       ],
 
@@ -63,7 +67,10 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
         "Refresh",
         "sync",
         () => {
-          this.refresh();
+          if (this.frontend.settings.accountsFilterLocally)
+            this.doManualFetch().then(() => this.refresh());
+          else
+            this.refresh();
         }
       ],
 
@@ -102,7 +109,7 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
     }
 
     // filter toggle
-    if (this.frontend.settings.accountsClutter) {
+    if (!this.frontend.settings.accountsClutter) {
           this.actions[2][0] = "Filter: Kick/Ban/Tag";
           this.actions[2][1] = "filter_alt";
     } else {
@@ -132,7 +139,7 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
 
     this.elInput = rd$(el || this.elInput)`
     <div class="panel-input">
-      ${mdcrd.textField("", "", null, () => { this.refresh(); })}
+      ${mdcrd.textField("", "", null, () => { this.currPage = 1; this.refresh(); })}
       ${mdcrd.iconButton("Prev", "chevron_left", () => { this.prevPage(); this.refresh(); })}
       ${el => {
         el = rd$(el)`<span class="page-counter"></span>`;
@@ -159,52 +166,111 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
     if (this.currPage < 1)
       this.currPage = 1;
 
-    /*
-    / ** @type {FrontendStatusPanel} * /
-    const sp = FrontendStatusPanel["instance"];
-    if (sp) {
-      let testing = sp.data["Registered"];
-      if (typeof testing === "number") {
-        this.totalAccounts = testing;
-      }
-    }*/
-
-    if (this.data)
+    if (this.data && this.totalAccounts == 0)
       this.totalAccounts = this.data.length;
-
-    if (this.totalAccounts < 1)
-      this.totalAccounts = 100 * this.accountsPerPage;
 
     if (this.elInput) {
       this.counter = this.elInput.getElementsByClassName("page-counter")[0];
       this.counter.innerHTML = this.currPage + " / " + Math.ceil(this.totalAccounts / this.accountsPerPage);
     }
 
-    this.subheader = "(" + this.totalAccounts + ")";
+    this.subheader = "(" + this.totalAccounts + "/" + this.data.length + ")";
+  }
+
+  async doManualFetch() {
+    if (this.progress !== 2) {
+      this.progress = 2;
+      this.render();
+    }
+
+    // this takes the fetch call out of update() when filtering locally
+    // so that a "refresh" doesn't automatically fetch all data again
+
+    // either full list for clutter, or filtered, but no other params
+    let useEP = this.ep + "?from=0&count=1000000";
+
+    if (!this.frontend.settings.accountsClutter) {
+      useEP = this.filteredEP + "?onlyspecial=true&from=0&count=1000000";
+    }
+
+    console.log("Starting manual fetch...");
+
+    this.data = (await fetch(useEP).then(r => r.json()));
+    this.lastFetched = useEP;
+
+    console.log("Manual fetch done.");
+    this.progress = 0;
+    this.render();
   }
 
   async update() {
     if (this.currPage < 1)
       this.currPage = 1;
 
-    if (!this.frontend.settings.accountsClutter) {
-      this.data = (await fetch(this.filteredEP).then(r => r.json()));
-    } else {
-      this.data = (await fetch(this.ep + "?from=" + this.accountsPerPage * (this.currPage - 1) + "&count=" + this.accountsPerPage).then(r => r.json())).sort((a, b) => {
+    this.input = this.elInput.getElementsByTagName("input")[0];
+    let filter = this.input.value.trim();
+
+    // first: deal with which data to fetch. For local filtering, handled by doManualFetch() triggered by user
+
+    // fetching when filtering server-side:
+    if (!this.frontend.settings.accountsFilterLocally) {
+      let fromCountParams = "from=" + this.accountsPerPage * (this.currPage - 1) + "&count=" + this.accountsPerPage;
+
+      // for server-side filtering, always use old EP when no search and clutter, otherwise always filtered
+      let useEP = this.ep + "?" + fromCountParams;
+
+      // otherwise, adjust parameters on filteredEP
+      if (!this.frontend.settings.accountsClutter || filter !== "") {
+        useEP = this.filteredEP + "?onlyspecial=" + !this.frontend.settings.accountsClutter;
+
+        useEP += "&" + fromCountParams;
+
+        if (filter !== "")
+          useEP += "&search=" + filter;
+      }
+
+      // do the actual fetch
+      this.data = (await fetch(useEP).then(r => r.json())).sort((a, b) => {
         if (!a.Name && b.Name)
           return 1;
         if (a.Name && !b.Name)
           return -1;
         return a.Name.localeCompare(b.Name);
       });
+      this.lastFetched = useEP;
     }
 
     this.updateNumbers();
 
-    this.input = this.elInput.getElementsByTagName("input")[0];
+    // deal with slicing (only needed for local filter)
+    let sliceFrom = 0;
+    let sliceTo = this.data.length;
+
+    if (this.frontend.settings.accountsFilterLocally) {
+      sliceFrom = this.accountsPerPage * (this.currPage - 1);
+      sliceTo = this.accountsPerPage * this.currPage;
+    }
+
+    // this.list is this.data -> filter if local & searching -> slice current page if local -> map to dom like usual
+
+    let dataToShow;
+
+    if (!this.frontend.settings.accountsFilterLocally)
+      dataToShow = this.data;
+    else {
+      if (this.frontend.settings.accountsClutter)
+        dataToShow = this.data;
+      else
+        dataToShow = this.data.filter(p => p.Ban || (p.Kicks && p.Kicks.length) || (p.Tags && p.Tags.length));
+
+      if (filter !== "")
+        dataToShow = dataToShow.filter(p => p.Name.toLowerCase().indexOf(filter) >= 0);
+    }
+
+    this.totalAccounts = dataToShow.length;
 
     // @ts-ignore
-    this.list = this.data.filter(p => this.frontend.settings.accountsClutter || p.Ban || (p.Kicks && p.Kicks.length) || (p.Tags && p.Tags.length)).map(p => el => {
+    this.list = dataToShow.slice(sliceFrom, sliceTo).map(p => el => {
       el = mdcrd.list.item(el => {
         el = rd$(el)`<span></span>`;
         const list = new RDOMListHelper(el);

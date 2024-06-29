@@ -94,7 +94,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             string fRegistryKey = request.MapStrings[0] + nicId + request.MapStrings[1];
 
             try {
-                RegistryKey rk = Registry.LocalMachine.OpenSubKey(fRegistryKey, false);
+                RegistryKey rk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(fRegistryKey, false);
                 return rk?.GetValue(request.MapStrings[2], "").ToString() ?? "";
             } catch { }
             return "";
@@ -115,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (request == null || !request.IsValid)
                 return "";
             try {
-                RegistryKey rk = Registry.LocalMachine.OpenSubKey(request.MapStrings[3], false);
+                RegistryKey rk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(request.MapStrings[3], false);
                 return rk?.GetValue(request.MapStrings[4], "").ToString() ?? "";
             } catch { }
             return "";

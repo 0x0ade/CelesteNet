@@ -76,7 +76,7 @@ export class FrontendDOM {
             - if it starts with [data] and same length (exact match) or
             - there's no further letter after the match, so that e.g. /userinfo wouldn't update panels with /userinfos?
         */
-        if (data.startsWith(panel.ep) && (panel.ep.length == data.length || /[a-z]/i.test(panel.ep[data.length]))) {
+        if (data.length <= panel.ep.length && panel.ep.startsWith(data) && (data.length == panel.ep.length || !/[a-z]/i.test(panel.ep[data.length]))) {
           console.log("update", data, panel.id);
           panel.refresh();
         }

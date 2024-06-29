@@ -388,6 +388,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     KickHistory? kicks = null;
                     kickHistories.TryGetValue(uid, out kicks);
 
+                    uidsSeen.Add(uid);
                     userInfos.Add(f.UserInfoToFrontend(uid, info, ban.Value, kicks, f.IsAuthorizedExec(c)));
                 }
 
@@ -403,6 +404,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     BanInfo? ban = null;
                     bans.TryGetValue(uid, out ban);
 
+                    uidsSeen.Add(uid);
                     userInfos.Add(f.UserInfoToFrontend(uid, info, ban, kicks.Value, f.IsAuthorizedExec(c)));
                 }
 

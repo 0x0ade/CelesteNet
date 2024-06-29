@@ -251,8 +251,7 @@ export class FrontendAccountsPanel extends FrontendBasicPanel {
       sliceTo = this.accountsPerPage * this.currPage;
     }
 
-    // this.list is this.data -> filter if local & searching -> slice current page if local -> map to dom like usual
-
+    // mainly for local filtering, to narrow down this.data
     let dataToShow;
 
     if (!this.frontend.settings.accountsFilterLocally)

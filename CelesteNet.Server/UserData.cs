@@ -29,8 +29,8 @@ namespace Celeste.Mod.CelesteNet.Server {
         public abstract void DeleteFile(string uid, string name);
         public abstract void Wipe(string uid);
 
-        public abstract T[] LoadRegistered<T>() where T : new();
-        public abstract T[] LoadAll<T>() where T : new();
+        public abstract Dictionary<string, T> LoadRegistered<T>() where T : new();
+        public abstract Dictionary<string, T> LoadAll<T>() where T : new();
 
         public abstract string[] GetRegistered();
         public abstract string[] GetAll();

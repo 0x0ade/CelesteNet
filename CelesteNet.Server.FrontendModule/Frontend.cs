@@ -24,6 +24,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public readonly HashSet<string> CurrentSessionKeys = new();
         public readonly HashSet<string> CurrentSessionExecKeys = new();
 
+        public readonly Dictionary<string, BasicUserInfo> TaggedUsers = new();
+
         private HttpServer? HTTPServer;
         private WebSocketServiceHost? WSHost;
 
@@ -90,6 +92,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             StatsTimer.AutoReset = true;
             StatsTimer.Elapsed += (_, _) => RCEndpoints.UpdateStats(Server);
             StatsTimer.Enabled = true;
+
+            foreach (var kvp in RefreshTaggedUserInfos()) {
+                Logger.Log(LogLevel.VVV, "frontend", $"Found tagged user: {kvp.Key} - {kvp.Value.Name} = {string.Join(", ", kvp.Value.Tags)}");
+            }
         }
 
         public override void Dispose() {
@@ -210,6 +216,26 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             BroadcastCMD(msg.Targets != null, "chat", msg.ToDetailedFrontendChat());
         }
 
+        public Dictionary<string, BasicUserInfo> RefreshTaggedUserInfos() {
+            Logger.Log(LogLevel.VVV, "frontend", "RefreshTaggedUserInfos: ");
+
+            string[] uids = Server.UserData.GetAll();
+
+            Logger.Log(LogLevel.VVV, "frontend", "RefreshTaggedUserInfos: Got UIDs");
+            TaggedUsers.Clear();
+            foreach(string uid in uids) {
+                BasicUserInfo info = Server.UserData.Load<BasicUserInfo>(uid);
+
+                if (!info.Tags.Any())
+                    continue;
+
+                TaggedUsers.Add(uid, info);
+            }
+            Logger.Log(LogLevel.VVV, "frontend", "RefreshTaggedUserInfos: Got BasicUserInfos");
+
+            return TaggedUsers;
+        }
+
         public object PlayerSessionToFrontend(CelesteNetPlayerSession p, bool auth = false, bool shorten = false) {
             
             dynamic player = new ExpandoObject();
@@ -254,6 +280,37 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
 
             return player;
+        }
+
+        public object UserInfoToFrontend(string uid, BasicUserInfo info, BanInfo? ban = null, KickHistory? kicks = null, bool authExec = false) {
+
+            dynamic user = new ExpandoObject();
+
+            user.UID = uid;
+            user.Name = info.Name;
+            user.Discrim = info.Discrim;
+            user.Tags = info.Tags;
+            user.Key = (!authExec && info.Tags.Contains(BasicUserInfo.TAG_AUTH)) || info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC) ? null : Server.UserData.GetKey(uid);
+
+            user.Ban = null;
+            if (ban != null && !ban.Reason.IsNullOrEmpty()) {
+                user.Ban = new {
+                    ban.Name,
+                    ban.Reason,
+                    From = ban.From?.ToUnixTimeMillis() ?? 0,
+                    To = ban.To?.ToUnixTimeMillis() ?? 0
+                };
+            }
+
+            user.Kicks = null;
+            if (kicks != null) {
+                user.Kicks = kicks.Log.Select(e => new {
+                    e.Reason,
+                    From = e.From?.ToUnixTimeMillis() ?? 0
+                }).ToArray();
+            }
+
+            return user;
         }
 
         private string? GetContentType(string path) {

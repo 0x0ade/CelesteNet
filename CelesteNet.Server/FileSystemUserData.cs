@@ -143,18 +143,18 @@ namespace Celeste.Mod.CelesteNet.Server {
         public override void Wipe(string uid)
             => DeleteRawAll(GetUserDir(uid));
 
-        public override T[] LoadRegistered<T>() {
+        public override Dictionary<string, T> LoadRegistered<T>() {
             lock (GlobalLock) {
-                return LoadRaw<Global>(GlobalPath).UIDs.Values.Select(uid => Load<T>(uid)).ToArray();
+                return LoadRaw<Global>(GlobalPath).UIDs.Values.ToDictionary(uid => uid, uid => Load<T>(uid));
             }
         }
 
-        public override T[] LoadAll<T>() {
+        public override Dictionary<string, T> LoadAll<T>() {
             lock (GlobalLock) {
                 if (!Directory.Exists(UserRoot))
-                    return Dummy<T>.EmptyArray;
+                    return new Dictionary<string, T>();
                 string name = GetDataFileName(typeof(T));
-                return Directory.GetDirectories(UserRoot).Select(dir => LoadRaw<T>(Path.Combine(dir, name))).ToArray();
+                return Directory.GetDirectories(UserRoot).ToDictionary(dir => dir, dir => LoadRaw<T>(Path.Combine(dir, name)));
             }
         }
 

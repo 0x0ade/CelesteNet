@@ -1,15 +1,15 @@
-﻿using Monocle;
-using System;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using FMOD.Studio;
-using MonoMod.Utils;
-using System.Collections;
 using Celeste.Mod.CelesteNet.Client.Components;
-using System.IO;
 using Celeste.Mod.CelesteNet.DataTypes;
+using FMOD.Studio;
+using Monocle;
+using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientModule : EverestModule {

@@ -23,6 +23,7 @@ export class FrontendSettings {
     this.data = Object.assign({
       sensitive: true,
       accountsClutter: false,
+      accountsFilterLocally: false
     }, this.data || {});
   }
 
@@ -53,6 +54,15 @@ export class FrontendSettings {
   }
   set accountsClutter(value) {
     this.data.accountsClutter = value;
+  }
+
+
+  /** @type {boolean} */
+  get accountsFilterLocally() {
+    return this.data.accountsFilterLocally;
+  }
+  set accountsFilterLocally(value) {
+    this.data.accountsFilterLocally = value;
   }
 
 }

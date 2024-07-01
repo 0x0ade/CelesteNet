@@ -1,6 +1,4 @@
-﻿using MessagePack;
-using Microsoft.Data.Sqlite;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -8,9 +6,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using MessagePack;
+using Microsoft.Data.Sqlite;
 
-namespace Celeste.Mod.CelesteNet.Server.Sqlite
-{
+namespace Celeste.Mod.CelesteNet.Server.Sqlite {
     public sealed class SqliteUserData : UserData {
 
         public static readonly HashSet<char> Illegal = new("`´'\"^[]\\//");
@@ -523,16 +522,16 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite
             mini.Run();
         }
 
-        public override T[] LoadRegistered<T>() {
+        public override Dictionary<string, T> LoadRegistered<T>() {
             using UserDataBatchContext batch = OpenBatch();
             string table = GetDataTable(typeof(T), false);
             if (table.IsNullOrEmpty())
-                return Dummy<T>.EmptyArray;
+                return new Dictionary<string, T>();
 
             using MiniCommand mini = new(this) {
                 SqliteOpenMode.ReadOnly,
                 @$"
-                    SELECT D.format, D.value
+                    SELECT D.uid, D.format, D.value
                     FROM [{table}] D
                     INNER JOIN meta M ON D.uid = M.uid
                     WHERE M.registered = 1;
@@ -540,63 +539,67 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite
             };
             (SqliteConnection con, SqliteCommand cmd, SqliteDataReader reader) = mini.Read();
 
-            List<T> values = new();
+            Dictionary<string, T> values = new();
             while (reader.Read()) {
-                switch ((DataFormat) reader.GetInt32(0)) {
+                string uid = reader.GetString(0);
+
+                switch ((DataFormat) reader.GetInt32(1)) {
                     case DataFormat.MessagePack:
                     default: {
-                        using Stream stream = reader.GetStream(1);
-                        values.Add(MessagePackSerializer.Deserialize<T>(stream, MessagePackHelper.Options) ?? new());
+                        using Stream stream = reader.GetStream(2);
+                        values.Add(uid, MessagePackSerializer.Deserialize<T>(stream, MessagePackHelper.Options) ?? new());
                         break;
                     }
 
                     case DataFormat.Yaml: {
-                        using Stream stream = reader.GetStream(1);
+                        using Stream stream = reader.GetStream(2);
                         using StreamReader streamReader = new(stream);
-                        values.Add(YamlHelper.Deserializer.Deserialize<T>(streamReader) ?? new());
+                        values.Add(uid, YamlHelper.Deserializer.Deserialize<T>(streamReader) ?? new());
                         break;
                     }
                 }
             }
 
-            return values.ToArray();
+            return values;
         }
 
-        public override T[] LoadAll<T>() {
+        public override Dictionary<string, T> LoadAll<T>() {
             using UserDataBatchContext batch = OpenBatch();
             string table = GetDataTable(typeof(T), false);
             if (table.IsNullOrEmpty())
-                return Dummy<T>.EmptyArray;
+                return new Dictionary<string, T>();
 
             using MiniCommand mini = new(this) {
                 SqliteOpenMode.ReadOnly,
                 @$"
-                    SELECT format, value
+                    SELECT uid, format, value
                     FROM [{table}];
                 ",
             };
             (SqliteConnection con, SqliteCommand cmd, SqliteDataReader reader) = mini.Read();
 
-            List<T> values = new();
+            Dictionary<string, T> values = new();
             while (reader.Read()) {
-                switch ((DataFormat) reader.GetInt32(0)) {
+                string uid = reader.GetString(0);
+
+                switch ((DataFormat) reader.GetInt32(1)) {
                     case DataFormat.MessagePack:
                     default: {
-                        using Stream stream = reader.GetStream(1);
-                        values.Add(MessagePackSerializer.Deserialize<T>(stream, MessagePackHelper.Options) ?? new());
+                        using Stream stream = reader.GetStream(2);
+                        values.Add(uid, MessagePackSerializer.Deserialize<T>(stream, MessagePackHelper.Options) ?? new());
                         break;
                     }
 
                     case DataFormat.Yaml: {
-                        using Stream stream = reader.GetStream(1);
+                        using Stream stream = reader.GetStream(2);
                         using StreamReader streamReader = new(stream);
-                        values.Add(YamlHelper.Deserializer.Deserialize<T>(streamReader) ?? new());
+                        values.Add(uid, YamlHelper.Deserializer.Deserialize<T>(streamReader) ?? new());
                         break;
                     }
                 }
             }
 
-            return values.ToArray();
+            return values;
         }
 
         public override string[] GetRegistered() {

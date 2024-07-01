@@ -258,7 +258,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
                     f.Server.PlayerCounter,
                     Registered = f.Server.UserData.GetRegisteredCount(),
-                    Banned = f.Server.UserData.LoadAll<BanInfo>().GroupBy(ban => ban.UID).Select(g => g.First()).Count(ban => !ban.Reason.IsNullOrEmpty()),
+                    Banned = f.Server.UserData.LoadAll<BanInfo>().Values.GroupBy(ban => ban.UID).Select(g => g.First()).Count(ban => !ban.Reason.IsNullOrEmpty()),
 
                     Connections = auth ? NumCons : (int?) null,
                     TCPConnections = auth ? NumTCPCons : (int?) null,
@@ -313,24 +313,123 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
                 BanInfo ban = f.Server.UserData.Load<BanInfo>(uid);
                 KickHistory kicks = f.Server.UserData.Load<KickHistory>(uid);
-                return new {
-                    UID = uid,
-                    info.Name,
-                    info.Discrim,
-                    info.Tags,
-                    Key = (!f.IsAuthorizedExec(c) && info.Tags.Contains(BasicUserInfo.TAG_AUTH)) || info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC) ? null : f.Server.UserData.GetKey(uid),
-                    Ban = ban.Reason.IsNullOrEmpty() ? null : new {
-                        ban.Name,
-                        ban.Reason,
-                        From = ban.From?.ToUnixTimeMillis() ?? 0,
-                        To = ban.To?.ToUnixTimeMillis() ?? 0
-                    },
-                    Kicks = kicks.Log.Select(e => new {
-                        e.Reason,
-                        From = e.From?.ToUnixTimeMillis() ?? 0
-                    }).ToArray()
-                };
+                return f.UserInfoToFrontend(uid, info, ban, kicks, f.IsAuthorizedExec(c));
             }).ToArray());
+        }
+
+        [RCEndpoint(true,
+            "/userinfosfiltered",
+            "?onlyspecial={true|false}&forcereload={true|false}&from={first}&count={count}&search={search}",
+            "?onlyspecial=true&forcereload=false&from=0&count=100&search=Red",
+            "Filtered User Infos",
+            "Get filtered user infos. 'Only special' means bans, kicks, tagged. 'Force reload' means query UserData even for Only Special.")]
+        public static void UserInfosFiltered(Frontend f, HttpRequestEventArgs c) {
+            NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
+
+            if (!bool.TryParse(args["onlyspecial"], out bool onlyspecial))
+                onlyspecial = false;
+
+            if (!bool.TryParse(args["forcereload"], out bool forcereload))
+                forcereload = false;
+
+            if (!int.TryParse(args["from"], out int from) || from <= 0)
+                from = 0;
+            if (!int.TryParse(args["count"], out int count) || count <= 0)
+                count = 100;
+
+            string? search = args["search"];
+
+            bool FilterBasicUserInfo(BasicUserInfo info) {
+                if (search.IsNullOrEmpty())
+                    return true;
+
+                if (info.Name.Contains(search, StringComparison.InvariantCultureIgnoreCase))
+                    return true;
+
+                return false;
+            }
+
+            if (onlyspecial) {
+                if (forcereload) {
+                    f.RefreshTaggedUserInfos();
+                }
+
+                Dictionary<string, BanInfo> bans = f.Server.UserData.LoadAll<BanInfo>();
+                Dictionary<string, KickHistory> kickHistories = f.Server.UserData.LoadAll<KickHistory>();
+
+                List<string> uidsSeen = new(f.TaggedUsers.Count + bans.Count + kickHistories.Count);
+                List<object> userInfos = new(f.TaggedUsers.Count + bans.Count + kickHistories.Count);
+
+                foreach (var kvp in f.TaggedUsers) {
+                    string uid = kvp.Key;
+                    BasicUserInfo info = kvp.Value;
+
+                    if (!FilterBasicUserInfo(info))
+                        continue;
+
+                    BanInfo? ban = null;
+                    bans.TryGetValue(uid, out ban);
+                    KickHistory? kicks = null;
+                    kickHistories.TryGetValue(uid, out kicks);
+
+                    uidsSeen.Add(uid);
+                    userInfos.Add(f.UserInfoToFrontend(uid, info, ban, kicks, f.IsAuthorizedExec(c)));
+                }
+
+                foreach (var ban in bans) {
+                    string uid = ban.Key;
+                    if (uidsSeen.Contains(uid))
+                        continue;
+                    BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
+
+                    if (!FilterBasicUserInfo(info))
+                        continue;
+
+                    KickHistory? kicks = null;
+                    kickHistories.TryGetValue(uid, out kicks);
+
+                    uidsSeen.Add(uid);
+                    userInfos.Add(f.UserInfoToFrontend(uid, info, ban.Value, kicks, f.IsAuthorizedExec(c)));
+                }
+
+                foreach (var kicks in kickHistories) {
+                    string uid = kicks.Key;
+                    if (uidsSeen.Contains(uid))
+                        continue;
+                    BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
+
+                    if (!FilterBasicUserInfo(info))
+                        continue;
+
+                    BanInfo? ban = null;
+                    bans.TryGetValue(uid, out ban);
+
+                    uidsSeen.Add(uid);
+                    userInfos.Add(f.UserInfoToFrontend(uid, info, ban, kicks.Value, f.IsAuthorizedExec(c)));
+                }
+
+                f.RespondJSON(c, userInfos.Skip(from).Take(count).ToArray());
+                return;
+            } else {
+                using UserDataBatchContext ctx = f.Server.UserData.OpenBatch();
+
+                string[] uids = f.Server.UserData.GetAll();
+
+                if (from + count > uids.Length)
+                    count = uids.Length - from;
+
+                f.RespondJSON(c, uids.Select(uid => {
+                    BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
+
+                    if (!FilterBasicUserInfo(info))
+                        return null;
+                    BanInfo ban = f.Server.UserData.Load<BanInfo>(uid);
+                    KickHistory kicks = f.Server.UserData.Load<KickHistory>(uid);
+                    return f.UserInfoToFrontend(uid, info, ban, kicks, f.IsAuthorizedExec(c));
+                }).Where(o => o != null).Skip(from).Take(count).ToArray());
+            }
+
+            return;
         }
 
         [RCEndpoint(false, "/players", null, null, "Player List", "Basic player list.")]

@@ -436,13 +436,19 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     if (ses.AvatarSendQueue.Count > 0) {
 
+                        foreach (CelesteNetPlayerSession other in ses.AvatarSendQueue.ToArray()) {
+                            if (!other.Alive) {
+                                ses.AvatarSendQueue.Remove(other);
+                            }
+                        }
+
                         foreach (CelesteNetPlayerSession other in ses.AvatarSendQueue.Take(Settings.AvatarQueueBatchCount).ToList()) {
                             foreach (DataInternalBlob frag in other.AvatarFragments) {
                                 ses.Con.Send(frag);
                             }
                             ses.AvatarSendQueue.Remove(other);
                         }
-                        Logger.Log(LogLevel.DBG, "main", $"ClearAvatarQueues: Sent ~{Settings.AvatarQueueBatchCount} players' avatar frags to {ses.Name}");
+                        Logger.Log(LogLevel.DBG, "main", $"ClearAvatarQueues: Sent ~{Settings.AvatarQueueBatchCount}/{ses.AvatarSendQueue.Count} players' avatar frags to {ses.Name}");
 
                     }
                 }

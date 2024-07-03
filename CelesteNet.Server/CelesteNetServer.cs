@@ -436,11 +436,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                     if (ses.AvatarSendQueue.Count > 0) {
 
-                        foreach (CelesteNetPlayerSession other in ses.AvatarSendQueue.ToArray()) {
-                            if (!other.Alive) {
-                                ses.AvatarSendQueue.Remove(other);
-                            }
-                        }
+                        ses.AvatarSendQueue.RemoveWhere(other => !other.Alive);
 
                         foreach (CelesteNetPlayerSession other in ses.AvatarSendQueue.Take(Settings.AvatarQueueBatchCount).ToList()) {
                             foreach (DataInternalBlob frag in other.AvatarFragments) {

@@ -1,8 +1,8 @@
-using System.Collections.Generic;
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System;
 
 namespace Celeste.Mod.CelesteNet.Server {
     /*
@@ -10,7 +10,7 @@ namespace Celeste.Mod.CelesteNet.Server {
     TCP polling as with port reusing. This means that we can get very good
     performance from utilizing it. It was already a topic of passionate debate
     if this should be included, but I decided to include it as the performance
-    gains are to siginficant to ignore.
+    gains are too siginficant to ignore.
     Used sources:
         epoll: https://linux.die.net/man/7/epoll
         eventfd: https://linux.die.net/man/2/eventfd
@@ -164,22 +164,31 @@ namespace Celeste.Mod.CelesteNet.Server {
             // loops and check their tokens to determine if they should exit.
             epoll_event[] evts = new epoll_event[role.Server.Settings.TCPPollMaxEvents];
             using (token.Register(() => write(CancelFD, BitConverter.GetBytes(1UL), 8)))
-            while (!token.IsCancellationRequested) {
-                // Poll the EPoll FD
-                int ret;
-                do {
-                    ret = epoll_wait(EpollFD, evts, 1, -1);
-                } while (!token.IsCancellationRequested && ret == EINTR);
-                if (ret < 0)
-                    throw new SystemException($"Couldn't poll the EPoll FD: {Marshal.GetLastWin32Error()}");
+                while (!token.IsCancellationRequested) {
+                    // Poll the EPoll FD
+                    int ret;
+                    do {
+                        ret = epoll_wait(EpollFD, evts, 1, -1);
+                        // leave both loops when token gets cancelled, jumping straight to end
+                        if (token.IsCancellationRequested)
+                            goto Cancelled;
+                    } while (ret == EINTR);
 
-                // Yield the Connections from the event
-                for (int i = 0; i < ret; i++) {
-                    int id = (int) evts[i].user;
-                    if (id != int.MaxValue)
-                        yield return ConIds[id];
+                    if (ret < 0)
+                        throw new SystemException($"Couldn't poll the EPoll FD: {Marshal.GetLastWin32Error()}");
+
+                    // Yield the Connections from the event
+                    for (int i = 0; i < ret; i++) {
+                        int id = (int) evts[i].user;
+                        if (id != int.MaxValue)
+                            if (ConIds.TryGetValue(id, out ConPlusTCPUDPConnection? conId))
+                                yield return conId!;
+                            else
+                                Logger.Log(LogLevel.WRN, "epoll", $"No ConPlusTCPUDPConnection found for id {id}, skipping event");
+                    }
                 }
-            }
+
+            Cancelled:
             // The eventfd got incremented for us to exit, so decrement it
             read(CancelFD, new byte[8], 8);
         }

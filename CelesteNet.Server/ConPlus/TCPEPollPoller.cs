@@ -190,7 +190,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                     }
                 }
 
-            Cancelled:
             // The eventfd got incremented for us to exit, so decrement it
             read(CancelFD, new byte[8], 8);
         }

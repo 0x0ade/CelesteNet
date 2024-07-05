@@ -169,10 +169,12 @@ namespace Celeste.Mod.CelesteNet.Server {
                     int ret;
                     do {
                         ret = epoll_wait(EpollFD, evts, 1, -1);
-                        // leave both loops when token gets cancelled, jumping straight to end
-                        if (token.IsCancellationRequested)
-                            goto Cancelled;
-                    } while (ret == EINTR);
+                    } while (!token.IsCancellationRequested && ret < 0 && Marshal.GetLastWin32Error() == EINTR);
+
+                    // Unsure if this the right thing to do, but if cancellation is requested just exit
+                    // regardless of whether ret might be < 0 indicating a polling error?
+                    if (token.IsCancellationRequested)
+                        break;
 
                     if (ret < 0)
                         throw new SystemException($"Couldn't poll the EPoll FD: {Marshal.GetLastWin32Error()}");

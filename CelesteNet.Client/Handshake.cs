@@ -5,36 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public static class Handshake {
-
-        private static string ReadLine(this NetworkStream netStream) {
-            //Unbuffered "read line" implementation reading every byte one at a time
-            //Extremely slow and inefficient, but otherwise we may gobble up binary packet bytes by accident :catresort:
-            List<char> lineChars = new List<char>();
-            bool hitEndOfStream = false;
-
-            while (!hitEndOfStream) {
-                int b = netStream.ReadByte();
-                if (b < 0)
-                    hitEndOfStream = true;
-                else if (b == '\n')
-                    break;
-                else
-                    lineChars.Add((char)b);
-            }
-            if (lineChars.Count > 0 && lineChars[^1] == '\r') lineChars.RemoveAt(lineChars.Count - 1);
-
-            // this mimicks what the buffered StreamReader.ReadLine used to do
-            if (hitEndOfStream && lineChars.Count == 0)
-                return null;
-
-            return new string(CollectionsMarshal.AsSpan(lineChars));
-        }
 
         // TODO MonoKickstart is so stupid, it can't even handle string.Split(char)...
         public static Tuple<uint, IConnectionFeature[], T> DoTeapotHandshake<T>(Socket sock, IConnectionFeature[] features, string nameKey, CelesteNetClientOptions options) where T : new() {
@@ -72,14 +47,14 @@ CelesteNet-PlayerNameKey: {nameKey}
             writer.Flush();
 
             // Read the "HTTP" response
-            string statusLine = netStream.ReadLine();
+            string statusLine = netStream.UnbufferedReadLine();
             string[] statusSegs = statusLine.Split(new[] { ' ' }, 3);
             if (statusSegs.Length != 3)
                 throw new InvalidDataException($"Invalid HTTP response status line: '{statusLine}'");
             int statusCode = int.Parse(statusSegs[1]);
 
             Dictionary<string, string> headers = new();
-            for (string line = netStream.ReadLine(); !string.IsNullOrEmpty(line); line = netStream.ReadLine()) {
+            for (string line = netStream.UnbufferedReadLine(); !string.IsNullOrEmpty(line); line = netStream.UnbufferedReadLine()) {
                 int split = line.IndexOf(':');
                 if (split == -1)
                     throw new InvalidDataException($"Invalid HTTP header: '{line}'");
@@ -87,7 +62,7 @@ CelesteNet-PlayerNameKey: {nameKey}
             }
 
             string content = "";
-            for (string line = netStream.ReadLine(); !string.IsNullOrEmpty(line); line = netStream.ReadLine())
+            for (string line = netStream.UnbufferedReadLine(); !string.IsNullOrEmpty(line); line = netStream.UnbufferedReadLine())
                 content += line + "\n";
 
             // Parse the "HTTP response"

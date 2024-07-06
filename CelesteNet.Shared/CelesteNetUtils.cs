@@ -1,17 +1,17 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Microsoft.Xna.Framework;
 
-namespace Celeste.Mod.CelesteNet
-{
+namespace Celeste.Mod.CelesteNet {
     public static partial class CelesteNetUtils {
 
         public const ushort Version = 2;
@@ -236,6 +236,30 @@ namespace Celeste.Mod.CelesteNet
                 default:
                     return false;
             }
+        }
+
+        public static string UnbufferedReadLine(this NetworkStream netStream) {
+            //Unbuffered "read line" implementation reading every byte one at a time
+            //Extremely slow and inefficient, but otherwise we may gobble up binary packet bytes by accident :catresort:
+            List<byte> lineChars = new List<byte>();
+            bool hitEndOfStream = false;
+
+            while (!hitEndOfStream) {
+                int b = netStream.ReadByte();
+                if (b < 0)
+                    hitEndOfStream = true;
+                else if (b == '\n')
+                    break;
+                else
+                    lineChars.Add((byte)b);
+            }
+            if (lineChars.Count > 0 && lineChars[^1] == '\r') lineChars.RemoveAt(lineChars.Count - 1);
+
+            // this mimicks what the buffered StreamReader.ReadLine used to do
+            if (hitEndOfStream && lineChars.Count == 0)
+                return null;
+
+            return Encoding.UTF8.GetString(CollectionsMarshal.AsSpan(lineChars));
         }
 
     }

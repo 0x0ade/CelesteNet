@@ -175,7 +175,6 @@ namespace Celeste.Mod.CelesteNet.Server {
             using NetworkStream netStream = new(sock, false);
             BufferedStream bufStream = new(netStream);
             try {
-                using StreamReader reader = new(bufStream, CelesteNetUtils.UTF8NoBOM, false, 1024, true);
                 using StreamWriter writer = new(bufStream, CelesteNetUtils.UTF8NoBOM, 1024, true);
                 async Task<(IConnectionFeature[], string, string, CelesteNetClientOptions)?> Send500() {
                     await writer.WriteAsync(
@@ -189,7 +188,7 @@ The server encountered an internal error while handling the request"
                 }
 
                 // Parse the "HTTP" request line
-                string? reqLine = await reader.ReadLineAsync();
+                string? reqLine = netStream.UnbufferedReadLine();
                 if (reqLine == null)
                     return await Send500();
 
@@ -203,7 +202,7 @@ The server encountered an internal error while handling the request"
 
                 // Parse the headers
                 Dictionary<string, string> headers = new();
-                for (string? line = await reader.ReadLineAsync(); !string.IsNullOrEmpty(line); line = await reader.ReadLineAsync()) {
+                for (string? line = netStream.UnbufferedReadLine(); !string.IsNullOrEmpty(line); line = netStream.UnbufferedReadLine()) {
                     int split = line.IndexOf(':');
                     if (split == -1)
                         return await Send500();
@@ -346,6 +345,10 @@ Who wants some tea?"
                 );
 
                 return (matchedFeats.Select(f => f.feature).ToArray(), playerUID, playerName, clientOptions);
+            } catch (NotSupportedException) {
+                // just catch and log this because apparently the StreamWriter inside the try-block can _also_
+                // attempt to flush the buffered stream when being disposed
+                Logger.Log(LogLevel.WRN, "teapot", $"Failed handshake threw NotSupportedException");
             } finally {
                 // We must try-catch buffered stream disposes as those will try to flush.
                 // If a network stream was torn down out of our control, it will throw!
@@ -354,6 +357,7 @@ Who wants some tea?"
                 } catch {
                 }
             }
+            return null;
         }
 
         public async Task DoConnectionHandshake(CelesteNetConnection con, IConnectionFeature[] features) {

@@ -23,9 +23,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                 // TODO: We have a lot of things in the server that throw Exceptions to indicate we can't properly run,
                 // we should perhaps convert those to Trace.Assert?
                 Trace.Assert(cmd is not null, $"Cannot create instance of CMD {type.FullName}");
-                Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd!.ID.ToLowerInvariant()} ({type.FullName}, {cmd.Completion})");
+                Logger.Log(LogLevel.VVV, "chatcmds", $"Found command: {cmd!.ID} ({type.FullName}, {cmd.Completion})");
                 All.Add(cmd);
-                ByID[cmd.ID.ToLowerInvariant()] = cmd;
+                ByID[cmd.ID] = cmd;
                 ByType[type] = cmd;
             }
             DataAll.List = new CommandInfo[All.Count];
@@ -42,14 +42,14 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                     ByType.TryGetValue(cmdBase, out aliasTo);
 
                 if (aliasTo != null)
-                    Logger.Log(LogLevel.VVV, "chatcmds", $"Command: {cmd.ID.ToLowerInvariant()} is {(cmd.InternalAliasing ? "internal alias" : "alias")} of {aliasTo.ID.ToLowerInvariant()}");
+                    Logger.Log(LogLevel.VVV, "chatcmds", $"Command: {cmd.ID} is {(cmd.InternalAliasing ? "internal alias" : "alias")} of {aliasTo.ID}");
 
                 DataAll.List[i++] = new CommandInfo() {
                     ID = cmd.ID,
                     Auth = cmd.MustAuth,
                     AuthExec = cmd.MustAuthExec,
                     FirstArg = cmd.Completion,
-                    AliasTo = cmd.InternalAliasing ? "" : aliasTo?.ID.ToLowerInvariant() ?? ""
+                    AliasTo = cmd.InternalAliasing ? "" : aliasTo?.ID ?? ""
                 };
             }
 
@@ -238,7 +238,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public string FullText => Msg.Text;
         public string Text {
             get {
-                if (Cmd == null || !Msg.Text.StartsWith(Cmd.InvokeString)) {
+                if (Cmd == null || !Msg.Text.ToLowerInvariant().StartsWith(Cmd.InvokeString)) {
                     return Msg.Text;
                 } else {
                     return Msg.Text.Substring(Cmd.InvokeString.Length);

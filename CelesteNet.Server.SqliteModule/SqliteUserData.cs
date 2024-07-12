@@ -36,6 +36,9 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
             _userDataRoot = userDataRoot;
             _dbName = dbName;
 
+            if (!Directory.Exists(UserDataRoot))
+                Directory.CreateDirectory(UserDataRoot);
+
             if (!File.Exists(DBPath)) {
                 using MiniCommand mini = new(this) {
                     SqliteOpenMode.ReadWriteCreate,

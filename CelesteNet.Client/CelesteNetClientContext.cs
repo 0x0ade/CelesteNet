@@ -23,9 +23,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
         protected List<Action> MainThreadQueue = new();
 
-        private bool Started;
         private bool Reconnecting;
         public bool Succeeded;
+        public bool Failed;
 
         public readonly bool IsReconnect;
 
@@ -106,9 +106,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return;
             }
 
-            Started = true;
+            try {
+                Client.Start(token);
+            } catch {
+                Failed = true;
+                throw;
+            }
 
-            Client.Start(token);
             foreach (CelesteNetGameComponent component in Components.Values)
                 component.Start();
 
@@ -158,17 +162,18 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return;
             }
 
-            if (Started && (Client == null || !Client.IsAlive)) {
+            if ((Succeeded || Failed) && (Client == null || !Client.IsAlive)) {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Draw: Client is dead? {Client} {Client?.IsAlive}");
                 // The connection died.
                 if (CelesteNetClientModule.Settings.AutoReconnect && CelesteNetClientModule.Settings.WantsToBeConnected) {
                     if (!Reconnecting) {
                         Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Draw: Initiating auto-reconnect");
                         Reconnecting = true;
+                        Failed = false;
                         // FIXME: Make sure that nothing tries to make use of the dead connection until the restart.
                         if (Status.Spin)
                             Status.Set("Disconnected", 3f, false);
-                        QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 2D, () => {
+                        QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 1D, () => {
                             if (CelesteNetClientModule.Instance.Context == this) {
                                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext - QueueTask: Calling instance Start");
                                 CelesteNetClientModule.Instance.Start();

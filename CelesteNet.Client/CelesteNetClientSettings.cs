@@ -39,10 +39,20 @@ namespace Celeste.Mod.CelesteNet.Client {
             set {
                 WantsToBeConnected = value;
 
-                if (value && !Connected)
-                    CelesteNetClientModule.Instance.Start();
-                else if (!value && Connected)
-                    CelesteNetClientModule.Instance.Stop();
+                if (CelesteNetClientModule.Instance.MayReconnect) {
+                    // these only happen when "may reconnect" to
+                    // (a) not allow spamming connect attempts
+                    // (b) not "accidentally" cancel a delayed connection attempt
+                    // (on-going auto-reconnects still check WantsToBeConnected separately)
+                    if (value && !Connected) {
+                        CelesteNetClientModule.Instance.Start();
+                    }
+                    else if (!value && Connected)
+                        CelesteNetClientModule.Instance.Stop();
+                }
+
+                if (value && !CelesteNetClientModule.Instance.MayReconnect && !(CelesteNetClientModule.Instance.Client?.IsAlive ?? false))
+                    CelesteNetClientModule.Instance.Context?.Status?.Set("Reconnect delayed...", 3f, false, false);
 
                 if (!value && EnabledEntry != null && Engine.Scene != null)
                     Engine.Scene.OnEndOfFrame += () => EnabledEntry?.LeftPressed();

@@ -1,9 +1,9 @@
-﻿using Celeste.Mod.CelesteNet.Client.Components;
+﻿using System;
+using System.Linq;
+using Celeste.Mod.CelesteNet.Client.Components;
 using Celeste.Mod.UI;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
-using System;
-using System.Linq;
 using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -21,7 +21,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public int Version {
             get => SettingsVersionDoNotEdit;
             set {
-                if (SettingsVersionDoNotEdit < value && value <= SettingsVersionCurrent)
+                if (SettingsVersionDoNotEdit <= value && value <= SettingsVersionCurrent)
                     SettingsVersionDoNotEdit = value;
                 else
                     Logger.LogDetailed(LogLevel.WRN, "CelesteNetClientSettings", $"Attempt to change Settings.Version from {SettingsVersionDoNotEdit} to {value} which is not allowed!");

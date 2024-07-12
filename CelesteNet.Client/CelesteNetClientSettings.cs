@@ -56,6 +56,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                     ExtraServersEntry.Disabled = value;
                 if (ResetGeneralButton != null)
                     ResetGeneralButton.Disabled = value;
+                if (ConnectLocallyButton != null)
+                    ConnectLocallyButton.Disabled = value;
             }
         }
         [SettingIgnore, YamlIgnore]
@@ -182,6 +184,11 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         [SettingIgnore, YamlIgnore]
         public uint InstanceID { get; set; } = 0;
+
+        [SettingIgnore, YamlIgnore]
+        public TextMenu.Button ConnectLocallyButton { get; protected set; }
+        [SettingIgnore, YamlIgnore]
+        public string HostOverride { get; set; } = "";
 
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ResetGeneralButton { get; protected set; }
@@ -925,9 +932,19 @@ namespace Celeste.Mod.CelesteNet.Client {
                 AutoReconnect = true;
                 ReceivePlayerAvatars = true;
                 ClientID = GenerateClientID();
+                HostOverride = "";
             });
             ResetGeneralButton.AddDescription(menu, "modoptions_celestenetclient_resetgeneralhint".DialogClean());
             ResetGeneralButton.Disabled = Connected;
+        }
+
+        public void CreateConnectLocallyButtonEntry(TextMenu menu, bool inGame) {
+            ConnectLocallyButton = CreateMenuButton(menu, "CONNECTLOCALLY", null, () => {
+                HostOverride = "localhost";
+                Connected = true;
+            });
+            ConnectLocallyButton.AddDescription(menu, "modoptions_celestenetclient_connectlocallyhint".DialogClean());
+            ConnectLocallyButton.Disabled = Connected;
         }
 
         public void CreateAutoReconnectEntry(TextMenu menu, bool inGame) {

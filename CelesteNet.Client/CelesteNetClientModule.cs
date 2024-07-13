@@ -335,7 +335,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             } else if (++ReconnectWaitRepetitions > FastReconnectPenaltyAfter || ReconnectWaitTime == FastReconnectPenaltyInitial) {
                 // increasing penalty after N tries, reset counter
                 if (ReconnectWaitTime < FastReconnectPenaltyMax)
-                    ReconnectWaitTime += FastReconnectPenalty;
+                    ReconnectWaitTime += FastReconnectPenalty + Calc.Random.Next(FastReconnectPenalty);
                 else
                     ReconnectWaitTime = FastReconnectPenaltyMax;
                 ReconnectWaitRepetitions = 0;
@@ -376,7 +376,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (ReconnectWaitTime == 0) {
                 Logger.Log(LogLevel.DBG, "reconnect-attempt", $"CelesteNetClientModule Start: Setting initial reconnect delay from {ReconnectWaitTime} seconds to {FastReconnectPenaltyInitial}... (started {ReconnectDelayingSince})");
                 ReconnectDelayingSince = DateTime.UtcNow;
-                ReconnectWaitTime = FastReconnectPenaltyInitial;
+                ReconnectWaitTime = FastReconnectPenaltyInitial + Calc.Random.Next(FastReconnectPenaltyInitial);
             }
 
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: Creating StartThread...");

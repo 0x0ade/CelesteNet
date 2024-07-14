@@ -100,7 +100,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             => ToString(true, false);
 
 
-        public string ToString(bool useDisplayName, bool withID) {
+        public string ToString(bool useDisplayName, bool withID, bool withSessID = false) {
             string id = "";
             if (withID)
                 id = $"{{{ID}v{Version}}}";
@@ -110,6 +110,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 tag = $"[{Tag}]";
 
             string? username = useDisplayName ? Player?.DisplayName : Player?.FullName;
+            if (withSessID && Player != null)
+                username = $"(#{Player.ID}) {username}";
             username ??= "**SERVER**";
 
             if (TryGetSingleTarget(out DataPlayerInfo? target) && target != null)

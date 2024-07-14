@@ -276,9 +276,10 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     return null;
 
                 bool isGlobalChat = !Server.UserData.Load<UserChatSettings>(session.UID).AutoChannelChat;
+                bool isCommand = msg.Text.StartsWith(Settings.CommandPrefix);
 
                 // word filtering for command invocations will be done within the commands
-                if (!msg.Text.StartsWith(Settings.CommandPrefix) && (isGlobalChat || !Settings.FilterOnlyGlobalAndMainChat)) {
+                if (!isCommand && (isGlobalChat || !Settings.FilterOnlyGlobalAndMainChat)) {
                     if (ApplyFilterHandling(session, msg) != FilterHandling.None)
                         return null;
                 }
@@ -287,6 +288,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     Logger.Log(LogLevel.DEV, "word-filter", $"Resetting warnedOnceFor for {session}.");
                     new DynamicData(session).Set("warnedOnceFor", null);
                 }
+
+                Logger.Log(LogLevel.INF, isCommand ? "chatcmd" : (isGlobalChat ? "chatmsg" : "chatetc"), msg.ToString(false, true, true));
 
             } else if (msg.Player != null && (msg.Targets == null || msg.Targets.Length > 0)) {
                 /* This condition matches messages created by server but with a valid Player:
@@ -318,9 +321,6 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 ChatLog[msg.ID] = msg;
                 ChatBuffer.Set(msg).Move(1);
             }
-
-            if (!msg.CreatedByServer)
-                Logger.Log(LogLevel.INF, "chatmsg", msg.ToString(false, true));
 
             if (invokeReceive)
                 OnReceive?.Invoke(this, msg);
@@ -459,7 +459,9 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
 
         public void ForceSend(DataChat msg) {
             msg.Version++;
-            Logger.Log(LogLevel.INF, "chatupd", msg.ToString(false, true));
+
+            bool isGlobal = msg.Targets == null || msg.Targets.Length == 0;
+            Logger.Log(LogLevel.INF, isGlobal ? "chatmsg" : "chatupd", msg.ToString(false, true, true));
             OnForceSend?.Invoke(this, msg);
 
             if (msg.Targets == null) {

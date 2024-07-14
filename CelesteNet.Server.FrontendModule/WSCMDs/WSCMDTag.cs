@@ -10,7 +10,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return false;
             info.Tags.Add(tag);
             Frontend.Server.UserData.Save(uid, info);
-            Frontend.TaggedUsers.Add(uid, info);
+            Frontend.TaggedUsers[uid] = info;
             if (tag == BasicUserInfo.TAG_AUTH || tag == BasicUserInfo.TAG_AUTH_EXEC)
                 Frontend.Server.UserData.Create(uid, true);
             return true;

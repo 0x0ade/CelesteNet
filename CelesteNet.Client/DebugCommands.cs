@@ -7,7 +7,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public static void Con(string server) {
             CelesteNetClientModule.Settings.Connected = false;
             if (!string.IsNullOrWhiteSpace(server)) {
-                CelesteNetClientModule.Settings.HostOverride = server;
+                CelesteNetClientModule.Settings.ServerOverride = server;
             }
             CelesteNetClientModule.Settings.Connected = true;
         }

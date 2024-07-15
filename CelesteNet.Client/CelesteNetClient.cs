@@ -7,6 +7,9 @@ using System.Threading;
 using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Client {
+
+    using cIDSendMode = CelesteNetClientSettings.ClientIDSendMode;
+
     public class CelesteNetClient : IDisposable {
 
         public readonly CelesteNetClientSettings Settings;
@@ -51,6 +54,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             Options.ClientID = Settings.ClientID;
             Options.InstanceID = Settings.InstanceID;
 
+            bool isServerLocalhost = Settings.Host == "localhost" || Settings.Host == "127.0.0.1";
+
+            if (Settings.ClientIDSending == cIDSendMode.Off || (Settings.ClientIDSending == cIDSendMode.NotOnLocalhost && isServerLocalhost))
+                Options.ClientID = 0;
+
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient created");
 
             Data = new();
@@ -92,27 +100,11 @@ namespace Celeste.Mod.CelesteNet.Client {
                 }
                 Logger.Log(LogLevel.CRI, "main", $"Startup");
 
-                string host = Settings.Host;
-                int port = Settings.Port;
-                bool isHostOverride = !Settings.HostOverride.IsNullOrEmpty();
-
-                // Allow usage of Settings.HostOverride property to override Settings.Server temporarily (not saved)
-                // currently only used for "connect locally" button (Nucleus etc.)
-                if (isHostOverride) {
-                    host = Settings.HostOverride.ToLowerInvariant();
-                    port = 17230;
-                    int indexOfPort = host.LastIndexOf(':');
-                    if (indexOfPort != -1 && int.TryParse(host.Substring(indexOfPort + 1), out int portParsed)) {
-                        host = host.Substring(0, indexOfPort);
-                        port = portParsed;
-                    }
-                }
-
                 switch (Settings.Debug.ConnectionType) {
                     case ConnectionType.Auto:
                     case ConnectionType.TCPUDP:
                     case ConnectionType.TCP:
-                        Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {host}:{port}");
+                        Logger.Log(LogLevel.INF, "main", $"Connecting via TCP/UDP to {Settings.Host}:{Settings.Port}");
 
                         // Create a TCP connection
                         // The socket connection code is roughly based off of the TCPClient reference source.
@@ -138,7 +130,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 }
                             })) {
                                 Exception sockEx = null;
-                                IPAddress[] addresses = Dns.GetHostAddresses(host);
+                                IPAddress[] addresses = Dns.GetHostAddresses(Settings.Host);
                                 Tuple<uint, IConnectionFeature[], CelesteNetTCPUDPConnection.Settings> teapotRes = null;
 
                                 foreach (Socket sockTry in sockAll)
@@ -155,7 +147,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                         try {
                                             sock = sockTry;
                                             sock.ReceiveTimeout = sock.SendTimeout = 2000;
-                                            sock.Connect(address, port);
+                                            sock.Connect(address, Settings.Port);
 
                                             LastConnectionError = sockEx as ConnectionErrorCodeException;
 
@@ -190,14 +182,14 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                                 if (sock == null || teapotRes == null) {
                                     if (sockEx == null) {
-                                        throw new Exception($"Failed to connect to {host}:{port}, didn't find any connectable address, no exception (was any address even tried?)");
+                                        throw new Exception($"Failed to connect to {Settings.Host}:{Settings.Port}, didn't find any connectable address, no exception (was any address even tried?)");
                                     }
                                     if (sockEx is SocketException sockExSock) {
                                         if (sockExSock.SocketErrorCode == SocketError.WouldBlock || sockExSock.SocketErrorCode == SocketError.TimedOut) {
-                                            throw new Exception($"Failed to connect to {host}:{port}, didn't find any connectable address, last tried address timed out");
+                                            throw new Exception($"Failed to connect to {Settings.Host}:{Settings.Port}, didn't find any connectable address, last tried address timed out");
                                         }
                                     }
-                                    throw new Exception($"Failed to connect to {host}:{port}, didn't find any connectable address", sockEx);
+                                    throw new Exception($"Failed to connect to {Settings.Host}:{Settings.Port}, didn't find any connectable address", sockEx);
                                 }
 
                                 // Process the teapot handshake

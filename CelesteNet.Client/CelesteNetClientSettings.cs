@@ -79,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 #endif
         [SettingSubText("modoptions_celestenetclient_devonlyhint")]
         public string Server {
-            get => _Server;
+            get => ServerOverride.IsNullOrEmpty() ? _Server : ServerOverride;
             set {
                 if (_Server == value)
                     return;
@@ -91,6 +91,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
         private string _Server = DefaultServer;
+
+        // Any non-empty string will override Server property temporarily. (setting not saved)
+        // Currently only used for "connect locally" button (for Nucleus etc.)
+        [SettingIgnore, YamlIgnore]
+        public string ServerOverride { get; set; } = "";
 
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ServerEntry { get; protected set; }
@@ -185,10 +190,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public uint InstanceID { get; set; } = 0;
 
+        public ClientIDSendMode ClientIDSending { get; set; } = ClientIDSendMode.NotOnLocalhost;
+
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ConnectLocallyButton { get; protected set; }
-        [SettingIgnore, YamlIgnore]
-        public string HostOverride { get; set; } = "";
 
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ResetGeneralButton { get; protected set; }
@@ -932,7 +937,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 AutoReconnect = true;
                 ReceivePlayerAvatars = true;
                 ClientID = GenerateClientID();
-                HostOverride = "";
+                ServerOverride = "";
             });
             ResetGeneralButton.AddDescription(menu, "modoptions_celestenetclient_resetgeneralhint".DialogClean());
             ResetGeneralButton.Disabled = Connected;
@@ -940,7 +945,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateConnectLocallyButtonEntry(TextMenu menu, bool inGame) {
             ConnectLocallyButton = CreateMenuButton(menu, "CONNECTLOCALLY", null, () => {
-                HostOverride = "localhost";
+                ServerOverride = "localhost";
                 Connected = true;
             });
             ConnectLocallyButton.AddDescription(menu, "modoptions_celestenetclient_connectlocallyhint".DialogClean());
@@ -993,6 +998,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             InvalidLength,
             InvalidChars,
             InvalidKey
+        }
+
+        public enum ClientIDSendMode {
+            Off = 0,
+            NotOnLocalhost = 1,
+            On = 2
         }
     }
 

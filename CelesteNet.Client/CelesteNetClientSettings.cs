@@ -190,6 +190,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public uint InstanceID { get; set; } = 0;
 
+        [SettingIgnore]
         public ClientIDSendMode ClientIDSending { get; set; } = ClientIDSendMode.NotOnLocalhost;
 
         [SettingIgnore, YamlIgnore]

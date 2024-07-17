@@ -255,7 +255,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             playerInfo.Meta = playerInfo.GenerateMeta(Server.Data);
             Server.Data.SetRef(playerInfo);
 
-            Logger.Log(LogLevel.INF, "playersession", $"Session #{SessionID} PlayerInfo: {playerInfo}");
+            Logger.Log(LogLevel.INF, "playersession", $"Session #{SessionID} PlayerInfo: {playerInfo} (UID: {UID}; Con: {Con.UID})");
             Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond}");
 
             // Send packets to players
@@ -437,7 +437,7 @@ namespace Celeste.Mod.CelesteNet.Server {
             if (Interlocked.Exchange(ref _Alive, 0) <= 0)
                 return;
 
-            Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{SessionID} {Con}");
+            Logger.Log(LogLevel.INF, "playersession", $"Shutdown #{SessionID} {Con} (Session UID: {UID}; PlayerInfo: {PlayerInfo})");
 
             DataPlayerInfo? playerInfoLast = PlayerInfo;
 

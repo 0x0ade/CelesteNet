@@ -125,7 +125,17 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             ModulesFSWatcher.EnableRaisingEvents = true;
 
-            ThreadPool = new((Settings.NetPlusThreadPoolThreads <= 0) ? Environment.ProcessorCount : Settings.NetPlusThreadPoolThreads, Settings.NetPlusMaxThreadRestarts, Settings.HeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
+            int numThreads = Settings.NetPlusThreadPoolThreads;
+
+            if (numThreads < 0 && Environment.ProcessorCount > 0)
+                numThreads = Environment.ProcessorCount;
+
+            if (numThreads < 5) {
+                // not even sure if this'll 100% work, just basing this off the ThreadPool.Scheduler.AddRole calls in Start() further down
+                numThreads = 5;
+                Logger.Log(LogLevel.WRN, "module", $"Could not determine thread count, or set too low! (NetPlusThreadPoolThreads = {Settings.NetPlusThreadPoolThreads} / Environment.ProcessorCount = {Environment.ProcessorCount}). Defaulting to {numThreads}.");
+            }
+            ThreadPool = new(numThreads, Settings.NetPlusMaxThreadRestarts, Settings.HeuristicSampleWindow, Settings.NetPlusSchedulerInterval, Settings.NetPlusSchedulerUnderloadThreshold, Settings.NetPlusSchedulerOverloadThreshold, Settings.NetPlusSchedulerStealThreshold);
 
             HeartbeatTimer = new(Settings.HeartbeatInterval);
             HeartbeatTimer.Elapsed += (_, _) => DoHeartbeatTick();

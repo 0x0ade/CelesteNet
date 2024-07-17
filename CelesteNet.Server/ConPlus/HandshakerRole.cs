@@ -396,10 +396,14 @@ Who wants some tea?"
                 return string.Format(Server.Settings.MessageAuthOnly, nameKey);
 
             // Check if the player's banned
-            if (Server.UserData.TryLoad(playerUID, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To))
-                banReason = banInfo;
-            if (Server.UserData.TryLoad(conUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To))
+            if (Server.UserData.TryLoad(conUID, out BanInfo conBanInfo) && (conBanInfo.From == null || conBanInfo.From <= DateTime.Now) && (conBanInfo.To == null || DateTime.Now <= conBanInfo.To)) {
+                Logger.Log(LogLevel.INF, "teapot", $"While authenticating conUID '{conUID}' found ban for '{conBanInfo.UID}': {conBanInfo.Reason}");
                 banReason = conBanInfo;
+            }
+            if (Server.UserData.TryLoad(playerUID, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To)) {
+                Logger.Log(LogLevel.INF, "teapot", $"While authenticating playerUID '{playerUID}' found ban for '{banInfo.UID}': {banInfo.Reason}");
+                banReason = banInfo;
+            }
             if (banReason != null)
                 return string.Format(Server.Settings.MessageBan, playerUID, playerName, banReason.Reason);
 

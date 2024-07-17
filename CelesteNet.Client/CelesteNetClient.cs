@@ -7,6 +7,9 @@ using System.Threading;
 using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Client {
+
+    using cIDSendMode = CelesteNetClientSettings.ClientIDSendMode;
+
     public class CelesteNetClient : IDisposable {
 
         public readonly CelesteNetClientSettings Settings;
@@ -50,6 +53,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             Options.AvatarsDisabled = !Settings.ReceivePlayerAvatars;
             Options.ClientID = Settings.ClientID;
             Options.InstanceID = Settings.InstanceID;
+
+            bool isServerLocalhost = Settings.Host == "localhost" || Settings.Host == "127.0.0.1";
+
+            if (Settings.ClientIDSending == cIDSendMode.Off || (Settings.ClientIDSending == cIDSendMode.NotOnLocalhost && isServerLocalhost))
+                Options.ClientID = 0;
 
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient created");
 

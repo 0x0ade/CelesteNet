@@ -45,6 +45,8 @@
 	MODOPTIONS_CELESTENETCLIENT_KEYERROR_INVALIDLENGTH=   :celestenet_warning: Key must have length 16 - check your input
 
 	MODOPTIONS_CELESTENETCLIENT_RESETGENERAL=	Reset General Settings
+	MODOPTIONS_CELESTENETCLIENT_CONNECTLOCALLY=	Connect to local server
+	MODOPTIONS_CELESTENETCLIENT_CONNECTLOCALLYHINT=	Temporarily try connecting to server on "localhost" (this PC, e.g. for Nucleus)
 	MODOPTIONS_CELESTENETCLIENT_RESETGENERALHINT=	Resets the options above to defaults, excluding Name/Key
 	MODOPTIONS_CELESTENETCLIENT_HIDEOWNCHANNELNAME=			Hide Your Channel Name
 	MODOPTIONS_CELESTENETCLIENT_HIDEOWNCHANNELHINT=		Intended for streamers.{n}Prevents leaking your channel name when receiving a message or opening the player list.

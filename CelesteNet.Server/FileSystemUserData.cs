@@ -14,6 +14,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
         public FileSystemUserData(CelesteNetServer server)
             : base(server) {
+            if (!Directory.Exists(UserRoot))
+                Directory.CreateDirectory(UserRoot);
         }
 
         public override void Dispose() {

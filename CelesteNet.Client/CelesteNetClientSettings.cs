@@ -1,9 +1,9 @@
-﻿using Celeste.Mod.CelesteNet.Client.Components;
+﻿using System;
+using System.Linq;
+using Celeste.Mod.CelesteNet.Client.Components;
 using Celeste.Mod.UI;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
-using System;
-using System.Linq;
 using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -21,7 +21,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public int Version {
             get => SettingsVersionDoNotEdit;
             set {
-                if (SettingsVersionDoNotEdit < value && value <= SettingsVersionCurrent)
+                if (SettingsVersionDoNotEdit <= value && value <= SettingsVersionCurrent)
                     SettingsVersionDoNotEdit = value;
                 else
                     Logger.LogDetailed(LogLevel.WRN, "CelesteNetClientSettings", $"Attempt to change Settings.Version from {SettingsVersionDoNotEdit} to {value} which is not allowed!");
@@ -56,6 +56,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                     ExtraServersEntry.Disabled = value;
                 if (ResetGeneralButton != null)
                     ResetGeneralButton.Disabled = value;
+                if (ConnectLocallyButton != null)
+                    ConnectLocallyButton.Disabled = value;
             }
         }
         [SettingIgnore, YamlIgnore]
@@ -77,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 #endif
         [SettingSubText("modoptions_celestenetclient_devonlyhint")]
         public string Server {
-            get => _Server;
+            get => ServerOverride.IsNullOrEmpty() ? _Server : ServerOverride;
             set {
                 if (_Server == value)
                     return;
@@ -89,6 +91,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
         private string _Server = DefaultServer;
+
+        // Any non-empty string will override Server property temporarily. (setting not saved)
+        // Currently only used for "connect locally" button (for Nucleus etc.)
+        [SettingIgnore, YamlIgnore]
+        public string ServerOverride { get; set; } = "";
 
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ServerEntry { get; protected set; }
@@ -182,6 +189,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         [SettingIgnore, YamlIgnore]
         public uint InstanceID { get; set; } = 0;
+
+        [SettingIgnore]
+        public ClientIDSendMode ClientIDSending { get; set; } = ClientIDSendMode.NotOnLocalhost;
+
+        [SettingIgnore, YamlIgnore]
+        public TextMenu.Button ConnectLocallyButton { get; protected set; }
 
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ResetGeneralButton { get; protected set; }
@@ -925,9 +938,19 @@ namespace Celeste.Mod.CelesteNet.Client {
                 AutoReconnect = true;
                 ReceivePlayerAvatars = true;
                 ClientID = GenerateClientID();
+                ServerOverride = "";
             });
             ResetGeneralButton.AddDescription(menu, "modoptions_celestenetclient_resetgeneralhint".DialogClean());
             ResetGeneralButton.Disabled = Connected;
+        }
+
+        public void CreateConnectLocallyButtonEntry(TextMenu menu, bool inGame) {
+            ConnectLocallyButton = CreateMenuButton(menu, "CONNECTLOCALLY", null, () => {
+                ServerOverride = "localhost";
+                Connected = true;
+            });
+            ConnectLocallyButton.AddDescription(menu, "modoptions_celestenetclient_connectlocallyhint".DialogClean());
+            ConnectLocallyButton.Disabled = Connected;
         }
 
         public void CreateAutoReconnectEntry(TextMenu menu, bool inGame) {
@@ -976,6 +999,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             InvalidLength,
             InvalidChars,
             InvalidKey
+        }
+
+        public enum ClientIDSendMode {
+            Off = 0,
+            NotOnLocalhost = 1,
+            On = 2
         }
     }
 

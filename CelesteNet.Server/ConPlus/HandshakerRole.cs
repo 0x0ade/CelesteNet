@@ -401,7 +401,7 @@ Who wants some tea?"
                 banReason = conBanInfo;
             }
             if (Server.UserData.TryLoad(playerUID, out BanInfo banInfo) && (banInfo.From == null || banInfo.From <= DateTime.Now) && (banInfo.To == null || DateTime.Now <= banInfo.To)) {
-                Logger.Log(LogLevel.INF, "teapot", $"While authenticating playerUID '{playerUID}' found ban for '{conBanInfo.UID}': {conBanInfo.Reason}");
+                Logger.Log(LogLevel.INF, "teapot", $"While authenticating playerUID '{playerUID}' found ban for '{banInfo.UID}': {banInfo.Reason}");
                 banReason = banInfo;
             }
             if (banReason != null)

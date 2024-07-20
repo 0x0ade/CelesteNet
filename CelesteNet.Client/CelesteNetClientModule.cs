@@ -326,11 +326,13 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             // check if wait time still applies
             if (!MayReconnect) {
-                Logger.Log(LogLevel.INF, "reconnect-attempt", $"CelesteNetClientModule Start: Waiting {ReconnectWaitTime} seconds before next reconnect...");
-                QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), ReconnectWaitTime, () => {
+                if (Settings.AutoReconnect) {
+                    Logger.Log(LogLevel.INF, "reconnect-attempt", $"CelesteNetClientModule Start: Waiting {ReconnectWaitTime} seconds before next reconnect...");
+                    QueuedTaskHelper.Do(new Tuple<object, string>(Context, "CelesteNetAutoReconnect"), ReconnectWaitTime, () => {
                         Logger.Log(LogLevel.DEV, "reconnect-attempt", $"CelesteNetClientContext - QueueTask: Calling instance Start");
                         Instance.Start();
-                });
+                    });
+                }
                 return;
             } else if (++ReconnectWaitRepetitions > FastReconnectPenaltyAfter || ReconnectWaitTime == FastReconnectPenaltyInitial) {
                 // increasing penalty after N tries, reset counter

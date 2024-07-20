@@ -39,7 +39,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             set {
                 WantsToBeConnected = value;
 
-                if (value && !Connected && CelesteNetClientModule.Instance.MayReconnect) {
+                if (value && !Connected) {
                     CelesteNetClientModule.Instance.Start();
                 }
                 else if (!value && Connected) {

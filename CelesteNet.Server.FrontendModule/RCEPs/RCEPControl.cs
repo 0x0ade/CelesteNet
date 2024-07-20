@@ -764,7 +764,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
                     try {
                         info = Image.Identify(data);
-                    } catch (UnknownImageFormatException e) {
+                    } catch (UnknownImageFormatException) {
                         Logger.Log(LogLevel.INF, "frontend", $"Could not identify avatar: {uid}");
                         continue;
                     }

@@ -85,7 +85,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public uint ID = uint.MaxValue;
 
-        public string Nonce;
+        public string Nonce = "";
 
         public string[] List = Dummy<string>.EmptyArray;
         public string[] MapStrings = Dummy<string>.EmptyArray;

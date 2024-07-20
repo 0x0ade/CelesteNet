@@ -139,7 +139,7 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                     { "$real", real },
                     { "$type", typename },
                 };
-                return mini.Run<string>().value;
+                return mini.Run<string>().value ?? "";
 
             } else {
                 using MiniCommand mini = new(this) {
@@ -182,7 +182,7 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                     ",
                     { "$name", name },
                 };
-                return mini.Run<string>().value;
+                return mini.Run<string>().value ?? "";
 
             } else {
                 using MiniCommand mini = new(this) {
@@ -226,7 +226,7 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                     { "$name", name },
                     { "$real", real },
                 };
-                return mini.Run<string>().value;
+                return mini.Run<string>().value ?? "";
 
             } else {
                 using MiniCommand mini = new(this) {
@@ -401,9 +401,14 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                 { "$format", (int) DataFormat.MessagePack },
                 { "$length", ms.Length },
             };
-            (SqliteConnection con, SqliteCommand cmd) = mini.Run(out long rowid);
+            (SqliteConnection con, SqliteCommand cmd) = mini.Run(out long? rowid);
 
-            using SqliteBlob blob = new(con, table, "value", rowid);
+            if (rowid == null) {
+                Logger.Log(LogLevel.ERR, "sqlite", $"Save<T>: Failed getting rowid for {table} of UID {uid}");
+                return;
+            }
+
+            using SqliteBlob blob = new(con, table, "value", (long) rowid);
             ms.CopyTo(blob);
             blob.Dispose();
         }
@@ -428,9 +433,14 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                     { "$uid", uid },
                     { "$length", ms.Length },
                 };
-                (SqliteConnection con, SqliteCommand cmd) = mini.Run(out long rowid);
+                (SqliteConnection con, SqliteCommand cmd) = mini.Run(out long? rowid);
 
-                using SqliteBlob blob = new(con, table, "value", rowid);
+                if (rowid == null) {
+                    Logger.Log(LogLevel.ERR, "sqlite", $"WriteFile: Failed getting rowid for {table} of UID {uid}");
+                    return;
+                }
+
+                using SqliteBlob blob = new(con, table, "value", (long) rowid);
                 ms.CopyTo(blob);
                 blob.Dispose();
             });
@@ -874,9 +884,14 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                 { "$format", (int) format },
                 { "$length", ms.Length },
             };
-            (SqliteConnection con, SqliteCommand cmd) = mini.Run(out long rowid);
+            (SqliteConnection con, SqliteCommand cmd) = mini.Run(out long? rowid);
 
-            using SqliteBlob blob = new(con, table, "value", rowid);
+            if (rowid == null) {
+                Logger.Log(LogLevel.ERR, "sqlite", $"InsertData: Failed getting rowid for {table} of UID {uid}");
+                return;
+            }
+
+            using SqliteBlob blob = new(con, table, "value", (long) rowid);
             ms.CopyTo(blob);
             blob.Dispose();
         }
@@ -902,9 +917,14 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                 { "$uid", uid },
                 { "$length", ms.Length },
             };
-            (SqliteConnection con, SqliteCommand cmd) = mini.Run(out long rowid);
+            (SqliteConnection con, SqliteCommand cmd) = mini.Run(out long? rowid);
 
-            using SqliteBlob blob = new(con, table, "value", rowid);
+            if (rowid == null) {
+                Logger.Log(LogLevel.ERR, "sqlite", $"InsertFile: Failed getting rowid for {table} of UID {uid}");
+                return;
+            }
+
+            using SqliteBlob blob = new(con, table, "value", (long) rowid);
             ms.CopyTo(blob);
             blob.Dispose();
         }
@@ -1298,14 +1318,14 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite {
                 return (con, cmd, cmd.ExecuteNonQuery());
             }
 
-            public (SqliteConnection con, SqliteCommand cmd, T value) Run<T>() {
+            public (SqliteConnection con, SqliteCommand cmd, T? value) Run<T>() {
                 (SqliteConnection con, SqliteCommand cmd) = Prepare();
-                return (con, cmd, (T) cmd.ExecuteScalar());
+                return (con, cmd, (T?) cmd.ExecuteScalar());
             }
 
-            public (SqliteConnection con, SqliteCommand cmd) Run<T>(out T value) {
+            public (SqliteConnection con, SqliteCommand cmd) Run<T>(out T? value) {
                 (SqliteConnection con, SqliteCommand cmd) = Prepare();
-                value = (T) cmd.ExecuteScalar();
+                value = (T?) cmd.ExecuteScalar();
                 return (con, cmd);
             }
 

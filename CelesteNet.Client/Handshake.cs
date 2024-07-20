@@ -48,8 +48,8 @@ CelesteNet-PlayerNameKey: {nameKey}
 
             // Read the "HTTP" response
             string statusLine = netStream.UnbufferedReadLine();
-            string[] statusSegs = statusLine.Split(new[] { ' ' }, 3);
-            if (statusSegs.Length != 3)
+            string[] statusSegs = statusLine?.Split(new[] { ' ' }, 3);
+            if (statusSegs?.Length != 3)
                 throw new InvalidDataException($"Invalid HTTP response status line: '{statusLine}'");
             int statusCode = int.Parse(statusSegs[1]);
 

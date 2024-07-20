@@ -65,8 +65,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Off
         }
 
-        public MTexture? InputScrollUpIcon;
-        public MTexture? InputScrollDownIcon;
+        public MTexture InputScrollUpIcon;
+        public MTexture InputScrollDownIcon;
         public MTexture ArrowUpIcon => GFX.Gui["controls/directions/0x-1"];
         public MTexture ArrowDownIcon => GFX.Gui["controls/directions/0x1"];
         private bool activeController = false;

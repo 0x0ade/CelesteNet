@@ -1,12 +1,11 @@
-﻿using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using MessagePack;
 using MessagePack.Formatters;
 using MessagePack.Resolvers;
+using Microsoft.Xna.Framework;
 
-namespace Celeste.Mod.CelesteNet.Server.Sqlite
-{
+namespace Celeste.Mod.CelesteNet.Server.Sqlite {
     public static class MessagePackHelper {
 
         public static readonly MessagePackSerializerOptions Options = ContractlessStandardResolver.Options
@@ -29,12 +28,12 @@ namespace Celeste.Mod.CelesteNet.Server.Sqlite
         private CelesteNetMessagePackResolver() {
         }
 
-        public IMessagePackFormatter<T> GetFormatter<T>()
+        public IMessagePackFormatter<T>? GetFormatter<T>()
             => Cache<T>.Formatter;
 
         private static class Cache<T> {
 
-            public static IMessagePackFormatter<T> Formatter;
+            public static IMessagePackFormatter<T>? Formatter;
 
             static Cache() {
                 if (Formatters.TryGetValue(typeof(T), out object? fo)) {

@@ -788,7 +788,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             return item;
         }
 
-        public TextMenu.Button CreateMenuButton(TextMenu menu, string dialogLabel, Func<string, string>? dialogTransform, Action onPress)
+        public TextMenu.Button CreateMenuButton(TextMenu menu, string dialogLabel, Func<string, string> dialogTransform, Action onPress)
         {
             string label = $"modoptions_celestenetclient_{dialogLabel}".DialogClean();
             TextMenu.Button item = new TextMenu.Button(dialogTransform?.Invoke(label) ?? label);
@@ -796,7 +796,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             menu.Add(item);
             return item;
         }
-        public TextMenu.Button CreateMenuStringInput(TextMenu menu, string dialogLabel, Func<string, string>? dialogTransform, int maxValueLength, Func<string> currentValue, Action<string> newValue) {
+        public TextMenu.Button CreateMenuStringInput(TextMenu menu, string dialogLabel, Func<string, string> dialogTransform, int maxValueLength, Func<string> currentValue, Action<string> newValue) {
             string label = $"modoptions_celestenetclient_{dialogLabel}".DialogClean();
             TextMenu.Button item = new TextMenu.Button(dialogTransform?.Invoke(label) ?? label);
             item.Pressed(() => {

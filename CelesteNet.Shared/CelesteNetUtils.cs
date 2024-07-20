@@ -238,7 +238,7 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public static string UnbufferedReadLine(this NetworkStream netStream) {
+        public static string? UnbufferedReadLine(this NetworkStream netStream) {
             //Unbuffered "read line" implementation reading every byte one at a time
             //Extremely slow and inefficient, but otherwise we may gobble up binary packet bytes by accident :catresort:
             List<byte> lineChars = new List<byte>();

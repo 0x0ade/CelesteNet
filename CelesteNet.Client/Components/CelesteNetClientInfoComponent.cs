@@ -70,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private NetworkInterface FindInternetFacingNic() {
-            IPAddress? addrInternet = null;
+            IPAddress addrInternet = null;
             Socket socket = new(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             try {
                 socket.Connect("8.8.8.8", 80);

@@ -22,7 +22,11 @@ namespace Celeste.Mod.CelesteNet {
 
         static TokenGenerator() {
             // Read the list of polynomials
-            using Stream stream = typeof(TokenGenerator).Assembly.GetManifestResourceStream("polynomials.bin");
+            using Stream? stream = typeof(TokenGenerator).Assembly.GetManifestResourceStream("polynomials.bin");
+            if (stream == null) {
+                LFSRPolynomials = new uint[0];
+                return;
+            }
             using BinaryReader reader = new BinaryReader(stream);
 
             LFSRPolynomials = new uint[stream.Length / 4];
@@ -43,6 +47,9 @@ namespace Celeste.Mod.CelesteNet {
             uint RandomUInt() {
                 return ((uint) rng.Next(1 << 30)) << 2 | ((uint) rng.Next(1 << 2));
             }
+
+            if (LFSRPolynomials.Length == 0)
+                throw new FileLoadException("Could not load LFSR polynomials", "polynomials.bin");
 
             lfsrStepRNG = rng;
 

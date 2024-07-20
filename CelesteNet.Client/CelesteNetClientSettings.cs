@@ -39,10 +39,14 @@ namespace Celeste.Mod.CelesteNet.Client {
             set {
                 WantsToBeConnected = value;
 
-                if (value && !Connected)
+                if (value && !Connected) {
+                    if (!CelesteNetClientModule.Instance.MayReconnect && !(CelesteNetClientModule.Instance.AnyContext?.Client?.IsAlive ?? false))
+                        CelesteNetClientModule.Instance.AnyContext?.Status?.Set("Reconnect delayed...", 3f, true, false);
                     CelesteNetClientModule.Instance.Start();
-                else if (!value && Connected)
+                }
+                else if (!value && Connected) {
                     CelesteNetClientModule.Instance.Stop();
+                }
 
                 if (!value && EnabledEntry != null && Engine.Scene != null)
                     Engine.Scene.OnEndOfFrame += () => EnabledEntry?.LeftPressed();
@@ -831,6 +835,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
         public void CreateKeyEntry(TextMenu menu, bool inGame)
         {
+            KeyError = KeyErrors.None;
             KeyEntry = CreateMenuStringInput(menu, "KEY", s => s.Replace("((key))", Key.Length > 0 ? KeyDisplayDialog(KeyError) : "-"), 17, () => Key, newVal => Key = newVal);
             KeyEntry.AddDescription(menu, "modoptions_celestenetclient_keyhint".DialogClean());
             SetKeyEntryDisabled(inGame || Connected || _loginMode != LoginModeType.Key);

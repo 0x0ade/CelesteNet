@@ -1,4 +1,3 @@
-using Celeste.Mod.CelesteNet.DataTypes;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -6,9 +5,9 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using Celeste.Mod.CelesteNet.DataTypes;
 
-namespace Celeste.Mod.CelesteNet.Client
-{
+namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientTCPUDPConnection : CelesteNetTCPUDPConnection {
 
         public const int UDPBufferSize = 65536;
@@ -41,7 +40,7 @@ namespace Celeste.Mod.CelesteNet.Client
                     return;
                 Logger.Log(LogLevel.INF, "tcpudpcon", UseUDP ? "UDP connection died" : "Switching to TCP only");
                 if (Logger.Level <= LogLevel.DBG)
-                    CelesteNetClientModule.Instance?.Context?.Status?.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
+                    CelesteNetClientModule.Instance?.AnyContext?.Status?.Set(UseUDP ? "UDP connection died" : "Switching to TCP only", 3);
             };
 
             TCPSendQueue = new();

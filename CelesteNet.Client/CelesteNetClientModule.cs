@@ -30,6 +30,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public CelesteNetClientContext ContextLast;
         public CelesteNetClientContext Context;
+
+        public CelesteNetClientContext AnyContext => Context ?? ContextLast;
         public CelesteNetClient Client => Context?.Client;
         private readonly object ClientLock = new();
 
@@ -419,7 +421,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             Logger.Log(LogLevel.CRI, "clientmod", $"Connection error:\n{e}");
                             _StartThread = null;
                             Stop();
-                            context.Status.Set(ceee.Status ?? "Connection failed", 3f, false);
+                            AnyContext.Status.Set(ceee.Status ?? "Connection failed", 3f, false);
                             Settings.KeyError = CelesteNetClientSettings.KeyErrors.None;
                             if (ceee.StatusCode == 403)
                                 Settings.KeyError = CelesteNetClientSettings.KeyErrors.InvalidKey;

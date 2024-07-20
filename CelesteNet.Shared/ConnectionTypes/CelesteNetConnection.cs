@@ -5,8 +5,7 @@ using System.Reflection;
 using System.Threading;
 using Celeste.Mod.CelesteNet.DataTypes;
 
-namespace Celeste.Mod.CelesteNet
-{
+namespace Celeste.Mod.CelesteNet {
     public abstract class CelesteNetConnection : IDisposable {
 
         public readonly string Creator = "Unknown";
@@ -101,6 +100,7 @@ namespace Celeste.Mod.CelesteNet
 
         protected abstract CelesteNetSendQueue? GetQueue(DataType data);
         protected virtual void SendNoQueue(DataType data) {
+            Logger.LogDetailed(LogLevel.WRN, "CelesteNetConnection", $"Connection {this} called SendNoQueue for '{data}' but it's not implemented at all.");
         }
 
         protected virtual void Receive(DataType data) {

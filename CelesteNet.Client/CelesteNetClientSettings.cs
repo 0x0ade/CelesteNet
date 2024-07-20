@@ -40,14 +40,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                 WantsToBeConnected = value;
 
                 if (value && !Connected) {
+                    if (!CelesteNetClientModule.Instance.MayReconnect && !(CelesteNetClientModule.Instance.AnyContext?.Client?.IsAlive ?? false))
+                        CelesteNetClientModule.Instance.AnyContext?.Status?.Set("Reconnect delayed...", 3f, true, false);
                     CelesteNetClientModule.Instance.Start();
                 }
                 else if (!value && Connected) {
                     CelesteNetClientModule.Instance.Stop();
                 }
-
-                if (value && !CelesteNetClientModule.Instance.MayReconnect && !(CelesteNetClientModule.Instance.Client?.IsAlive ?? false))
-                    CelesteNetClientModule.Instance.Context?.Status?.Set("Reconnect delayed...", 3f, false, false);
 
                 if (!value && EnabledEntry != null && Engine.Scene != null)
                     Engine.Scene.OnEndOfFrame += () => EnabledEntry?.LeftPressed();

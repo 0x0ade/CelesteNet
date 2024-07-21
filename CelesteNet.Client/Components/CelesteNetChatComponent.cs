@@ -357,44 +357,62 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void HandleLocate(DataChat chat) {
             // For some reason, using the actual target field always came up as null for me.
             // Instead, I'm opting to use the Player field, Because It Works :TM:
-            var target = chat.Player ?? throw new InvalidOperationException("Target of /locate should not be null");
+            var target = chat.Player;
+
+            chat.Player = null;
+            chat.Tag = "";
+
+            if (target == null) {
+                chat.Text = $"Target of /locate not found.";
+                return;
+            }
+
+            chat.Text = $"{target.FullName} isn't in game or is in another channel.";
+
+            DataPlayerState? state = null;
+            if (Client?.Data?.TryGetBoundRef(target, out state) == false || state == null) return;
+
+            // Abuse the player list representation to get a formatted version
+            var fakeBlob = new BlobPlayer();
+            Context.Get<CelesteNetPlayerListComponent>().GetState(fakeBlob, state);
+            var location = fakeBlob.Location;
+
+            if (string.IsNullOrWhiteSpace(location.SID)) {
+                // We fall back to the above assignment
+                return;
+            }
 
             string iconEmoji = "";
-            
-            chat.Text = $"{target.FullName} isn't in game or is in another channel.";
-            if (Client?.Data?.TryGetBoundRef(target, out DataPlayerState? state) == true) { // This can be true, false, or null
-                // Abuse the player list representation to get a formatted version
-                var fakeBlob = new BlobPlayer();
-                var playerlist = Context.Get<CelesteNetPlayerListComponent>();
-                playerlist.GetState(fakeBlob, state);
-                var location = fakeBlob.Location;
-                if (location.SID.Length == 0) {
-                    goto Done;
-                }
 
-                if (location.Icon != null) {
-                    string emojiId = $"celestenet_SID_{location.SID}_";
-                    if (!Emoji.Registered.Contains(emojiId)) {
-                        // We need to downscale the icon to fit in chat
-                        MTexture? icon = 
-                            (fakeBlob.LocationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(location.Icon) 
-                                ? GFX.Gui[location.Icon]
-                                : null;
-                        if (icon == null) { goto MakeMessage; }
+            if (location.Icon != null) {
+                string emojiId = $"celestenet_SID_{location.SID}_";
+                if (!Emoji.Registered.Contains(emojiId)) {
+                    // We need to downscale the icon to fit in chat
+                    MTexture? icon = 
+                        (fakeBlob.LocationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(location.Icon) 
+                            ? GFX.Gui[location.Icon]
+                            : null;
+                    if (icon != null) {
                         float scale = 64f / icon.Height;
 
                         var tex = new MTexture(new MTexture(icon.Texture), icon.ClipRect) { ScaleFix = scale };
                         Emoji.Register(emojiId, tex);
                         Emoji.Fill(CelesteNetClientFont.Font);
                     }
-                    iconEmoji = $":{emojiId}:";
                 }
-            MakeMessage:
-                chat.Text = $"{target.FullName} is in room '{location.Level}' of {(iconEmoji.Length != 0 ? $"{iconEmoji} " : "")}{location.Name}{(location.Side.Length != 0 ? $" {location.Side}" : "")}.";
+                if (Emoji.Registered.Contains(emojiId))
+                    iconEmoji = $":{emojiId}:";
             }
-        Done:
-            chat.Player = null;
-            chat.Tag = "";
+            
+            string locationName = location.Name;
+            
+            if (!string.IsNullOrEmpty(iconEmoji))
+                locationName = $"{iconEmoji} {locationName}";
+            
+            if (!string.IsNullOrEmpty(location.Side))
+                locationName += $" {location.Side}";
+            
+            chat.Text = $"{target.FullName} is in room '{location.Level}' of {locationName}.";
         }
         #nullable restore
 

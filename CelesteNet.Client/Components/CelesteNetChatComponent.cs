@@ -360,13 +360,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             var target = chat.Player ?? throw new InvalidOperationException("Target of /locate should not be null");
 
             string iconEmoji = "";
-
+            
+            chat.Text = $"{target.FullName} isn't in game or is in another channel.";
             if (Client?.Data?.TryGetBoundRef(target, out DataPlayerState? state) == true) { // This can be true, false, or null
                 // Abuse the player list representation to get a formatted version
                 var fakeBlob = new BlobPlayer();
-                CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
+                var playerlist = Context.Get<CelesteNetPlayerListComponent>();
                 playerlist.GetState(fakeBlob, state);
                 var location = fakeBlob.Location;
+                if (location.SID.Length == 0) {
+                    goto Done;
+                }
 
                 if (location.Icon != null) {
                     string emojiId = $"celestenet_SID_{location.SID}_";
@@ -376,7 +380,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             (fakeBlob.LocationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(location.Icon) 
                                 ? GFX.Gui[location.Icon]
                                 : null;
-                        if (icon == null) { goto Skip; }
+                        if (icon == null) { goto MakeMessage; }
                         float scale = 64f / icon.Height;
 
                         var tex = new MTexture(new MTexture(icon.Texture), icon.ClipRect) { ScaleFix = scale };
@@ -385,11 +389,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     }
                     iconEmoji = $":{emojiId}:";
                 }
-            Skip:
+            MakeMessage:
                 chat.Text = $"{target.FullName} is in room '{location.Level}' of {(iconEmoji.Length != 0 ? $"{iconEmoji} " : "")}{location.Name}{(location.Side.Length != 0 ? $" {location.Side}" : "")}.";
-            } else {
-                chat.Text = $"{target.FullName} isn't in game or is in another channel.";
             }
+        Done:
             chat.Player = null;
             chat.Tag = "";
         }

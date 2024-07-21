@@ -386,7 +386,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     iconEmoji = $":{emojiId}:";
                 }
             Skip:
-                chat.Text = $"{target.FullName} is in room '{location.Level}' of {iconEmoji} {location.Name}{(location.Side.Length != 0 ? $" {location.Side}" : "")}.";
+                chat.Text = $"{target.FullName} is in room '{location.Level}' of {(iconEmoji.Length != 0 ? $"{iconEmoji} " : "")}{location.Name}{(location.Side.Length != 0 ? $" {location.Side}" : "")}.";
             } else {
                 chat.Text = $"{target.FullName} isn't in game or is in another channel.";
             }

@@ -403,7 +403,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
             
             if (msg.Tag == "locate") {
-                Logger.Log("!", "Found /locate! Handling...");
                 HandleLocate(msg);
             }
 

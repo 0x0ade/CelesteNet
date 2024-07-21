@@ -13,7 +13,6 @@ public class CmdLocate : ChatCmd {
 
     private CelesteNetPlayerSession? Other;
     private DataPlayerInfo? OtherPlayer;
-    private DataPlayerState? OtherState;
 
     public override void Init(ChatModule chat) {
         Chat = chat;
@@ -32,13 +31,6 @@ public class CmdLocate : ChatCmd {
 
         Other = other;
         OtherPlayer = otherPlayer;
-
-        if (!env.Server.Data.TryGetBoundRef(otherPlayer, out DataPlayerState? otherState) ||
-            otherState == null ||
-            otherState.SID.IsNullOrEmpty())
-            return;
-
-        OtherState = otherState;
     }
 
 
@@ -46,20 +38,15 @@ public class CmdLocate : ChatCmd {
         if (Other == null || OtherPlayer == null)
             throw new InvalidOperationException("This should never happen if ValidatePlayerSession returns without error.");
 
-        if (OtherState == null) {
-            env.Send($"{OtherPlayer.FullName} isn't in game.");
-            return;
-        }
+        CelesteNetPlayerSession? self = env.Session ?? throw new CommandRunException("Cannot locate as the server.");
 
-        // TODO:
-        //    Ideally, part of CelesteNetPlayerListComponent should be factored out for this.
-        //    I don't have the time or energy to *do* that, though.
-
-        string chapter = OtherState.SID;
-        string Side = ((char) ('A' + (int) OtherState.Mode)).ToString();
-        string Level = OtherState.Level;
-
-        env.Send($"{OtherPlayer.FullName} is in room {Level} of {chapter}, side {Side}.");
+        var chat = new DataChat {
+            Player = OtherPlayer,
+            Tag = "locate",
+            Text = "If you see this, either your client does not properly handle /locate or this is a bug. Please report!",
+            Color = Chat.Settings.ColorCommandReply
+        };
+        self.Con.Send(Chat.PrepareAndLog(self, chat));
     }
 
 }

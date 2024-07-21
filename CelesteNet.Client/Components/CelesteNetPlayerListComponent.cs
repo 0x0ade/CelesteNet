@@ -528,7 +528,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
-        private void GetState(BlobPlayer blob, DataPlayerState state) {
+        public void GetState(BlobPlayer blob, DataPlayerState state) {
             if (!string.IsNullOrWhiteSpace(state.SID)) {
                 AreaData area = AreaData.Get(state.SID);
                 string chapter = area?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID;

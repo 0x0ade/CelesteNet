@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
+using static Celeste.Mod.CelesteNet.Client.Components.CelesteNetPlayerListComponent;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetChatComponent : CelesteNetGameComponent {
@@ -349,9 +353,56 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             CurrentChannelName = tmp;
         }
 
+        #nullable enable
+        public void HandleLocate(DataChat chat) {
+            // For some reason, using the actual target field always came up as null for me.
+            // Instead, I'm opting to use the Player field, Because It Works :TM:
+            var target = chat.Player ?? throw new InvalidOperationException("Target of /locate should not be null");
+
+            string iconEmoji = "";
+
+            if (Client?.Data?.TryGetBoundRef(target, out DataPlayerState? state) == true) { // This can be true, false, or null
+                // Abuse the player list representation to get a formatted version
+                var fakeBlob = new BlobPlayer();
+                CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
+                playerlist.GetState(fakeBlob, state);
+                var location = fakeBlob.Location;
+
+                if (location.Icon != null) {
+                    string emojiId = $"celestenet_SID_{location.SID}_";
+                    if (!Emoji.Registered.Contains(emojiId)) {
+                        // We need to downscale the icon to fit in chat
+                        MTexture? icon = 
+                            (fakeBlob.LocationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(location.Icon) 
+                                ? GFX.Gui[location.Icon]
+                                : null;
+                        if (icon == null) { goto Skip; }
+                        float scale = 64f / icon.Height;
+
+                        var tex = new MTexture(new MTexture(icon.Texture), icon.ClipRect) { ScaleFix = scale };
+                        Emoji.Register(emojiId, tex);
+                        Emoji.Fill(CelesteNetClientFont.Font);
+                    }
+                    iconEmoji = $":{emojiId}:";
+                }
+            Skip:
+                chat.Text = $"{target.FullName} is in room '{location.Level}' of {iconEmoji} {location.Name}{(location.Side.Length != 0 ? $" {location.Side}" : "")}.";
+            } else {
+                chat.Text = $"{target.FullName} isn't in game or is in another channel.";
+            }
+            chat.Player = null;
+            chat.Tag = "";
+        }
+        #nullable restore
+
         public void Handle(CelesteNetConnection con, DataChat msg) {
             if (Client == null)
                 return;
+            
+            if (msg.Tag == "locate") {
+                Logger.Log("!", "Found /locate! Handling...");
+                HandleLocate(msg);
+            }
 
             if (Settings.PlayerListUI.HideOwnChannelName) {
                 // don't get too eager, only replace text in ACK'd commands and server responses

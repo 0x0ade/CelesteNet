@@ -10,7 +10,6 @@ using Celeste.Mod.CelesteNet.DataTypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
-using static Celeste.Mod.CelesteNet.Client.Components.CelesteNetPlayerListComponent;
 
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetChatComponent : CelesteNetGameComponent {
@@ -353,7 +352,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             CurrentChannelName = tmp;
         }
 
-        #nullable enable
         public void HandleLocate(DataChat chat) {
             // For some reason, using the actual target field always came up as null for me.
             // Instead, I'm opting to use the Player field, Because It Works :TM:
@@ -369,11 +367,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             chat.Text = $"{target.FullName} isn't in game or is in another channel.";
 
-            DataPlayerState? state = null;
+            // This has to be set, or we will return early
+            DataPlayerState state = null;
             if (Client?.Data?.TryGetBoundRef(target, out state) == false || state == null) return;
 
             // Abuse the player list representation to get a formatted version
-            var fakeBlob = new BlobPlayer();
+            var fakeBlob = new CelesteNetPlayerListComponent.BlobPlayer();
             Context.Get<CelesteNetPlayerListComponent>().GetState(fakeBlob, state);
             var location = fakeBlob.Location;
 
@@ -384,24 +383,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             string iconEmoji = "";
 
-            if (location.Icon != null) {
+            if (
+                // Icon exists
+                location.Icon != null &&
+                // Location should have an icon
+                (fakeBlob.LocationMode & CelesteNetPlayerListComponent.LocationModes.Icons) != 0 &&
+                // Icon is loaded
+                GFX.Gui.Has(location.Icon) 
+            ) {
                 string emojiId = $"celestenet_SID_{location.SID}_";
                 if (!Emoji.Registered.Contains(emojiId)) {
                     // We need to downscale the icon to fit in chat
-                    MTexture? icon = 
-                        (fakeBlob.LocationMode & LocationModes.Icons) != 0 && GFX.Gui.Has(location.Icon) 
-                            ? GFX.Gui[location.Icon]
-                            : null;
-                    if (icon != null) {
-                        float scale = 64f / icon.Height;
+                    // Due to our previous checks, this is never null
+                    MTexture icon = GFX.Gui[location.Icon];
+                    float scale = 64f / icon.Height;
 
-                        var tex = new MTexture(new MTexture(icon.Texture), icon.ClipRect) { ScaleFix = scale };
-                        Emoji.Register(emojiId, tex);
-                        Emoji.Fill(CelesteNetClientFont.Font);
-                    }
+                    var tex = new MTexture(new MTexture(icon.Texture), icon.ClipRect) { ScaleFix = scale };
+                    Emoji.Register(emojiId, tex);
+                    Emoji.Fill(CelesteNetClientFont.Font);
                 }
-                if (Emoji.Registered.Contains(emojiId))
-                    iconEmoji = $":{emojiId}:";
+                iconEmoji = $":{emojiId}:";
             }
             
             string locationName = location.Name;
@@ -414,7 +415,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             
             chat.Text = $"{target.FullName} is in room '{location.Level}' of {locationName}.";
         }
-        #nullable restore
 
         public void Handle(CelesteNetConnection con, DataChat msg) {
             if (Client == null)

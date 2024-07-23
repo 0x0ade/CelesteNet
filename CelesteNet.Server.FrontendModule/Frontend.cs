@@ -269,14 +269,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 player.UDPUplinkPpS = pCon?.UDPSendRate.PacketRate;
             }
 
-            if (pCon?.ConnFeatureData.Count > 0) {
-                /*
-                var x = (IDictionary<string, object>)player;
-                foreach (var kvp in pCon.ConnFeatureData) {
-                    x[kvp.Key] = kvp.Value;
-                }
-                */
-                player.ConnInfo = new Dictionary<string, string>(pCon.ConnFeatureData);
+            player.ConnInfo = new Dictionary<string, string>();
+            if (pCon != null) {
+                foreach (ConnectionInfoProvider conInfoProv in pCon.IterAssociatedData<ConnectionInfoProvider>())
+                    conInfoProv.DumpConnectionInfo(player.ConnInfo);
             }
 
             return player;

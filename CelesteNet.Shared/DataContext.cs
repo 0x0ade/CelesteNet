@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using MonoMod.Utils;
@@ -225,35 +226,65 @@ namespace Celeste.Mod.CelesteNet
             => WaitFor(0, cb, null);
 
         public Action WaitFor<T>(int timeout, DataFilter<T> cb, Action? cbTimeout = null) where T : DataType<T> {
-            object key = new();
+            CancellationTokenSource cancelSrc = new();
+            CancellationTokenSource? timeoutCancelSrc = null;
+            
+            if (timeout > 0) {
+                timeoutCancelSrc = new CancellationTokenSource(timeout);
+                timeoutCancelSrc.Token.Register(cancelSrc.Cancel);                
+            }
 
-            DataHandler? wrap = null;
-            wrap = RegisterHandler<T>((con, data) => {
-                lock (key) {
-                    if (wrap == null || !cb(con, data))
-                        return;
-                    UnregisterHandler(typeof(T), wrap);
-                    wrap = null;
-                }
-            });
-
-            if (timeout > 0)
-                Task.Run(async () => {
-                    await Task.Delay(timeout);
-                    lock (key) {
-                        if (wrap == null)
-                            return;
-                        try {
-                            UnregisterHandler(typeof(T), wrap);
-                            wrap = null;
+            WaitForAsync(cb, cancelSrc.Token)
+                .ContinueWith(
+                    _ => {
+                        if (timeoutCancelSrc?.IsCancellationRequested ?? false)
                             cbTimeout?.Invoke();
-                        } catch (Exception e) {
-                            Logger.Log(LogLevel.CRI, "data", $"Error in WaitFor timeout callback:\n{typeof(T).FullName}\n{cb}\n{e}");
-                        }
-                    }
+                    },
+                    TaskContinuationOptions.OnlyOnCanceled
+                )
+                .ContinueWith(_ => {
+                    cancelSrc.Dispose();
+                    timeoutCancelSrc?.Dispose();  
                 });
 
-            return () => UnregisterHandler(typeof(T), wrap);
+            return cancelSrc.Cancel;
+        }
+
+        public async Task<T> WaitForAsync<T>(int timeout, DataFilter<T>? filter = null, CancellationToken cancellationToken = default) where T : DataType<T> {
+            using (CancellationTokenSource cancelSrc = new CancellationTokenSource(timeout)) {
+                cancellationToken.Register(cancelSrc.Cancel);
+                return await WaitForAsync(filter, cancellationToken);
+            } 
+        }
+
+        public async Task<T> WaitForAsync<T>(DataFilter<T>? filter = null, CancellationToken cancellationToken = default) where T : DataType<T> {
+            TaskCompletionSource<T> tcs = new TaskCompletionSource<T>();
+            DataHandler? handler = null;
+            
+            void RemoveHandler() {
+                lock (tcs) {
+                    if (handler != null)
+                        UnregisterHandler(typeof(T), handler);
+                    handler = null;
+                }
+            }
+
+            handler = (con, data) => {
+                lock (tcs) {
+                    if (handler != null && (filter == null || filter(con, (T) data))) {
+                        tcs.TrySetResult((T) data);
+                        RemoveHandler();
+                    }
+                }
+            };
+            RegisterHandler(typeof(T), handler);
+
+            try {
+                using (cancellationToken.Register(RemoveHandler))
+                    return await tcs.Task;
+            } finally {
+                RemoveHandler();
+            }
         }
 
         public DataType Read(CelesteNetBinaryReader reader) {

@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
@@ -486,5 +488,9 @@ namespace Celeste.Mod.CelesteNet.Server {
             }
         }
 
+    }
+
+    public interface ConnectionInfoProvider {
+        void DumpConnectionInfo(IDictionary<string, string> conInfo);
     }
 }

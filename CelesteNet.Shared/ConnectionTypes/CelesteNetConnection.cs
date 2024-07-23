@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
@@ -63,6 +64,7 @@ namespace Celeste.Mod.CelesteNet {
         public abstract bool IsConnected { get; }
         public abstract string ID { get; }
         public abstract string UID { get; }
+        private ConcurrentDictionary<Type, object> associatedData = new();
 
         public CelesteNetConnection(DataContext data) {
             Data = data;
@@ -108,6 +110,24 @@ namespace Celeste.Mod.CelesteNet {
                 if (!(_OnReceiveFilter?.InvokeWhileTrue(this, data) ?? true))
                     return;
             Data.Handle(this, data);
+        }
+
+        public T? GetAssociatedData<T>() where T: class {
+            return associatedData.TryGetValue(typeof(T), out object? data) ? (T) data : null;
+        }
+
+        public void SetAssociatedData<T>(T data) where T: class {
+            if (data is not null)
+                associatedData.AddOrUpdate(typeof(T), _ => data, (_, _) => data);
+            else
+                associatedData.TryRemove(typeof(T), out _);
+        }
+
+        public IEnumerable<T> IterAssociatedData<T>() {
+            foreach ((Type type, object val) in associatedData) {
+                if (type.IsAssignableTo(typeof(T)))
+                    yield return (T) val;
+            }
         }
 
         protected virtual void Dispose(bool disposing) {

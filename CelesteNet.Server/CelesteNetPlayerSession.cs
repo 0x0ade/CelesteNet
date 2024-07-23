@@ -84,6 +84,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Data.RegisterHandlersIn(this);
         }
 
+        public bool CheckClientFeatureSupport(CelesteNetSupportedClientFeatures features) {
+            return (ClientOptions.SupportedClientFeatures & features) == features;
+        }
+
         public T? Get<T>(object ctx) where T : class {
             if (!Alive) {
                 Logger.Log(LogLevel.INF, "playersession", $"Early return on attempt to 'Get<{typeof(T)}>' when session is already !Alive");

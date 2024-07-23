@@ -32,7 +32,6 @@ namespace Celeste.Mod.CelesteNet
 
         public readonly uint ConnectionToken;
         public readonly Settings ConnectionSettings;
-        public Dictionary<string, string> ConnFeatureData = new();
 
         public Socket TCPSocket => _TCPSock;
 

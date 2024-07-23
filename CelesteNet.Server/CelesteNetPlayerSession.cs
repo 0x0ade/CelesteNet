@@ -84,6 +84,10 @@ namespace Celeste.Mod.CelesteNet.Server {
             Server.Data.RegisterHandlersIn(this);
         }
 
+        public bool CheckClientFeatureSupport(CelesteNetSupportedClientFeatures features) {
+            return (ClientOptions.SupportedClientFeatures & features) == features;
+        }
+
         public T? Get<T>(object ctx) where T : class {
             if (!Alive) {
                 Logger.Log(LogLevel.INF, "playersession", $"Early return on attempt to 'Get<{typeof(T)}>' when session is already !Alive");
@@ -145,8 +149,8 @@ namespace Celeste.Mod.CelesteNet.Server {
             Logger.Log(LogLevel.VVV, "playersession", $"Startup #{SessionID} @ {DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond} - Startup");
 
             string? clientDisconnectReason = null;
-            if (Server.Settings.ClientChecks && Con is ConPlusTCPUDPConnection cpCon)
-                clientDisconnectReason = ConnFeatureUtils.ClientCheck(cpCon);
+            if (Server.Settings.ClientChecks && Con is ConPlusTCPUDPConnection cpCon && cpCon.GetAssociatedData<ExtendedHandshake.ConnectionData>() is ExtendedHandshake.ConnectionData extConData)
+                clientDisconnectReason = ExtendedHandshake.ClientCheck(cpCon, extConData);
 
             if (clientDisconnectReason != null) {
                 Logger.Log(LogLevel.VVV, "playersession", $"Session #{SessionID} disconnecting because ClientCheck returned: '{clientDisconnectReason}'");

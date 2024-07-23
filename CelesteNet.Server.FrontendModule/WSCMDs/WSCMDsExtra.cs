@@ -23,7 +23,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 return false;
 
             // connInfo should include "key" at this point e.g. CheckMAC#Y2F0IGdvZXMgbWVvdw==
-            string[] splitConnInfo = connInfo.Split(ConnFeatureUtils.kvSeparator);
+            string[] splitConnInfo = connInfo.Split('#');
             Logger.Log(LogLevel.VVV, "frontend", $"BanExt split connInfo: {splitConnInfo}");
 
             if (splitConnInfo.Length < 2)
@@ -42,7 +42,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             // Just to make extra sure we got the right guy, I guess
             if (p != null && p.Con is ConPlusTCPUDPConnection pCon
-                && pCon.ConnFeatureData.TryGetValue(splitConnInfo[0], out string? connVal)
+                && pCon.GetAssociatedData<ExtendedHandshake.ConnectionData>() is ExtendedHandshake.ConnectionData conData
+                && conData.CheckEntries.TryGetValue(splitConnInfo[0], out string? connVal)
                 && !string.IsNullOrEmpty(connVal)) {
                 connInfoVal = connVal;
             }
@@ -59,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 if (plusCon == null)
                     continue;
 
-                if (!plusCon.ConnFeatureData.ContainsValue(connInfoVal))
+                if (!(plusCon.GetAssociatedData<ExtendedHandshake.ConnectionData>() is ExtendedHandshake.ConnectionData plConData && plConData.CheckEntries.ContainsKey(connInfoVal)))
                     continue;
 
                 if (ban.Name.IsNullOrEmpty())

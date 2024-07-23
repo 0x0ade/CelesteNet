@@ -43,7 +43,8 @@ public class CmdLocate : ChatCmd {
         var chat = new DataChat {
             Player = OtherPlayer,
             Tag = "locate",
-            Text = "If you see this, either your client does not properly handle /locate or this is a bug. Please report!",
+            // TODO: This really, REALLY should be a handshake.
+            Text = "Your client is out of date and does not support /locate. Please update and try again.",
             Color = Chat.Settings.ColorCommandReply
         };
         self.Con.Send(Chat.PrepareAndLog(self, chat));

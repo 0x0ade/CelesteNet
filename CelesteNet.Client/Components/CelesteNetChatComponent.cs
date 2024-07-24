@@ -627,7 +627,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             // completions for commands or their first parameter
                             if (Typing.StartsWith("/")) {
                                 int firstSpace = Typing.IndexOf(" ");
-                                CommandInfo cmd = firstSpace == -1 ? null : CommandList.FirstOrDefault(c => c.ID == Typing.Substring(1, firstSpace - 1));
+                                CommandInfo cmd = firstSpace == -1 ? null : CommandList.FirstOrDefault(cmd => 
+                                    cmd.ID == Typing.Substring(1, firstSpace - 1)
+                                );
 
                                 if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
                                     UpdateCompletion(CompletionType.Command, completable.Substring(1).ToLowerInvariant());

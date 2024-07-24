@@ -11,6 +11,9 @@ public class CmdLocate : ChatCmd {
 
     public override string Info => "Find where a player is.";
 
+    public override CelesteNetSupportedClientFeatures RequiredFeatures => 
+        CelesteNetSupportedClientFeatures.LocateCommand;
+
     private CelesteNetPlayerSession? Other;
     private DataPlayerInfo? OtherPlayer;
 
@@ -43,8 +46,8 @@ public class CmdLocate : ChatCmd {
         var chat = new DataChat {
             Player = OtherPlayer,
             Tag = "locate",
-            // TODO: This really, REALLY should be a handshake.
-            Text = "Your client is out of date and does not support /locate. Please update and try again.",
+            // On older clients, we never get here. On newer clients, this is replaced.
+            Text = "{YOU SHOULD NEVER SEE THIS, PLEASE REPORT}",
             Color = Chat.Settings.ColorCommandReply
         };
         self.Con.Send(Chat.PrepareAndLog(self, chat));

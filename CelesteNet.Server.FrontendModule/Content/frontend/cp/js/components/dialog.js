@@ -368,8 +368,8 @@ export class FrontendDialog {
         ${group(
           row( el => {
             let optKeys = opts.map(e => e[0] + '#' + e[1]);
-            el = mdcrd.dropdown("connInfo", optKeys, 0)(el);
-            el.id = "connInfo-select";
+            el = mdcrd.dropdown("checkValue", optKeys, 0)(el);
+            el.id = "checkValue-select";
             return el;
           }),
           row(input("banext-connUID", mdcrd.checkbox(`Also ban Conn UID: ${connectionUID}`, true))),
@@ -400,7 +400,7 @@ export class FrontendDialog {
 
     let promise = new Promise(
         resolve => el.addEventListener("MDCDialog:closed", e => resolve(e["detail"]["action"] === "0" && {
-          selection: el.querySelector("#connInfo-select .mdc-select__selected-text")["value"],
+          selection: el.querySelector("#checkValue-select .mdc-select__selected-text")["value"],
           banConnUID: el.querySelector("#banext-connUID input")["checked"],
           reason: el.querySelector("#banext-reason input")["value"],
           quiet: el.querySelector("#banext-quiet input")["checked"],
@@ -412,7 +412,7 @@ export class FrontendDialog {
       ban => {
         if (!ban || !(ban.reason = ban.reason.trim()))
           return;
-        this.frontend.sync.run("banext", { ID: id, ConnUID: connectionUID, ConnInfo: ban.selection, BanConnUID: ban.banConnUID, Reason: ban.reason, Quiet: ban.quiet });
+        this.frontend.sync.run("banext", { ID: id, ConnUID: connectionUID, CheckValue: ban.selection, BanConnUID: ban.banConnUID, Reason: ban.reason, Quiet: ban.quiet });
       }
     );
 

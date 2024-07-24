@@ -23,7 +23,7 @@ const mdc = window["mdc"]; // mdc
   UDPDownlinkBpS: number?, UDPDownlinkPpS: number?,
   TCPUplinkBpS: number?, TCPUplinkPpS: number?,
   UDPUplinkBpS: number?, UDPUplinkPpS: number?,
-  ConnInfo: Map<string, string>?
+  ExtHandshakeCheckValues: Map<string, string>?
 }} PlayerData
  */
 
@@ -115,10 +115,10 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
             <code>UDP ↑:${` ${p.UDPUplinkBpS ? `${p.UDPUplinkBpS.toFixed(3)} BpS` : '-'} | ${p.UDPUplinkPpS ? `${p.UDPUplinkPpS.toFixed(3)} PpS` : '-'}`}</code><br>
             ${el => {
               el = rd$(el)`<span></span>`;
-              if (!p.hasOwnProperty("ConnInfo"))
+              if (!p.hasOwnProperty("ExtHandshakeCheckValues"))
                 return el;
               let list = new RDOMListHelper(el);
-              for (const [cikey, civalue] of Object.entries(p.ConnInfo)) {
+              for (const [cikey, civalue] of Object.entries(p.ExtHandshakeCheckValues)) {
                 list.add(cikey, el => rd$(el)`<code>${cikey}:&nbsp;${civalue}<br></code>`);
               }
               list.end();
@@ -131,7 +131,7 @@ export class FrontendPlayersPanel extends FrontendBasicPanel {
       this.frontend.dom.setContext(el,
         [ "error_outline", `Kick ${p.FullName}`, () => this.frontend.dialog.kick(p.FullName, p.ID) ],
         [ "gavel", `Ban ${p.FullName}`, () => this.frontend.dialog.ban(p.FullName, p.ID, p.UID, p.ConnectionUID) ],
-        [ "gavel", `BanExt ${p.FullName}`, () => p.hasOwnProperty("ConnInfo") ? this.frontend.dialog.banExt(p.FullName, p.ID, Object.entries(p.ConnInfo), p.ConnectionUID) : null ],
+        [ "gavel", `BanExt ${p.FullName}`, () => p.hasOwnProperty("ExtHandshakeCheckValues") ? this.frontend.dialog.banExt(p.FullName, p.ID, Object.entries(p.ExtHandshakeCheckValues), p.ConnectionUID) : null ],
         [ "content_copy", `Copy FullName: ${p.FullName}`, () =>  navigator.clipboard.writeText(p.FullName) ],
         [ "content_copy", `Copy UID: ${p.UID}`, () =>  navigator.clipboard.writeText(p.UID) ],
         [ "content_copy", `Copy Con: ${p.ConnectionUID}`, () =>  navigator.clipboard.writeText(p.ConnectionUID) ],

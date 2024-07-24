@@ -4,12 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server;
-using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet {
     public class ExtendedHandshake : IConnectionFeature {
 
-        public record ConnectionData(string CheckEnv = "", string CheckMAC = "", string CheckDevice = "", string SelfReportBan = "") : IConnectionInfoProvider {
+        public record ConnectionData(string CheckEnv = "", string CheckMAC = "", string CheckDevice = "", string SelfReportBan = "")  {
+
             public IDictionary<string, string> CheckEntries => new Dictionary<string, string>() {
                 ["CheckEnv"] = CheckEnv,
                 ["CheckMAC"] = CheckMAC,
@@ -18,10 +18,6 @@ namespace Celeste.Mod.CelesteNet {
 
             public bool CheckEntriesValid => CheckEntries.All(e => !e.Value.IsNullOrEmpty());
 
-            public void DumpConnectionInfo(IDictionary<string, string> conInfo) {
-                conInfo.AddRange(CheckEntries);
-                conInfo.Add("SelfReportBan", SelfReportBan);
-            }
         }
 
         public static string? ClientCheck(ConPlusTCPUDPConnection con, ConnectionData conData) {

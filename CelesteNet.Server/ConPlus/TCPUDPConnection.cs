@@ -489,8 +489,4 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
     }
-
-    public interface IConnectionInfoProvider {
-        void DumpConnectionInfo(IDictionary<string, string> conInfo);
-    }
 }

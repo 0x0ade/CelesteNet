@@ -8,14 +8,16 @@ using Celeste.Mod.CelesteNet.Server;
 namespace Celeste.Mod.CelesteNet {
     public class ExtendedHandshake : IConnectionFeature {
 
-        public record ConnectionData(string CheckEnv = "", string CheckMAC = "", string CheckDevice = "", string SelfReportBan = "") {
-            public readonly IDictionary<string, string> CheckEntries = new Dictionary<string, string>() {
+        public record ConnectionData(string CheckEnv = "", string CheckMAC = "", string CheckDevice = "", string SelfReportBan = "")  {
+
+            public Dictionary<string, string> CheckEntries => new Dictionary<string, string>() {
                 ["CheckEnv"] = CheckEnv,
                 ["CheckMAC"] = CheckMAC,
                 ["CheckDevice"] = CheckDevice,
-            }.AsReadOnly();
+            };
 
             public bool CheckEntriesValid => CheckEntries.All(e => !e.Value.IsNullOrEmpty());
+
         }
 
         public static string? ClientCheck(ConPlusTCPUDPConnection con, ConnectionData conData) {

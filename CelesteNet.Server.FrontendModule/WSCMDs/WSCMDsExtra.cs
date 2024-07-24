@@ -9,24 +9,24 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public override bool MustAuth => true;
         public override object? Run(dynamic? input) {
             uint id = (uint)input?.ID;
-            string? connInfo = (string?)input?.ConnInfo;
+            string? checkValue = (string?)input?.CheckValue;
             bool? banConnUID = (bool?)input?.BanConnUID;
             string? reason = (string?)input?.Reason;
             string? connUid = (string?)input?.ConnUID;
             bool quiet = ((bool?)input?.Quiet) ?? false;
 
-            Logger.Log(LogLevel.VVV, "frontend", $"BanExt called:\n{connUid} => {connInfo} (ban connUID: {banConnUID}, q: {quiet})\nReason: {reason}");
+            Logger.Log(LogLevel.VVV, "frontend", $"BanExt called:\n{connUid} => {checkValue} (ban connUID: {banConnUID}, q: {quiet})\nReason: {reason}");
 
-            if ((connInfo = connInfo?.Trim() ?? "").IsNullOrEmpty() ||
+            if ((checkValue = checkValue?.Trim() ?? "").IsNullOrEmpty() ||
                 (reason = reason?.Trim() ?? "").IsNullOrEmpty() ||
                 (connUid = connUid?.Trim() ?? "").IsNullOrEmpty())
                 return false;
 
-            // connInfo should include "key" at this point e.g. CheckMAC#Y2F0IGdvZXMgbWVvdw==
-            string[] splitConnInfo = connInfo.Split('#');
-            Logger.Log(LogLevel.VVV, "frontend", $"BanExt split connInfo: {splitConnInfo}");
+            // checkValue should include "key" at this point e.g. CheckMAC#Y2F0IGdvZXMgbWVvdw==
+            string[] splitCheckValue = checkValue.Split('#');
+            Logger.Log(LogLevel.VVV, "frontend", $"BanExt split checkValue: {splitCheckValue}");
 
-            if (splitConnInfo.Length < 2)
+            if (splitCheckValue.Length < 2)
                 return false;
 
             CelesteNetPlayerSession[] players;
@@ -38,14 +38,14 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 Frontend.Server.PlayersByID.TryGetValue(id, out p);
             }
 
-            string connInfoVal = splitConnInfo[1];
+            string checkValueVal = splitCheckValue[1];
 
             // Just to make extra sure we got the right guy, I guess
             if (p != null && p.Con is ConPlusTCPUDPConnection pCon
                 && pCon.GetAssociatedData<ExtendedHandshake.ConnectionData>() is ExtendedHandshake.ConnectionData conData
-                && conData.CheckEntries.TryGetValue(splitConnInfo[0], out string? connVal)
+                && conData.CheckEntries.TryGetValue(splitCheckValue[0], out string? connVal)
                 && !string.IsNullOrEmpty(connVal)) {
-                connInfoVal = connVal;
+                checkValueVal = connVal;
             }
 
             // UID will be the connectionUID as extra info, further down the banned identifier is where it'll be stored
@@ -60,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 if (plusCon == null)
                     continue;
 
-                if (!(plusCon.GetAssociatedData<ExtendedHandshake.ConnectionData>() is ExtendedHandshake.ConnectionData plConData && plConData.CheckEntries.ContainsKey(connInfoVal)))
+                if (!(plusCon.GetAssociatedData<ExtendedHandshake.ConnectionData>() is ExtendedHandshake.ConnectionData plConData && plConData.CheckEntries.ContainsValue(checkValueVal)))
                     continue;
 
                 if (ban.Name.IsNullOrEmpty())
@@ -74,10 +74,10 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 player.Dispose();
             }
 
-            // stored with the "full" connInfo which includes the "key" e.g. CheckMAC#Y2F0IGdvZXMgbWVvdw==
-            Frontend.Server.UserData.Save(connInfo, ban);
+            // stored with the "full" checkVal which includes the "key" e.g. CheckMAC#Y2F0IGdvZXMgbWVvdw==
+            Frontend.Server.UserData.Save(checkValue, ban);
 
-            Logger.Log(LogLevel.VVV, "frontend", $"BanExt ban saved for: {connInfo}");
+            Logger.Log(LogLevel.VVV, "frontend", $"BanExt ban saved for: {checkValue}");
 
             if (banConnUID ?? false) {
                 // reuse banInfo but store for connection UID like a regular ban

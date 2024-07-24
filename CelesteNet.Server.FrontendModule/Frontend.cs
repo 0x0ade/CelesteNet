@@ -271,7 +271,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
 
             player.ConnInfo = new Dictionary<string, string>();
             if (pCon != null) {
-                foreach (ConnectionInfoProvider conInfoProv in pCon.IterAssociatedData<ConnectionInfoProvider>())
+                foreach (IConnectionInfoProvider conInfoProv in pCon.IterAssociatedData<IConnectionInfoProvider>())
                     conInfoProv.DumpConnectionInfo(player.ConnInfo);
             }
 

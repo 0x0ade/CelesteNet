@@ -60,7 +60,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 if (plusCon == null)
                     continue;
 
-                if (!(plusCon.GetAssociatedData<ExtendedHandshake.ConnectionData>() is ExtendedHandshake.ConnectionData plConData && plConData.CheckEntries.ContainsKey(checkValueVal)))
+                if (!(plusCon.GetAssociatedData<ExtendedHandshake.ConnectionData>() is ExtendedHandshake.ConnectionData plConData && plConData.CheckEntries.ContainsValue(checkValueVal)))
                     continue;
 
                 if (ban.Name.IsNullOrEmpty())

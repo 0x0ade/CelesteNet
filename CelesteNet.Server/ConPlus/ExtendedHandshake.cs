@@ -10,11 +10,11 @@ namespace Celeste.Mod.CelesteNet {
 
         public record ConnectionData(string CheckEnv = "", string CheckMAC = "", string CheckDevice = "", string SelfReportBan = "")  {
 
-            public IDictionary<string, string> CheckEntries => new Dictionary<string, string>() {
+            public Dictionary<string, string> CheckEntries => new Dictionary<string, string>() {
                 ["CheckEnv"] = CheckEnv,
                 ["CheckMAC"] = CheckMAC,
                 ["CheckDevice"] = CheckDevice,
-            }.AsReadOnly();
+            };
 
             public bool CheckEntriesValid => CheckEntries.All(e => !e.Value.IsNullOrEmpty());
 

@@ -1,26 +1,40 @@
-
-
-using System.Reflection;
+using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Pico8;
+using Microsoft.Xna.Framework;
+using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities;
 
 public class PicoGhost : Classic.ClassicObject {
-    static readonly MethodInfo draw_player = 
-        typeof(Classic)
-        .GetMethod("draw_player", BindingFlags.Instance | BindingFlags.NonPublic);
-
+    DynamicData GData;
     public int djump;
+    internal DataPicoState.HairNode[] hair;
 
     public override void init(Classic g, Emulator e)
     {
         base.init(g, e);
+        GData = new(g);
         spr = 1f;
     }
 
     public override void draw()
     {
-        draw_player.Invoke(G, new object[] { this, djump });
+        int num = djump switch {
+			2 => 7 + E.flr((int) GData.Get("frames") / 3 % 2) * 4, 
+			1 => 8, 
+			_ => 12, 
+		};
+
+        int facing =  (!flipX) ? 1 : (-1);
+		Vector2 vector = new(x + 4f - (facing * 2), y + (E.btn((int) GData.Get("k_down")) ? 4 : 3));
+		foreach (var node in hair) {
+			var x = node.X + (vector.X - node.X) / 1.5f;
+			var y = node.Y + (vector.Y + 0.5f - node.Y) / 1.5f;
+			E.circfill(node.X, node.Y, node.Size, num);
+			vector = new Vector2(node.X, node.Y);
+		}
+        GData.Invoke("draw_player", new object[] { this, djump });
+
     }
 
     public override string ToString() {

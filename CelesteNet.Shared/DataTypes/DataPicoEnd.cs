@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
-    public class DataPicoEnd : DataType<DataPicoCreate> {
+    public class DataPicoEnd : DataType<DataPicoEnd> {
         public uint ID;
         
         static DataPicoEnd() {

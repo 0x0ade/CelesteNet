@@ -8,7 +8,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities;
 public class PicoGhost : Classic.ClassicObject {
     DynamicData GData;
     public int djump;
-    internal DataPicoState.HairNode[] hair;
+    internal DataPicoState.HairNode[] hair = new DataPicoState.HairNode[5];
+    internal uint id;
 
     public override void init(Classic g, Emulator e)
     {
@@ -34,6 +35,7 @@ public class PicoGhost : Classic.ClassicObject {
 			vector = new Vector2(node.X, node.Y);
 		}
         GData.Invoke("draw_player", new object[] { this, djump });
+        E.print(id.ToString(), x, y + 1, 7f);
 
     }
 

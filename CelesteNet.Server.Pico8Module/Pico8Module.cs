@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
-
-using Exception = System.Exception;
 
 namespace Celeste.Mod.CelesteNet.Server.Pico8;
  
@@ -12,14 +7,21 @@ public class PicoGhost {
 
 }
 
-public class Pico8Module : CelesteNetServerModule<Pico8Settings> {
+public class Pico8Module : CelesteNetServerModule {
 
     public override void Init(CelesteNetServerModuleWrapper wrapper) {
         base.Init(wrapper);
 
+        Server.OnSessionStart += OnSessionStart;
+
         using (Server.ConLock.R())
             foreach (CelesteNetPlayerSession session in Server.Sessions)
                 session.OnEnd += OnSessionEnd;
+    }
+
+    private void OnSessionStart(CelesteNetPlayerSession session)
+    {
+        session.OnEnd += OnSessionEnd;
     }
 
     private uint? GetIDOfConnection(CelesteNetConnection con) {
@@ -29,19 +31,6 @@ public class Pico8Module : CelesteNetServerModule<Pico8Settings> {
         return session?.PlayerInfo?.ID;
     }
 
-    public void Handle(CelesteNetConnection con, DataPicoCreate picoCreate) {
-        uint? id = GetIDOfConnection(con);
-        if (id == null) {
-            Logger.Log(LogLevel.WRN, "PICO8-CNET", "No ID found for create packet!");
-            return;
-        }
-        Logger.Log(LogLevel.INF, "PICO8-CNET", $"Broadcasting create packet for {id}...");
-
-        picoCreate.ID = (uint) id;
-        Server.BroadcastAsync(picoCreate);
-    }
-
-
     public void Handle(CelesteNetConnection con, DataPicoState picoState) {
         uint? id = GetIDOfConnection(con);
         if (id == null) { 
@@ -49,7 +38,7 @@ public class Pico8Module : CelesteNetServerModule<Pico8Settings> {
             return;
         }
        
-        Logger.Log(LogLevel.INF, "PICO8-CNET", $"Broadcasting state packet for {id}...");
+        //Logger.Log(LogLevel.INF, "PICO8-CNET", $"Broadcasting state packet for {id}...");
 
         picoState.ID = (uint) id;
         Server.BroadcastAsync(picoState);
@@ -68,9 +57,10 @@ public class Pico8Module : CelesteNetServerModule<Pico8Settings> {
     }
 
     public void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? info) {
-        uint? id = session?.PlayerInfo?.ID;
+        uint? id = info?.ID;
         if (id == null) { return; }
 
+        Logger.Log(LogLevel.INF, "PICO8-CNET", $"Connection severed, broadcasting end packet for {id}...");
         Server.BroadcastAsync(new DataPicoEnd { ID = (uint) id });
     }
 }

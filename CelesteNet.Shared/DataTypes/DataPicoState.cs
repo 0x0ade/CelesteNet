@@ -1,4 +1,6 @@
-﻿namespace Celeste.Mod.CelesteNet.DataTypes {
+﻿using System.Linq;
+
+namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataPicoState : DataType<DataPicoState> {
         public uint ID;
         public float Spr;
@@ -11,12 +13,15 @@
 
         public HairNode[] Hair = new HairNode[5] { new(), new(), new(), new(), new() };
         
-        public struct HairNode {
+        public class HairNode {
             public float X = float.NaN;
             public float Y = float.NaN;
             public float Size = 0;
 
-            public HairNode() {}
+            public override string ToString()
+            {
+                return $"HairNode(x: {X}, y: {Y}, size: {Size})";
+            }
         }
 
         static DataPicoState() {
@@ -24,7 +29,7 @@
         }
 
         public override string ToString() {
-            return $"DataPicoState(id: {ID}, x: {X}, y: {Y}, spr: {Spr}, type: {Type}, flipX: {FlipX}, flipY: {FlipY}, djump: {Djump})";
+            return $"DataPicoState(id: {ID}, x: {X}, y: {Y}, spr: {Spr}, type: {Type}, flipX: {FlipX}, flipY: {FlipY}, djump: {Djump}, hair: [{string.Join(", ", Hair.Select(node => node.ToString()))}])";
         }
 
         protected override void Read(CelesteNetBinaryReader reader) {

@@ -65,6 +65,10 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
         CelesteNetPlayerListComponent.OnGetState += ModifyStateOfPicoPlayers;
         CelesteNetMainComponent.OnSendState += ModifyStateInPico;
+        var client = Context?.Client;
+        if (client != null) {
+            client.Con.OnDisconnect += WipeGhostsOnDisconnect;
+        }
     }
 
     private static void SendState() {
@@ -90,7 +94,6 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
                 On.Celeste.Pico8.Emulator.End -= OnEmulatorClose;
                 On.Celeste.Pico8.Emulator.ResetScreen -= OnEmulatorReset;
                 On.Celeste.Pico8.Emulator.Update -= OnEmulatorUpdate;
-
                 On.Celeste.Pico8.Classic.destroy_object -= OnDestroyObject;
             });
         } catch (ObjectDisposedException) {
@@ -99,11 +102,20 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
         CelesteNetPlayerListComponent.OnGetState -= ModifyStateOfPicoPlayers;
         CelesteNetMainComponent.OnSendState -= ModifyStateInPico;
+        var client = Context?.Client;
+        if (client != null) {
+            client.Con.OnDisconnect -= WipeGhostsOnDisconnect;
+        }
 
         #pragma warning restore CA2012
     }
 
     #region Hooks
+
+    private void WipeGhostsOnDisconnect(CelesteNetConnection connection)
+    {
+        ghosts.Clear();
+    }
 
     private void ModifyStateInPico(DataPlayerState state)
     {
@@ -149,9 +161,13 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
     private void OnEmulatorUpdate(On.Celeste.Pico8.Emulator.orig_Update orig, Emulator self)
     {
-        lock (ghosts) {
-            foreach (PicoGhost ghost in ghosts.Values) {
-                ghost.update();
+        if (!Settings.Connected) {
+            ghosts.Clear();
+        } else {
+            lock (ghosts) {
+                foreach (PicoGhost ghost in ghosts.Values) {
+                    ghost.update();
+                }
             }
         }
 

@@ -1,11 +1,6 @@
-﻿using System;
-using Celeste.Mod.CelesteNet.DataTypes;
+﻿using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Server.Pico8;
- 
-public class PicoGhost {
-
-}
 
 public class Pico8Module : CelesteNetServerModule {
 

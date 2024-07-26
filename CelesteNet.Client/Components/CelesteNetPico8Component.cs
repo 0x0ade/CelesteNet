@@ -276,7 +276,7 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
     #endregion
 
-    public DynamicData? classicData;
+    DynamicData? classicData;
     DynamicData? emulatorData;
     Classic? classic;
 

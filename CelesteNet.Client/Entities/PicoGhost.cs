@@ -63,7 +63,12 @@ public class PicoGhost : Classic.ClassicObject {
     public DataPlayerInfo Player;
     public string Name {
         get {
-            return Player.DisplayName ?? "???";
+            var name = Player.DisplayName ?? "???";
+            var colonIndex = name.LastIndexOf(':');
+            if (colonIndex > -1) {
+                name = name[(colonIndex + 2)..];
+            }
+            return name;
         }
     }
 
@@ -98,7 +103,7 @@ public class PicoGhost : Classic.ClassicObject {
 		}
         GData.Invoke("draw_player", new object[] { this, djump });
         
-        FontHelper.PrintOutlinedCenter(Name, (int) x, (int) y - 8);
+        FontHelper.PrintOutlinedCenter(Name, (int) x + 4, (int) y - 8);
     }
 
     public override string ToString() {

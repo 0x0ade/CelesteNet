@@ -51,15 +51,29 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
             )).Use())
             {
                 On.Celeste.Pico8.Classic.player.ctor += OnPlayerCreate;
+                On.Celeste.Pico8.Classic.player_spawn.ctor += OnPlayerSpawn;
                 On.Celeste.Pico8.Classic.player.update += OnPlayerUpdate;
                 On.Celeste.Pico8.Classic.player.draw += OnPlayerDraw;
                 On.Celeste.Pico8.Classic.kill_player += OnPlayerKill;
                 On.Celeste.Pico8.Classic.player_hair.draw_hair += OnDrawHair;
+                On.Celeste.Pico8.Emulator.Begin += OnEmulatorBegin;
                 On.Celeste.Pico8.Emulator.End += OnEmulatorClose;
                 On.Celeste.Pico8.Emulator.ResetScreen += OnEmulatorReset;
                 On.Celeste.Pico8.Classic.destroy_object += OnDestroyObject;
             }
         });
+
+        CelesteNetPlayerListComponent.OnGetState += ModifyStateOfPicoPlayers;
+        CelesteNetMainComponent.OnSendState += ModifyStateInPico;
+    }
+
+    private static void SendState() {
+        var main =
+            CelesteNetClientModule.Instance
+                .Context
+                .Get<CelesteNetMainComponent>();
+        
+        main.SendState();
     }
 
     protected override void Dispose(bool disposing)
@@ -68,6 +82,7 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         try {
             MainThreadHelper.Schedule(() => {
                 On.Celeste.Pico8.Classic.player.ctor -= OnPlayerCreate;
+                On.Celeste.Pico8.Classic.player_spawn.ctor -= OnPlayerSpawn;
                 On.Celeste.Pico8.Classic.player.update -= OnPlayerUpdate;
                 On.Celeste.Pico8.Classic.player.draw -= OnPlayerDraw;
                 On.Celeste.Pico8.Classic.kill_player -= OnPlayerKill;
@@ -81,16 +96,63 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         } catch (ObjectDisposedException) {
             // It might already be too late to tell the main thread to do anything.
         }
+
+        CelesteNetPlayerListComponent.OnGetState -= ModifyStateOfPicoPlayers;
+        CelesteNetMainComponent.OnSendState -= ModifyStateInPico;
+
         #pragma warning restore CA2012
     }
 
     #region Hooks
+
+    private void ModifyStateInPico(DataPlayerState state)
+    {
+        uint? id = state.Player?.ID;
+        if (id == null) { return; }
+        if (!inGame) { return; }
+
+        Logger.Log(LogLevel.DBG, "PICO8-CNET", $"Modifying state!");
+
+        state.SID = $"PICO-8";
+        state.Mode = AreaMode.Normal;
+        state.Interactive = false;
+        state.Idle = false;
+
+        if (!alive) { return; }        
+        
+        int index = LevelIndex;
+        if (index == -1) { return; }
+
+        state.Level = $"{(index + 1) * 100}M";
+    }
+
+    private void ModifyStateOfPicoPlayers(CelesteNetPlayerListComponent.BlobPlayer player, DataPlayerState state)
+    {
+        if (state.SID != "PICO-8") {return;}
+        
+        player.Location.Icon = "menu/pico8";
+        player.Location.Side = "";
+        player.Location.TitleColor = FontHelper.PicoWhite;
+    }
+
+    private void OnEmulatorBegin(On.Celeste.Pico8.Emulator.orig_Begin orig, Emulator self)
+    {
+        orig(self);
+        inGame = true;
+    }
+
+    private void OnPlayerSpawn(On.Celeste.Pico8.Classic.player_spawn.orig_ctor orig, Classic.player_spawn self)
+    {
+        orig(self);
+        SendState();
+    }
 
     private void OnEmulatorUpdate(On.Celeste.Pico8.Emulator.orig_Update orig, Emulator self)
     {
         foreach (PicoGhost ghost in ghosts.Values) {
             ghost.update();
         }
+
         orig(self);
     }
 
@@ -101,8 +163,13 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         }
         orig(self);
         if (Settings.InGameHUD.ShowOwnName) {
+            var name = Client?.PlayerInfo?.DisplayName ?? "You";
+            var colonIndex = name.LastIndexOf(':');
+            if (colonIndex > -1) {
+                name = name[(colonIndex + 2)..];
+            }
             FontHelper.PrintOutlinedCenter(
-                Client?.PlayerInfo.DisplayName ?? "You", (int) self.x, (int) self.y - 8
+                name, (int) self.x + 4, (int) self.y - 8
             );
         }
     }
@@ -113,6 +180,10 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         alive = false;
         Client?.Send(new DataPicoEnd() {Player = Client?.PlayerInfo});
         orig(self);
+        classicData = null;
+        classic = null;
+        emulatorData = null;
+        SendState();
     }
 
     private void OnPlayerKill(On.Celeste.Pico8.Classic.orig_kill_player orig, Classic self, Classic.player obj)
@@ -153,6 +224,7 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         uint id = Client?.PlayerInfo?.ID ?? uint.MaxValue;
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"SELF ID: {id}");
         alive = true;
+        SendState();
         orig(self);
     }
 
@@ -180,11 +252,13 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
     private void OnEmulatorClose(On.Celeste.Pico8.Emulator.orig_End orig, Emulator self)
     {
         alive = false;
+        inGame = false;
         classicData = null;
         emulatorData = null;
         classic = null;
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"CLOSING EMULATOR");
         Client?.Send(new DataPicoEnd() {Player = Client?.PlayerInfo});
+        SendState();
         orig(self);
     }
 
@@ -207,15 +281,13 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         if (Engine.Scene is not Emulator emu) {
             return false;
         }
-
-        if (classicData == null) {
-            emulatorData ??= DynamicData.For(emu);
-            classic = (Classic?) emulatorData.Get("game");
-            if (classic == null) { return false; }
-            classicData = DynamicData.For(classic);
+        emulatorData ??= DynamicData.For(emu);
+        classic ??= (Classic?) emulatorData.Get("game");
+        if (classic != null) {
+            classicData ??= DynamicData.For(classic);
         }
 
-        return true;
+        return !(classic == null || emulatorData == null || classicData == null);
     }
 
     public void PruneInactiveGhosts() {
@@ -238,6 +310,7 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
     }
 
     DateTime lastPrune = DateTime.UtcNow;
+    private bool inGame;
 
     public override void Update(GameTime gameTime) {
         base.Update(gameTime);
@@ -249,12 +322,12 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
             PruneInactiveGhosts();
         }
 
+        if (!alive) { return; }
 
         if (!InitData()) { return; };
 
         var objs = (List<Classic.ClassicObject>?) classicData?.Get("objects");
         if (objs == null) { return; }
-        if (!alive) { return; }
 
         lock (objs) {
             if (!objs.Any(o => o is Classic.player)) {
@@ -275,7 +348,7 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
             Type = queuedGhostState.type,
             Djump = queuedGhostState.djump,
             Hair = queuedGhostState.hair,
-            Level = queuedGhostState.level,
+            Level = LevelIndex,
         };
 
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"SEND {state}");
@@ -315,6 +388,7 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         if (state.Player?.ID == ownID) { return; }
         if (Engine.Scene is not Emulator) { return; }
         if (LevelIndex == -1) { return; }
+        if (state.Level != LevelIndex) { return; }
         if (state.Player == null) { return; }
         if (!alive) { return; }
 
@@ -349,6 +423,7 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
     public void Handle (CelesteNetConnection con, DataPicoEnd state) {
         if (state.Player == null) { return; }
+        if (!alive) { return; }
 
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"END {state.Player.ID}");
         if (!InitData()) { return; };

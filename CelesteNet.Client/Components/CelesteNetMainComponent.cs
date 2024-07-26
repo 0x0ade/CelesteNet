@@ -943,16 +943,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         #region Send
 
+        public static event Action<DataPlayerState> OnSendState;
+
         public void SendState() {
             try {
-                Client?.SendAndHandle(new DataPlayerState {
+                var state = new DataPlayerState {
                     Player = Client.PlayerInfo,
                     SID = Session?.Area.GetSID() ?? MapEditorArea?.SID ?? "",
                     Mode = Session?.Area.Mode ?? MapEditorArea?.Mode ?? AreaMode.Normal,
                     Level = Session?.Level ?? (MapEditorArea != null ? LevelDebugMap : ""),
                     Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null)),
                     Interactive = Settings.InGame.Interactions
-                });
+                };
+                OnSendState.Invoke(state);
+                Client?.SendAndHandle(state);
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");
                 Context.DisposeSafe();

@@ -2,18 +2,21 @@
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataPicoEnd : DataType<DataPicoEnd> {
-        public uint ID;
+        public DataPlayerInfo? Player;
+        public bool KillPlayer;
         
         static DataPicoEnd() {
             DataID = "picoend";
         }
 
         protected override void Read(CelesteNetBinaryReader reader) {
-            ID = reader.ReadUInt32();
+            Player = reader.ReadOptRef<DataPlayerInfo>();
+            KillPlayer = reader.ReadBoolean();
         }
 
         protected override void Write(CelesteNetBinaryWriter writer) {
-            writer.Write(ID);
+            writer.WriteOptRef(Player);
+            writer.Write(KillPlayer);
         }
     }
 }

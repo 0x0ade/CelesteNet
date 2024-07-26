@@ -24,43 +24,17 @@ public class Pico8Module : CelesteNetServerModule {
         session.OnEnd += OnSessionEnd;
     }
 
-    private uint? GetIDOfConnection(CelesteNetConnection con) {
-        CelesteNetPlayerSession? session = null;
-        if (con != null)
-            Server.PlayersByCon.TryGetValue(con, out session);
-        return session?.PlayerInfo?.ID;
-    }
-
     public void Handle(CelesteNetConnection con, DataPicoState picoState) {
-        uint? id = GetIDOfConnection(con);
-        if (id == null) { 
-            Logger.Log(LogLevel.WRN, "PICO8-CNET", "No ID found for state packet!");
-            return;
-        }
-       
-        //Logger.Log(LogLevel.INF, "PICO8-CNET", $"Broadcasting state packet for {id}...");
-
-        picoState.ID = (uint) id;
+        if (picoState.Player == null) { return; }
         Server.BroadcastAsync(picoState);
     }
 
     public void Handle(CelesteNetConnection con, DataPicoEnd picoEnd) {
-        uint? id = GetIDOfConnection(con);
-        if (id == null) { 
-            Logger.Log(LogLevel.WRN, "PICO8-CNET", "No ID found for end packet!");
-            return;
-        }
-        Logger.Log(LogLevel.INF, "PICO8-CNET", $"Broadcasting end packet for {id}...");
-
-        picoEnd.ID = (uint) id;
+        if (picoEnd.Player == null) { return; }
         Server.BroadcastAsync(picoEnd);
     }
 
     public void OnSessionEnd(CelesteNetPlayerSession session, DataPlayerInfo? info) {
-        uint? id = info?.ID;
-        if (id == null) { return; }
-
-        Logger.Log(LogLevel.INF, "PICO8-CNET", $"Connection severed, broadcasting end packet for {id}...");
-        Server.BroadcastAsync(new DataPicoEnd { ID = (uint) id });
+        Server.BroadcastAsync(new DataPicoEnd { Player = info });
     }
 }

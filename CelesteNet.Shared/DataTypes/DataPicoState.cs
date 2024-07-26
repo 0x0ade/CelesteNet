@@ -2,7 +2,7 @@
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataPicoState : DataType<DataPicoState> {
-        public uint ID;
+        public DataPlayerInfo? Player;
         public float Spr;
         public float X = float.NaN;
         public float Y = float.NaN;
@@ -12,7 +12,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public int Djump;
 
         public HairNode[] Hair = new HairNode[5] { new(), new(), new(), new(), new() };
-        
+        public int Level;
+
         public class HairNode {
             public float X = float.NaN;
             public float Y = float.NaN;
@@ -29,11 +30,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         public override string ToString() {
-            return $"DataPicoState(id: {ID}, x: {X}, y: {Y}, spr: {Spr}, type: {Type}, flipX: {FlipX}, flipY: {FlipY}, djump: {Djump}, hair: [{string.Join(", ", Hair.Select(node => node.ToString()))}])";
+            return $"DataPicoState(player: {Player}, x: {X}, y: {Y}, spr: {Spr}, type: {Type}, flipX: {FlipX}, flipY: {FlipY}, djump: {Djump}, level: {Level}, hair: [{string.Join(", ", Hair.Select(node => node.ToString()))}])";
         }
 
         protected override void Read(CelesteNetBinaryReader reader) {
-            ID = reader.ReadUInt32();
+            Player = reader.ReadOptRef<DataPlayerInfo>();
             Spr = reader.ReadSingle();
             X = reader.ReadSingle();
             Y = reader.ReadSingle();
@@ -41,6 +42,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             FlipY = reader.ReadBoolean();
             Djump = reader.ReadInt32();
             Type = reader.ReadInt32();
+            Level = reader.ReadInt32();
             for (int i = 0; i < 5; i++) {
                 HairNode node = Hair[i];
                 node.X = reader.ReadSingle();
@@ -50,7 +52,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         }
 
         protected override void Write(CelesteNetBinaryWriter writer) {
-            writer.Write(ID);
+            writer.WriteOptRef(Player);
             writer.Write(Spr);
             writer.Write(X);
             writer.Write(Y);
@@ -58,6 +60,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(FlipY);
             writer.Write(Djump);
             writer.Write(Type);
+            writer.Write(Level);
             for (int i = 0; i < 5; i++) {
                 HairNode node = Hair[i];
                 writer.Write(node.X);

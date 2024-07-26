@@ -1,25 +1,86 @@
+using System;
+using Celeste.Mod.CelesteNet.Client.Components;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Pico8;
 using Microsoft.Xna.Framework;
+using Monocle;
 using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities;
+
+public class FontHelper {
+    static readonly MTexture font = GFX.Gui["celestenet/pico8/bytesized_font"];
+
+    public static readonly Color PicoBlack = new(0, 0, 0);
+    public static readonly Color PicoWhite = new(0xff, 0xf1, 0xe8);
+
+    internal static MTexture CharacterSprite(uint codepoint) {
+        if (codepoint < 32 || codepoint > 126) {
+            codepoint = 63; // Codepoint of question mark
+        }
+        var index = codepoint - 32;
+        int x = (int) index % 16 * 3;
+        int y = (int) index / 16 * 4;
+        return new MTexture(font, x, y, 3, 4);
+    }
+
+    public static void Print(string text, int x, int y) {
+        Print(text, x, y, PicoWhite);
+    }
+
+    public static void Print(string text, int x, int y, Color color) {
+        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1) {
+            var codepoint = char.ConvertToUtf32(text, i);
+            var sprite = CharacterSprite((uint) codepoint);
+
+            sprite.Draw(new Vector2(x, y), Vector2.Zero, color);
+            x += 4;
+        }
+    }
+    public static void PrintOutlinedCenter(string text, int x, int y) {
+        PrintOutlinedCenter(text, x, y, PicoWhite, PicoBlack);
+    }
+
+    public static void PrintOutlinedCenter(string text, int x, int y, Color inside, Color outside) {
+        Print(text, x - (text.Length / 2 * 4) - 1, y - 1, outside);
+        Print(text, x - (text.Length / 2 * 4)    , y - 1, outside);
+        Print(text, x - (text.Length / 2 * 4) + 1, y - 1, outside);
+        Print(text, x - (text.Length / 2 * 4) - 1, y    , outside);
+        Print(text, x - (text.Length / 2 * 4) + 1, y    , outside);
+        Print(text, x - (text.Length / 2 * 4) - 1, y + 1, outside);
+        Print(text, x - (text.Length / 2 * 4)    , y + 1, outside);
+        Print(text, x - (text.Length / 2 * 4) + 1, y + 1, outside);
+        Print(text, x - (text.Length / 2 * 4)    , y    , inside);
+    }
+}
 
 public class PicoGhost : Classic.ClassicObject {
     DynamicData GData;
     public int djump;
     internal DataPicoState.HairNode[] hair = new DataPicoState.HairNode[5];
-    internal uint id;
+    public DateTime lastUpdate = DateTime.UtcNow;
+    internal CelesteNetPico8Component Pico8Component;
+    public DataPlayerInfo Player;
+    public string Name {
+        get {
+            return Player.DisplayName ?? "???";
+        }
+    }
 
-    public override void init(Classic g, Emulator e)
-    {
+    public PicoGhost(DataPlayerInfo player, CelesteNetPico8Component pico8Component) {
+        Player = player;
+        Pico8Component = pico8Component;
+    }
+
+    public override void init(Classic g, Emulator e) {
         base.init(g, e);
+
         GData = new(g);
         spr = 1f;
     }
 
-    public override void draw()
-    {
+    public override void draw() {
+
         int num = djump switch {
 			2 => 7 + E.flr((int) GData.Get("frames") / 3 % 2) * 4, 
 			1 => 8, 
@@ -29,17 +90,18 @@ public class PicoGhost : Classic.ClassicObject {
         int facing =  (!flipX) ? 1 : (-1);
 		Vector2 vector = new(x + 4f - (facing * 2), y + (E.btn((int) GData.Get("k_down")) ? 4 : 3));
 		foreach (var node in hair) {
+            if (node == null) { continue; }
 			var x = node.X + (vector.X - node.X) / 1.5f;
 			var y = node.Y + (vector.Y + 0.5f - node.Y) / 1.5f;
 			E.circfill(node.X, node.Y, node.Size, num);
 			vector = new Vector2(node.X, node.Y);
 		}
         GData.Invoke("draw_player", new object[] { this, djump });
-        E.print(id.ToString(), x, y + 1, 7f);
-
+        
+        FontHelper.PrintOutlinedCenter(Name, (int) x, (int) y - 8);
     }
 
     public override string ToString() {
-        return $"{{x: {x}, y: {y}, flipx: {flipX}, flipy: {flipY}, spr: {spr}, djump: {djump}}}";
+        return $"PicoGhost(lastUpdate: {(DateTime.UtcNow - lastUpdate).TotalSeconds}, id: {Player.ID}, x: {x}, y: {y}, flipx: {flipX}, flipy: {flipY}, spr: {spr}, djump: {djump})";
     }
 }

@@ -9,8 +9,11 @@ using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Celeste.Mod.CelesteNet.Client.Components;
+#nullable enable
+
 
 internal class GhostState
 {
@@ -24,11 +27,12 @@ internal class GhostState
     internal DataPicoState.HairNode[] hair = new DataPicoState.HairNode[5] {
         new(), new(), new(), new(), new()
     };
+    internal int level;
 }
 
 public class CelesteNetPico8Component : CelesteNetGameComponent {
     
-    private readonly Dictionary<uint, PicoGhost> ghosts = new();
+    public readonly Dictionary<uint, PicoGhost> ghosts = new();
 
     readonly GhostState queuedGhostState = new();
     public bool alive = false;
@@ -48,22 +52,74 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
             {
                 On.Celeste.Pico8.Classic.player.ctor += OnPlayerCreate;
                 On.Celeste.Pico8.Classic.player.update += OnPlayerUpdate;
+                On.Celeste.Pico8.Classic.player.draw += OnPlayerDraw;
                 On.Celeste.Pico8.Classic.kill_player += OnPlayerKill;
                 On.Celeste.Pico8.Classic.player_hair.draw_hair += OnDrawHair;
                 On.Celeste.Pico8.Emulator.End += OnEmulatorClose;
-
+                On.Celeste.Pico8.Emulator.ResetScreen += OnEmulatorReset;
+                On.Celeste.Pico8.Classic.destroy_object += OnDestroyObject;
             }
         });
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        try {
+            MainThreadHelper.Schedule(() => {
+                On.Celeste.Pico8.Classic.player.ctor -= OnPlayerCreate;
+                On.Celeste.Pico8.Classic.player.update -= OnPlayerUpdate;
+                On.Celeste.Pico8.Classic.player.draw -= OnPlayerDraw;
+                On.Celeste.Pico8.Classic.kill_player -= OnPlayerKill;
+                On.Celeste.Pico8.Classic.player_hair.draw_hair -= OnDrawHair;
+                On.Celeste.Pico8.Emulator.End -= OnEmulatorClose;
+                On.Celeste.Pico8.Emulator.ResetScreen -= OnEmulatorReset;
+                On.Celeste.Pico8.Emulator.Update -= OnEmulatorUpdate;
+
+                On.Celeste.Pico8.Classic.destroy_object -= OnDestroyObject;
+            });
+        } catch (ObjectDisposedException) {
+            // It might already be too late to tell the main thread to do anything.
+        }
         #pragma warning restore CA2012
     }
 
     #region Hooks
 
+    private void OnEmulatorUpdate(On.Celeste.Pico8.Emulator.orig_Update orig, Emulator self)
+    {
+        foreach (PicoGhost ghost in ghosts.Values) {
+            ghost.update();
+        }
+        orig(self);
+    }
+
+    private void OnPlayerDraw(On.Celeste.Pico8.Classic.player.orig_draw orig, Classic.player self)
+    {
+        foreach (PicoGhost ghost in ghosts.Values) {
+            ghost.draw();
+        }
+        orig(self);
+        if (Settings.InGameHUD.ShowOwnName) {
+            FontHelper.PrintOutlinedCenter(
+                Client?.PlayerInfo.DisplayName ?? "You", (int) self.x, (int) self.y - 8
+            );
+        }
+    }
+
+    private void OnEmulatorReset(On.Celeste.Pico8.Emulator.orig_ResetScreen orig, Emulator self)
+    {
+        Logger.Log(LogLevel.DBG, "PICO8-CNET", $"EMULATOR RESET");
+        alive = false;
+        Client?.Send(new DataPicoEnd() {Player = Client?.PlayerInfo});
+        orig(self);
+    }
+
     private void OnPlayerKill(On.Celeste.Pico8.Classic.orig_kill_player orig, Classic self, Classic.player obj)
     {
-        Logger.Log(LogLevel.INF, "PICO8-CNET", $"PLAYER DEAD");
+        Logger.Log(LogLevel.DBG, "PICO8-CNET", $"PLAYER DEAD");
         alive = false;
-        Client?.Send(new DataPicoEnd() {ID = Client?.PlayerInfo?.ID ?? uint.MaxValue});
+        Client?.Send(new DataPicoEnd() {Player = Client?.PlayerInfo, KillPlayer = true});
         orig(self, obj);
     }
 
@@ -72,7 +128,7 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         orig(self, obj, facing, djump);
 
         // TODO: This kinda sucks. Making a new dynamicdata 7 times an update is bad for performance.
-
+        #nullable disable
         DynamicData data = new(self);
         // This type is private :/
         object[] hairNodes = (object[]) data.Get("hair");
@@ -89,16 +145,21 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
             queuedGhostState.hair[i].Y = y;
             queuedGhostState.hair[i].Size = size;
         }
+        #nullable enable
     }
 
     private void OnPlayerCreate(On.Celeste.Pico8.Classic.player.orig_ctor orig, Classic.player self)
     {
         uint id = Client?.PlayerInfo?.ID ?? uint.MaxValue;
-        Logger.Log(LogLevel.INF, "PICO8-CNET", $"SELF ID: {id}");
-        DeleteGhosts();
+        Logger.Log(LogLevel.DBG, "PICO8-CNET", $"SELF ID: {id}");
         alive = true;
         orig(self);
     }
+
+    private int LevelIndex {get {
+        if (!InitData()) {return -1;}
+        return (int?) classicData?.Invoke("level_index") ?? -1;
+    }}
 
     private void OnPlayerUpdate(On.Celeste.Pico8.Classic.player.orig_update orig, Classic.player self)
     {
@@ -110,8 +171,10 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         queuedGhostState.x = self.x;
         queuedGhostState.y = self.y;
         queuedGhostState.type = self.type;
+        queuedGhostState.level = LevelIndex;
 
         orig(self);
+
     }
 
     private void OnEmulatorClose(On.Celeste.Pico8.Emulator.orig_End orig, Emulator self)
@@ -120,29 +183,22 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         classicData = null;
         emulatorData = null;
         classic = null;
-        Logger.Log(LogLevel.INF, "PICO8-CNET", $"CLOSING EMULATOR");
-        Client?.Send(new DataPicoEnd() {ID = Client?.PlayerInfo?.ID ?? uint.MaxValue});
-        DeleteGhosts();
+        Logger.Log(LogLevel.DBG, "PICO8-CNET", $"CLOSING EMULATOR");
+        Client?.Send(new DataPicoEnd() {Player = Client?.PlayerInfo});
         orig(self);
+    }
+
+    private void OnDestroyObject(On.Celeste.Pico8.Classic.orig_destroy_object orig, Classic self, Classic.ClassicObject obj)
+    {
+        if (obj is PicoGhost ghost) {
+            ghosts.Remove(ghost.Player.ID);
+        }
+        orig(self, obj);
     }
 
     #endregion
 
-    #nullable enable
-
-    private void DeleteGhosts() {
-        if (!InitData()) { return; }
-        
-        var keys = ghosts.Keys.ToArray();
-        foreach (uint ID in keys) {
-            ghosts.Remove(ID, out PicoGhost? ghost);
-            if (ghost == null) { continue; }
-
-            classicData?.Invoke("destroy_object", new object[] { ghost });
-        }
-    }
-
-    DynamicData? classicData;
+    public DynamicData? classicData;
     DynamicData? emulatorData;
     Classic? classic;
 
@@ -162,40 +218,37 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         return true;
     }
 
-    // This is kinda heavy, should only be run every so often
-    private void CollectDeadGhosts() {
-        if (!InitData()) { return; };
-
-
-
-        var objs = (List<Classic.ClassicObject>?) classicData?.Get("objects");
-        if (objs == null) { return; }
-
-        var queuedForDeletion = new List<uint>();
-
-        // O(m*n), where m is # of objects and n is # of ghosts, shouldn't get larger than 5000 worst case?
+    public void PruneInactiveGhosts() {
         lock (ghosts) {
+            var queuedDeletions = new List<uint>();
             foreach (KeyValuePair<uint, PicoGhost> kvp in ghosts) {
-                if (!objs.Contains(kvp.Value)) {
-                    queuedForDeletion.Add(kvp.Key);
+                var ID = kvp.Key;
+                var ghost = kvp.Value;
+                if (
+                    (DateTime.UtcNow - ghost.lastUpdate).TotalMilliseconds > 250
+                ) {
+                    // Hasn't been updated in a bit, assume connection was dropped unexpectedly
+                    queuedDeletions.Add(ID);
                 }
             }
-        }
-
-        Logger.Log(LogLevel.INF, "PICO8-CNET", $"COLLECTED {queuedForDeletion.Count} DEAD GHOSTS");
-
-        foreach (uint ID in queuedForDeletion) {
-            ghosts.Remove(ID);
+            foreach (uint id in queuedDeletions) {
+                KillGhostById(id);
+            }
         }
     }
+
+    DateTime lastPrune = DateTime.UtcNow;
 
     public override void Update(GameTime gameTime) {
         base.Update(gameTime);
 
-        if (Engine.Scene is not Emulator emu) {
-            DeleteGhosts();
-            return;
+        if (Engine.Scene is not Emulator emu) { return; }
+
+        if ((DateTime.UtcNow - lastPrune).TotalMilliseconds > 125) {
+            lastPrune = DateTime.UtcNow;
+            PruneInactiveGhosts();
         }
+
 
         if (!InitData()) { return; };
 
@@ -205,16 +258,15 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
         lock (objs) {
             if (!objs.Any(o => o is Classic.player)) {
-                Logger.Log(LogLevel.INF, "PICO8-CNET", $"NO PLAYER FOUND");
+                Logger.Log(LogLevel.DBG, "PICO8-CNET", $"NO PLAYER FOUND");
                 alive = false;
-                DeleteGhosts();
-                Client?.Send(new DataPicoEnd() {ID = Client?.PlayerInfo?.ID ?? uint.MaxValue});
+                Client?.Send(new DataPicoEnd() {Player = Client?.PlayerInfo});
                 return;
             }
         }
 
         var state = new DataPicoState {
-            ID = Client?.PlayerInfo?.ID ?? uint.MaxValue,
+            Player = Client?.PlayerInfo,
             Spr = queuedGhostState.spr,
             X = queuedGhostState.x,
             Y = queuedGhostState.y,
@@ -222,7 +274,8 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
             FlipY = queuedGhostState.flipY,
             Type = queuedGhostState.type,
             Djump = queuedGhostState.djump,
-            Hair = queuedGhostState.hair
+            Hair = queuedGhostState.hair,
+            Level = queuedGhostState.level,
         };
 
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"SEND {state}");
@@ -231,48 +284,55 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
     }
 
 
-    public PicoGhost? InitGhost(uint ID) {
-        if (!InitData()) { return null; };
-
-        CollectDeadGhosts();
-
-        if (Engine.Scene is Emulator emu) {
-            if (classic == null) { return null; }
-            var objs = (List<Classic.ClassicObject>?) classicData?.Get("objects");
-            if (objs == null) {
-                Logger.Log(LogLevel.WRN, "PICO8-CNET", "Failed to retrieve Classic.objects");
-                return null;
-            }
-            var ghost = new PicoGhost();
-            ghost.init(classic, emu);
-            objs.Add(ghost);
-            ghosts[ID] = ghost;
-            return ghost;
+    public PicoGhost? InitGhost(DataPlayerInfo player) {
+        if (Engine.Scene is not Emulator emu) {
+            Logger.Log(LogLevel.WRN, "PICO8-CNET", "Tried to initialize pico ghost in non-Emulator");
+            return null;
         }
-        return null;
+        
+        if (!InitData()) {
+            Logger.Log(LogLevel.WRN, "PICO8-CNET", "Failed to InitData");
+            return null;
+        };
+
+        if (classic == null) {
+            Logger.Log(LogLevel.WRN, "PICO8-CNET", "Failed to retrieve Classic");
+            return null;
+        }
+
+        var ghost = new PicoGhost(player, this);
+        ghost.init(classic, emu);
+        ghosts[player.ID] = ghost;
+        return ghost;
+    
     }
 
-    public DateTime lastLog = DateTime.UnixEpoch;
+    #region Handlers
 
     public void Handle (CelesteNetConnection con, DataPicoState state) {
 
         uint ownID = Client?.PlayerInfo?.ID ?? uint.MaxValue;
-        if (state.ID == ownID) { return; }
+        if (state.Player?.ID == ownID) { return; }
         if (Engine.Scene is not Emulator) { return; }
+        if (LevelIndex == -1) { return; }
+        if (state.Player == null) { return; }
+        if (!alive) { return; }
 
-        if (!ghosts.TryGetValue(state.ID, out PicoGhost? ghost)) {
-            Logger.Log(LogLevel.INF, "PICO8-CNET", $"CREATE {state.ID}");
-            ghost = InitGhost(state.ID);
-            Logger.Log(LogLevel.INF, "PICO8-CNET", $"GHOSTS: {string.Join(", ", ghosts.Keys.Select(i => i.ToString()))}");
+        if (!ghosts.TryGetValue(state.Player.ID, out PicoGhost? ghost) || ghost == null) {
+            Logger.Log(LogLevel.DBG, "PICO8-CNET", $"CREATE {state.Player.ID}");
+            ghost = InitGhost(state.Player);
+            Logger.Log(LogLevel.DBG, "PICO8-CNET", $"GHOSTS: {string.Join(", ", ghosts.Values.Select(i => i.ToString()))}");
         };
 
         if (ghost == null) {
-            throw new Exception("Ghost is null after InitGhost was called. This should never happen!");
+            Logger.Log(LogLevel.ERR, "PICO8-CNET", "Ghost is null after InitGhost was called. This should never happen!");
+            Logger.Log(LogLevel.ERR, "PICO8-CNET", $"Ghosts: {string.Join(", ", ghosts.Values.Select(i => i.ToString()))}");
+            return;
         }
         
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"RECV {state}");
         
-        ghost.id = state.ID;
+        ghost.lastUpdate = DateTime.UtcNow;
         ghost.x = state.X;
         ghost.y = state.Y;
         ghost.flipX = state.FlipX;
@@ -283,21 +343,51 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         ghost.hair = state.Hair;
     }
 
+    // Unfortunately, there's no util in DynamicData for private classes. To reflection we go!
+    static readonly Type? DeadParticle = typeof(Classic)
+        .GetNestedType("DeadParticle", BindingFlags.NonPublic);
+
     public void Handle (CelesteNetConnection con, DataPicoEnd state) {
-        Logger.Log(LogLevel.INF, "PICO8-CNET", $"END {state.ID}");
+        if (state.Player == null) { return; }
+
+        Logger.Log(LogLevel.DBG, "PICO8-CNET", $"END {state.Player.ID}");
         if (!InitData()) { return; };
+        if (DeadParticle == null) { return; };
 
         uint ownID = Client?.PlayerInfo?.ID ?? uint.MaxValue;
-        if (state.ID == ownID) { return; }
-        ghosts.Remove(state.ID, out PicoGhost? ghost);
-        if (ghost == null) {
-            Logger.Log(LogLevel.WRN, "PICO8-CNET", $"GHOST {state.ID} ENDED WITHOUT EXISTING");
-            Logger.Log(LogLevel.WRN, "PICO8-CNET", $"GHOSTS: {string.Join(", ", ghosts.Keys.Select(i => i.ToString()))}");
-            return;
+        if (state.Player.ID == ownID) { return; }
+
+        PicoGhost? ghost = KillGhostById(state.Player.ID);
+
+        if (ghost != null && state.KillPlayer) {
+            object? deadParticles = classicData?.Get("dead_particles");
+            if (deadParticles == null) { return; }
+            // 7 DynamicDatas isn't great, but this is called once every few seconds at most. It's probably fine?
+            DynamicData deadParticlesData = new(deadParticles);
+
+            deadParticlesData.Invoke("Clear");
+            for (int i = 0; i <= 7; i++) {
+                float num = i / 8f;
+                object? particle = Activator.CreateInstance(DeadParticle);
+                if (particle == null) { continue; }
+                DynamicData particleData = new(particle);
+                particleData.Set("x", ghost.x + 4f);
+                particleData.Set("y", ghost.y + 4f);
+                particleData.Set("t", 10);
+                particleData.Set("spd", new Vector2(
+                    (float) Math.Cos((double) num * -2f * (float) Math.PI) * 3f,
+                    (float) Math.Sin(((double) num + 0.5f) * -2f * (float) Math.PI) * 3f) 
+                );
+
+                deadParticlesData.Invoke("Add", particle);
+            }
         }
+    }
 
-        classicData?.Invoke("destroy_object", new object[] { ghost });
+    #endregion
 
-        CollectDeadGhosts();
+    private PicoGhost? KillGhostById(uint id) {
+        ghosts.Remove(id, out PicoGhost? ghost);
+        return ghost;
     }
 }

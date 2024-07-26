@@ -149,8 +149,10 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
     private void OnEmulatorUpdate(On.Celeste.Pico8.Emulator.orig_Update orig, Emulator self)
     {
-        foreach (PicoGhost ghost in ghosts.Values) {
-            ghost.update();
+        lock (ghosts) {
+            foreach (PicoGhost ghost in ghosts.Values) {
+                ghost.update();
+            }
         }
 
         orig(self);
@@ -158,8 +160,10 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
     private void OnPlayerDraw(On.Celeste.Pico8.Classic.player.orig_draw orig, Classic.player self)
     {
-        foreach (PicoGhost ghost in ghosts.Values) {
-            ghost.draw();
+        lock (ghosts) {
+            foreach (PicoGhost ghost in ghosts.Values) {
+                ghost.draw();
+            }
         }
         orig(self);
         if (Settings.InGameHUD.ShowOwnName) {
@@ -395,12 +399,16 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         if (!ghosts.TryGetValue(state.Player.ID, out PicoGhost? ghost) || ghost == null) {
             Logger.Log(LogLevel.DBG, "PICO8-CNET", $"CREATE {state.Player.ID}");
             ghost = InitGhost(state.Player);
-            Logger.Log(LogLevel.DBG, "PICO8-CNET", $"GHOSTS: {string.Join(", ", ghosts.Values.Select(i => i.ToString()))}");
+            lock (ghosts) {
+                Logger.Log(LogLevel.DBG, "PICO8-CNET", $"GHOSTS: {string.Join(", ", ghosts.Values.Select(i => i.ToString()))}");
+            }
         };
 
         if (ghost == null) {
             Logger.Log(LogLevel.ERR, "PICO8-CNET", "Ghost is null after InitGhost was called. This should never happen!");
-            Logger.Log(LogLevel.ERR, "PICO8-CNET", $"Ghosts: {string.Join(", ", ghosts.Values.Select(i => i.ToString()))}");
+            lock (ghosts) {
+                Logger.Log(LogLevel.ERR, "PICO8-CNET", $"Ghosts: {string.Join(", ", ghosts.Values.Select(i => i.ToString()))}");
+            }
             return;
         }
         

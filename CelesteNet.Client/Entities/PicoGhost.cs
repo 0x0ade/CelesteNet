@@ -69,6 +69,12 @@ public class PicoGhost : Classic.ClassicObject {
     public DataPlayerInfo Player;
     public string Name {
         get {
+            // The reason why this is done is because
+            // if you have two players with the same name,
+            // say Player and Player#2,
+            // from Player#2's perspective, both people's
+            // Player.FullName's are Player, dropping the #N.
+            // Also the PICO-8 font doesn't support emotes.
             var name = Player.DisplayName ?? "???";
             var colonIndex = name.LastIndexOf(':');
             if (colonIndex > -1) {

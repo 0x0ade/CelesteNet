@@ -160,7 +160,9 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
             ghosts.Clear();
         }
 
-        orig(self);
+        if (!Context.Chat.Active) {
+            orig(self);
+        }
     }
 
     private void OnPlayerDraw(On.Celeste.Pico8.Classic.player.orig_draw orig, Classic.player self)

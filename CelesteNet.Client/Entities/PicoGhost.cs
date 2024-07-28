@@ -29,8 +29,15 @@ public class FontHelper {
     }
 
     public static void Print(string text, int x, int y, Color color) {
+        int initialX = x;
         for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1) {
             var codepoint = char.ConvertToUtf32(text, i);
+            if (codepoint == 0x0A) {
+                // Newline
+                x = initialX;
+                y += 5;
+                continue;
+            }
             var sprite = CharacterSprite((uint) codepoint);
 
             sprite.Draw(new Vector2(x, y), Vector2.Zero, color);
@@ -58,7 +65,6 @@ public class PicoGhost : Classic.ClassicObject {
     DynamicData GData;
     public int djump;
     internal DataPicoState.HairNode[] hair = new DataPicoState.HairNode[5];
-    public DateTime lastUpdate = DateTime.UtcNow;
     internal CelesteNetPico8Component Pico8Component;
     public DataPlayerInfo Player;
     public string Name {
@@ -101,12 +107,17 @@ public class PicoGhost : Classic.ClassicObject {
 			E.circfill(node.X, node.Y, node.Size, num);
 			vector = new Vector2(node.X, node.Y);
 		}
-        GData.Invoke("draw_player", new object[] { this, djump });
+
+        if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity > 0) {
+            GData.Invoke("draw_player", new object[] { this, djump });
+        }
         
-        FontHelper.PrintOutlinedCenter(Name, (int) x + 4, (int) y - 8);
+        if (CelesteNetClientModule.Settings.InGameHUD.NameOpacity > 0) {
+            FontHelper.PrintOutlinedCenter(Name, (int) x + 4, (int) y - 8);
+        }
     }
 
     public override string ToString() {
-        return $"PicoGhost(lastUpdate: {(DateTime.UtcNow - lastUpdate).TotalSeconds}, id: {Player.ID}, x: {x}, y: {y}, flipx: {flipX}, flipy: {flipY}, spr: {spr}, djump: {djump})";
+        return $"PicoGhost(id: {Player.ID}, x: {x}, y: {y}, flipx: {flipX}, flipy: {flipY}, spr: {spr}, djump: {djump})";
     }
 }

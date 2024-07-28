@@ -376,7 +376,10 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
             ghost.Player.ID == id &&
             (Client?.Data?.TryGetBoundRef(ghost.Player, out DataPlayerState? state) ?? false) &&
             state != null &&
-            true; // TODO: need more checks!
+            state.SID == "PICO-8" &&
+            LevelIndex != -1 &&
+            state.Level == $"{(LevelIndex + 1) * 100}M";
+            // TODO: need more checks!
         
         if (!active) {
             ghosts.TryRemove(id, out _);
@@ -434,20 +437,19 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         }
         
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"RECV {state}");
-
-        if (state.Level != LevelIndex) {
-            ghosts.TryRemove(ghost.Player.ID, out _);
-            return;
-        }
-
+        
         if (state.Dead) {
             if (ghosts.TryRemove(ghost.Player.ID, out _)) {
                 PlayGhostKill(ghost);
             }
             return;
         }
+
+        if (state.Level != LevelIndex) {
+            ghosts.TryRemove(ghost.Player.ID, out _);
+            return;
+        }
         
-        ghost.lastUpdate = DateTime.UtcNow;
         ghost.x = state.X;
         ghost.y = state.Y;
         ghost.flipX = state.FlipX;

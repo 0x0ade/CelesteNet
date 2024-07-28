@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataPicoState : DataType<DataPicoState> {
@@ -17,7 +18,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override DataFlags DataFlags => DataFlags.Unreliable |  DataFlags.NoStandardMeta;
 
-        public HairNode[] Hair = new HairNode[5] { new(), new(), new(), new(), new() };
+        public List<HairNode> Hair = new();
         public int Level;
 
         public class HairNode {
@@ -64,12 +65,16 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Type = reader.ReadInt32();
             Level = reader.ReadInt32();
             Dead = reader.ReadBoolean();
-            for (int i = 0; i < 5; i++) {
-                HairNode node = Hair[i];
-                node.X = reader.ReadSingle();
-                node.Y = reader.ReadSingle();
-                node.Size = reader.ReadSingle();
-            }
+            ushort length = reader.ReadUInt16();
+            Hair.Clear();
+            for (int i = 0; i < length; i++) {
+                HairNode node = new() {
+                    X = reader.ReadSingle(),
+                    Y = reader.ReadSingle(),
+                    Size = reader.ReadSingle()
+                };
+                Hair.Add(node);
+           }
         }
 
         protected override void Write(CelesteNetBinaryWriter writer) {
@@ -83,8 +88,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.Write(Type);
             writer.Write(Level);
             writer.Write(Dead);
-            for (int i = 0; i < 5; i++) {
-                HairNode node = Hair[i];
+            writer.Write((ushort) Hair.Count);
+            foreach (HairNode node in Hair) {
                 writer.Write(node.X);
                 writer.Write(node.Y);
                 writer.Write(node.Size);

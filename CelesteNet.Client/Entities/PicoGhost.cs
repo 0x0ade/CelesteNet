@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Celeste.Mod.CelesteNet.Client.Components;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Pico8;
@@ -64,7 +65,7 @@ public class FontHelper {
 public class PicoGhost : Classic.ClassicObject {
     DynamicData GData;
     public int djump;
-    internal DataPicoState.HairNode[] hair = new DataPicoState.HairNode[5];
+    internal List<DataPicoState.HairNode> hair = new();
     internal CelesteNetPico8Component Pico8Component;
     public DataPlayerInfo Player;
     public string Name {

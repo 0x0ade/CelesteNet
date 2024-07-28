@@ -25,9 +25,7 @@ internal class GhostState
     internal bool flipY;
     internal int type;
     internal int djump;
-    internal DataPicoState.HairNode[] hair = new DataPicoState.HairNode[5] {
-        new(), new(), new(), new(), new()
-    };
+    internal List<DataPicoState.HairNode> hair = new();
     internal int level;
 }
 
@@ -217,17 +215,19 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         // This type is private :/
         object[] hairNodes = (object[]) data.Get("hair");
 
-        for (int i = 0; i < 5; i++) {
-            object node = hairNodes[i];
+        queuedGhostState.hair.Clear();
+        foreach (object node in hairNodes) {
             DynamicData nodeData = new(node);
 
             var x = (float) nodeData.Get("x");
             var y = (float) nodeData.Get("y");
             var size = (float) nodeData.Get("size");
 
-            queuedGhostState.hair[i].X = x;
-            queuedGhostState.hair[i].Y = y;
-            queuedGhostState.hair[i].Size = size;
+            queuedGhostState.hair.Add(new() {
+                X = x,
+                Y = y,
+                Size = size
+            });
         }
         #nullable enable
     }

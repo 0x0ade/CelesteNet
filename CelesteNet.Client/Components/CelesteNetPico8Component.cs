@@ -158,7 +158,7 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
             ghosts.Clear();
         }
 
-        if (!Context.Chat.Active) {
+        if (!(Context?.Chat?.Active ?? false)) {
             orig(self);
         }
     }

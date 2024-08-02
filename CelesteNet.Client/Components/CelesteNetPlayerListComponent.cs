@@ -492,7 +492,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return "9";
 
             if (Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) == true && !string.IsNullOrEmpty(state?.SID))
-                return $"0 {(state.SID.StartsWith("Celeste/") ? "0" : "1") + state.SID + (int) state.Mode} {player.FullName}";
+                return $"0 {(state.SID.StartsWith("Celeste/") || state.SID == "PICO-8" ? "0" : "1") + state.SID + (int) state.Mode} {player.FullName}";
 
             return $"8 {player.FullName}";
         }

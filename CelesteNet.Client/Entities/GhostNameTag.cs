@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Pico8;
+using Microsoft.Xna.Framework;
 using Monocle;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities {
@@ -31,10 +32,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             if (string.IsNullOrWhiteSpace(Name))
                 return;
+            
+            int opacity = CelesteNetClientModule.Settings.InGameHUD.NameOpacity;
 
-            Level level = SceneAs<Level>();
-            if (level == null)
-                return;
+            if (Scene is not Level level) { return; }
 
             float scale = level.GetScreenScale();
 
@@ -58,7 +59,6 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 marginBottom: screenMargins
             );
 
-            int opacity = CelesteNetClientModule.Settings.InGameHUD.NameOpacity;
 
             if (!isOnScreen && CelesteNetClientModule.Settings.InGameHUD.OffScreenNames == CelesteNetClientSettings.OffScreenModes.Hidden)
                 return;

@@ -50,11 +50,11 @@ public class PicoGhost : Classic.ClassicObject {
             _ => 12,
         };
 
-        foreach (var node in Hair.Where(node => node != null))
-            E.circfill(node.X, node.Y, node.Size, num);
 
         if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity > 0)
         {
+            foreach (var node in Hair.Where(node => node != null))
+                E.circfill(node.X, node.Y, node.Size, num);
             _gData.Invoke("draw_player", new object[] { this, DJump });
         }
         

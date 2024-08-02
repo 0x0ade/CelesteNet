@@ -1,7 +1,6 @@
 using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Pico8;
-using FMOD;
 using Microsoft.Xna.Framework;
 using Monocle;
 using MonoMod.RuntimeDetour;
@@ -16,25 +15,24 @@ namespace Celeste.Mod.CelesteNet.Client.Components;
 #nullable enable
 
 
-internal class GhostState
+internal class GhostFrame
 {
-    internal float spr;
-    internal float x;
-    internal float y;
-    internal bool flipX;
-    internal bool flipY;
-    internal int type;
-    internal int djump;
-    internal List<DataPicoState.HairNode> hair = new();
-    internal int level;
+    internal float Spr;
+    internal float X;
+    internal float Y;
+    internal bool FlipX;
+    internal bool FlipY;
+    internal int Type;
+    internal int DJump;
+    internal readonly List<DataPicoFrame.HairNode> Hair = new();
 }
 
 public class CelesteNetPico8Component : CelesteNetGameComponent {
     
-    public readonly ConcurrentDictionary<uint, PicoGhost> ghosts = new();
+    public readonly ConcurrentDictionary<uint, PicoGhost> Ghosts = new();
 
-    readonly GhostState queuedGhostState = new();
-    public bool alive = false;
+    private readonly GhostFrame _queuedGhostFrame = new();
+    private bool _alive;
 
     public CelesteNetPico8Component(CelesteNetClientContext context, Game game) : base(context, game) {}
 
@@ -68,15 +66,6 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         if (client != null) {
             client.Con.OnDisconnect += WipeGhostsOnDisconnect;
         }
-    }
-
-    private static void SendState() {
-        var main =
-            CelesteNetClientModule.Instance
-                .Context
-                .Get<CelesteNetMainComponent>();
-        
-        main.SendState();
     }
 
     protected override void Dispose(bool disposing)
@@ -113,14 +102,14 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
     private void WipeGhostsOnDisconnect(CelesteNetConnection connection)
     {
-        ghosts.Clear();
+        Ghosts.Clear();
     }
 
     private void ModifyStateInPico(DataPlayerState state)
     {
         uint? id = state.Player?.ID;
-        if (id == null) { return; }
-        if (!inGame) { return; }
+        if (id == null) return;
+        if (!_inGame) return;
 
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"Modifying state!");
 
@@ -130,32 +119,32 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         state.Idle = false;
         
         int index = LevelIndex;
-        if (index == -1) { return; }
+        if (index == -1) return;
 
         state.Level = $"{(index + 1) * 100}M";
     }
 
     private void ModifyStateOfPicoPlayers(CelesteNetPlayerListComponent.BlobPlayer player, DataPlayerState state)
     {
-        if (state.SID != "PICO-8") {return;}
+        if (state.SID != "PICO-8") return;
         
         player.Location.Icon = "menu/pico8";
         player.Location.Side = "";
-        player.Location.TitleColor = FontHelper.PicoWhite;
+        player.Location.TitleColor = new Color(0xff, 0xf1, 0xe8); // PICO-8 White
     }
 
     private void OnPlayerSpawn(On.Celeste.Pico8.Classic.player_spawn.orig_ctor orig, Classic.player_spawn self)
     {
         orig(self);
-        inGame = true;
-        alive = true;
-        SendState();
+        _inGame = true;
+        _alive = true;
+        Context.Main.SendState();
     }
 
     private void OnEmulatorUpdate(On.Celeste.Pico8.Emulator.orig_Update orig, Emulator self)
     {
         if (!Settings.Connected) {
-            ghosts.Clear();
+            Ghosts.Clear();
         }
 
         if (!(Context?.Chat?.Active ?? false)) {
@@ -165,43 +154,42 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
     private void OnPlayerDraw(On.Celeste.Pico8.Classic.player.orig_draw orig, Classic.player self)
     {
-        lock (ghosts) {
-            foreach (PicoGhost ghost in ghosts.Values) {
+        lock (Ghosts) {
+            foreach (PicoGhost ghost in Ghosts.Values) {
                 ghost.draw();
             }
         }
 
         orig(self);
-        if (Settings.InGameHUD.ShowOwnName) {
-            var name = Client?.PlayerInfo?.DisplayName ?? "You";
-            var colonIndex = name.LastIndexOf(':');
-            if (colonIndex > -1) {
-                name = name[(colonIndex + 2)..];
-            }
-            FontHelper.PrintOutlinedCenter(
-                name, (int) self.x + 4, (int) self.y - 8
-            );
-        }
+        if (!Settings.InGameHUD.ShowOwnName) return;
+        
+        var name = Client?.PlayerInfo?.DisplayName ?? "You";
+        var colonIndex = name.LastIndexOf(':');
+        if (colonIndex > -1)
+            name = name[(colonIndex + 2)..];
+        Pico8FontHelper.PrintOutlinedCenter(
+            name, (int) self.x + 4, (int) self.y - 8
+        );
     }
 
     private void OnEmulatorReset(On.Celeste.Pico8.Emulator.orig_ResetScreen orig, Emulator self)
     {
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"EMULATOR RESET");
-        alive = false;
-        inGame = false;
-        Client?.Send(new DataPicoState() {Player = Client?.PlayerInfo, Level = -1});
+        _alive = false;
+        _inGame = false;
+        Client?.Send(new DataPicoFrame() {Player = Client?.PlayerInfo, Level = -1});
         orig(self);
-        classic = null;
-        classicData = null;
-        emulatorData = null;
-        SendState();
+        _classic = null;
+        _classicData = null;
+        _emulatorData = null;
+        Context.Main.SendState();
     }
 
     private void OnPlayerKill(On.Celeste.Pico8.Classic.orig_kill_player orig, Classic self, Classic.player obj)
     {
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"PLAYER DEAD");
-        alive = false;
-        Client?.Send(new DataPicoState() {Player = Client?.PlayerInfo, Dead = true});
+        _alive = false;
+        Client?.Send(new DataPicoFrame() {Player = Client?.PlayerInfo, Dead = true});
         orig(self, obj);
     }
 
@@ -209,21 +197,22 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
     {
         orig(self, obj, facing, djump);
 
-        // TODO: This kinda sucks. Making a new dynamicdata 7 times an update is bad for performance.
+        // FIXME: This kinda sucks. Making a new DynamicData 7 times an update is bad for performance.
         #nullable disable
         DynamicData data = new(self);
         // This type is private :/
         object[] hairNodes = (object[]) data.Get("hair");
+        if (hairNodes == null) return;
 
-        queuedGhostState.hair.Clear();
+        _queuedGhostFrame.Hair.Clear();
         foreach (object node in hairNodes) {
             DynamicData nodeData = new(node);
 
-            var x = (float) nodeData.Get("x");
-            var y = (float) nodeData.Get("y");
-            var size = (float) nodeData.Get("size");
+            var x = (float?) nodeData.Get("x") ?? float.NaN;
+            var y = (float?) nodeData.Get("y") ?? float.NaN;
+            var size = (float?) nodeData.Get("size") ?? float.NaN;
 
-            queuedGhostState.hair.Add(new() {
+            _queuedGhostFrame.Hair.Add(new DataPicoFrame.HairNode {
                 X = x,
                 Y = y,
                 Size = size
@@ -236,132 +225,128 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
     {
         uint id = Client?.PlayerInfo?.ID ?? uint.MaxValue;
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"SELF ID: {id}");
-        alive = true;
-        SendState();
+        _alive = true;
+        Context.Main.SendState();
         orig(self);
     }
 
     private int LevelIndex {get {
-        if (!InitData()) {return -1;}
-        return (int?) classicData?.Invoke("level_index") ?? -1;
+        if (!InitData()) return -1;
+        return (int?) _classicData?.Invoke("level_index") ?? -1;
     }}
 
     private void OnPlayerSpawnUpdate(On.Celeste.Pico8.Classic.player_spawn.orig_update orig, Classic.player_spawn self)
     {
-        inGame = true;
-        alive = true;
+        _inGame = true;
+        _alive = true;
 
-        queuedGhostState.spr = self.spr;
-        queuedGhostState.flipX = self.flipX;
-        queuedGhostState.flipY = self.flipY;
-        queuedGhostState.x = self.x;
-        queuedGhostState.y = self.y;
-        queuedGhostState.type = self.type;
-        queuedGhostState.level = LevelIndex;
+        _queuedGhostFrame.Spr = self.spr;
+        _queuedGhostFrame.FlipX = self.flipX;
+        _queuedGhostFrame.FlipY = self.flipY;
+        _queuedGhostFrame.X = self.x;
+        _queuedGhostFrame.Y = self.y;
+        _queuedGhostFrame.Type = self.type;
 
         orig(self);
     }
 
     private void OnPlayerUpdate(On.Celeste.Pico8.Classic.player.orig_update orig, Classic.player self)
     {
-        inGame = true;
-        alive = true;
+        _inGame = true;
+        _alive = true;
 
-        queuedGhostState.spr = self.spr;
-        queuedGhostState.djump = self.djump;
-        queuedGhostState.flipX = self.flipX;
-        queuedGhostState.flipY = self.flipY;
-        queuedGhostState.x = self.x;
-        queuedGhostState.y = self.y;
-        queuedGhostState.type = self.type;
-        queuedGhostState.level = LevelIndex;
+        _queuedGhostFrame.Spr = self.spr;
+        _queuedGhostFrame.DJump = self.djump;
+        _queuedGhostFrame.FlipX = self.flipX;
+        _queuedGhostFrame.FlipY = self.flipY;
+        _queuedGhostFrame.X = self.x;
+        _queuedGhostFrame.Y = self.y;
+        _queuedGhostFrame.Type = self.type;
 
         orig(self);
     }
 
     private void OnEmulatorClose(On.Celeste.Pico8.Emulator.orig_End orig, Emulator self)
     {
-        alive = false;
-        inGame = false;
-        classicData = null;
-        emulatorData = null;
-        classic = null;
+        _alive = false;
+        _inGame = false;
+        _classicData = null;
+        _emulatorData = null;
+        _classic = null;
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"CLOSING EMULATOR");
-        SendState();
+        Context.Main.SendState();
         orig(self);
     }
 
     #endregion
 
-    DynamicData? classicData;
-    DynamicData? emulatorData;
-    Classic? classic;
+    private DynamicData? _classicData;
+    private DynamicData? _emulatorData;
+    private Classic? _classic;
 
     // This initializes the top three if it returns true.
     private bool InitData(bool reinit = false) {
-        if (Engine.Scene is not Emulator emu) {
-            return false;
-        }
+        if (Engine.Scene is not Emulator emu) return false;
         if (reinit) {
-            emulatorData = null;
-            classicData = null;
-            classic = null;
+            _emulatorData = null;
+            _classicData = null;
+            _classic = null;
         }
         
-        emulatorData ??= DynamicData.For(emu);
-        classic ??= (Classic?) emulatorData.Get("game");
-        if (classic != null) {
-            classicData ??= DynamicData.For(classic);
+        _emulatorData ??= DynamicData.For(emu);
+        _classic ??= (Classic?) _emulatorData.Get("game");
+        if (_classic != null) {
+            _classicData ??= DynamicData.For(_classic);
         }
 
-        return !(classic == null || emulatorData == null || classicData == null);
+        return !(_classic == null || _emulatorData == null || _classicData == null);
     }
 
-    private bool inGame;
+    private bool _inGame;
 
     public override void Update(GameTime gameTime) {
         base.Update(gameTime);
 
-        if (Engine.Scene is not Emulator emu) {
-            ghosts.Clear();
+        if (Engine.Scene is not Emulator) {
+            Ghosts.Clear();
             return;
         }
 
-        if (!Settings.Connected) { return; }
-        if (!alive) {
-            ghosts.Clear();
+        if (!Settings.Connected) return;
+        if (!_alive) {
+            Ghosts.Clear();
             return;
         }
 
-        lock (ghosts) {
-            foreach (KeyValuePair<uint, PicoGhost> kvp in ghosts) {
+        lock (Ghosts) {
+            foreach (KeyValuePair<uint, PicoGhost> kvp in Ghosts) {
                 PruneIfInactive(kvp.Key, kvp.Value);
             }
         }
 
-        if (!InitData()) { return; };
+        if (!InitData()) return;
 
-        var objs = (List<Classic.ClassicObject>?) classicData?.Get("objects");
-        if (objs == null) { return; }
+        var objs = (List<Classic.ClassicObject>?) _classicData?.Get("objects");
+        if (objs == null) return;
 
         lock (objs) {
             if (!objs.Any(o => o is Classic.player || o is Classic.player_spawn)) {
                 Logger.Log(LogLevel.DBG, "PICO8-CNET", $"NO PLAYER FOUND");
-                alive = false;
+                _alive = false;
                 return;
             }
         }
 
-        var state = new DataPicoState {
+        var state = new DataPicoFrame {
             Player = Client?.PlayerInfo,
-            Spr = queuedGhostState.spr,
-            X = queuedGhostState.x,
-            Y = queuedGhostState.y,
-            FlipX = queuedGhostState.flipX,
-            FlipY = queuedGhostState.flipY,
-            Type = queuedGhostState.type,
-            Djump = queuedGhostState.djump,
-            Hair = queuedGhostState.hair,
+            Spr = _queuedGhostFrame.Spr,
+            X = _queuedGhostFrame.X,
+            Y = _queuedGhostFrame.Y,
+            FlipX = _queuedGhostFrame.FlipX,
+            FlipY = _queuedGhostFrame.FlipY,
+            Type = _queuedGhostFrame.Type,
+            DJump = _queuedGhostFrame.DJump,
+            Hair = _queuedGhostFrame.Hair,
             Level = LevelIndex,
         };
 
@@ -374,21 +359,20 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
     {
         bool active = 
             Settings.Connected &&
-            inGame &&
+            _inGame &&
             ghost.Player.ID == id &&
             (Client?.Data?.TryGetBoundRef(ghost.Player, out DataPlayerState? state) ?? false) &&
-            state != null &&
-            state.SID == "PICO-8" &&
+            state is { SID: "PICO-8" } &&
             LevelIndex != -1 &&
             state.Level == $"{(LevelIndex + 1) * 100}M";
             // TODO: need more checks!
         
         if (!active) {
-            ghosts.TryRemove(id, out _);
+            Ghosts.TryRemove(id, out _);
         }
     }
 
-    public PicoGhost? InitGhost(DataPlayerInfo player) {
+    private PicoGhost? InitGhost(DataPlayerInfo player) {
         if (Engine.Scene is not Emulator emu) {
             Logger.Log(LogLevel.WRN, "PICO8-CNET", "Tried to initialize pico ghost in non-Emulator");
             return null;
@@ -397,81 +381,81 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         if (!InitData()) {
             Logger.Log(LogLevel.WRN, "PICO8-CNET", "Failed to InitData");
             return null;
-        };
+        }
 
-        if (classic == null) {
+        if (_classic == null) {
             Logger.Log(LogLevel.WRN, "PICO8-CNET", "Failed to retrieve Classic");
             return null;
         }
 
         var ghost = new PicoGhost(player, this);
-        ghost.init(classic, emu);
-        ghosts[player.ID] = ghost;
+        ghost.init(_classic, emu);
+        Ghosts[player.ID] = ghost;
         return ghost;
     
     }
 
     #region Handlers
 
-    public void Handle (CelesteNetConnection con, DataPicoState state) {
+    public void Handle (CelesteNetConnection con, DataPicoFrame frame) {
 
-        uint ownID = Client?.PlayerInfo?.ID ?? uint.MaxValue;
-        if (state.Player?.ID == ownID) { return; }
-        if (Engine.Scene is not Emulator) { return; }
-        if (LevelIndex == -1) { return; }
-        if (state.Player == null) { return; }
-        if (!alive) { return; }
+        uint ownId = Client?.PlayerInfo?.ID ?? uint.MaxValue;
+        if (frame.Player?.ID == ownId) return;
+        if (Engine.Scene is not Emulator) return;
+        if (LevelIndex == -1) return;
+        if (frame.Player == null) return;
+        if (!_alive) return;
 
-        if (!ghosts.TryGetValue(state.Player.ID, out PicoGhost? ghost) || ghost == null) {
-            Logger.Log(LogLevel.DBG, "PICO8-CNET", $"CREATE {state.Player.ID}");
-            ghost = InitGhost(state.Player);
-            lock (ghosts) {
-                Logger.Log(LogLevel.DBG, "PICO8-CNET", $"GHOSTS: {string.Join(", ", ghosts.Values.Select(i => i.ToString()))}");
+        if (!Ghosts.TryGetValue(frame.Player.ID, out var ghost)) {
+            Logger.Log(LogLevel.DBG, "PICO8-CNET", $"CREATE {frame.Player.ID}");
+            ghost = InitGhost(frame.Player);
+            lock (Ghosts) {
+                Logger.Log(LogLevel.DBG, "PICO8-CNET", $"GHOSTS: {string.Join(", ", Ghosts.Values.Select(i => i.ToString()))}");
             }
-        };
+        }
 
         if (ghost == null) {
             Logger.Log(LogLevel.ERR, "PICO8-CNET", "Ghost is null after InitGhost was called. This should never happen!");
-            lock (ghosts) {
-                Logger.Log(LogLevel.ERR, "PICO8-CNET", $"Ghosts: {string.Join(", ", ghosts.Values.Select(i => i.ToString()))}");
+            lock (Ghosts) {
+                Logger.Log(LogLevel.ERR, "PICO8-CNET", $"Ghosts: {string.Join(", ", Ghosts.Values.Select(i => i.ToString()))}");
             }
             return;
         }
         
-        Logger.Log(LogLevel.DBG, "PICO8-CNET", $"RECV {state}");
+        Logger.Log(LogLevel.DBG, "PICO8-CNET", $"RECV {frame}");
         
-        if (state.Dead) {
-            if (ghosts.TryRemove(ghost.Player.ID, out _)) {
+        if (frame.Dead) {
+            if (Ghosts.TryRemove(ghost.Player.ID, out _)) {
                 PlayGhostKill(ghost);
             }
             return;
         }
 
-        if (state.Level != LevelIndex) {
-            ghosts.TryRemove(ghost.Player.ID, out _);
+        if (frame.Level != LevelIndex) {
+            Ghosts.TryRemove(ghost.Player.ID, out _);
             return;
         }
         
-        ghost.x = state.X;
-        ghost.y = state.Y;
-        ghost.flipX = state.FlipX;
-        ghost.flipY = state.FlipY;
-        ghost.djump = state.Djump;
-        ghost.spr = state.Spr;
-        ghost.type = state.Type;
-        ghost.hair = state.Hair;
+        ghost.x = frame.X;
+        ghost.y = frame.Y;
+        ghost.flipX = frame.FlipX;
+        ghost.flipY = frame.FlipY;
+        ghost.DJump = frame.DJump;
+        ghost.spr = frame.Spr;
+        ghost.type = frame.Type;
+        ghost.Hair = frame.Hair;
     }
 
-    // Unfortunately, there's no util in DynamicData for private classes. To reflection we go!
-    static readonly Type? DeadParticle = typeof(Classic)
+    // Unfortunately, there's no util in DynamicData for private classes. To reflection, we go!
+    private static readonly Type? DeadParticle = typeof(Classic)
         .GetNestedType("DeadParticle", BindingFlags.NonPublic);
 
-    public void PlayGhostKill (PicoGhost ghost) {
-        if (DeadParticle == null) { return; }
+    private void PlayGhostKill (PicoGhost ghost) {
+        if (DeadParticle == null) return;
 
-        object? deadParticles = classicData?.Get("dead_particles");
-        if (deadParticles == null) { return; }
-        // 7 DynamicDatas isn't great, but this is called once every few seconds at most. It's probably fine?
+        object? deadParticles = _classicData?.Get("dead_particles");
+        if (deadParticles == null) return;
+        // 7 DynamicData's isn't great, but this is called once every few seconds at most. It's probably fine?
         DynamicData deadParticlesData = new(deadParticles);
 
         deadParticlesData.Invoke("Clear");

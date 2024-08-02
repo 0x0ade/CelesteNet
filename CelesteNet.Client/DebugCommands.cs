@@ -25,8 +25,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 CelesteNetClientModule.Instance
                     .Context
                     .Get<CelesteNetPico8Component>();
-            lock (pico8.ghosts) {
-                Engine.Commands.Log($"Ghosts: {string.Join(", ", pico8.ghosts.Values.Select(i => i.ToString()))}");
+            lock (pico8.Ghosts) {
+                Engine.Commands.Log($"Ghosts: {string.Join(", ", pico8.Ghosts.Values.Select(i => i.ToString()))}");
             }
         }
 

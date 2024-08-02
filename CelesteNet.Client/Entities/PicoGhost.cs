@@ -1,81 +1,26 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using Celeste.Mod.CelesteNet.Client.Components;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Pico8;
-using Microsoft.Xna.Framework;
-using Monocle;
 using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet.Client.Entities;
 
-public class FontHelper {
-    static readonly MTexture font = GFX.Gui["celestenet/pico8/bytesized_font"];
-
-    public static readonly Color PicoBlack = new(0, 0, 0);
-    public static readonly Color PicoWhite = new(0xff, 0xf1, 0xe8);
-
-    internal static MTexture CharacterSprite(uint codepoint) {
-        if (codepoint < 32 || codepoint > 126) {
-            codepoint = 63; // Codepoint of question mark
-        }
-        var index = codepoint - 32;
-        int x = (int) index % 16 * 3;
-        int y = (int) index / 16 * 4;
-        return new MTexture(font, x, y, 3, 4);
-    }
-
-    public static void Print(string text, int x, int y) {
-        Print(text, x, y, PicoWhite);
-    }
-
-    public static void Print(string text, int x, int y, Color color) {
-        int initialX = x;
-        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1) {
-            var codepoint = char.ConvertToUtf32(text, i);
-            if (codepoint == 0x0A) {
-                // Newline
-                x = initialX;
-                y += 5;
-                continue;
-            }
-            var sprite = CharacterSprite((uint) codepoint);
-
-            sprite.Draw(new Vector2(x, y), Vector2.Zero, color);
-            x += 4;
-        }
-    }
-    public static void PrintOutlinedCenter(string text, int x, int y) {
-        PrintOutlinedCenter(text, x, y, PicoWhite, PicoBlack);
-    }
-
-    public static void PrintOutlinedCenter(string text, int x, int y, Color inside, Color outside) {
-        Print(text, x - (text.Length / 2 * 4) - 1, y - 1, outside);
-        Print(text, x - (text.Length / 2 * 4)    , y - 1, outside);
-        Print(text, x - (text.Length / 2 * 4) + 1, y - 1, outside);
-        Print(text, x - (text.Length / 2 * 4) - 1, y    , outside);
-        Print(text, x - (text.Length / 2 * 4) + 1, y    , outside);
-        Print(text, x - (text.Length / 2 * 4) - 1, y + 1, outside);
-        Print(text, x - (text.Length / 2 * 4)    , y + 1, outside);
-        Print(text, x - (text.Length / 2 * 4) + 1, y + 1, outside);
-        Print(text, x - (text.Length / 2 * 4)    , y    , inside);
-    }
-}
-
 public class PicoGhost : Classic.ClassicObject {
-    DynamicData GData;
-    public int djump;
-    internal List<DataPicoState.HairNode> hair = new();
+    private DynamicData _gData;
+    public int DJump;
+    internal List<DataPicoFrame.HairNode> Hair = new();
     internal CelesteNetPico8Component Pico8Component;
-    public DataPlayerInfo Player;
-    public string Name {
+    public readonly DataPlayerInfo Player;
+    string Name {
         get {
-            // The reason why this is done is because
+            // The reason why this is done is that
             // if you have two players with the same name,
             // say Player and Player#2,
             // from Player#2's perspective, both people's
             // Player.FullName's are Player, dropping the #N.
-            // Also the PICO-8 font doesn't support emotes.
+            // Also, the PICO-8 font doesn't support emotes.
             var name = Player.DisplayName ?? "???";
             var colonIndex = name.LastIndexOf(':');
             if (colonIndex > -1) {
@@ -93,38 +38,32 @@ public class PicoGhost : Classic.ClassicObject {
     public override void init(Classic g, Emulator e) {
         base.init(g, e);
 
-        GData = new(g);
+        _gData = new(g);
         spr = 1f;
     }
 
     public override void draw() {
 
-        int num = djump switch {
-			2 => 7 + E.flr((int) GData.Get("frames") / 3 % 2) * 4, 
-			1 => 8, 
-			_ => 12, 
-		};
+        int num = DJump switch {
+			2 => 7 + E.flr((int) _gData.Get("frames") / 3 % 2) * 4,
+            1 => 8,
+            _ => 12,
+        };
 
-        int facing =  (!flipX) ? 1 : (-1);
-		Vector2 vector = new(x + 4f - (facing * 2), y + (E.btn((int) GData.Get("k_down")) ? 4 : 3));
-		foreach (var node in hair) {
-            if (node == null) { continue; }
-			var x = node.X + (vector.X - node.X) / 1.5f;
-			var y = node.Y + (vector.Y + 0.5f - node.Y) / 1.5f;
-			E.circfill(node.X, node.Y, node.Size, num);
-			vector = new Vector2(node.X, node.Y);
-		}
+        foreach (var node in Hair.Where(node => node != null))
+            E.circfill(node.X, node.Y, node.Size, num);
 
-        if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity > 0) {
-            GData.Invoke("draw_player", new object[] { this, djump });
+        if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity > 0)
+        {
+            _gData.Invoke("draw_player", new object[] { this, DJump });
         }
         
         if (CelesteNetClientModule.Settings.InGameHUD.NameOpacity > 0) {
-            FontHelper.PrintOutlinedCenter(Name, (int) x + 4, (int) y - 8);
+            Pico8FontHelper.PrintOutlinedCenter(Name, (int) x + 4, (int) y - 8);
         }
     }
 
     public override string ToString() {
-        return $"PicoGhost(id: {Player.ID}, x: {x}, y: {y}, flipx: {flipX}, flipy: {flipY}, spr: {spr}, djump: {djump})";
+        return $"PicoGhost(id: {Player.ID}, x: {x}, y: {y}, flipx: {flipX}, flipy: {flipY}, spr: {spr}, djump: {DJump})";
     }
 }

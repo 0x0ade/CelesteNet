@@ -23,9 +23,7 @@ public class PicoGhost : Classic.ClassicObject {
             // Also, the PICO-8 font doesn't support emotes.
             var name = Player.DisplayName ?? "???";
             var colonIndex = name.LastIndexOf(':');
-            if (colonIndex > -1) {
-                name = name[(colonIndex + 2)..];
-            }
+            if (colonIndex > -1) name = name[(colonIndex + 2)..];
             return name;
         }
     }
@@ -58,9 +56,8 @@ public class PicoGhost : Classic.ClassicObject {
             _gData.Invoke("draw_player", new object[] { this, DJump });
         }
         
-        if (CelesteNetClientModule.Settings.InGameHUD.NameOpacity > 0) {
+        if (CelesteNetClientModule.Settings.InGameHUD.NameOpacity > 0)
             Pico8FontHelper.PrintOutlinedCenter(Name, (int) x + 4, (int) y - 8);
-        }
     }
 
     public override string ToString() {

@@ -10,12 +10,11 @@ public static class Pico8FontHelper {
     private static readonly Color PicoWhite = new(0xff, 0xf1, 0xe8);
 
     private static MTexture CharacterSprite(uint codepoint) {
-        if (codepoint is < 32 or > 126) {
+        if (codepoint is < 32 or > 126)
             codepoint = 63; // Codepoint of question mark
-        }
         var index = codepoint - 32;
-        int x = (int) index % 16 * 3;
-        int y = (int) index / 16 * 4;
+        var x = (int) index % 16 * 3;
+        var y = (int) index / 16 * 4;
         return new MTexture(Font, x, y, 3, 4);
     }
 
@@ -24,8 +23,8 @@ public static class Pico8FontHelper {
     }
 
     public static void Print(string text, int x, int y, Color color) {
-        int initialX = x;
-        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1) {
+        var initialX = x;
+        for (var i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1) {
             var codepoint = char.ConvertToUtf32(text, i);
             if (codepoint == 0x0A) {
                 // Newline

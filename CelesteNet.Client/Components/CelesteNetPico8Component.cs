@@ -63,9 +63,8 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         CelesteNetPlayerListComponent.OnGetState += ModifyStateOfPicoPlayers;
         CelesteNetMainComponent.OnSendState += ModifyStateInPico;
         var client = Context?.Client;
-        if (client != null) {
+        if (client != null)
             client.Con.OnDisconnect += WipeGhostsOnDisconnect;
-        }
     }
 
     protected override void Dispose(bool disposing)
@@ -91,9 +90,8 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         CelesteNetPlayerListComponent.OnGetState -= ModifyStateOfPicoPlayers;
         CelesteNetMainComponent.OnSendState -= ModifyStateInPico;
         var client = Context?.Client;
-        if (client != null) {
+        if (client != null)
             client.Con.OnDisconnect -= WipeGhostsOnDisconnect;
-        }
 
         #pragma warning restore CA2012
     }
@@ -143,22 +141,16 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
 
     private void OnEmulatorUpdate(On.Celeste.Pico8.Emulator.orig_Update orig, Emulator self)
     {
-        if (!Settings.Connected) {
-            Ghosts.Clear();
-        }
+        if (!Settings.Connected) Ghosts.Clear();
 
-        if (!(Context?.Chat?.Active ?? false)) {
-            orig(self);
-        }
+        if (!(Context?.Chat?.Active ?? false)) orig(self);
     }
 
     private void OnPlayerDraw(On.Celeste.Pico8.Classic.player.orig_draw orig, Classic.player self)
     {
-        lock (Ghosts) {
-            foreach (PicoGhost ghost in Ghosts.Values) {
+        lock (Ghosts)
+            foreach (var ghost in Ghosts.Values)
                 ghost.draw();
-            }
-        }
 
         orig(self);
         if (!Settings.InGameHUD.ShowOwnName) return;
@@ -295,9 +287,8 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         
         _emulatorData ??= DynamicData.For(emu);
         _classic ??= (Classic?) _emulatorData.Get("game");
-        if (_classic != null) {
+        if (_classic != null)
             _classicData ??= DynamicData.For(_classic);
-        }
 
         return !(_classic == null || _emulatorData == null || _classicData == null);
     }
@@ -319,9 +310,8 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         }
 
         lock (Ghosts) {
-            foreach (KeyValuePair<uint, PicoGhost> kvp in Ghosts) {
+            foreach (var kvp in Ghosts)
                 PruneIfInactive(kvp.Key, kvp.Value);
-            }
         }
 
         if (!InitData()) return;
@@ -367,9 +357,7 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
             state.Level == $"{(LevelIndex + 1) * 100}M";
             // TODO: need more checks!
         
-        if (!active) {
-            Ghosts.TryRemove(id, out _);
-        }
+        if (!active) Ghosts.TryRemove(id, out _);
     }
 
     private PicoGhost? InitGhost(DataPlayerInfo player) {
@@ -425,9 +413,8 @@ public class CelesteNetPico8Component : CelesteNetGameComponent {
         Logger.Log(LogLevel.DBG, "PICO8-CNET", $"RECV {frame}");
         
         if (frame.Dead) {
-            if (Ghosts.TryRemove(ghost.Player.ID, out _)) {
+            if (Ghosts.TryRemove(ghost.Player.ID, out _))
                 PlayGhostKill(ghost);
-            }
             return;
         }
 

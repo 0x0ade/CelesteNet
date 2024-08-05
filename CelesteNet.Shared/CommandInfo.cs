@@ -6,6 +6,10 @@
         public bool Auth = false;
         public bool AuthExec = false;
         public CompletionType FirstArg = CompletionType.None;
+        
+        // NOTE: This is not sent to the client/server, for legacy compatibility reasons! Be careful.
+        //       - 23 July, 2024
+        public CelesteNetSupportedClientFeatures RequiredFeatures = 0;
     }
 
     public enum CompletionType : byte {

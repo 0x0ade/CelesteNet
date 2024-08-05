@@ -530,30 +530,19 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void GetState(BlobPlayer blob, DataPlayerState state) {
             if (!string.IsNullOrWhiteSpace(state.SID)) {
-                AreaData area = AreaData.Get(state.SID);
-                string chapter = area?.Name?.DialogCleanOrNull(Dialog.Languages["english"]) ?? state.SID;
+                CelesteNetLocationInfo location = new(state);
 
                 blob.Location.Color = DefaultLevelColor;
-                blob.Location.TitleColor = Color.Lerp(area?.TitleBaseColor ?? Color.White, DefaultLevelColor, 0.5f);
-                blob.Location.AccentColor = Color.Lerp(area?.TitleAccentColor ?? Color.White, DefaultLevelColor, 0.8f);
+                blob.Location.TitleColor = Color.Lerp(location.Area?.TitleBaseColor ?? Color.White, DefaultLevelColor, 0.5f);
+                blob.Location.AccentColor = Color.Lerp(location.Area?.TitleAccentColor ?? Color.White, DefaultLevelColor, 0.8f);
 
-                blob.Location.SID = state.SID;
-                blob.Location.Name = chapter;
-                blob.Location.Side = ((char) ('A' + (int) state.Mode)).ToString();
-                blob.Location.Level = state.Level;
+                blob.Location.SID = location.SID;
+                blob.Location.Name = location.Name;
+                blob.Location.Side = location.Side;
+                blob.Location.Level = location.Level;
 
-                blob.Location.IsRandomizer = chapter.StartsWith("randomizer/");
-
-                if (blob.Location.IsRandomizer || area == null) {
-                    blob.Location.Icon = "";
-                } else {
-                    blob.Location.Icon = area?.Icon ?? "";
-
-                    string lobbySID = area?.Meta?.Parent;
-                    AreaData lobby = string.IsNullOrEmpty(lobbySID) ? null : AreaData.Get(lobbySID);
-                    if (lobby?.Icon != null)
-                        blob.Location.Icon = lobby.Icon;
-                }
+                blob.Location.IsRandomizer = location.IsRandomizer;
+                blob.Location.Icon = location.Icon;
 
                 ShortenRandomizerLocation(ref blob.Location);
             }

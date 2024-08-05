@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.RegularExpressions;
 using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
@@ -371,49 +369,27 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             DataPlayerState state = null;
             if (Client?.Data?.TryGetBoundRef(target, out state) == false || state == null) return;
 
-            // Abuse the player list representation to get a formatted version
-            var fakeBlob = new CelesteNetPlayerListComponent.BlobPlayer();
-            Context.Get<CelesteNetPlayerListComponent>().GetState(fakeBlob, state);
-            var location = fakeBlob.Location;
-
-            if (string.IsNullOrWhiteSpace(location.SID)) {
+            if (string.IsNullOrWhiteSpace(state.SID)) {
                 // We fall back to the above assignment
                 return;
             }
 
+            CelesteNetLocationInfo location = new(state);
+
+            string locationTitle = location.Name;
             string iconEmoji = "";
 
-            if (
-                // Icon exists
-                location.Icon != null &&
-                // Location should have an icon
-                (fakeBlob.LocationMode & CelesteNetPlayerListComponent.LocationModes.Icons) != 0 &&
-                // Icon is loaded
-                GFX.Gui.Has(location.Icon) 
-            ) {
-                string emojiId = $"celestenet_SID_{location.SID}_";
-                if (!Emoji.Registered.Contains(emojiId)) {
-                    // We need to downscale the icon to fit in chat
-                    // Due to our previous checks, this is never null
-                    MTexture icon = GFX.Gui[location.Icon];
-                    float scale = 64f / icon.Height;
-
-                    var tex = new MTexture(new MTexture(icon.Texture), icon.ClipRect) { ScaleFix = scale };
-                    Emoji.Register(emojiId, tex);
-                    Emoji.Fill(CelesteNetClientFont.Font);
-                }
-                iconEmoji = $":{emojiId}:";
+            if ((Settings.PlayerListUI.ShowPlayerListLocations & CelesteNetPlayerListComponent.LocationModes.Icons) != 0) {
+                iconEmoji = location.Emote;
             }
-            
-            string locationName = location.Name;
-            
+
             if (!string.IsNullOrEmpty(iconEmoji))
-                locationName = $"{iconEmoji} {locationName}";
+                locationTitle = $"{iconEmoji} {locationTitle}";
             
             if (!string.IsNullOrEmpty(location.Side))
-                locationName += $" {location.Side}";
+                locationTitle += $" {location.Side}";
             
-            chat.Text = $"{target.FullName} is in room '{location.Level}' of {locationName}.";
+            chat.Text = $"{target.FullName} is in room '{location.Level}' of {locationTitle}.";
         }
 
         public void Handle(CelesteNetConnection con, DataChat msg) {
@@ -830,7 +806,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     break;
 
                 case CompletionType.Emoji:
-                    IEnumerable<string> filter_emotes = Emoji.Registered.Where(name => !name.StartsWith("celestenet_avatar_"));
+                    IEnumerable<string> filter_emotes = Emoji.Registered.Where(name => !name.StartsWith("celestenet_avatar_") && !name.StartsWith("celestenet_SID_"));
 
                     if (string.IsNullOrEmpty(partial)) {
                         Completion = filter_emotes.ToList();

@@ -42,15 +42,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Side = ((char)('A' + (int)state.Mode)).ToString();
                 Level = state.Level;
             }
-
-            if (!IsRandomizer && Area != null) {
-                Icon = Area.Icon;
-
-                string lobbySID = Area?.Meta?.Parent;
-                AreaData lobby = string.IsNullOrEmpty(lobbySID) ? null : AreaData.Get(lobbySID);
-                if (lobby?.Icon != null)
-                    Icon = lobby.Icon;
-            }
         }
 
         public bool LoadIconEmote() {

@@ -744,7 +744,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case CompletionType.Player:
                     DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
 
-                    Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                    Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.OrdinalIgnoreCase)).ToList();
                     break;
                 case CompletionType.Channel:
                     CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
@@ -752,7 +752,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     if (Settings.PlayerListUI.HideOwnChannelName)
                         // don't accidentally leak the channel name via tab completions
                         channelNames = channelNames.Where(name => name != CurrentChannelName);
-                    Completion = channelNames.Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
+                    Completion = channelNames.Where(name => name.StartsWith(partial, StringComparison.OrdinalIgnoreCase)).ToList() ?? Completion;
 
                     break;
 
@@ -1110,7 +1110,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 string typed = "", suggestion = "", suggestionPrefix = "", suggestionSuffix = "";
                 string prefix = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
 
-                if (match.StartsWith(CompletionPartial, StringComparison.InvariantCultureIgnoreCase)) {
+                if (match.StartsWith(CompletionPartial, StringComparison.OrdinalIgnoreCase)) {
                     typed = match.Substring(0, CompletionPartial.Length);
                     suggestion = match.Substring(CompletionPartial.Length);
                 } else {

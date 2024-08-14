@@ -93,8 +93,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     return;
                 }
 
-                Logger.Log(LogLevel.CRI, "frontend-twitchauth", $"Bwaa: {tokenData}");
-
                 if (tokenType == "bearer")
                     tokenType = "Bearer";
 
@@ -111,8 +109,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 using (JsonTextReader jtr = new(sr))
                     userData = f.Serializer.Deserialize<dynamic>(jtr);
             }
-
-            Logger.Log(LogLevel.CRI, "frontend-twitchauth", $"{userData?.data[0].id}");
 
             if (!($"{userData?.data[0].id}" is string uid) ||
                 uid.IsNullOrEmpty())
@@ -237,7 +233,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 using (JsonTextReader jtr = new(sr))
                     tokenData = f.Serializer.Deserialize<dynamic>(jtr);
 
-                Logger.Log(LogLevel.CRI, "frontend-discordauth", $"Bwaa: {tokenData}");
                 if (tokenData?.access_token?.ToString() is not string token ||
                     tokenData?.token_type?.ToString() is not string tokenType ||
                     token.IsNullOrEmpty() ||

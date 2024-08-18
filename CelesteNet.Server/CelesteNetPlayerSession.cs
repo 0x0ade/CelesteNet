@@ -430,7 +430,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                 authExec = info.Tags.Contains(BasicUserInfo.TAG_AUTH_EXEC);
             }
 
-            filteredCommands.List = commands.List.Where(cmd => (!cmd.Auth || auth) && (!cmd.AuthExec || authExec)).ToArray();
+            filteredCommands.List = commands.List.Where(cmd => {
+                    return (!cmd.Auth || auth)
+                    && (!cmd.AuthExec || authExec)
+                    && CheckClientFeatureSupport(cmd.RequiredFeatures);
+                }).ToArray();
 
             Con.Send(filteredCommands);
         }

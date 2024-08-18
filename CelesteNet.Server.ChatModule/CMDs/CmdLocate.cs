@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Celeste.Mod.CelesteNet.DataTypes;
-using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd;
 
@@ -50,7 +49,7 @@ public class CmdLocate : ChatCmd {
             Text = "{YOU SHOULD NEVER SEE THIS, PLEASE REPORT}",
             Color = Chat.Settings.ColorCommandReply
         };
-        self.Con.Send(Chat.PrepareAndLog(self, chat));
+        self.Con.Send(chat);
     }
 
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
@@ -225,12 +224,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                 SendTo(session, Settings.MessageMOTD);
             }
 
-            var commandList = Commands.DataAll
-                .List
-                .Where(cmd => session.CheckClientFeatureSupport(cmd.RequiredFeatures))
-                .ToArray();
-            var commands = new DataCommandList { List = commandList };
-            session.SendCommandList(commands);
+            session.SendCommandList(Commands.DataAll);
 
             SpamContext spam = session.Set(this, new SpamContext(this));
             spam.OnSpam += (msg, timeout) => {

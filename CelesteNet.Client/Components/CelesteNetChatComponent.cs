@@ -349,9 +349,55 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             CurrentChannelName = tmp;
         }
 
+        public void HandleLocate(DataChat chat) {
+            // For some reason, using the actual target field always came up as null for me.
+            // Instead, I'm opting to use the Player field, Because It Works :TM:
+            var target = chat.Player;
+
+            chat.Player = null;
+            chat.Tag = "";
+
+            if (target == null) {
+                chat.Text = $"Target of /locate not found.";
+                return;
+            }
+
+            chat.Text = $"{target.FullName} isn't in game or is in another channel.";
+
+            // This has to be set, or we will return early
+            DataPlayerState state = null;
+            if (Client?.Data?.TryGetBoundRef(target, out state) == false || state == null) return;
+
+            if (string.IsNullOrWhiteSpace(state.SID)) {
+                // We fall back to the above assignment
+                return;
+            }
+
+            CelesteNetLocationInfo location = new(state);
+
+            string locationTitle = location.Name;
+            string iconEmoji = "";
+
+            if ((Settings.PlayerListUI.ShowPlayerListLocations & CelesteNetPlayerListComponent.LocationModes.Icons) != 0) {
+                iconEmoji = location.Emote;
+            }
+
+            if (!string.IsNullOrEmpty(iconEmoji))
+                locationTitle = $"{iconEmoji} {locationTitle}";
+            
+            if (!string.IsNullOrEmpty(location.Side))
+                locationTitle += $" {location.Side}";
+            
+            chat.Text = $"{target.FullName} is in room '{location.Level}' of {locationTitle}.";
+        }
+
         public void Handle(CelesteNetConnection con, DataChat msg) {
             if (Client == null)
                 return;
+            
+            if (msg.Tag == "locate") {
+                HandleLocate(msg);
+            }
 
             if (Settings.PlayerListUI.HideOwnChannelName) {
                 // don't get too eager, only replace text in ACK'd commands and server responses
@@ -556,7 +602,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             // completions for commands or their first parameter
                             if (Typing.StartsWith("/")) {
                                 int firstSpace = Typing.IndexOf(" ");
-                                CommandInfo cmd = firstSpace == -1 ? null : CommandList.FirstOrDefault(c => c.ID == Typing.Substring(1, firstSpace - 1));
+                                CommandInfo cmd = firstSpace == -1 ? null : CommandList.FirstOrDefault(cmd => 
+                                    cmd.ID == Typing.Substring(1, firstSpace - 1)
+                                );
 
                                 if (Typing.Substring(0, _CursorIndex).Equals(completable)) {
                                     UpdateCompletion(CompletionType.Command, completable.Substring(1).ToLowerInvariant());
@@ -744,7 +792,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 case CompletionType.Player:
                     DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
 
-                    Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                    Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.OrdinalIgnoreCase)).ToList();
                     break;
                 case CompletionType.Channel:
                     CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
@@ -752,12 +800,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     if (Settings.PlayerListUI.HideOwnChannelName)
                         // don't accidentally leak the channel name via tab completions
                         channelNames = channelNames.Where(name => name != CurrentChannelName);
-                    Completion = channelNames.Where(name => name.StartsWith(partial, StringComparison.InvariantCultureIgnoreCase)).ToList() ?? Completion;
+                    Completion = channelNames.Where(name => name.StartsWith(partial, StringComparison.OrdinalIgnoreCase)).ToList() ?? Completion;
 
                     break;
 
                 case CompletionType.Emoji:
-                    IEnumerable<string> filter_emotes = Emoji.Registered.Where(name => !name.StartsWith("celestenet_avatar_"));
+                    IEnumerable<string> filter_emotes = Emoji.Registered.Where(name => !name.StartsWith("celestenet_avatar_") && !name.StartsWith("celestenet_SID_"));
 
                     if (string.IsNullOrEmpty(partial)) {
                         Completion = filter_emotes.ToList();
@@ -1110,7 +1158,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 string typed = "", suggestion = "", suggestionPrefix = "", suggestionSuffix = "";
                 string prefix = Typing.Substring(0, _CursorIndex - CompletionPartial.Length);
 
-                if (match.StartsWith(CompletionPartial, StringComparison.InvariantCultureIgnoreCase)) {
+                if (match.StartsWith(CompletionPartial, StringComparison.OrdinalIgnoreCase)) {
                     typed = match.Substring(0, CompletionPartial.Length);
                     suggestion = match.Substring(CompletionPartial.Length);
                 } else {

@@ -6,9 +6,12 @@ namespace Celeste.Mod.CelesteNet {
         public bool AvatarsDisabled = false;
         public ulong ClientID;
         public uint InstanceID;
-        public CelesteNetSupportedClientFeatures SupportedClientFeatures;
+        public CelesteNetSupportedClientFeatures SupportedClientFeatures = CelesteNetSupportedClientFeatures.None;
     }
 
     [Flags]
-    public enum CelesteNetSupportedClientFeatures : ulong {}
+    public enum CelesteNetSupportedClientFeatures : ulong {
+        None = 0,
+        LocateCommand = 1 << 0
+    }
 }

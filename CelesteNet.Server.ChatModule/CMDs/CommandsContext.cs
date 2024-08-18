@@ -49,7 +49,8 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                     Auth = cmd.MustAuth,
                     AuthExec = cmd.MustAuthExec,
                     FirstArg = cmd.Completion,
-                    AliasTo = cmd.InternalAliasing ? "" : aliasTo?.ID ?? ""
+                    AliasTo = cmd.InternalAliasing ? "" : aliasTo?.ID ?? "",
+                    RequiredFeatures = cmd.RequiredFeatures
                 };
             }
 
@@ -78,6 +79,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 #pragma warning restore CS8618
 
         public List<ArgParser> ArgParsers = new();
+        public virtual CelesteNetSupportedClientFeatures RequiredFeatures => CelesteNetSupportedClientFeatures.None;
 
         public virtual string ID => GetType().Name.Substring(3).ToLowerInvariant();
 
@@ -101,6 +103,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
         public virtual void ParseAndRun(CmdEnv env) {
             if (MustAuth && !env.IsAuthorized || MustAuthExec && !env.IsAuthorizedExec) {
                 env.Error(new CommandRunException("Unauthorized!"));
+                return;
+            }
+
+            if (env.Session != null && !env.Session.CheckClientFeatureSupport(RequiredFeatures)) {
+                env.Error(new CommandRunException("Command is unsupported by your client! Try updating CelesteNet."));
                 return;
             }
 

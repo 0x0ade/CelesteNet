@@ -9,7 +9,7 @@
         
         // NOTE: This is not sent to the client/server, for legacy compatibility reasons! Be careful.
         //       - 23 July, 2024
-        public CelesteNetSupportedClientFeatures RequiredFeatures = 0;
+        public CelesteNetSupportedClientFeatures RequiredFeatures = CelesteNetSupportedClientFeatures.None;
     }
 
     public enum CompletionType : byte {

@@ -85,7 +85,7 @@ namespace Celeste.Mod.CelesteNet.Server {
         }
 
         public bool CheckClientFeatureSupport(CelesteNetSupportedClientFeatures features) {
-            return (ClientOptions.SupportedClientFeatures & (ulong)features) == (ulong)features;
+            return ClientOptions.SupportedClientFeatures.HasFlag(features);
         }
 
         public T? Get<T>(object ctx) where T : class {

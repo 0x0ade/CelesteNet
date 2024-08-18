@@ -6,12 +6,12 @@ namespace Celeste.Mod.CelesteNet {
         public bool AvatarsDisabled = false;
         public ulong ClientID;
         public uint InstanceID;
-        // Due to how these are sent as packets, this needs to be a ulong.
-        public ulong SupportedClientFeatures = 0;
+        public CelesteNetSupportedClientFeatures SupportedClientFeatures = CelesteNetSupportedClientFeatures.None;
     }
 
     [Flags]
     public enum CelesteNetSupportedClientFeatures : ulong {
-        LocateCommand = 1 >> 0
+        None = 0,
+        LocateCommand = 1 << 0
     }
 }

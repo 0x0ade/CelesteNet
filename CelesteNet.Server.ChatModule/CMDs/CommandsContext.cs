@@ -79,7 +79,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
 #pragma warning restore CS8618
 
         public List<ArgParser> ArgParsers = new();
-        public virtual CelesteNetSupportedClientFeatures RequiredFeatures => 0;
+        public virtual CelesteNetSupportedClientFeatures RequiredFeatures => CelesteNetSupportedClientFeatures.None;
 
         public virtual string ID => GetType().Name.Substring(3).ToLowerInvariant();
 

@@ -290,7 +290,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             if (info.Name.Length > 32) {
                 info.Name = info.Name.Substring(0, 32);
             }
-            info.Discrim = userData.discriminator.ToString();
+            // Since ALL discord accounts do not have discriminators, we can seperate DISCORD and TWITCH accounts with the discrim value
+            info.Discrim = "DISCORD";
             f.Server.UserData.Save(uid, info);
 
             Image avatarOrig;

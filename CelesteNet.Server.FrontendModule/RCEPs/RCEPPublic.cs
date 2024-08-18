@@ -22,8 +22,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public static void TwitchOAuth(Frontend f, HttpRequestEventArgs c)
         {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
-            Logger.Log(LogLevel.CRI, "frontend-twitchauth", $"{c.Request.RawUrl}");
-            Logger.Log(LogLevel.CRI, "frontend-twitchauth", $"{f.ParseQueryString(c.Request.RawUrl)}");
+            Logger.Log(LogLevel.DBG, "frontend-twitchauth", $"{c.Request.RawUrl}");
+            Logger.Log(LogLevel.DBG, "frontend-twitchauth", $"{f.ParseQueryString(c.Request.RawUrl)}");
             if (args.Count == 0)
             {
                 // c.Response.Redirect(f.Settings.OAuthURL);
@@ -182,8 +182,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         [RCEndpoint(false, "/discordauth", "", "", "Discord OAuth2", "User auth using Discord.")]
         public static void DiscordOAuth(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
-            Logger.Log(LogLevel.CRI, "frontend-discordauth", $"{c.Request.RawUrl}");
-            Logger.Log(LogLevel.CRI, "frontend-discordauth", $"{f.ParseQueryString(c.Request.RawUrl)}");
+            Logger.Log(LogLevel.DBG, "frontend-discordauth", $"{c.Request.RawUrl}");
+            Logger.Log(LogLevel.DBG, "frontend-discordauth", $"{f.ParseQueryString(c.Request.RawUrl)}");
 
             if (args.Count == 0) {
                 // c.Response.Redirect(f.Settings.OAuthURL);

@@ -110,13 +110,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     userData = f.Serializer.Deserialize<dynamic>(jtr);
             }
 
-            if (!($"{userData?.data[0].error}" is string error) || !error.IsNullOrEmpty())
+            if (!($"{userData?.error}" is string error) || !error.IsNullOrEmpty())
             {
-                Logger.Log(LogLevel.CRI, "frontend-twitchauth", $"Status: {userData?.data[0].status}. Error: {userData?.data[0].error}");
+                Logger.Log(LogLevel.CRI, "frontend-twitchauth", $"Status: {userData?.status}. Error: {userData?.error}");
                 c.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 f.RespondJSON(c, new
                 {
-                    Error = $"Twitch returned an error with status code {userData?.data[0].status}. This means that it came back as {userData?.data[0].error}"
+                    Error = $"Twitch returned an error with status code {userData?.status}. This means that it came back as {userData?.error}"
                 });
                 return;
             }

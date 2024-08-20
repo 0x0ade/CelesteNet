@@ -483,5 +483,37 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
+        public static Type[] GetTypes() {
+            if (Everest.Modules.Count != 0)
+                return _GetTypes();
+
+            Type[] typesPrev = _GetTypes();
+        Retry:
+            Type[] types = _GetTypes();
+            if (typesPrev.Length != types.Length) {
+                typesPrev = types;
+                goto Retry;
+            }
+            return types;
+        }
+
+        private static IEnumerable<Assembly> _GetAssemblies()
+            => (Everest.Modules?.Select(m => m.GetType().Assembly) ?? new Assembly[0])
+            .Concat(AppDomain.CurrentDomain.GetAssemblies())
+            .Distinct();
+
+        private static Type[] _GetTypes()
+            => _GetAssemblies().SelectMany(_GetTypes).ToArray();
+
+        private static IEnumerable<Type> _GetTypes(Assembly asm) {
+            try {
+                return asm.GetTypes();
+            } catch (ReflectionTypeLoadException e) {
+#pragma warning disable CS8619 // Compiler thinks this could be <Type?> even though we check for t != null
+                return e.Types.Where(t => t != null);
+#pragma warning restore CS8619
+            }
+        }
+
     }
 }

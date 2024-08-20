@@ -93,6 +93,13 @@ namespace Celeste.Mod.CelesteNet.Server {
                     RegisterModule(file);
 
             Data = new();
+
+            Logger.Log(LogLevel.INF, "data", "Rescanning all data types");
+            Data.IDToDataType.Clear();
+            Data.DataTypeToID.Clear();
+
+            Data.RescanDataTypes(CelesteNetUtils.GetTypes());
+
             Data.RegisterHandlersIn(this);
 
             PacketDumper = new(this);

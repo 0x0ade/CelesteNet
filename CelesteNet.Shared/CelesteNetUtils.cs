@@ -30,9 +30,6 @@ namespace Celeste.Mod.CelesteNet {
             => string.IsNullOrEmpty(value) ? null : value;
 
         public static Type[] GetTypes() {
-            if (Everest.Modules.Count != 0)
-                return _GetTypes();
-
             Type[] typesPrev = _GetTypes();
             Retry:
             Type[] types = _GetTypes();
@@ -44,9 +41,7 @@ namespace Celeste.Mod.CelesteNet {
         }
 
         private static IEnumerable<Assembly> _GetAssemblies()
-            => (Everest.Modules?.Select(m => m.GetType().Assembly) ?? new Assembly[0])
-            .Concat(AppDomain.CurrentDomain.GetAssemblies())
-            .Distinct();
+            => AppDomain.CurrentDomain.GetAssemblies().Distinct();
 
         private static Type[] _GetTypes()
             => _GetAssemblies().SelectMany(_GetTypes).ToArray();

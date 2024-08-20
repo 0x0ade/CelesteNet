@@ -64,13 +64,20 @@ namespace Celeste.Mod.CelesteNet.Client {
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClient created");
 
             Data = new();
+
+            Logger.Log(LogLevel.INF, "data", "Rescanning all data types");
+            Data.IDToDataType.Clear();
+            Data.DataTypeToID.Clear();
+
+            Data.RescanDataTypes(CelesteNetClientModule.GetTypes());
+
             Data.RegisterHandlersIn(this);
 
             _ReadyEvent = new(false);
 
             // Find connection features
             List<IConnectionFeature> conFeatures = new();
-            foreach (Type type in CelesteNetUtils.GetTypes()) {
+            foreach (Type type in CelesteNetClientModule.GetTypes()) {
                 try {
                     if (!typeof(IConnectionFeature).IsAssignableFrom(type) || type.IsAbstract)
                         continue;

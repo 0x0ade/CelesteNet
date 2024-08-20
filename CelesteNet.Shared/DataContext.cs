@@ -10,8 +10,7 @@ using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using MonoMod.Utils;
 
-namespace Celeste.Mod.CelesteNet
-{
+namespace Celeste.Mod.CelesteNet {
     public delegate void DataHandler(CelesteNetConnection con, DataType data);
     public delegate void DataHandler<T>(CelesteNetConnection con, T data) where T : DataType<T>;
     public delegate bool DataFilter(CelesteNetConnection con, DataType data);
@@ -41,15 +40,6 @@ namespace Celeste.Mod.CelesteNet
         private bool IsDisposed;
 
         public DataContext() {
-            RescanAllDataTypes();
-        }
-
-        public void RescanAllDataTypes() {
-            Logger.Log(LogLevel.INF, "data", "Rescanning all data types");
-            IDToDataType.Clear();
-            DataTypeToID.Clear();
-
-            RescanDataTypes(CelesteNetUtils.GetTypes());
         }
 
         public void RescanDataTypes(Type[] types) {

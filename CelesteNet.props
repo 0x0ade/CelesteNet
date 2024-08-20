@@ -23,7 +23,7 @@
 
   <Target Name="EnsureCelesteExists" BeforeTargets="PreBuildEvent">
     <Error
-      Condition="!Exists('$(CelestePrefix)\Celeste.dll')"
+      Condition="!Exists('$(CelestePrefix)\Celeste.dll') And !$(IsServer) And !$(IsModule) And !$(IsShared)"
       Text="Cannot find Celeste. Make sure CelesteNet is cloned in your Celeste/Mods folder. Alternatively, copy Celeste.dll, FNA.dll and MMHOOK_Celeste.dll to a folder called 'lib-stripped' in the repository root." />
   </Target>
 

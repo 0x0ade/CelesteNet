@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Celeste.Mod.CelesteNet.CelesteCompat;
 using Celeste.Mod.CelesteNet.DataTypes;
 
 namespace Celeste.Mod.CelesteNet.Server {

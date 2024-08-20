@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Celeste.Mod.CelesteNet.DataTypes;
-using Monocle;
+using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetPlayerSession : IDisposable {

@@ -230,7 +230,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     SendReleaseMe();
 
                 Session session = Session;
-                if (session != null && (state.SID != session.Area.SID || state.Mode != session.Area.Mode || state.Level == LevelDebugMap)) {
+                if (session != null && (state.SID != session.Area.SID || (AreaMode)state.Mode != session.Area.Mode || state.Level == LevelDebugMap)) {
                     ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
                     Ghosts.TryRemove(id, out _);
                     return;
@@ -241,10 +241,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerGraphics graphics) {
-            if (UnsupportedSpriteModes.Contains(graphics.SpriteMode))
-                graphics.SpriteMode = PlayerSpriteMode.Madeline;
+            if (UnsupportedSpriteModes.Contains((PlayerSpriteMode)graphics.SpriteMode))
+                graphics.SpriteMode = (MonocleCelesteHelpers.PlayerSpriteMode)PlayerSpriteMode.Madeline;
 
-            if (!Ghosts.TryGetValue(graphics.Player.ID, out Ghost ghost) || ghost?.Sprite?.Mode != graphics.SpriteMode) {
+            if (!Ghosts.TryGetValue(graphics.Player.ID, out Ghost ghost) || ghost?.Sprite?.Mode != (PlayerSpriteMode)graphics.SpriteMode) {
                 RemoveGhost(graphics.Player);
                 ghost = null;
             }
@@ -295,9 +295,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 ghost.NameTag.Name = frame.Player.DisplayName;
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
-                ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, frame.Facing, frame.Speed);
+                ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, (Facings)frame.Facing, frame.Speed);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
-                ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion && !state.Idle);
+                ghost.UpdateHair((Facings)frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion && !state.Idle);
                 ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
                 ghost.UpdateDead(frame.Dead && state.Level == session?.Level);
                 ghost.UpdateFollowers((Settings.InGame.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
@@ -320,7 +320,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!Client.Data.TryGetBoundRef(audio.Player, out DataPlayerState state) ||
                     session == null ||
                     state.SID != session.Area.SID ||
-                    state.Mode != session.Area.Mode ||
+                    (AreaMode)state.Mode != session.Area.Mode ||
                     state.Level != session.Level)
                     return;
 
@@ -347,7 +347,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!Client.Data.TryGetBoundRef(trail.Player, out DataPlayerState state) ||
                     session == null ||
                     state.SID != session.Area.SID ||
-                    state.Mode != session.Area.Mode ||
+                    (AreaMode)state.Mode != session.Area.Mode ||
                     state.Level != session.Level ||
                     !Ghosts.TryGetValue(trail.Player.ID, out ghost))
                     return;
@@ -357,7 +357,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (trail.Server) {
                     TrailManager.Add(
                         trail.Position,
-                        trail.Sprite?.ToImage(),
+                        trail.Sprite == null ? null :
+                        new(GFX.Game[trail.Sprite.AtlasPath]) {
+                            Position = trail.Sprite.Position,
+                            Origin = trail.Sprite.Origin,
+                            Scale = trail.Sprite.Scale,
+                            Rotation = trail.Sprite.Rotation,
+                            Color = trail.Sprite.Color,
+                            Effects = trail.Sprite.Effects
+                        },
                         ghost?.Hair,
                         trail.Scale,
                         trail.Color,
@@ -411,11 +419,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 }
 
-                if (session == null || session.Area.SID != target.SID || session.Area.Mode != target.Mode) {
+                if (session == null || session.Area.SID != target.SID || session.Area.Mode != (AreaMode)target.Mode) {
                     if (session != null)
                         UserIO.SaveHandler(true, true);
 
-                    session = new(area.ToKey(target.Mode));
+                    session = new(area.ToKey((AreaMode)target.Mode));
 
                 } else if (session != null) {
                     // Best™ way to clone the session.
@@ -434,15 +442,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (session != null) {
                     if (target.Session != null && target.Session.InSession) {
                         DataSession data = target.Session;
-                        session.Audio = data.Audio.ToState();
+                        session.Audio = data.Audio.ToState().ToAudioState();
                         session.RespawnPoint = data.RespawnPoint;
-                        session.Inventory = data.Inventory;
+                        session.Inventory = data.Inventory.ToPlayerInventory();
                         session.Flags = data.Flags;
                         session.LevelFlags = data.LevelFlags;
-                        session.Strawberries = data.Strawberries;
-                        session.DoNotLoad = data.DoNotLoad;
-                        session.Keys = data.Keys;
-                        session.Counters = data.Counters;
+                        session.Strawberries = new(data.Strawberries.Select(eid => eid.ToEntityID()));
+                        session.DoNotLoad = new(data.DoNotLoad.Select(eid => eid.ToEntityID()));
+                        session.Keys = new(data.Keys.Select(eid => eid.ToEntityID()));
+                        session.Counters = new(data.Counters.Select(c => c.ToSessionCounter()));
                         session.FurthestSeenLevel = data.FurthestSeenLevel;
                         session.StartCheckpoint = data.StartCheckpoint;
                         session.ColorGrade = data.ColorGrade;
@@ -457,7 +465,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         session.BloomBaseAdd = data.BloomBaseAdd;
                         session.DarkRoomAlpha = data.DarkRoomAlpha;
                         session.Time = data.Time;
-                        session.CoreMode = data.CoreMode;
+                        session.CoreMode = (Session.CoreModes)data.CoreMode;
                     }
                     session.StartedFromBeginning = false;
                 }
@@ -566,15 +574,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     RequestID = request.ID,
                     InSession = true,
 
-                    Audio = new(session.Audio),
+                    Audio = new(session.Audio.FromAudioState()),
                     RespawnPoint = session.RespawnPoint,
-                    Inventory = session.Inventory,
+                    Inventory = session.Inventory.FromPlayerInventory(),
                     Flags = new(session.Flags ?? new HashSet<string>()),
                     LevelFlags = new(session.LevelFlags ?? new HashSet<string>()),
-                    Strawberries = new(session.Strawberries ?? new HashSet<EntityID>()),
-                    DoNotLoad = new(session.DoNotLoad ?? new HashSet<EntityID>()),
-                    Keys = new(session.Keys ?? new HashSet<EntityID>()),
-                    Counters = new(Session.Counters ?? new List<Session.Counter>()),
+                    Strawberries = new HashSet<CelesteEntityID>(session.Strawberries.Select(eid => eid.FromEntityID())) ?? new HashSet<CelesteEntityID>(),
+                    DoNotLoad = new HashSet<CelesteEntityID>(session.DoNotLoad.Select(eid => eid.FromEntityID())) ?? new HashSet<CelesteEntityID>(),
+                    Keys = new HashSet<CelesteEntityID>(session.Keys.Select(eid => eid.FromEntityID())) ?? new HashSet<CelesteEntityID>(),
+                    Counters = Session.Counters.Select(eid => eid.FromSessionCounter()).ToList() ?? new List<CelesteSession.Counter>(),
                     FurthestSeenLevel = session.FurthestSeenLevel,
                     StartCheckpoint = session.StartCheckpoint,
                     ColorGrade = session.ColorGrade,
@@ -589,7 +597,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     BloomBaseAdd = session.BloomBaseAdd,
                     DarkRoomAlpha = session.DarkRoomAlpha,
                     Time = session.Time,
-                    CoreMode = session.CoreMode
+                    CoreMode = (CelesteSession.CoreModes)session.CoreMode
                 });
             }
         }
@@ -603,7 +611,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ses == null ||
                 Client?.Data?.TryGetBoundRef(player, out state) != true ||
                 state.SID != ses.Area.SID ||
-                state.Mode != ses.Area.Mode ||
+                (AreaMode)state.Mode != ses.Area.Mode ||
                 state.Level == LevelDebugMap;
         }
 
@@ -611,11 +619,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Ghost ghost;
             lock (Ghosts)
                 if (!Ghosts.TryGetValue(player.ID, out ghost) || ghost == null) {
-                    ghost = Ghosts[player.ID] = new(Context, player, graphics.SpriteMode);
+                    ghost = Ghosts[player.ID] = new(Context, player, (PlayerSpriteMode)graphics.SpriteMode);
                     ghost.Active = false;
                     ghost.NameTag.Name = player.DisplayName;
-                    if (ghost.Sprite.Mode != graphics.SpriteMode)
-                        UnsupportedSpriteModes.Add(graphics.SpriteMode);
+                    if (ghost.Sprite.Mode != (PlayerSpriteMode)graphics.SpriteMode)
+                        UnsupportedSpriteModes.Add((PlayerSpriteMode)graphics.SpriteMode);
                     RunOnMainThread(() => {
                         level.Add(ghost);
                         level.OnEndOfFrame += () => ghost.Active = true;
@@ -948,7 +956,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Client?.SendAndHandle(new DataPlayerState {
                     Player = Client.PlayerInfo,
                     SID = Session?.Area.GetSID() ?? MapEditorArea?.SID ?? "",
-                    Mode = Session?.Area.Mode ?? MapEditorArea?.Mode ?? AreaMode.Normal,
+                    Mode = (MonocleCelesteHelpers.AreaMode)(Session?.Area.Mode ?? MapEditorArea?.Mode ?? AreaMode.Normal),
                     Level = Session?.Level ?? (MapEditorArea != null ? LevelDebugMap : ""),
                     Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null)),
                     Interactive = Settings.InGame.Interactions
@@ -986,7 +994,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Player = Client.PlayerInfo,
 
                     Depth = player.Depth,
-                    SpriteMode = player.Sprite.Mode,
+                    SpriteMode = (MonocleCelesteHelpers.PlayerSpriteMode)player.Sprite.Mode,
                     SpriteRate = player.Sprite.Rate,
                     SpriteAnimations = animations,
 
@@ -1078,7 +1086,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Position = player.Position,
                     Scale = player.Sprite.Scale,
                     Color = player.Sprite.Color,
-                    Facing = player.Facing,
+                    Facing = (MonocleCelesteHelpers.Facings)player.Facing,
                     Speed = player.Speed,
 
                     CurrentAnimationID = animID,
@@ -1126,7 +1134,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Client?.Send(new DataDashTrail {
                     Player = Client.PlayerInfo,
                     Position = position,
-                    Sprite = new(sprite),
+                    Sprite = new DataPartImage {
+                        AtlasPath = sprite.Texture.AtlasPath,
+                        Position = sprite.Position,
+                        Origin = sprite.Origin,
+                        Scale = sprite.Scale,
+                        Rotation = sprite.Rotation,
+                        Color = sprite.Color,
+                        Effects = sprite.Effects
+                    },
                     Scale = scale,
                     Color = color,
                     Depth = depth,

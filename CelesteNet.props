@@ -7,7 +7,8 @@
 
     <IsServer>$(AssemblyName.EndsWith('Server'))</IsServer>
     <IsModule>$(AssemblyName.EndsWith('Module'))</IsModule>
-
+    <IsShared>$(AssemblyName.EndsWith('Shared'))</IsShared>
+    
     <Version>2.0.0.0</Version>
 
     <CelestePrefix Condition="'$(CelestePrefix)' == '' And Exists('..\..\..\Celeste.dll')">..\..\..</CelestePrefix>
@@ -33,8 +34,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Celeste" HintPath="$(CelestePrefix)\Celeste.dll" Private="$(CopyCeleste)" />
-    <Reference Include="MMHOOK_Celeste" HintPath="$(CelestePrefix)\MMHOOK_Celeste.dll" Private="$(CopyCeleste)" />
+    <Reference Condition="!$(IsServer) And !$(IsModule) And !$(IsShared)" Include="Celeste" HintPath="$(CelestePrefix)\Celeste.dll" Private="$(CopyCeleste)" />
+    <Reference Condition="!$(IsServer) And !$(IsModule) And !$(IsShared)" Include="MMHOOK_Celeste" HintPath="$(CelestePrefix)\MMHOOK_Celeste.dll" Private="$(CopyCeleste)" />
     <!-- core is always FNA, so we can ditch XNA :lfgeline: -->
     <Reference Include="FNA" HintPath="$(CelestePrefix)\FNA.dll" Private="$(CopyCeleste)" />
   </ItemGroup>

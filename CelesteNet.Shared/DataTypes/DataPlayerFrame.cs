@@ -1,9 +1,8 @@
-﻿using Microsoft.Xna.Framework;
-using Monocle;
-using System;
+﻿using System;
+using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
+using Microsoft.Xna.Framework;
 
-namespace Celeste.Mod.CelesteNet.DataTypes
-{
+namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataPlayerFrame : DataType<DataPlayerFrame> {
 
         static DataPlayerFrame() {
@@ -131,7 +130,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes
 
             if ((flags & Flags.Dashing) != 0) {
                 DashWasB = ((flags & Flags.DashB) != 0);
-                DashDir = Calc.AngleToVector((float) (reader.ReadByte() / 256f * 2*Math.PI), 1);
+                DashDir = CalcHelpers.AngleToVector((float) (reader.ReadByte() / 256f * 2*Math.PI), 1);
             } else {
                 DashWasB = null;
                 DashDir = null;
@@ -169,11 +168,11 @@ namespace Celeste.Mod.CelesteNet.DataTypes
 
             writer.Write7BitEncodedInt((int) Position.X);
             writer.Write7BitEncodedInt((int) Position.Y);
-            writer.Write((sbyte) Calc.Clamp((int) (Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
-            writer.Write((sbyte) Calc.Clamp((int) (Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
+            writer.Write((sbyte)CalcHelpers.Clamp((int) (Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
+            writer.Write((sbyte)CalcHelpers.Clamp((int) (Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
             writer.Write(PackColor(Color));
-            writer.Write((short) Calc.Clamp((int) Speed.X, short.MinValue, short.MaxValue));
-            writer.Write((short) Calc.Clamp((int) Speed.Y, short.MinValue, short.MaxValue));
+            writer.Write((short)CalcHelpers.Clamp((int) Speed.X, short.MinValue, short.MaxValue));
+            writer.Write((short)CalcHelpers.Clamp((int) Speed.Y, short.MinValue, short.MaxValue));
 
             writer.Write7BitEncodedInt(CurrentAnimationID);
             writer.Write7BitEncodedInt(CurrentAnimationFrame);
@@ -195,8 +194,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes
             if (Followers.Length != 0) {
                 for (int i = 0; i < Followers.Length; i++) {
                     Entity f = Followers[i];
-                    writer.Write((sbyte) Calc.Clamp((int) (f.Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
-                    writer.Write((sbyte) Calc.Clamp((int) (f.Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
+                    writer.Write((sbyte)CalcHelpers.Clamp((int) (f.Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
+                    writer.Write((sbyte)CalcHelpers.Clamp((int) (f.Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
                     writer.Write(f.Color);
                     writer.Write7BitEncodedInt(f.Depth);
                     writer.Write(f.SpriteRate);
@@ -222,8 +221,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes
                 Entity h = Holding;
                 writer.Write7BitEncodedInt((int) (h.Position.X - Position.X));
                 writer.Write7BitEncodedInt((int) (h.Position.Y - Position.Y));
-                writer.Write((sbyte) Calc.Clamp((int) (h.Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
-                writer.Write((sbyte) Calc.Clamp((int) (h.Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
+                writer.Write((sbyte)CalcHelpers.Clamp((int) (h.Scale.X * 16), sbyte.MinValue, sbyte.MaxValue));
+                writer.Write((sbyte)CalcHelpers.Clamp((int) (h.Scale.Y * 16), sbyte.MinValue, sbyte.MaxValue));
                 writer.Write(h.Color);
                 writer.Write7BitEncodedInt(h.Depth);
                 writer.Write(h.SpriteRate);

@@ -1,11 +1,10 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Monocle;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 
-namespace Celeste.Mod.CelesteNet.Server.Chat
-{
+namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class SpamContext : IDisposable {
 
         public readonly ChatModule Chat;
@@ -47,7 +46,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat
             public DateTime End =>
                 Start + TimeSpan.FromSeconds(
                     Spam.Chat.Settings.SpamTimeout +
-                    Spam.Chat.Settings.SpamTimeoutAdd * Calc.Clamp(Count - Spam.Chat.Settings.SpamCount, 0, Spam.Chat.Settings.SpamCountMax)
+                    Spam.Chat.Settings.SpamTimeoutAdd * CalcHelpers.Clamp(Count - Spam.Chat.Settings.SpamCount, 0, Spam.Chat.Settings.SpamCountMax)
                 );
 
             public TimeSpan Timeout => End - DateTime.UtcNow;

@@ -10,7 +10,7 @@ public class CmdLocate : ChatCmd {
 
     public override string Info => "Find where a player is.";
 
-    public override CelesteNetSupportedClientFeatures RequiredFeatures => 
+    public override CelesteNetSupportedClientFeatures RequiredFeatures =>
         CelesteNetSupportedClientFeatures.LocateCommand;
 
     private CelesteNetPlayerSession? Other;
@@ -43,13 +43,21 @@ public class CmdLocate : ChatCmd {
         CelesteNetPlayerSession? self = env.Session ?? throw new CommandRunException("Cannot locate as the server.");
 
         var chat = new DataChat {
-            Player = OtherPlayer,
+            Player = self.PlayerInfo,
             Tag = "locate",
             // On older clients, we never get here. On newer clients, this is replaced.
             Text = "{YOU SHOULD NEVER SEE THIS, PLEASE REPORT}",
             Color = Chat.Settings.ColorCommandReply
         };
-        self.Con.Send(chat);
+
+        // the DataChat above was constructed with self so that the spam check in PrepareAndLog doesn't break,
+        // and we do need to PrepareAndLog because we need a valid msg ID...
+        chat = Chat.PrepareAndLog(null, chat);
+
+        if (chat != null) {
+            chat.Player = OtherPlayer;
+            self.Con.Send(chat);
+        }
     }
 
 }

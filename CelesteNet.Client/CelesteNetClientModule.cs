@@ -62,6 +62,24 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool MayReconnect => (DateTime.UtcNow - LastConnectionAttempt).TotalSeconds > ReconnectWaitTime;
 
+        // currently used to show a warning/reset button to connect to default server again,
+        // when connecting to a different server fails repeatedly
+        private int _FailedReconnectCount = 0;
+        public int FailedReconnectCount {
+            get => _FailedReconnectCount;
+            private set {
+                _FailedReconnectCount = value;
+
+                if (value >= FailedReconnectThreshold && Settings.Server != CelesteNetClientSettings.DefaultServer) {
+                    Settings.ConnectDefaultVisible = true;
+                    Settings.WantsToBeConnected = false;
+                }
+                else
+                    Settings.ConnectDefaultVisible = false;
+            }
+        }
+        public const int FailedReconnectThreshold = 3;
+
         public VirtualRenderTarget UIRenderTarget;
 
         // This should ideally be part of the "emote module" if emotes were a fully separate thing.
@@ -314,7 +332,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             if (_StartThread?.IsAlive ?? false) {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: StartThread.Join...");
-                _StartThread.Join();
+                _StartThread?.Join();
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Start: StartThread Join done");
             }
             _StartTokenSource?.Dispose();
@@ -347,9 +365,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             
             // fully reset wait time
             if ((DateTime.UtcNow - LastConnectionAttempt).TotalSeconds > FastReconnectResetAfter && ReconnectWaitTime > 0) {
-                Logger.Log(LogLevel.INF, "reconnect-attempt", $"CelesteNetClientModule Start: Resetting reconnect delay from {ReconnectWaitTime} seconds to 0... (started {ReconnectDelayingSince})");
-                ReconnectWaitTime = 0;
-                ReconnectWaitRepetitions = 0;
+                ResetReconnectPenalty();
             }
 
             lock (ClientLock) {
@@ -403,12 +419,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                     if (context.Status.Spin)
                         context.Status.Set("Connected", 1f);
 
+                    FailedReconnectCount = 0;
                 } catch (Exception e) when (e is ThreadInterruptedException || e is OperationCanceledException) {
                     Logger.Log(LogLevel.CRI, "clientmod", "Startup interrupted.");
                     _StartThread = null;
                     Stop();
                     context.Status.Set("Interrupted", 3f, false);
-
                 } catch (ThreadAbortException) {
                     Logger.Log(LogLevel.VVV, "main", $"Client Start thread: ThreadAbortException caught");
                     _StartThread = null;
@@ -436,6 +452,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         // Instead, dispose the client and let the context do the rest.
                         context.Client.SafeDisposeTriggered = true;
                         context.Status.Set("Connection failed", 3f, false);
+                        FailedReconnectCount++;
                     }
 
                 } finally {
@@ -466,7 +483,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             if (_StartThread?.IsAlive ?? false) {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Stop: Joining StartThread...");
-                _StartThread.Join();
+                _StartThread?.Join();
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientModule Stop: Joining done");
             }
             _StartTokenSource?.Dispose();
@@ -481,6 +498,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Context.DisposeSafe();
                 Context = null;
             }
+        }
+
+        public void ResetReconnectPenalty() {
+            Logger.Log(LogLevel.INF, "reconnect-attempt", $"CelesteNetClientModule Start: Resetting reconnect delay from {ReconnectWaitTime} seconds to 0... (started {ReconnectDelayingSince})");
+            ReconnectWaitTime = 0;
+            ReconnectWaitRepetitions = 0;
         }
 
     }

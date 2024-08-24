@@ -24,8 +24,10 @@
 # GhostNet Module Options
 	MODOPTIONS_CELESTENETCLIENT_TITLE=			CelesteNet - Multiplayer
 
-	MODOPTIONS_CELESTENETCLIENT_CONNECTED=			Connected
+	MODOPTIONS_CELESTENETCLIENT_CONNECTED=			Connect to ((server))
 	MODOPTIONS_CELESTENETCLIENT_CONNECTEDHINT=			Try setting "Receive Player Avatars" OFF if you can't connect
+	MODOPTIONS_CELESTENETCLIENT_CONNECTDEFAULT=			:celestenet_warning: Connect to ((default))?
+	MODOPTIONS_CELESTENETCLIENT_CONNECTDEFAULTHINT=		:celestenet_warning: Connection to "((server))" failed or timed out.
 	MODOPTIONS_CELESTENETCLIENT_AVATARS=				Receive Player Avatars
 	MODOPTIONS_CELESTENETCLIENT_AVATARSHINT=			Tells the server not to send you any profile pics during handshake.
 	MODOPTIONS_CELESTENETCLIENT_AUTORECONNECT=			Auto Reconnect

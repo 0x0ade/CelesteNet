@@ -67,6 +67,24 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public TextMenu.OnOff EnabledEntry { get; protected set; }
 
+        // A button that only shows when the "visible" bool below gets set, to easily allow connecting back to official server
+        [SettingIgnore, YamlIgnore]
+        public TextMenu.Button ConnectDefaultButton { get; protected set; }
+        [SettingIgnore, YamlIgnore]
+        public TextMenuExt.EaseInSubHeaderExt ConnectDefaultButtonHint { get; protected set; }
+
+        private bool _ConnectDefaultVisible = false;
+        [SettingIgnore, YamlIgnore]
+        public bool ConnectDefaultVisible {
+            get => _ConnectDefaultVisible;
+            set {
+                _ConnectDefaultVisible = value;
+
+                if (ConnectDefaultButton != null)
+                    ConnectDefaultButton.Visible = value;
+            }
+        }
+
         public bool AutoReconnect { get; set; } = true;
         [SettingIgnore, YamlIgnore]
         public TextMenu.OnOff AutoReconnectEntry { get; protected set; }
@@ -90,8 +108,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 _Server = value;
 
-                if (ServerEntry != null)
-                    ServerEntry.Label = "modoptions_celestenetclient_server".DialogClean().Replace("((server))", value);
+                UpdateServerInDialogs();
             }
         }
         private string _Server = DefaultServer;
@@ -99,7 +116,35 @@ namespace Celeste.Mod.CelesteNet.Client {
         // Any non-empty string will override Server property temporarily. (setting not saved)
         // Currently only used for "connect locally" button (for Nucleus etc.)
         [SettingIgnore, YamlIgnore]
-        public string ServerOverride { get; set; } = "";
+        public string ServerOverride {
+            get => _ServerOverride;
+            set {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    _ServerOverride = "";
+                } else {
+                    _ServerOverride = value;
+                }
+                UpdateServerInDialogs();
+            }
+        }
+
+        // best way I can come up with to do this in various places, rather than a lot of erratic logic in Server & ServerOverride setters
+        public void UpdateServerInDialogs() {
+            if (ServerEntry != null)
+                ServerEntry.Label = "modoptions_celestenetclient_server".DialogClean().Replace("((server))", Server);
+
+            if (EnabledEntry != null)
+                EnabledEntry.Label = "modoptions_celestenetclient_connected".DialogClean().Replace("((server))", Server);
+
+            if (ConnectDefaultButton != null)
+                ConnectDefaultButton.Label = "modoptions_celestenetclient_connectdefault".DialogClean().Replace("((default))", DefaultServer);
+
+            if (ConnectDefaultButtonHint != null)
+                ConnectDefaultButtonHint.Title = "modoptions_celestenetclient_connectdefaulthint".DialogClean().Replace("((server))", Server);
+        }
+
+        private string _ServerOverride = "";
 
         [SettingIgnore, YamlIgnore]
         public TextMenu.Button ServerEntry { get; protected set; }
@@ -813,7 +858,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public void CreateConnectedEntry(TextMenu menu, bool inGame) {
             menu.Add(
-                (EnabledEntry = new TextMenu.OnOff("modoptions_celestenetclient_connected".DialogClean(), Connected))
+                (EnabledEntry = new TextMenu.OnOff("modoptions_celestenetclient_connected".DialogClean().Replace("((server))", Server), Connected))
                 .Change(v => Connected = v)
             );
             EnabledEntry.AddDescription(menu, "modoptions_celestenetclient_connectedhint".DialogClean());
@@ -944,6 +989,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 ReceivePlayerAvatars = true;
                 ClientID = GenerateClientID();
                 ServerOverride = "";
+                KeyError = KeyErrors.None;
+                ConnectDefaultVisible = false;
             });
             ResetGeneralButton.AddDescription(menu, "modoptions_celestenetclient_resetgeneralhint".DialogClean());
             ResetGeneralButton.Disabled = Connected;
@@ -972,6 +1019,24 @@ namespace Celeste.Mod.CelesteNet.Client {
                 .Change(v => ReceivePlayerAvatars = v)
             );
             ReceivePlayerAvatarsEntry.AddDescription(menu, "modoptions_celestenetclient_avatarshint".DialogClean());
+        }
+
+        public void CreateConnectDefaultButtonEntry(TextMenu menu, bool inGame) {
+            ConnectDefaultButton = CreateMenuButton(menu, "CONNECTDEFAULT", (label) => label.Replace("((default))", DefaultServer), () => {
+                ServerOverride = "";
+                Server = DefaultServer;
+                CelesteNetClientModule.Instance.ResetReconnectPenalty();
+                Connected = true;
+            });
+
+            ConnectDefaultButtonHint = null;
+            ConnectDefaultButton.AddDescription(menu, "modoptions_celestenetclient_connectdefaulthint".DialogClean().Replace("((server))", Server));
+
+            int descriptionIndex = menu.Items.IndexOf(ConnectDefaultButton) + 1;
+            if (descriptionIndex > 0 && descriptionIndex < menu.Items.Count && menu.Items[descriptionIndex] is TextMenuExt.EaseInSubHeaderExt desc)
+                ConnectDefaultButtonHint = desc;
+
+            ConnectDefaultButton.Visible = ConnectDefaultVisible;
         }
 
         #endregion

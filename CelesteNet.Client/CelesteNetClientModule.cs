@@ -70,7 +70,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             private set {
                 _FailedReconnectCount = value;
 
-                if (value >= FailedReconnectThreshold && Settings.Server != CelesteNetClientSettings.DefaultServer) {
+                if (value >= FailedReconnectThreshold && Settings.EffectiveServer != CelesteNetClientSettings.DefaultServer) {
                     Settings.ConnectDefaultVisible = true;
                     Settings.WantsToBeConnected = false;
                 }
@@ -186,6 +186,14 @@ namespace Celeste.Mod.CelesteNet.Client {
             // .ga domains have become inaccessible for some people.
             if (string.IsNullOrWhiteSpace(Settings.Server) || Settings.Server == "celeste.0x0ade.ga" || Settings.Server == "celestenet.0x0ade.ga")
                 Settings.Server = CelesteNetClientSettings.DefaultServer;
+
+            // So I did an oopsie, with how the 'Server' property getter was for convenience returning the ServerOverride when it's set,
+            // but I had entirely forgotten that this actual getter value will be saved to the settings file... for some reason I didn't think of this
+            // and obviously didn't intend it this way.
+            // So uhm, for the next month only, reset people who have "Server: localhost" in their yaml? :catplush:
+            if (Settings.Server == "localhost" && DateTime.UtcNow.Month < 10 && DateTime.UtcNow.Year == 2024) {
+                Settings.Server = CelesteNetClientSettings.DefaultServer;
+            }
 
             if (Settings.Emotes == null || Settings.Emotes.Length == 0) {
                 Settings.Emotes = new string[] {

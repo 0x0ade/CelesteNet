@@ -102,12 +102,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public string EffectiveServer {
             get => ServerOverride.IsNullOrEmpty() ? Server : ServerOverride;
             private set {
-                if (Server == value)
-                    return;
-
                 Server = value;
-
-                UpdateServerInDialogs();
             }
         }
 
@@ -117,7 +112,18 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore]
 #endif
         [SettingSubText("modoptions_celestenetclient_devonlyhint")]
-        public string Server { get; set; } = DefaultServer;
+        public string Server {
+            get => _Server;
+            set {
+                if (_Server == value)
+                    return;
+
+                _Server = value;
+
+                UpdateServerInDialogs();
+            }
+        }
+        private string _Server = DefaultServer;
 
         // Any non-empty string will override Server property temporarily. (setting not saved)
         // Currently only used for "connect locally" button (for Nucleus etc.)

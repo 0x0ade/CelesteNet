@@ -78,10 +78,13 @@ namespace Celeste.Mod.CelesteNet.Client {
         public bool ConnectDefaultVisible {
             get => _ConnectDefaultVisible;
             set {
-                _ConnectDefaultVisible = value;
-
                 if (ConnectDefaultButton != null)
                     ConnectDefaultButton.Visible = value;
+
+                if (_ConnectDefaultVisible != value && ConnectDefaultButtonHint != null)
+                    ConnectDefaultButtonHint.FadeVisible = value;
+
+                _ConnectDefaultVisible = value;
             }
         }
 
@@ -925,7 +928,6 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public void CreateExtraServersEntry(TextMenu menu, bool inGame) {
-#if DEBUG
             int selected = 0;
             for (int i = 0; i < ExtraServers.Length; i++)
                 if (ExtraServers[i] == Server)
@@ -962,6 +964,8 @@ namespace Celeste.Mod.CelesteNet.Client {
                 ExtraServersEntry.Visible = ExtraServers.Length > 0;
             });
             item.AddDescription(menu, "modoptions_celestenetclient_reloadhint".DialogClean());
+#if !DEBUG
+            item.Visible = ExtraServers.Length > 0;
 #endif
         }
 
@@ -1039,7 +1043,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             ConnectDefaultButton.Visible = ConnectDefaultVisible;
         }
 
-        #endregion
+#endregion
 
         public static ulong GenerateClientID() {
             return ulong.Parse(Guid.NewGuid().ToString().Replace("-", "").Substring(0, 16), System.Globalization.NumberStyles.HexNumber);

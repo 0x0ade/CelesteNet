@@ -30,11 +30,11 @@ namespace Celeste.Mod.CelesteNet.Server.Chat.Cmd {
                 using (Chat.Server.ConLock.R()) {
                     session = 
                         // check for exact name
-                        env.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.Equals(raw, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
+                        env.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.Equals(raw, StringComparison.OrdinalIgnoreCase) ?? false) ??
                         // check for partial name in channel
-                        env.Session?.Channel.Players.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(raw, StringComparison.InvariantCultureIgnoreCase) ?? false) ??
+                        env.Session?.Channel.Players.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(raw, StringComparison.OrdinalIgnoreCase) ?? false) ??
                         // check for partial name elsewhere
-                        env.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(raw, StringComparison.InvariantCultureIgnoreCase) ?? false);
+                        env.Server.Sessions.FirstOrDefault(session => session.PlayerInfo?.FullName.StartsWith(raw, StringComparison.OrdinalIgnoreCase) ?? false);
                 }
             }
             if (session == null && uint.TryParse(raw, out playerID)) {

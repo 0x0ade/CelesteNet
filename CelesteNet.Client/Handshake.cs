@@ -28,6 +28,12 @@ CelesteNet-PlayerNameKey: {nameKey}
 ");
 
             foreach (FieldInfo field in typeof(CelesteNetClientOptions).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+                object optionValue = field.GetValue(options);
+
+                if (field.FieldType.IsEnum) {
+                    optionValue = Convert.ChangeType(optionValue, Enum.GetUnderlyingType(field.FieldType));
+                }
+
                 switch (Type.GetTypeCode(field.FieldType)) {
                     case TypeCode.Boolean:
                     case TypeCode.Int16:
@@ -38,7 +44,7 @@ CelesteNet-PlayerNameKey: {nameKey}
                     case TypeCode.UInt64:
                     case TypeCode.Single:
                     case TypeCode.Double: {
-                        reqBuilder.AppendLine($"CelesteNet-ClientOptions-{field.Name}: {field.GetValue(options)}");
+                        reqBuilder.AppendLine($"CelesteNet-ClientOptions-{field.Name}: {optionValue}");
                     } break;
                 }
             }

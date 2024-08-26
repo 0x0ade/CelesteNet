@@ -223,6 +223,7 @@ namespace Celeste.Mod.CelesteNet.Server.Chat {
                     Broadcast(Settings.MessageGreeting.InjectSingleValue("player", session.PlayerInfo?.FullName ?? "???"));
                 SendTo(session, Settings.MessageMOTD);
             }
+
             session.SendCommandList(Commands.DataAll);
 
             SpamContext spam = session.Set(this, new SpamContext(this));

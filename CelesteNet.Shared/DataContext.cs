@@ -10,8 +10,7 @@ using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
 using MonoMod.Utils;
 
-namespace Celeste.Mod.CelesteNet
-{
+namespace Celeste.Mod.CelesteNet {
     public delegate void DataHandler(CelesteNetConnection con, DataType data);
     public delegate void DataHandler<T>(CelesteNetConnection con, T data) where T : DataType<T>;
     public delegate bool DataFilter(CelesteNetConnection con, DataType data);
@@ -266,6 +265,7 @@ namespace Celeste.Mod.CelesteNet
                     if (handler != null)
                         UnregisterHandler(typeof(T), handler);
                     handler = null;
+                    tcs.TrySetCanceled();
                 }
             }
 

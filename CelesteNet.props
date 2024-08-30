@@ -22,8 +22,6 @@
 
     <CelesteAvailable Condition="Exists('$(CelestePrefix)\Celeste.dll') And Exists('$(CelestePrefix)\MMHOOK_Celeste.dll')">true</CelesteAvailable>
     <CelesteAvailable Condition="$(BuildServerWithoutCeleste) And !$(IsClient)">false</CelesteAvailable>
-    <DefineConstants Condition="$(CelesteAvailable)">CELESTE_DLLS_AVAILABLE</DefineConstants>
-
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">$(IsServer)</CopyCeleste>
   </PropertyGroup>
 

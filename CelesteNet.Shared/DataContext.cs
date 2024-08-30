@@ -256,6 +256,7 @@ namespace Celeste.Mod.CelesteNet {
                     if (handler != null)
                         UnregisterHandler(typeof(T), handler);
                     handler = null;
+                    tcs.TrySetCanceled();
                 }
             }
 

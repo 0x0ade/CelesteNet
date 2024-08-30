@@ -538,6 +538,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return e.Types.Where(t => t != null);
 #pragma warning restore CS8619
             }
+        }
 
         public void ResetReconnectPenalty() {
             Logger.Log(LogLevel.INF, "reconnect-attempt", $"CelesteNetClientModule Start: Resetting reconnect delay from {ReconnectWaitTime} seconds to 0... (started {ReconnectDelayingSince})");

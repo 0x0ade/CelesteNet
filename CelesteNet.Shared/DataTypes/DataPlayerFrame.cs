@@ -1,5 +1,4 @@
 ﻿using System;
-using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 using Microsoft.Xna.Framework;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {

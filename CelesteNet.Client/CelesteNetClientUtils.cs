@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using Microsoft.Xna.Framework;
 using Mono.Cecil;
@@ -61,106 +60,6 @@ namespace Celeste.Mod.CelesteNet.Client {
                 1920f - marginRight, 1080f - marginBottom
             );
             return outPos.Equals(posScreen);
-        }
-
-
-        public static AudioState ToAudioState(this CelesteAudioState audioState) {
-            if (audioState == null) return null;
-            return new AudioState() {
-                Music = audioState.Music.ToAudioTrackState(),
-                Ambience = audioState.Ambience.ToAudioTrackState(),
-                AmbienceVolume = audioState.AmbienceVolume
-            };
-        }
-
-        public static AudioTrackState ToAudioTrackState(this CelesteAudioTrackState audioTrackState) {
-            if (audioTrackState == null) return null;
-            return new AudioTrackState() {
-                Event = audioTrackState.Event,
-                Progress = audioTrackState.Progress,
-                Parameters = audioTrackState.Parameters.Select(mep => mep.ToMEP()).ToList()
-            };
-        }
-
-        public static MEP ToMEP(this CelesteMEP mep) {
-            if (mep == null) return null;
-            return new MEP() {
-                Key = mep.Key,
-                Value = mep.Value
-            };
-        }
-
-        public static CelesteAudioState FromAudioState(this AudioState audioState) {
-            if (audioState == null) return null;
-            return new CelesteAudioState() {
-                Music = audioState.Music.FromAudioTrackState(),
-                Ambience = audioState.Ambience.FromAudioTrackState(),
-                AmbienceVolume = audioState.AmbienceVolume
-            };
-        }
-
-        public static CelesteAudioTrackState FromAudioTrackState(this AudioTrackState audioTrackState) {
-            if (audioTrackState == null) return null;
-            return new CelesteAudioTrackState() {
-                Event = audioTrackState.Event,
-                Progress = audioTrackState.Progress,
-                Parameters = audioTrackState.Parameters.Select(mep => mep.FromMEP()).ToList()
-            };
-        }
-
-        public static CelesteMEP FromMEP(this MEP mep) {
-            if (mep == null) return null;
-            return new CelesteMEP() {
-                Key = mep.Key,
-                Value = mep.Value
-            };
-        }
-
-        public static CelesteEntityID FromEntityID(this EntityID eid) {
-            return new CelesteEntityID() {
-                ID = eid.ID,
-                Key = eid.Key
-            };
-        }
-
-        public static CelesteSession.Counter FromSessionCounter(this Session.Counter counter) {
-            if (counter == null) return null;
-            return new CelesteSession.Counter() {
-                Key = counter.Key,
-                Value = counter.Value
-            };
-        }
-
-        public static EntityID ToEntityID(this CelesteEntityID eid) {
-            return new EntityID() {
-                ID = eid.ID,
-                Key = eid.Key
-            };
-        }
-
-        public static Session.Counter ToSessionCounter(this CelesteSession.Counter counter) {
-            if (counter == null) return null;
-            return new Session.Counter() {
-                Key = counter.Key,
-                Value = counter.Value
-            };
-        }
-
-        public static PlayerInventory ToPlayerInventory(this CelestePlayerInventory inv) {
-            return new PlayerInventory() {
-                Backpack = inv.Backpack,
-                Dashes = inv.Dashes,
-                DreamDash = inv.DreamDash,
-                NoRefills = inv.NoRefills
-            };
-        }
-
-        public static CelestePlayerInventory FromPlayerInventory(this PlayerInventory inv) {
-            return new CelestePlayerInventory() {
-                Backpack = inv.Backpack,
-                Dashes = inv.Dashes,
-                DreamDash = inv.DreamDash
-            };
         }
 
         private readonly static FieldInfo f_Player_wasDashB =

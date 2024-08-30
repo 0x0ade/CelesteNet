@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {
     public class SpamContext : IDisposable {

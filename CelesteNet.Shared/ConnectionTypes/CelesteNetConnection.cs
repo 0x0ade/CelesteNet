@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 
 namespace Celeste.Mod.CelesteNet {
     public abstract class CelesteNetConnection : IDisposable {

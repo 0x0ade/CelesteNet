@@ -1,5 +1,4 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 using Celeste.Mod.CelesteNet.Server.Chat;
 
 namespace Celeste.Mod.CelesteNet.Server.Control {

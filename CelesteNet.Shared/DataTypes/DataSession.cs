@@ -14,13 +14,13 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public DataPartAudioState? Audio;
         public Vector2? RespawnPoint;
-        public CelestePlayerInventory Inventory;
+        public PlayerInventory Inventory;
         public HashSet<string>? Flags;
         public HashSet<string>? LevelFlags;
-        public HashSet<CelesteEntityID>? Strawberries;
-        public HashSet<CelesteEntityID>? DoNotLoad;
-        public HashSet<CelesteEntityID>? Keys;
-        public List<CelesteSession.Counter>? Counters;
+        public HashSet<EntityID>? Strawberries;
+        public HashSet<EntityID>? DoNotLoad;
+        public HashSet<EntityID>? Keys;
+        public List<Session.Counter>? Counters;
         public string? FurthestSeenLevel;
         public string? StartCheckpoint;
         public string? ColorGrade;
@@ -35,7 +35,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
         public float BloomBaseAdd;
         public float DarkRoomAlpha;
         public long Time;
-        public CelesteSession.CoreModes CoreMode;
+        public Session.CoreModes CoreMode;
 
         public override MetaType[] GenerateMeta(DataContext ctx)
             => new MetaType[] {
@@ -128,7 +128,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
             Time = reader.ReadInt64();
 
-            CoreMode = (CelesteSession.CoreModes) reader.ReadByte();
+            CoreMode = (Session.CoreModes) reader.ReadByte();
         }
 
         protected override void Write(CelesteNetBinaryWriter writer) {
@@ -170,25 +170,25 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
                 writer.WriteNetString(value);
 
             writer.Write((byte) Strawberries.Count);
-            foreach (CelesteEntityID value in Strawberries) {
+            foreach (EntityID value in Strawberries) {
                 writer.WriteNetString(value.Level);
                 writer.Write(value.ID);
             }
 
             writer.Write((byte) DoNotLoad.Count);
-            foreach (CelesteEntityID value in DoNotLoad) {
+            foreach (EntityID value in DoNotLoad) {
                 writer.WriteNetString(value.Level);
                 writer.Write(value.ID);
             }
 
             writer.Write((byte) Keys.Count);
-            foreach (CelesteEntityID value in Keys) {
+            foreach (EntityID value in Keys) {
                 writer.WriteNetString(value.Level);
                 writer.Write(value.ID);
             }
 
             writer.Write((byte) Counters.Count);
-            foreach (CelesteSession.Counter value in Counters) {
+            foreach (Session.Counter value in Counters) {
                 writer.WriteNetString(value.Key);
                 writer.Write(value.Value);
             }

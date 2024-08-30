@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 
 namespace Celeste.Mod.CelesteNet.Server {
     public class CelesteNetPlayerSession : IDisposable {
@@ -190,8 +189,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Random rnd = new Random(ClientOptions.ClientID != 0 ? (int) ClientOptions.ClientID : UID.GetHashCode());
                 string prefix = "", character = "";
                 while (prefix == character) {
-                    prefix = rnd.Choose(GuestNamePrefixes);
-                    character = rnd.Choose(GuestNameCharacter);
+                    prefix = GuestNamePrefixes[rnd.Next(GuestNamePrefixes.Length)];
+                    character = GuestNameCharacter[rnd.Next(GuestNameCharacter.Length)];
                 }
                 fullName = fullNameSpace = $"Guest{prefix}{character}";
             }

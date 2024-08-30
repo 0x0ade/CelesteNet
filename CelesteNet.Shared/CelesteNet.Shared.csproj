@@ -12,4 +12,8 @@
 
   <Import Project="..\CelesteNet.props" />
 
+  <ItemGroup Condition="$(CelesteAvailable)">
+    <Compile Remove=".\CelesteCompat\*" />
+  </ItemGroup>
+
 </Project>

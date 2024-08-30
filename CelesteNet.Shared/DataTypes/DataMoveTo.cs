@@ -1,5 +1,4 @@
-﻿using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 
 namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataMoveTo : DataType<DataMoveTo> {

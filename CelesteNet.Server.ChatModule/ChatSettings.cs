@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
 using Microsoft.Xna.Framework;
 
 namespace Celeste.Mod.CelesteNet.Server.Chat {

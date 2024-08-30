@@ -8,11 +8,21 @@
     <IsServer>$(AssemblyName.EndsWith('Server'))</IsServer>
     <IsModule>$(AssemblyName.EndsWith('Module'))</IsModule>
     <IsShared>$(AssemblyName.EndsWith('Shared'))</IsShared>
+    <IsClient>false</IsClient>
+    <IsClient Condition="!$(IsServer) And !$(IsModule) And !$(IsShared)">true</IsClient>
+
+    <!-- Set this to true so that server & shared don't get Celeste assembly refs, e.g. to test such builds -->
+    <!-- WARNING: This breaks Client builds because the "non-Celeste" CelesteNet.Shared assembly is only intended for Server and I'm not gonna fix this because it would be pointless :3 -->
+    <BuildServerWithoutCeleste>false</BuildServerWithoutCeleste>
     
     <Version>2.0.0.0</Version>
 
     <CelestePrefix Condition="'$(CelestePrefix)' == '' And Exists('..\..\..\Celeste.dll')">..\..\..</CelestePrefix>
     <CelestePrefix Condition="'$(CelestePrefix)' == ''">..\lib-stripped</CelestePrefix>
+
+    <CelesteAvailable Condition="Exists('$(CelestePrefix)\Celeste.dll') And Exists('$(CelestePrefix)\MMHOOK_Celeste.dll')">true</CelesteAvailable>
+    <CelesteAvailable Condition="$(BuildServerWithoutCeleste) And !$(IsClient)">false</CelesteAvailable>
+    <DefineConstants Condition="$(CelesteAvailable)">CELESTE_DLLS_AVAILABLE</DefineConstants>
 
     <CopyCeleste Condition="'$(CopyCeleste)' == ''">$(IsServer)</CopyCeleste>
   </PropertyGroup>
@@ -23,7 +33,7 @@
 
   <Target Name="EnsureCelesteExists" BeforeTargets="PreBuildEvent">
     <Error
-      Condition="!Exists('$(CelestePrefix)\Celeste.dll') And !$(IsServer) And !$(IsModule) And !$(IsShared)"
+      Condition="!$(CelesteAvailable) And $(IsClient)"
       Text="Cannot find Celeste. Make sure CelesteNet is cloned in your Celeste/Mods folder. Alternatively, copy Celeste.dll, FNA.dll and MMHOOK_Celeste.dll to a folder called 'lib-stripped' in the repository root." />
   </Target>
 
@@ -33,9 +43,12 @@
     <PackageReference Include="YamlDotNet" Version="15.1.2" />
   </ItemGroup>
 
+  <ItemGroup Condition="$(CelesteAvailable)">
+    <Reference Include="Celeste" HintPath="$(CelestePrefix)\Celeste.dll" Private="$(CopyCeleste)" />
+    <Reference Include="MMHOOK_Celeste" HintPath="$(CelestePrefix)\MMHOOK_Celeste.dll" Private="$(CopyCeleste)" />
+  </ItemGroup>
+
   <ItemGroup>
-    <Reference Condition="!$(IsServer) And !$(IsModule) And !$(IsShared)" Include="Celeste" HintPath="$(CelestePrefix)\Celeste.dll" Private="$(CopyCeleste)" />
-    <Reference Condition="!$(IsServer) And !$(IsModule) And !$(IsShared)" Include="MMHOOK_Celeste" HintPath="$(CelestePrefix)\MMHOOK_Celeste.dll" Private="$(CopyCeleste)" />
     <!-- core is always FNA, so we can ditch XNA :lfgeline: -->
     <Reference Include="FNA" HintPath="$(CelestePrefix)\FNA.dll" Private="$(CopyCeleste)" />
   </ItemGroup>

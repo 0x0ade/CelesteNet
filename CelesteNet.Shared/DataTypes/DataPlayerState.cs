@@ -1,6 +1,4 @@
-﻿using Celeste.Mod.CelesteNet.MonocleCelesteHelpers;
-
-namespace Celeste.Mod.CelesteNet.DataTypes {
+﻿namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataPlayerState : DataType<DataPlayerState> {
 
         static DataPlayerState() {

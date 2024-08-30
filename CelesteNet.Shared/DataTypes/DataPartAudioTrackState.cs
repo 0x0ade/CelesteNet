@@ -3,18 +3,18 @@
 
         public string Event = "";
         public int Progress;
-        public CelesteMEP[] Parameters = Dummy<CelesteMEP>.EmptyArray;
+        public MEP[] Parameters = Dummy<MEP>.EmptyArray;
 
         public DataPartAudioTrackState() {
         }
 
-        public DataPartAudioTrackState(CelesteAudioTrackState state) {
+        public DataPartAudioTrackState(AudioTrackState state) {
             Event = state.Event;
             Progress = state.Progress;
             Parameters = state.Parameters.ToArray();
         }
 
-        public CelesteAudioTrackState ToState()
+        public AudioTrackState ToState()
             => new(Event) {
                 Progress = Progress,
                 Parameters = new(Parameters)
@@ -24,7 +24,7 @@
             Event = reader.ReadNetString();
             Progress = reader.ReadInt32();
 
-            Parameters = new CelesteMEP[reader.ReadByte()];
+            Parameters = new MEP[reader.ReadByte()];
             for (int i = 0; i < Parameters.Length; i++)
                 Parameters[i] = new(reader.ReadNetString(), reader.ReadSingle());
         }
@@ -34,7 +34,7 @@
             writer.Write(Progress);
 
             writer.Write((byte) Parameters.Length);
-            foreach (CelesteMEP param in Parameters) {
+            foreach (MEP param in Parameters) {
                 writer.WriteNetString(param.Key);
                 writer.Write(param.Value);
             }

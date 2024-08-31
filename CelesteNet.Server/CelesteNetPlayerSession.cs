@@ -189,8 +189,8 @@ namespace Celeste.Mod.CelesteNet.Server {
                 Random rnd = new Random(ClientOptions.ClientID != 0 ? (int) ClientOptions.ClientID : UID.GetHashCode());
                 string prefix = "", character = "";
                 while (prefix == character) {
-                    prefix = GuestNamePrefixes[rnd.Next(GuestNamePrefixes.Length)];
-                    character = GuestNameCharacter[rnd.Next(GuestNameCharacter.Length)];
+                    prefix = rnd.Choose(GuestNamePrefixes);
+                    character = rnd.Choose(GuestNameCharacter);
                 }
                 fullName = fullNameSpace = $"Guest{prefix}{character}";
             }

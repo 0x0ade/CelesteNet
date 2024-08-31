@@ -1,4 +1,5 @@
-﻿namespace Celeste.Mod.CelesteNet.DataTypes {
+﻿namespace Celeste.Mod.CelesteNet.DataTypes
+{
     public class DataPartAudioTrackState : DataType<DataPartAudioTrackState> {
 
         public string Event = "";

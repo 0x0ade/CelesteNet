@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
+﻿using MC = Mono.Cecil;
+
 using Microsoft.Xna.Framework;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Utils;
-using MC = Mono.Cecil;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace Celeste.Mod.CelesteNet.Client {
     public static class CelesteNetClientUtils {

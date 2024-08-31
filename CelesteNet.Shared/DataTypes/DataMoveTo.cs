@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace Celeste.Mod.CelesteNet.DataTypes {
+namespace Celeste.Mod.CelesteNet.DataTypes
+{
     public class DataMoveTo : DataType<DataMoveTo> {
 
         static DataMoveTo() {

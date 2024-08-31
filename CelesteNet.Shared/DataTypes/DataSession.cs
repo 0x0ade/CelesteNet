@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
+using System.Collections.Generic;
 
-namespace Celeste.Mod.CelesteNet.DataTypes {
+namespace Celeste.Mod.CelesteNet.DataTypes
+{
     public class DataSession : DataType<DataSession>, IDataRequestable<DataSessionRequest> {
 
         static DataSession() {

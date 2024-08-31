@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Celeste.Mod.CelesteNet.DataTypes {
+namespace Celeste.Mod.CelesteNet.DataTypes
+{
     public abstract class DataType {
 
         public virtual DataFlags DataFlags => DataFlags.None;

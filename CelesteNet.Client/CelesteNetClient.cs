@@ -55,6 +55,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Options.InstanceID = Settings.InstanceID;
 
             Options.SupportedClientFeatures |= CelesteNetSupportedClientFeatures.LocateCommand;
+            Options.SupportedClientFeatures |= CelesteNetSupportedClientFeatures.FrameWithDashes;
 
             bool isServerLocalhost = Settings.Host == "localhost" || Settings.Host == "127.0.0.1";
 

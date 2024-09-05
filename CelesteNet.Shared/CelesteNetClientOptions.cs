@@ -12,6 +12,7 @@ namespace Celeste.Mod.CelesteNet {
     [Flags]
     public enum CelesteNetSupportedClientFeatures : ulong {
         None = 0,
-        LocateCommand = 1 << 0
+        LocateCommand = 1 << 0,
+        FrameWithDashes = 1 << 1,
     }
 }

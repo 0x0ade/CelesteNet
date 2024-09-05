@@ -295,7 +295,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 ghost.NameTag.Name = frame.Player.DisplayName;
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
-                ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, frame.Facing, frame.Speed);
+                ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, frame.Facing, frame.Speed, frame.Dashes);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
                 ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion && !state.Idle);
                 ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
@@ -1080,6 +1080,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Color = player.Sprite.Color,
                     Facing = player.Facing,
                     Speed = player.Speed,
+                    Dashes = player.Dashes,
 
                     CurrentAnimationID = animID,
                     CurrentAnimationFrame = player.Sprite.CurrentAnimationFrame,
@@ -1093,7 +1094,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     // TODO: Get rid of this, sync particles separately!
                     DashWasB = player.StateMachine.State == Player.StDash ? player.GetWasDashB() : null,
-                    DashDir  = player.StateMachine.State == Player.StDash ? player.DashDir : null,
+                    DashDir = player.StateMachine.State == Player.StDash ? player.DashDir : null,
 
                     Dead = player.Dead
                 });

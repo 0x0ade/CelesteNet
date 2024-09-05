@@ -31,6 +31,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public Color[] HairColors = new[] { Color.White };
 
+        public int Dashes;
         public bool? DashWasB;
         public Vector2? DashDir;
 
@@ -330,7 +331,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             }
         }
 
-        public void UpdateGeneric(Vector2 pos, Vector2 scale, Color color, Facings facing, Vector2 speed) {
+        public void UpdateGeneric(Vector2 pos, Vector2 scale, Color color, Facings facing, Vector2 speed, int dashes) {
             if (Holdable.Holder == null)
                 Position = pos;
             if (scale.X > 0.0f) {
@@ -348,6 +349,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Sprite.Color = color * Alpha;
             Hair.Facing = facing;
             Speed = speed;
+            Dashes = dashes;
         }
 
         public void UpdateHair(Facings facing, Color[] colors, string texture0, bool simulateMotion) {
@@ -356,6 +358,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             if (colors.Length <= 0)
                 colors = new[] { Color.White };
+            else
+                Hair.Color = colors[0];
             if (PlayerGraphics.HairCount < colors.Length)
                 Array.Resize(ref colors, PlayerGraphics.HairCount);
 

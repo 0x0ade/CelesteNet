@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Microsoft.VisualBasic;
+using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 
@@ -32,6 +33,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes
 
         public Entity? Holding;
 
+        public int Dashes = 1;
         // TODO: Get rid of this, sync particles separately!
         public bool? DashWasB;
         public Vector2? DashDir;
@@ -136,6 +138,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes
                 DashWasB = null;
                 DashDir = null;
             }
+            Dashes = reader.Read7BitEncodedInt();
 
             Dead = (flags & Flags.Dead) != 0;
 
@@ -241,6 +244,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes
 
             if (DashDir != null && DashWasB != null)
                 writer.Write((byte) ((DashDir.Value.Angle() / (2 * Math.PI) * 256f) % 256));
+            writer.Write7BitEncodedInt(Dashes);
         }
 
         [Flags]
@@ -250,7 +254,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes
             Dashing = 0b00000100,
             DashB = 0b00001000,
             Holding = 0b00010000,
-            Dead = 0b00100000
+            Dead = 0b00100000,
         }
 
         public class Entity {

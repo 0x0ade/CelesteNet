@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes
         public Entity? Holding;
 
         // for server internal use only
-        public bool TransmitDashes = false;
+        public bool TransmitDashes = true;
 
         public int Dashes = 1;
         // TODO: Get rid of this, sync particles separately!

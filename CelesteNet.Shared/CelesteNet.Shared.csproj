@@ -7,10 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="..\CelesteNet.Shared\NullableAttributes.cs" />
     <EmbeddedResource Include="TokenGenerator.Polynomials.bin" LogicalName="polynomials.bin" />
   </ItemGroup>
 
   <Import Project="..\CelesteNet.props" />
+
+  <ItemGroup Condition="$(CelesteAvailable)">
+    <Compile Remove=".\CelesteCompat\*" />
+  </ItemGroup>
 
 </Project>

@@ -40,15 +40,6 @@ namespace Celeste.Mod.CelesteNet {
         private bool IsDisposed;
 
         public DataContext() {
-            RescanAllDataTypes();
-        }
-
-        public void RescanAllDataTypes() {
-            Logger.Log(LogLevel.INF, "data", "Rescanning all data types");
-            IDToDataType.Clear();
-            DataTypeToID.Clear();
-
-            RescanDataTypes(CelesteNetUtils.GetTypes());
         }
 
         public void RescanDataTypes(Type[] types) {

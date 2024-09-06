@@ -357,7 +357,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (trail.Server) {
                     TrailManager.Add(
                         trail.Position,
-                        trail.Sprite?.ToImage(),
+                        trail.Sprite == null ? null :
+                        new(GFX.Game[trail.Sprite.AtlasPath]) {
+                            Position = trail.Sprite.Position,
+                            Origin = trail.Sprite.Origin,
+                            Scale = trail.Sprite.Scale,
+                            Rotation = trail.Sprite.Rotation,
+                            Color = trail.Sprite.Color,
+                            Effects = trail.Sprite.Effects
+                        },
                         ghost?.Hair,
                         trail.Scale,
                         trail.Color,
@@ -1126,7 +1134,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Client?.Send(new DataDashTrail {
                     Player = Client.PlayerInfo,
                     Position = position,
-                    Sprite = new(sprite),
+                    Sprite = new DataPartImage {
+                        AtlasPath = sprite.Texture.AtlasPath,
+                        Position = sprite.Position,
+                        Origin = sprite.Origin,
+                        Scale = sprite.Scale,
+                        Rotation = sprite.Rotation,
+                        Color = sprite.Color,
+                        Effects = sprite.Effects
+                    },
                     Scale = scale,
                     Color = color,
                     Depth = depth,

@@ -1,9 +1,7 @@
 ﻿using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat;
-using Monocle;
 
-namespace Celeste.Mod.CelesteNet.Server.Control
-{
+namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDChatEdit : WSCMD {
         public override bool MustAuth => true;
         public override object? Run(dynamic? input) {
@@ -15,7 +13,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
                 return null;
 
             if (input.Color != null)
-                msg.Color = Calc.HexToColor((string) input.Color);
+                msg.Color = ColorHelpers.HexToColor((string) input.Color);
 
             if (input.Text != null)
                 msg.Text = (string) input.Text;

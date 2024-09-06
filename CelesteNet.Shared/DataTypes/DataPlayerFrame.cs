@@ -140,8 +140,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes
                 DashWasB = null;
                 DashDir = null;
             }
-            if (TransmitDashes)
-                Dashes = reader.Read7BitEncodedInt();
 
             Dead = (flags & Flags.Dead) != 0;
 
@@ -247,8 +245,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes
 
             if (DashDir != null && DashWasB != null)
                 writer.Write((byte) ((DashDir.Value.Angle() / (2 * Math.PI) * 256f) % 256));
-            if (TransmitDashes)
-                writer.Write7BitEncodedInt(Dashes);
+            //if (TransmitDashes)
+                //writer.Write7BitEncodedInt(Dashes);
         }
 
         [Flags]

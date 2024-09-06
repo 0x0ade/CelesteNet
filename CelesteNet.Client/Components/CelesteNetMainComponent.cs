@@ -295,7 +295,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     return;
                 ghost.NameTag.Name = frame.Player.DisplayName;
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
-                ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, frame.Facing, frame.Speed, frame.Dashes);
+                ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, frame.Facing, frame.Speed);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
                 ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion && !state.Idle);
                 ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
@@ -546,6 +546,27 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             Release:
             SendReleaseMe();
+        }
+        public void Handle(CelesteNetConnection con, DataPlayerFrameV2 frame)
+        {
+            Session session = Session;
+            Level level = PlayerBody?.Scene as Level;
+            bool outside = IsGhostOutside(session, level, frame.Player, out DataPlayerState state);
+            if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
+                ghost == null ||
+                (ghost.Active && ghost.Scene != level) ||
+                outside)
+            {
+                RemoveGhost(frame.Player);
+                return;
+            }
+            if (level == null || outside)
+                return;
+            ghost.RunOnUpdate(ghost => {
+                if (string.IsNullOrEmpty(ghost.NameTag.Name))
+                    return;
+                ghost.Dashes = frame.Dashes;
+            });
         }
 
         #endregion
@@ -1080,7 +1101,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Color = player.Sprite.Color,
                     Facing = player.Facing,
                     Speed = player.Speed,
-                    Dashes = player.Dashes,
 
                     CurrentAnimationID = animID,
                     CurrentAnimationFrame = player.Sprite.CurrentAnimationFrame,
@@ -1097,6 +1117,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     DashDir = player.StateMachine.State == Player.StDash ? player.DashDir : null,
 
                     Dead = player.Dead
+                });
+                Client?.Send(new DataPlayerFrameV2 {
+                    Player = Client.PlayerInfo,
+
+                    Dashes = player.Dashes
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendFrame:\n{e}");

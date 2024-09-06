@@ -81,7 +81,6 @@ namespace Celeste.Mod.CelesteNet.Server {
 
             Interlocked.Increment(ref Server.PlayerCounter);
             Con.OnSendFilter += ConSendFilter;
-            Con.OnReceiveFilter += ConRecvFilter;
             Server.Data.RegisterHandlersIn(this);
         }
 
@@ -408,21 +407,11 @@ namespace Celeste.Mod.CelesteNet.Server {
                 otherState.Mode == state.Mode;
 
         public bool ConSendFilter(CelesteNetConnection con, DataType data) {
-            if (data is DataPlayerFrame frame) {
-                frame.TransmitDashes = CheckClientFeatureSupport(CelesteNetSupportedClientFeatures.FrameWithDashes);
-            }
-
             if (FilterList != null) {
                 string source = data.GetSource(Server.Data);
                 return string.IsNullOrEmpty(source) || FilterList.Contains(source);
             }
 
-            return true;
-        }
-        public bool ConRecvFilter(CelesteNetConnection con, DataType data) {
-            if (data is DataPlayerFrame frame) {
-                frame.TransmitDashes = CheckClientFeatureSupport(CelesteNetSupportedClientFeatures.FrameWithDashes);
-            }
             return true;
         }
 
@@ -466,7 +455,6 @@ namespace Celeste.Mod.CelesteNet.Server {
                 });
 
             Con.OnSendFilter -= ConSendFilter;
-            Con.OnReceiveFilter -= ConRecvFilter;
             Server.Data.UnregisterHandlersIn(this);
 
             Server.Data.FreeRef<DataPlayerInfo>(SessionID);

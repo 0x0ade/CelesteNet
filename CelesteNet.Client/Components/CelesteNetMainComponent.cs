@@ -442,7 +442,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (session != null) {
                     if (target.Session != null && target.Session.InSession) {
                         DataSession data = target.Session;
-                        session.Audio = new AudioState(data.Audio.Music.ToState(), data.Audio.Ambience.ToState());
+                        session.Audio = data.Audio.ToState();
                         session.RespawnPoint = data.RespawnPoint;
                         session.Inventory = data.Inventory;
                         session.Flags = data.Flags;

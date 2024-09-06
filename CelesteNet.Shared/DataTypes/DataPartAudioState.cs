@@ -13,6 +13,9 @@
             Ambience = state.Ambience == null ? null : new DataPartAudioTrackState(state.Ambience);
         }
 
+        public AudioState ToState()
+            => new(Music?.ToState(), Ambience?.ToState());
+
         protected override void Read(CelesteNetBinaryReader reader) {
             if (reader.ReadBoolean()) {
                 Music = new();

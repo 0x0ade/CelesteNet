@@ -136,7 +136,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             if (BlurRT == null)
                 return null;
 
-            if (FakeRT != null && (FakeRT.Width != Engine.ViewWidth || FakeRT.Height != Engine.ViewHeight)) {
+            if (FakeRT != null && (FakeRT.Width != Engine.ViewWidth + Engine.Viewport.X || FakeRT.Height != Engine.ViewHeight + Engine.Viewport.Y)) {
                 FakeRT.Dispose();
                 FakeRT = null;
             }
@@ -144,8 +144,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             if (FakeRT == null) {
                 FakeRT = new(
                     GraphicsDevice,
-                    Engine.ViewWidth,
-                    Engine.ViewHeight,
+                    Engine.ViewWidth + Engine.Viewport.X,
+                    Engine.ViewHeight + Engine.Viewport.Y,
                     false,
                     SurfaceFormat.Color,
                     GraphicsDevice.PresentationParameters.DepthStencilFormat,
@@ -153,24 +153,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                     RenderTargetUsage.DiscardContents
                 );
             }
-
             return FakeRT;
         }
 
         private void ILRenderCore(ILContext il) {
             ILCursor c = new(il);
 
-            VariableDefinition vd_tmpRealVP = new(il.Import(typeof(Viewport)));
-            il.Body.Variables.Add(vd_tmpRealVP);
             VariableDefinition vd_tmpRealRT = new(il.Import(typeof(RenderTarget2D)));
             il.Body.Variables.Add(vd_tmpRealRT);
-
-            c.EmitDelegate<Func<Viewport>>(() => {
-                Viewport tmpRealVP = Engine.Viewport;
-                Engine.SetViewport(new(0, 0, Engine.ViewWidth, Engine.ViewHeight));
-                return tmpRealVP;
-            });
-            c.Emit(OpCodes.Stloc, vd_tmpRealVP);
 
             c.GotoNext(i => i.MatchCallOrCallvirt(typeof(GraphicsDevice), "SetRenderTarget"));
             c.Emit(OpCodes.Dup);
@@ -178,18 +168,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             c.EmitDelegate<Func<RenderTarget2D, RenderTarget2D>>(GetFakeRT);
 
             c.GotoNext(i => i.MatchRet());
-            c.Emit(OpCodes.Ldloc, vd_tmpRealVP);
             c.Emit(OpCodes.Ldloc, vd_tmpRealRT);
-            c.EmitDelegate<Action<Viewport, RenderTarget2D>>((tmpRealVP, tmpRealRT) => {
-                Engine.SetViewport(tmpRealVP);
+            c.EmitDelegate<Action<RenderTarget2D>>((tmpRealRT) => {
 
                 if (Engine.Instance != null && Engine.Scene is AssetReloadHelper)
                     return;
 
+                Viewport prevGraphicsVP = GraphicsDevice.Viewport;
+
                 if (FakeRT != null) {
                     int blurrad;
                     float blurdist;
-                    Vector2 blurScale = new(BlurWidth / (float) tmpRealVP.Width, BlurHeight / (float) tmpRealVP.Height);
+                    Vector2 blurScale = new(BlurWidth / (float)Engine.Viewport.Width, BlurHeight / (float)Engine.Viewport.Height);
                     Vector2 blurScaleLow = new(BlurLowWidth / (float) BlurWidth, BlurLowHeight / (float) BlurHeight);
                     Vector2 blurScaleInv = new(UI_WIDTH / (float) BlurLowWidth, UI_HEIGHT / (float) BlurLowHeight);
 
@@ -198,7 +188,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                         default:
                             blurrad = 0;
                             blurdist = 0;
-                            blurScaleInv = new(UI_WIDTH / (float) tmpRealVP.Width, UI_HEIGHT / (float) tmpRealVP.Height);
+                            blurScaleInv = new(UI_WIDTH / (float)Engine.Viewport.Width, UI_HEIGHT / (float)Engine.Viewport.Height);
                             break;
 
                         case BlurQuality.LOW:
@@ -324,7 +314,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                     }
 
                     GraphicsDevice.SetRenderTarget(tmpRealRT);
-                    GraphicsDevice.Viewport = Engine.Viewport;
+                    GraphicsDevice.Viewport = new(0, 0, Engine.ViewWidth + Engine.Viewport.X, Engine.ViewHeight + Engine.Viewport.Y);
                     GraphicsDevice.Clear(Engine.ClearColor);
 
                     MDraw.SpriteBatch.Begin(
@@ -342,6 +332,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                     MDraw.SpriteBatch.End();
 
                     if (uiRT != null) {
+                        GraphicsDevice.Viewport = prevGraphicsVP;
                         MDraw.SpriteBatch.Begin(
                             SpriteSortMode.Deferred,
                             BlendState.AlphaBlend,
@@ -356,6 +347,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
 
                         MDraw.SpriteBatch.End();
                     }
+                    GraphicsDevice.Viewport = prevGraphicsVP;
                 }
             });
         }

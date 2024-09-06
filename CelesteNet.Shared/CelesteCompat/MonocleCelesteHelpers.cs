@@ -1,4 +1,8 @@
 ﻿namespace Celeste.Mod.CelesteNet.MonocleCelesteHelpers {
+
+    // some enums copied straight over from vanilla Celeste,
+    // for use here in Shared assembly when building Server with no Celeste
+
     public enum AreaMode {
         Normal,
         BSide,

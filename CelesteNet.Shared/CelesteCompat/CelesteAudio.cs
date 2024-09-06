@@ -6,6 +6,10 @@ namespace Celeste.Mod.CelesteNet {
 
     [Serializable]
     public class CelesteAudioState {
+
+        // NOTE: If there are things missing from this that are needed Server-side (or in Shared),
+        // check Celeste.AudioState and Everest/Celeste.Mod.mm/Patches/AudioState.cs to add it here
+
         public static string[] LayerParameters = new string[10] { "layer0", "layer1", "layer2", "layer3", "layer4", "layer5", "layer6", "layer7", "layer8", "layer9" };
 
         public CelesteAudioTrackState Music = new CelesteAudioTrackState();
@@ -26,28 +30,14 @@ namespace Celeste.Mod.CelesteNet {
                 Ambience = ambience.Clone();
             }
         }
-
-        public CelesteAudioState(string music, string ambience) {
-            Music.Event = music;
-            Ambience.Event = ambience;
-        }
-
-        public CelesteAudioState Clone() {
-            CelesteAudioState audioState = orig_Clone();
-            audioState.AmbienceVolume = AmbienceVolume;
-            return audioState;
-        }
-
-        public CelesteAudioState orig_Clone() {
-            return new CelesteAudioState {
-                Music = Music.Clone(),
-                Ambience = Ambience.Clone()
-            };
-        }
     }
 
     [Serializable]
     public class CelesteAudioTrackState {
+
+        // NOTE: If there are things missing from this that are needed Server-side (or in Shared),
+        // check Celeste.AudioTrackState and potentially an Everest patch (currently there is none)
+
         [XmlIgnore]
         private string ev;
 
@@ -83,19 +73,6 @@ namespace Celeste.Mod.CelesteNet {
             Event = ev;
         }
 
-        public CelesteAudioTrackState Layer(int index, float value) {
-            return Param(CelesteAudioState.LayerParameters[index], value);
-        }
-
-        public CelesteAudioTrackState Layer(int index, bool value) {
-            return Param(CelesteAudioState.LayerParameters[index], value);
-        }
-
-        public CelesteAudioTrackState SetProgress(int value) {
-            Progress = value;
-            return this;
-        }
-
         public CelesteAudioTrackState Param(string key, float value) {
             foreach (CelesteMEP parameter in Parameters) {
                 if (parameter.Key != null && parameter.Key.Equals(key, StringComparison.InvariantCultureIgnoreCase)) {
@@ -106,10 +83,6 @@ namespace Celeste.Mod.CelesteNet {
 
             Parameters.Add(new CelesteMEP(key, value));
             return this;
-        }
-
-        public CelesteAudioTrackState Param(string key, bool value) {
-            return Param(key, value ? 1 : 0);
         }
 
         public float GetParam(string key) {

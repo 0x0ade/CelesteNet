@@ -40,7 +40,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.WriteRef(Player);
 
             writer.Write7BitEncodedInt(Dashes);
-            writer.Write7BitEncodedInt(Dashes);
         }
     }
 }

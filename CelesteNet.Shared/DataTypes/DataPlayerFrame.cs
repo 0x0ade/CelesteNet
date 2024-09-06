@@ -32,10 +32,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes
 
         public Entity? Holding;
 
-        // for server internal use only
-        public bool TransmitDashes = true;
-
-        public int Dashes = 1;
         // TODO: Get rid of this, sync particles separately!
         public bool? DashWasB;
         public Vector2? DashDir;
@@ -245,8 +241,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes
 
             if (DashDir != null && DashWasB != null)
                 writer.Write((byte) ((DashDir.Value.Angle() / (2 * Math.PI) * 256f) % 256));
-            //if (TransmitDashes)
-                //writer.Write7BitEncodedInt(Dashes);
         }
 
         [Flags]

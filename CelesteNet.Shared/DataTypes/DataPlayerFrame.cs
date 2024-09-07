@@ -30,7 +30,6 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public Entity? Holding;
 
-        // TODO: Get rid of this, sync particles separately!
         public bool? DashWasB;
         public Vector2? DashDir;
 
@@ -248,7 +247,7 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             Dashing = 0b00000100,
             DashB = 0b00001000,
             Holding = 0b00010000,
-            Dead = 0b00100000
+            Dead = 0b00100000,
         }
 
         public class Entity {

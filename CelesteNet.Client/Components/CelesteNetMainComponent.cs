@@ -34,6 +34,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private bool WasInteractive;
         private int SentHairLength = 0;
 
+        private int? SentDashes;
+        private Color SentP_DashColor;
+        private Color SentP_DashColor2;
+        private static Color LastP_DashColor = Player.P_DashA.Color;
+        private static Color LastP_DashColor2 = Player.P_DashA.Color2;
+
         public HashSet<string> ForceIdle = new();
         public bool StateUpdated;
 
@@ -41,6 +47,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public GhostEmote PlayerIdleTag;
         public ConcurrentDictionary<uint, Ghost> Ghosts = new();
         public ConcurrentDictionary<uint, DataPlayerFrame> LastFrames = new();
+        public ConcurrentDictionary<uint, DataPlayerDashExt> LastDashExt = new();
 
         public ConcurrentDictionary<string, int> SpriteAnimationIDs = new(StringComparer.OrdinalIgnoreCase);
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new();
@@ -86,6 +93,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     On.Celeste.PlayerHair.GetHairScale += OnGetHairScale;
                     On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
                     On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
+                    IL.Celeste.Player.DashUpdate += IlDashUpdate;
 
                     MethodInfo transitionRoutine =
                         typeof(Level).GetNestedType("<TransitionRoutine>d__24", BindingFlags.NonPublic)
@@ -113,6 +121,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     On.Celeste.PlayerHair.GetHairScale -= OnGetHairScale;
                     On.Celeste.PlayerHair.GetHairTexture -= OnGetHairTexture;
                     On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool -= OnDashTrailAdd;
+                    IL.Celeste.Player.DashUpdate -= IlDashUpdate;
 
                     ILHookTransitionRoutine?.Dispose();
                     ILHookTransitionRoutine = null;
@@ -133,6 +142,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Session = null;
             WasIdle = false;
             WasInteractive = false;
+            SentDashes = null;
 
             foreach (Ghost ghost in Ghosts.Values)
                 ghost?.RemoveSelf();
@@ -175,6 +185,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
                 Ghosts.TryRemove(player.ID, out _);
                 LastFrames.TryRemove(player.ID, out _);
+                LastDashExt.TryRemove(player.ID, out _);
                 Client.Data.FreeOrder<DataPlayerFrame>(player.ID);
                 return;
             }
@@ -298,7 +309,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, frame.Facing, frame.Speed);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
                 ghost.UpdateHair(frame.Facing, frame.HairColors, frame.HairTexture0, frame.HairSimulateMotion && !state.Idle);
-                ghost.UpdateDash(frame.DashWasB, frame.DashDir); // TODO: Get rid of this, sync particles separately!
+                ghost.UpdateDash(frame.DashWasB, frame.DashDir);
                 ghost.UpdateDead(frame.Dead && state.Level == session?.Level);
                 ghost.UpdateFollowers((Settings.InGame.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? Dummy<DataPlayerFrame.Entity>.EmptyArray : frame.Followers);
                 ghost.UpdateHolding((Settings.InGame.Entities & CelesteNetClientSettings.SyncMode.Receive) == 0 ? null : frame.Holding);
@@ -555,6 +566,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Release:
             SendReleaseMe();
         }
+        public void Handle(CelesteNetConnection con, DataPlayerDashExt dashExt) {
+            if (Client?.Data == null)
+                return;
+            LastDashExt[dashExt.Player.ID] = dashExt;
+
+            Session session = Session;
+            Level level = PlayerBody?.Scene as Level;
+            bool outside = IsGhostOutside(session, level, dashExt.Player, out DataPlayerState state);
+            if (!Ghosts.TryGetValue(dashExt.Player.ID, out Ghost ghost) || ghost == null || (ghost.Active && ghost.Scene != level) || outside) {
+                RemoveGhost(dashExt.Player);
+                return;
+            }
+            if (level == null || outside)
+                return;
+            ghost.RunOnUpdate(ghost => {
+                if (string.IsNullOrEmpty(ghost.NameTag.Name))
+                    return;
+                ghost.UpdateDashExt(dashExt.Dashes, dashExt.P_DashColor, dashExt.P_DashColor2);
+            });
+        }
 
         #endregion
 
@@ -630,6 +661,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         ghost.UpdateGraphics(graphics);
                     });
                     ghost.UpdateGraphics(graphics);
+                    if (LastDashExt.TryGetValue(player.ID, out var lastDashExt)) {
+                        ghost.UpdateDashExt(lastDashExt.Dashes, lastDashExt.P_DashColor, lastDashExt.P_DashColor2);
+                    }
+                    SentDashes = null; // There is a new ghost!... Re-send DataPlayerDashExt to let it sync with we
                 }
             return ghost;
         }
@@ -945,6 +980,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 c.Emit(OpCodes.Ldc_I4_0);
             }
         }
+        private void IlDashUpdate(ILContext il) {
+            ILCursor c = new(il);
+            if (c.TryGotoNext(MoveType.After, i => i.MatchCallOrCallvirt<ParticleSystem>("Emit"))) {
+                c.Emit(OpCodes.Ldloc_S, (byte)7);
+                c.Emit(OpCodes.Ldfld, typeof(ParticleType).GetField("Color", BindingFlags.Public | BindingFlags.Instance));
+                c.Emit(OpCodes.Stsfld, typeof(CelesteNetMainComponent).GetField("LastP_DashColor", BindingFlags.NonPublic | BindingFlags.Static));
+
+                c.Emit(OpCodes.Ldloc_S, (byte)7);
+                c.Emit(OpCodes.Ldfld, typeof(ParticleType).GetField("Color2", BindingFlags.Public | BindingFlags.Instance));
+                c.Emit(OpCodes.Stsfld, typeof(CelesteNetMainComponent).GetField("LastP_DashColor2", BindingFlags.NonPublic | BindingFlags.Static));
+            }
+        }
 
         #endregion
 
@@ -1101,10 +1148,22 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     // TODO: Get rid of this, sync particles separately!
                     DashWasB = player.StateMachine.State == Player.StDash ? player.GetWasDashB() : null,
-                    DashDir  = player.StateMachine.State == Player.StDash ? player.DashDir : null,
+                    DashDir = player.StateMachine.State == Player.StDash ? player.DashDir : null,
 
                     Dead = player.Dead
                 });
+                if (SentDashes != player.Dashes || LastP_DashColor != SentP_DashColor || LastP_DashColor2 != SentP_DashColor2) {
+                    SentDashes = player.Dashes;
+                    SentP_DashColor = LastP_DashColor;
+                    SentP_DashColor2 = LastP_DashColor2;
+                    Client?.Send(new DataPlayerDashExt {
+                        Player = Client.PlayerInfo,
+
+                        Dashes = player.Dashes,
+                        P_DashColor = SentP_DashColor,
+                        P_DashColor2 = SentP_DashColor,
+                    });
+                }
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendFrame:\n{e}");
                 Context.DisposeSafe();

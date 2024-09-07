@@ -33,6 +33,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private bool WasIdle;
         private bool WasInteractive;
         private int SentHairLength = 0;
+        private static int? LastDashes;
 
         public HashSet<string> ForceIdle = new();
         public bool StateUpdated;
@@ -41,6 +42,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public GhostEmote PlayerIdleTag;
         public ConcurrentDictionary<uint, Ghost> Ghosts = new();
         public ConcurrentDictionary<uint, DataPlayerFrame> LastFrames = new();
+        public ConcurrentDictionary<uint, DataPlayerDashExt> LastDashExt = new();
 
         public ConcurrentDictionary<string, int> SpriteAnimationIDs = new(StringComparer.OrdinalIgnoreCase);
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new();
@@ -133,6 +135,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Session = null;
             WasIdle = false;
             WasInteractive = false;
+            LastDashes = null;
 
             foreach (Ghost ghost in Ghosts.Values)
                 ghost?.RemoveSelf();
@@ -175,6 +178,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
                 Ghosts.TryRemove(player.ID, out _);
                 LastFrames.TryRemove(player.ID, out _);
+                LastDashExt.TryRemove(player.ID, out _);
                 Client.Data.FreeOrder<DataPlayerFrame>(player.ID);
                 return;
             }
@@ -547,16 +551,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Release:
             SendReleaseMe();
         }
-        public void Handle(CelesteNetConnection con, DataPlayerFrameV2 frame)
-        {
+        public void Handle(CelesteNetConnection con, DataPlayerDashExt frame) {
+            if (Client?.Data == null)
+                return;
+            LastDashExt[frame.Player.ID] = frame;
+
             Session session = Session;
             Level level = PlayerBody?.Scene as Level;
             bool outside = IsGhostOutside(session, level, frame.Player, out DataPlayerState state);
-            if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
-                ghost == null ||
-                (ghost.Active && ghost.Scene != level) ||
-                outside)
-            {
+            if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) || ghost == null || (ghost.Active && ghost.Scene != level) || outside) {
                 RemoveGhost(frame.Player);
                 return;
             }
@@ -643,6 +646,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         ghost.UpdateGraphics(graphics);
                     });
                     ghost.UpdateGraphics(graphics);
+                    if (LastDashExt.TryGetValue(player.ID, out var lastDashExt)) {
+                        ghost.Dashes = lastDashExt.Dashes;
+                    }
+                    LastDashes = null; // There is a new ghost!... Refresh Dashes to let others sync with we
                 }
             return ghost;
         }
@@ -1118,11 +1125,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     Dead = player.Dead
                 });
-                Client?.Send(new DataPlayerFrameV2 {
-                    Player = Client.PlayerInfo,
+                if (LastDashes != player.Dashes) {
+                    LastDashes = player.Dashes;
 
-                    Dashes = player.Dashes
-                });
+                    Client?.Send(new DataPlayerDashExt {
+                        Player = Client.PlayerInfo,
+
+                        Dashes = player.Dashes
+                    });
+                }
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendFrame:\n{e}");
                 Context.DisposeSafe();

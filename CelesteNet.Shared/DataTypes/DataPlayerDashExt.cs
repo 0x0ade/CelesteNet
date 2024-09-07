@@ -6,6 +6,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
     public class DataPlayerDashExt : DataType<DataPlayerDashExt> {
         public DataPlayerInfo? Player;
         public int Dashes;
+        public Color P_DashColor;
+        public Color P_DashColor2;
 
         static DataPlayerDashExt() {
             DataID = "playerDashExt";
@@ -30,7 +32,10 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
 
         public override void ReadAll(CelesteNetBinaryReader reader) {
             Player = reader.ReadRef<DataPlayerInfo>();
+
             Dashes = reader.Read7BitEncodedInt();
+            P_DashColor = reader.ReadColor();
+            P_DashColor2 = reader.ReadColor();
 
             Meta = GenerateMeta(reader.Data);
         }
@@ -40,6 +45,8 @@ namespace Celeste.Mod.CelesteNet.DataTypes {
             writer.WriteRef(Player);
 
             writer.Write7BitEncodedInt(Dashes);
+            writer.Write(P_DashColor);
+            writer.Write(P_DashColor2);
         }
     }
 }

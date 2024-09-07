@@ -32,6 +32,9 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public Color[] HairColors = new[] { Color.White };
 
         public int Dashes = 1;
+        public Color? P_DashColor;
+        public Color? P_DashColor2;
+
         public bool? DashWasB;
         public Vector2? DashDir;
 
@@ -230,9 +233,18 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (Holding != null && Holding.Scene != level)
                 level.Add(Holding);
 
-            // TODO: Get rid of this, sync particles separately!
-            if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity != 0 && DashWasB != null && DashDir != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f))
-                level.ParticlesFG.Emit(DashWasB.Value ? Player.P_DashB : Player.P_DashA, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Value.Angle());
+            if (CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity != 0 && DashWasB != null && DashDir != null && level != null && Speed != Vector2.Zero && level.OnRawInterval(0.02f)) {
+                ParticleType particle;
+                if (P_DashColor == null || P_DashColor2 == null) {
+                    particle = DashWasB.Value ? Player.P_DashB : Player.P_DashA;
+                } else {
+                    particle = new(Player.P_DashA) {
+                        Color = P_DashColor.Value,
+                        Color2 = P_DashColor2.Value
+                    };
+                }
+                level.ParticlesFG.Emit(particle, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Value.Angle());
+            }
         }
 
         private void OpacityAdjustAlpha() {
@@ -372,6 +384,12 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void UpdateDash(bool? wasB, Vector2? dir) {
             DashWasB = wasB;
             DashDir = dir;
+        }
+
+        public void UpdateDashExt(int dashes, Color p_color, Color p_color2) {
+            Dashes = dashes;
+            P_DashColor = p_color;
+            P_DashColor2 = p_color2;
         }
 
         public void UpdateDead(bool dead) {

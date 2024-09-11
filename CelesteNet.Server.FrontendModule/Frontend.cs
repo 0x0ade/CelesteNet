@@ -506,7 +506,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             NameValueCollection nvc = new();
 
             int indexOfSplit = url.IndexOf('?');
-            if (indexOfSplit == -1)
+            if (indexOfSplit == -1) 
                 return nvc;
             url = url.Substring(indexOfSplit + 1);
 

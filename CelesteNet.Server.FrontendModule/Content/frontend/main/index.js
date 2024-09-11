@@ -97,6 +97,7 @@ function renderUser() {
 				Create a CelesteNet account to show your profile picture in-game and to let the server remember your last channel and command settings.<br>
 				<br>
 				<a id="button-auth" class="button" href="/api/discordauth"><span class="button-icon"></span><span>Link your Discord account</span></a><br>
+        <a id="button-auth" class="button" href="/api/twitchauth"><span class="button-icon"></span><span>Link your Twitch account</span></a><br>
 				<sub style="line-height: 0.5em;">
 					Linking your account is fully optional and requires telling your browser to store a "cookie." This cookie is only used to keep you logged in.
 				</sub>

@@ -30,6 +30,13 @@ namespace Celeste.Mod.CelesteNet.Server.Control
         public string DiscordOAuthClientID { get; set; } = "";
         public string DiscordOAuthClientSecret { get; set; } = "";
 
+        [YamlIgnore]
+        public string TwitchOAuthURL => $"https://id.twitch.tv/oauth2/authorize?response_type=code&client_id={TwitchOAuthClientID}&redirect_uri={Uri.EscapeDataString(TwitchOAuthRedirectURL)}&response_type=code";
+        [YamlIgnore]
+        public string TwitchOAuthRedirectURL => $"{CanonicalAPIRoot}/twitchauth";
+        public string TwitchOAuthClientID { get; set; } = "";
+        public string TwitchOAuthClientSecret { get; set; } = "";
+
         public HashSet<string> ExecOnlySettings { get; set; } = new();
 
     }

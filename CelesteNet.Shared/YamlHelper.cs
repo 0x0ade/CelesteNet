@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.Xna.Framework;
-using Monocle;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
@@ -70,7 +69,7 @@ namespace Celeste.Mod.CelesteNet {
                 return c;
             }
 
-            return Calc.HexToColor(parser.Consume<Scalar>().Value);
+            return ColorHelpers.HexToColor(parser.Consume<Scalar>().Value);
         }
 
         public void WriteYaml(IEmitter emitter, object? value, Type type) {

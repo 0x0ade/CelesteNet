@@ -1,12 +1,10 @@
-﻿using Celeste.Mod.CelesteNet.DataTypes;
-using Celeste.Mod.CelesteNet.Server.Chat;
-using Monocle;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Linq;
+using Celeste.Mod.CelesteNet.DataTypes;
+using Celeste.Mod.CelesteNet.Server.Chat;
+using Newtonsoft.Json.Linq;
 
-namespace Celeste.Mod.CelesteNet.Server.Control
-{
+namespace Celeste.Mod.CelesteNet.Server.Control {
     public class WSCMDChatX : WSCMD {
         public override bool MustAuth => true;
         public override object? Run(dynamic? input) {
@@ -27,7 +25,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control
             };
 
             if (!string.IsNullOrEmpty(color))
-                msg.Color = Calc.HexToColor(color!);
+                msg.Color = ColorHelpers.HexToColor(color!);
 
             if (targets != null && targets.Count > 0)
             {

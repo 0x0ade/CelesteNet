@@ -1,0 +1,9 @@
+﻿global using AreaMode = Celeste.Mod.CelesteNet.MonocleCelesteHelpers.AreaMode;
+global using AudioState = Celeste.Mod.CelesteNet.CelesteAudioState;
+global using AudioTrackState = Celeste.Mod.CelesteNet.CelesteAudioTrackState;
+global using EntityID = Celeste.Mod.CelesteNet.CelesteEntityID;
+global using Facings = Celeste.Mod.CelesteNet.MonocleCelesteHelpers.Facings;
+global using MEP = Celeste.Mod.CelesteNet.CelesteMEP;
+global using PlayerInventory = Celeste.Mod.CelesteNet.CelestePlayerInventory;
+global using PlayerSpriteMode = Celeste.Mod.CelesteNet.MonocleCelesteHelpers.PlayerSpriteMode;
+global using Session = Celeste.Mod.CelesteNet.CelesteSession;

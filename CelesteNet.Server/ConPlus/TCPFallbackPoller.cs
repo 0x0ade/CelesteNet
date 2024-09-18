@@ -22,8 +22,8 @@ namespace Celeste.Mod.CelesteNet.Server
             using (PollerLock.W()) {
                 Cons.Clear();
                 ConQueue.Dispose();
-                PollerLock.Dispose();
             }
+            PollerLock.Dispose();
         }
 
         public void AddConnection(ConPlusTCPUDPConnection con) {

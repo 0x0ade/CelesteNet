@@ -91,8 +91,8 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                 Connections.Clear();
                 ConIds.Clear();
-                PollerLock.Dispose();
             }
+            PollerLock.Dispose();
         }
 
         public void AddConnection(ConPlusTCPUDPConnection con) {

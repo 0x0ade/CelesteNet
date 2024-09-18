@@ -57,6 +57,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private ILHook ILHookTransitionRoutine;
 
+        private string PreviousChannelName = "main";
+        private string CurrentChannelName => CelesteNetClientModule.Instance.Context?.Chat.CurrentChannelName;
+
         public CelesteNetMainComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
@@ -814,6 +817,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
             }
             PlayerNameTag.Alpha = Settings.InGameHUD.ShowOwnName ? 1f : 0f;
+
+            if (CurrentChannelName != PreviousChannelName)
+            {
+                PreviousChannelName = CurrentChannelName;
+                StateUpdated = true;
+            }
         }
 
         public override void Tick() {
@@ -953,14 +962,28 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void SendState() {
             try {
-                Client?.SendAndHandle(new DataPlayerState {
+                DataPlayerState playerState = new DataPlayerState {
                     Player = Client.PlayerInfo,
                     SID = Session?.Area.GetSID() ?? MapEditorArea?.SID ?? "",
                     Mode = Session?.Area.Mode ?? MapEditorArea?.Mode ?? AreaMode.Normal,
                     Level = Session?.Level ?? (MapEditorArea != null ? LevelDebugMap : ""),
                     Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null)),
                     Interactive = Settings.InGame.Interactions
-                });
+                };
+                bool hideLocation = Client.Settings.PlayerListUI.HideOwnLocation switch
+                {
+                    CelesteNetPlayerListComponent.LocationVisibility.Always => false,
+                    CelesteNetPlayerListComponent.LocationVisibility.HiddenInMain => CurrentChannelName == "main",
+                    CelesteNetPlayerListComponent.LocationVisibility.PrivateChannels => !CurrentChannelName.StartsWith("!"),
+                    CelesteNetPlayerListComponent.LocationVisibility.Never => true,
+                    _ => throw new ArgumentException("Invalid LocationVisibility value!", nameof(Client.Settings.PlayerListUI.HideOwnLocation))
+                };
+                if (hideLocation) {
+                    playerState.SID = "";
+                    playerState.Mode = AreaMode.Normal;
+                    playerState.Level = "";
+                }
+                Client?.SendAndHandle(playerState);
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");
                 Context.DisposeSafe();

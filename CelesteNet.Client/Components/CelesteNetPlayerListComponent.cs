@@ -1130,5 +1130,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         }
 
+        public enum LocationVisibility
+        {
+            Always,
+            HiddenInMain,
+            PrivateChannels,
+            Never
+        }
     }
 }

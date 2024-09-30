@@ -11,10 +11,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
     [Tracked]
     public class Ghost : Actor, ITickReceiver {
 
-        public CelesteNetClientContext Context;
+        public CelesteNetClientContext? Context;
 
         public DataPlayerInfo PlayerInfo;
-        public volatile DataPlayerGraphics PlayerGraphics;
+        public volatile DataPlayerGraphics? PlayerGraphics;
 
         public float Alpha = 0.875f;
 
@@ -26,8 +26,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public Holdable Holdable;
         private bool HoldableAdded;
 
-        public GhostNameTag NameTag;
-        public GhostEmote IdleTag;
+        public GhostNameTag? NameTag;
+        public GhostEmote? IdleTag;
 
         public Color[] HairColors = new[] { Color.White };
 
@@ -37,14 +37,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public bool Dead;
 
         public List<GhostFollower> Followers = new();
-        public GhostEntity Holding;
+        public GhostEntity? Holding;
 
         public bool Interactive;
 
         public float GrabCooldown = 0f;
         public const float GrabCooldownMax = CelesteNetMainComponent.GrabCooldownMax;
         public byte GrabStrength;
-        protected DataPlayerGrabPlayer GrabPacket;
+        protected DataPlayerGrabPlayer? GrabPacket;
 
         // TODO Revert this to Queue<> once MonoKickstart weirdness is fixed
         protected List<Action<Ghost>> UpdateQueue = new();
@@ -52,7 +52,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public const int MaxHairLength = 30;
 
-        public Ghost(CelesteNetClientContext context, DataPlayerInfo playerInfo, PlayerSpriteMode spriteMode)
+        public Ghost(CelesteNetClientContext? context, DataPlayerInfo playerInfo, PlayerSpriteMode spriteMode)
             : base(Vector2.Zero) {
             Context = context;
             PlayerInfo = playerInfo;
@@ -100,13 +100,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             base.Added(scene);
 
             Hair.Start();
-            Scene.Add(NameTag);
+            if (NameTag != null)
+                Scene.Add(NameTag);
         }
 
         public override void Removed(Scene scene) {
             base.Removed(scene);
 
-            NameTag.RemoveSelf();
+            NameTag?.RemoveSelf();
         }
 
         public void OnPickup() {
@@ -114,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnPlayer(Player player) {
-            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.InGame.Interactions || Context?.Main.GrabbedBy == this)
+            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.InGame.Interactions || Context?.Main?.GrabbedBy == this)
                 return;
 
             if (player.StateMachine.State == Player.StNormal &&
@@ -142,7 +143,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             Position = position;
             Collidable = false;
 
-            CelesteNetClient client = Context?.Client;
+            CelesteNetClient? client = Context?.Client;
             if (PlayerInfo == null || client == null)
                 return;
 
@@ -161,7 +162,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.InGame.Interactions || IdleTag != null)
                 return;
 
-            CelesteNetClient client = Context?.Client;
+            CelesteNetClient? client = Context?.Client;
             if (PlayerInfo == null || client == null)
                 return;
 
@@ -183,7 +184,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 IsUpdating = false;
             }
 
-            if (string.IsNullOrEmpty(NameTag.Name) && Active) {
+            if (string.IsNullOrEmpty(NameTag?.Name) && Active) {
                 RemoveSelf();
                 return;
             }
@@ -209,7 +210,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             }
             OpacityAdjustAlpha();
 
-            if (NameTag.Scene != Scene)
+            if (NameTag != null && NameTag.Scene != Scene)
                 Scene.Add(NameTag);
 
             Visible = !Dead && CelesteNetClientModule.Settings.InGame.OtherPlayerOpacity != 0;
@@ -219,7 +220,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (Scene is not Level level)
                 return;
 
-            if (!level.GetUpdateHair() || level.Overlay is PauseUpdateOverlay)
+            if (!(level.GetUpdateHair() ?? true) || level.Overlay is PauseUpdateOverlay)
                 Hair.AfterUpdate();
 
             foreach (GhostFollower gf in Followers)
@@ -246,13 +247,13 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public void Tick() {
             if (GrabPacket != null) {
-                CelesteNetClient client = Context?.Client;
+                CelesteNetClient? client = Context?.Client;
                 if (client != null) {
                     try {
                         client.Send(GrabPacket);
                     } catch (Exception e) {
                         Logger.Log(LogLevel.INF, "client-ghost", $"Error sending grab packet: {e}");
-                        Context.DisposeSafe();
+                        Context?.DisposeSafe();
                     }
                 }
             }
@@ -268,14 +269,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
             }
 
-            using ManualResetEvent waiter = wait ? new ManualResetEvent(false) : null;
+            using ManualResetEvent? waiter = wait ? new ManualResetEvent(false) : null;
             if (wait) {
                 Action<Ghost> real = action;
                 action = g => {
                     try {
                         real(g);
                     } finally {
-                        waiter.Set();
+                        waiter?.Set();
                     }
                 };
             }
@@ -284,7 +285,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 UpdateQueue.Add(action);
 
             if (wait)
-                WaitHandle.WaitAny(new WaitHandle[] { waiter });
+                WaitHandle.WaitAny(new WaitHandle[] { waiter! });
         }
 
         public void UpdateGraphics(DataPlayerGraphics graphics) {
@@ -398,7 +399,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             }
         }
 
-        public void UpdateHolding(DataPlayerFrame.Entity h) {
+        public void UpdateHolding(DataPlayerFrame.Entity? h) {
             if (h == null) {
                 if (Holding != null)
                     Holding.Ghost = null;

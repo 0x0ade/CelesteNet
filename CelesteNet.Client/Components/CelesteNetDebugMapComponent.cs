@@ -12,11 +12,11 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetDebugMapComponent : CelesteNetGameComponent {
 
-        private static readonly FieldInfo f_MapEditor_area =
+        private static readonly FieldInfo? f_MapEditor_area =
             typeof(MapEditor)
             .GetField("area", BindingFlags.NonPublic | BindingFlags.Static);
 
-        private static readonly FieldInfo f_MapEditor_Camera =
+        private static readonly FieldInfo? f_MapEditor_Camera =
             typeof(MapEditor)
             .GetField("Camera", BindingFlags.NonPublic | BindingFlags.Static);
 
@@ -64,17 +64,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #region Handlers
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
-            if (player.ID == Client.PlayerInfo.ID || LastArea == null)
+            if (Client?.PlayerInfo == null || player.ID == Client.PlayerInfo.ID || LastArea == null)
                 return;
 
             lock (Ghosts)
-                if (Ghosts.TryGetValue(player.ID, out DebugMapGhost ghost) &&
+                if (Ghosts.TryGetValue(player.ID, out DebugMapGhost? ghost) &&
                     string.IsNullOrEmpty(player.DisplayName))
                     Ghosts.Remove(player.ID);
         }
 
         public void Handle(CelesteNetConnection con, DataChannelMove move) {
-            if (LastArea == null)
+            if (LastArea == null || Client?.PlayerInfo == null || move.Player == null)
                 return;
 
             if (move.Player.ID == Client.PlayerInfo.ID) {
@@ -84,7 +84,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             lock (Ghosts)
-                if (Ghosts.TryGetValue(move.Player.ID, out DebugMapGhost ghost))
+                if (Ghosts.TryGetValue(move.Player.ID, out DebugMapGhost? ghost))
                     Ghosts.Remove(move.Player.ID);
         }
 
@@ -97,23 +97,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (LastArea is not AreaKey area)
                     return;
 
-                if (Ghosts.TryGetValue(id, out DebugMapGhost ghost) &&
+                if (Ghosts.TryGetValue(id, out DebugMapGhost? ghost) &&
                     (state.SID != area.SID || state.Mode != area.Mode || state.Level == CelesteNetMainComponent.LevelDebugMap))
                     Ghosts.Remove(id);
             }
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerFrame frame) {
-            if (LastArea is not AreaKey area || Client?.Data == null)
+            if (LastArea is not AreaKey area || Client?.Data == null || frame.Player == null)
                 return;
 
+            DebugMapGhost? ghost = null;
+
             lock (Ghosts) {
-                if (!Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState state) ||
-                    Ghosts.TryGetValue(frame.Player.ID, out DebugMapGhost ghost) && (
+                if (!Client.Data.TryGetBoundRef(frame.Player, out DataPlayerState? state) || 
+                    (state != null &&
+                    Ghosts.TryGetValue(frame.Player.ID, out ghost) && (
                         state.SID != area.SID ||
                         state.Mode != area.Mode ||
                         state.Level == CelesteNetMainComponent.LevelDebugMap
-                    )
+                    ))
                 ) {
                     Ghosts.Remove(frame.Player.ID);
                     return;
@@ -126,8 +129,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 ghost.Name = frame.Player.DisplayName;
                 ghost.Position = frame.Position;
-                ghost.SID = state.SID;
-                ghost.Mode = state.Mode;
+                if (state != null) {
+                    ghost.SID = state.SID;
+                    ghost.Mode = state.Mode;
+                }
             }
         }
 
@@ -146,13 +151,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         private void VerifyArea() {
-            AreaKey area = (AreaKey) f_MapEditor_area.GetValue(null);
-            if (LastArea == null || LastArea.Value.ID != area.ID || LastArea.Value.Mode != area.Mode) {
+            AreaKey? area = (AreaKey?) f_MapEditor_area?.GetValue(null);
+            if (LastArea == null || area == null || LastArea.Value.ID != area.Value.ID || LastArea.Value.Mode != area.Value.Mode) {
                 lock (Ghosts) {
                     LastArea = area;
                     Cleanup();
-                    foreach (DataPlayerFrame frame in Context.Main.LastFrames.Values.ToArray())
-                        Handle(null, frame);
+                    if (Client?.Con != null && Context?.Main != null)
+                        foreach (DataPlayerFrame frame in Context.Main.LastFrames.Values.ToArray())
+                            Handle(Client.Con, frame);
                 }
             }
         }
@@ -168,10 +174,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             orig(self);
 
             AreaKey? area = LastArea;
-            string sid = area?.SID;
+            string sid = area?.SID ?? "";
             AreaMode mode = area?.Mode ?? (AreaMode) (-1);
 
-            Camera camera = (Camera) f_MapEditor_Camera.GetValue(null);
+            Camera? camera = (Camera?) f_MapEditor_Camera?.GetValue(null);
+
+            if (camera == null)
+                return;
 
             // Adapted from Everest key rendering code.
 
@@ -187,8 +196,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 );
 
                 foreach (DebugMapGhost ghost in Ghosts.Values)
-                    if (ghost.SID == sid && ghost.Mode == mode)
-                        MDraw.Rect(ghost.Position.X / 8f, ghost.Position.Y / 8f - 1f, 1f, 1f, Color.HotPink);
+                    if (ghost.SID == sid && ghost.Mode == mode && ghost.Position != null)
+                        MDraw.Rect(ghost.Position.Value.X / 8f, ghost.Position.Value.Y / 8f - 1f, 1f, 1f, Color.HotPink);
 
                 MDraw.SpriteBatch.End();
 
@@ -203,9 +212,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 );
 
                 foreach (DebugMapGhost ghost in Ghosts.Values) {
-                    if (ghost.SID != sid || ghost.Mode != mode)
+                    if (ghost.SID != sid || ghost.Mode != mode || ghost.Position == null)
                         continue;
-                    Vector2 pos = new(ghost.Position.X / 8f + 0.5f, ghost.Position.Y / 8f - 1.5f);
+                    Vector2 pos = new(ghost.Position.Value.X / 8f + 0.5f, ghost.Position.Value.Y / 8f - 1.5f);
                     pos -= camera.Position;
                     pos = new((float) Math.Round(pos.X), (float) Math.Round(pos.Y));
                     pos *= camera.Zoom;
@@ -227,10 +236,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #endregion
 
         public class DebugMapGhost {
-            public string Name;
-            public Vector2 Position;
-            public string SID;
-            public AreaMode Mode;
+            public string Name = "";
+            public Vector2? Position;
+            public string? SID;
+            public AreaMode? Mode;
         }
 
     }

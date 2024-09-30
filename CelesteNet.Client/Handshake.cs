@@ -23,12 +23,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 TEAREQ /teapot HTTP/4.2
 Connection: keep-alive
 CelesteNet-TeapotVersion: {CelesteNetUtils.LoadedVersion}
-CelesteNet-ConnectionFeatures: {features.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}
+CelesteNet-ConnectionFeatures: {features.Select(f => f.GetType().FullName).Aggregate((string?) null, (a, f) => (a == null) ? f : $"{a}, {f}")}
 CelesteNet-PlayerNameKey: {nameKey}
 ");
 
             foreach (FieldInfo field in typeof(CelesteNetClientOptions).GetFields(BindingFlags.Public | BindingFlags.Instance)) {
-                object optionValue = field.GetValue(options);
+                object? optionValue = field.GetValue(options);
 
                 if (field.FieldType.IsEnum) {
                     optionValue = Convert.ChangeType(optionValue, Enum.GetUnderlyingType(field.FieldType));
@@ -53,14 +53,14 @@ CelesteNet-PlayerNameKey: {nameKey}
             writer.Flush();
 
             // Read the "HTTP" response
-            string statusLine = netStream.UnbufferedReadLine();
-            string[] statusSegs = statusLine?.Split(new[] { ' ' }, 3);
+            string? statusLine = netStream.UnbufferedReadLine();
+            string[]? statusSegs = statusLine?.Split(new[] { ' ' }, 3);
             if (statusSegs?.Length != 3)
                 throw new InvalidDataException($"Invalid HTTP response status line: '{statusLine}'");
             int statusCode = int.Parse(statusSegs[1]);
 
             Dictionary<string, string> headers = new();
-            for (string line = netStream.UnbufferedReadLine(); !string.IsNullOrEmpty(line); line = netStream.UnbufferedReadLine()) {
+            for (string? line = netStream.UnbufferedReadLine(); !string.IsNullOrEmpty(line); line = netStream.UnbufferedReadLine()) {
                 int split = line.IndexOf(':');
                 if (split == -1)
                     throw new InvalidDataException($"Invalid HTTP header: '{line}'");
@@ -68,7 +68,7 @@ CelesteNet-PlayerNameKey: {nameKey}
             }
 
             string content = "";
-            for (string line = netStream.UnbufferedReadLine(); !string.IsNullOrEmpty(line); line = netStream.UnbufferedReadLine())
+            for (string? line = netStream.UnbufferedReadLine(); !string.IsNullOrEmpty(line); line = netStream.UnbufferedReadLine())
                 content += line + "\n";
 
             // Parse the "HTTP response"
@@ -76,7 +76,7 @@ CelesteNet-PlayerNameKey: {nameKey}
                 throw new ConnectionErrorCodeException($"Server rejected teapot handshake (status {statusCode})", statusCode, content.Trim());
 
             uint conToken = uint.Parse(headers["CelesteNet-ConnectionToken"], NumberStyles.HexNumber);
-            IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[] { ',' }).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray();
+            IConnectionFeature[] conFeatures = headers["CelesteNet-ConnectionFeatures"].Split(new[] { ',' }).Select(n => features.FirstOrDefault(f => f.GetType().FullName == n)).Where(f => f != null).ToArray()!;
 
             T settings = new();
             foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)) {

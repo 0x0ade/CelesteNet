@@ -17,7 +17,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private readonly Stream TCPNetStream, TCPReadStream, TCPWriteStream;
         private readonly Socket UDPSocket;
-        private readonly BlockingCollection<DataType> TCPSendQueue, UDPSendQueue;
+        private readonly BlockingCollection<DataType?> TCPSendQueue, UDPSendQueue;
         private readonly byte[] UDPHandshakeMessage;
 
         private readonly CancellationTokenSource TokenSrc;
@@ -123,8 +123,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             UDPQueue.SignalFlushed();
         }
 
-        public override string DoHeartbeatTick() {
-            string disposeReason = base.DoHeartbeatTick();
+        public override string? DoHeartbeatTick() {
+            string? disposeReason = base.DoHeartbeatTick();
             if (disposeReason != null || !IsConnected)
                 return disposeReason;
 
@@ -251,7 +251,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             // Read packets until we run out data
                             while (mStream.Position < dgSize - 1) {
                                 DataType packet = Data.Read(reader);
-                                if (packet.TryGet<MetaOrderedUpdate>(Data, out MetaOrderedUpdate orderedUpdate))
+                                if (packet.TryGet<MetaOrderedUpdate>(Data, out MetaOrderedUpdate? orderedUpdate))
                                     orderedUpdate.UpdateID = containerID;
 
                                 // Handle packet
@@ -302,12 +302,12 @@ namespace Celeste.Mod.CelesteNet.Client {
                 using BinaryWriter tcpWriter = new(TCPWriteStream, Encoding.UTF8, true);
                 using MemoryStream mStream = new(ConnectionSettings.MaxPacketSize);
                 using CelesteNetBinaryWriter bufWriter = new(Data, Strings, CoreTypeMap, mStream);
-                foreach (DataType p in TCPSendQueue.GetConsumingEnumerable(TokenSrc.Token)) {
+                foreach (DataType? p in TCPSendQueue.GetConsumingEnumerable(TokenSrc.Token)) {
                     if (!IsConnected)
                         break;
 
                     // Try to send as many packets as possible
-                    for (DataType packet = p; packet != null; packet = TCPSendQueue.TryTake(out packet) ? packet : null) {
+                    for (DataType? packet = p; packet != null; packet = TCPSendQueue.TryTake(out packet) ? packet : null) {
                         // Handle special packets
                         if (packet is DataInternalDisconnect) {
                             tcpWriter.Flush();
@@ -347,7 +347,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 byte[] dgBuffer = new byte[UDPBufferSize];
                 using MemoryStream mStream = new(ConnectionSettings.MaxPacketSize);
                 using CelesteNetBinaryWriter bufWriter = new(Data, Strings, CoreTypeMap, mStream);
-                foreach (DataType p in UDPSendQueue.GetConsumingEnumerable(TokenSrc.Token)) {
+                foreach (DataType? p in UDPSendQueue.GetConsumingEnumerable(TokenSrc.Token)) {
                     try {
                         lock (UDPLock) {
                             if (!UseUDP)
@@ -365,7 +365,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             // Try to send as many packets as possible
                             dgBuffer[0] = NextUDPContainerID();
                             int bufOff = 1;
-                            for (DataType packet = p; packet != null; packet = UDPSendQueue.TryTake(out packet, 0) ? packet : null) {
+                            for (DataType? packet = p; packet != null; packet = UDPSendQueue.TryTake(out packet, 0) ? packet : null) {
                                 mStream.Position = 0;
                                 Data.Write(bufWriter, packet);
                                 bufWriter.Flush();

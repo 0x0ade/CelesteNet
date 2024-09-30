@@ -12,7 +12,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
         public static float Size = 256f;
 
-        public Entity Tracking;
+        public Entity? Tracking;
 
         public string Value;
 
@@ -30,14 +30,14 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public float PopupAlpha = 1f;
         public float PopupScale = 1f;
 
-        protected GhostEmote(Entity tracking)
+        protected GhostEmote(Entity? tracking)
             : base(Vector2.Zero) {
             Tracking = tracking;
-
+            Value = string.Empty;
             Tag = TagsExt.SubHUD | Tags.Persistent | Tags.PauseUpdate | Tags.TransitionUpdate;
         }
 
-        public GhostEmote(Entity tracking, string value)
+        public GhostEmote(Entity? tracking, string value)
             : this(tracking) {
             Value = value;
         }
@@ -114,8 +114,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
 
             float popupScale = PopupScale * level.GetScreenScale();
 
-            MTexture icon = null;
-            string text = null;
+            MTexture? icon = null;
+            string? text = null;
 
             if (IsIcon(Value))
                 icon = GetIcon(Value, Time);
@@ -134,7 +134,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             if (icon != null) {
                 marginSize = new(icon.Width, icon.Height);
             } else {
-                marginSize = CelesteNetClientFont.Measure(text);
+                marginSize = CelesteNetClientFont.Measure(text!);
             }
 
             float scale = Size / Math.Max(marginSize.X, marginSize.Y) * 0.5f * popupScale;
@@ -175,7 +175,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 );
             } else {
                 CelesteNetClientFont.DrawOutline(
-                    text,
+                    text!,
                     pos,
                     new(0.5f, 1f),
                     Vector2.One * scale,
@@ -195,7 +195,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         private static Atlas FallbackIconAtlas = new();
-        public static Atlas GetIconAtlas(ref string emote) {
+        public static Atlas? GetIconAtlas(ref string emote) {
             if (emote.StartsWith("i:")) {
                 emote = emote.Substring(2);
                 return GFX.Gui ?? FallbackIconAtlas;
@@ -214,8 +214,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             return null;
         }
 
-        public static MTexture GetIcon(string emote, float time) {
-            Atlas atlas;
+        public static MTexture? GetIcon(string emote, float time) {
+            Atlas? atlas;
             if ((atlas = GetIconAtlas(ref emote)) == null)
                 return null;
 
@@ -226,16 +226,16 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 fps = 7; // Default FPS.
             }
 
-            List<MTexture> icons = iconPaths.SelectMany(iconPath => {
+            List<MTexture?> icons = iconPaths.SelectMany(iconPath => {
                 iconPath = iconPath.Trim();
-                List<MTexture> subs = atlas.orig_GetAtlasSubtextures(iconPath);
+                List<MTexture?> subs = atlas.orig_GetAtlasSubtextures(iconPath);
                 if (subs.Count != 0)
                     return subs;
                 if (atlas.Has(iconPath))
-                    return new List<MTexture>() { atlas[iconPath] };
+                    return new List<MTexture?>() { atlas[iconPath] };
                 if (iconPath.ToLowerInvariant() == "end")
-                    return new List<MTexture>() { null };
-                return new List<MTexture>();
+                    return new List<MTexture?>() { null };
+                return new List<MTexture?>();
             }).ToList();
 
             if (icons.Count == 0)

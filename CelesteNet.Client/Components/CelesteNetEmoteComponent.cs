@@ -7,8 +7,8 @@ using Monocle;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetEmoteComponent : CelesteNetGameComponent {
 
-        public Player Player;
-        public GhostEmoteWheel Wheel;
+        public Player? Player;
+        public GhostEmoteWheel? Wheel;
 
         public CelesteNetEmoteComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -46,7 +46,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public void Send(string text) {
             Client?.SendAndHandle(new DataEmote {
                 Player = Client.PlayerInfo,
-                Text = text?.Trim()
+                Text = text.Trim()
             });
         }
 
@@ -57,14 +57,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataEmote emoteData) {
-            Entity target;
+            Entity? target;
 
-            if (Client == null || Context?.Main == null)
+            if (Client == null || Context?.Main == null || emoteData.Player == null)
                 return;
 
-            if (emoteData.Player.ID == Client.PlayerInfo.ID) {
+            if (Client.PlayerInfo != null && emoteData.Player.ID == Client.PlayerInfo.ID) {
                 target = Player;
-            } else if (Context.Main.Ghosts.TryGetValue(emoteData.Player.ID, out Ghost ghost)) {
+            } else if (Context.Main.Ghosts.TryGetValue(emoteData.Player.ID, out Ghost? ghost)) {
                 target = ghost;
             } else {
                 return;
@@ -101,9 +101,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             // TimeRate check is for Prologue Dash prompt freeze
             if (!level.Paused && Settings.EmoteWheel && !Player.Dead && Engine.TimeRate > 0.05f) {
-                Wheel.Shown = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.LengthSquared() >= 0.36f;
+                Wheel.Shown = CelesteNetClientModule.Instance.JoystickEmoteWheel?.Value.LengthSquared() >= 0.36f;
                 int selected = Wheel.Selected;
-                if (Wheel.Shown && selected != -1 && Settings.ButtonEmoteWheelSend.Pressed) {
+                if (Wheel.Shown && selected != -1 && Settings.ButtonEmoteWheelSend?.Pressed == true) {
                     Send(selected);
                 }
             } else {
@@ -111,29 +111,29 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Wheel.Selected = -1;
             }
 
-            if (Context.Chat == null)
+            if (Context?.Chat == null)
                 goto End;
 
             if (!Context.Chat.Active) {
-                if (Settings.ButtonEmote1.Pressed)
+                if (Settings.ButtonEmote1?.Pressed == true)
                     Send(0);
-                else if (Settings.ButtonEmote2.Pressed)
+                else if (Settings.ButtonEmote2?.Pressed == true)
                     Send(1);
-                else if (Settings.ButtonEmote3.Pressed)
+                else if (Settings.ButtonEmote3?.Pressed == true)
                     Send(2);
-                else if (Settings.ButtonEmote4.Pressed)
+                else if (Settings.ButtonEmote4?.Pressed == true)
                     Send(3);
-                else if (Settings.ButtonEmote5.Pressed)
+                else if (Settings.ButtonEmote5?.Pressed == true)
                     Send(4);
-                else if (Settings.ButtonEmote6.Pressed)
+                else if (Settings.ButtonEmote6?.Pressed == true)
                     Send(5);
-                else if (Settings.ButtonEmote7.Pressed)
+                else if (Settings.ButtonEmote7?.Pressed == true)
                     Send(6);
-                else if (Settings.ButtonEmote8.Pressed)
+                else if (Settings.ButtonEmote8?.Pressed == true)
                     Send(7);
-                else if (Settings.ButtonEmote9.Pressed)
+                else if (Settings.ButtonEmote9?.Pressed == true)
                     Send(8);
-                else if (Settings.ButtonEmote10.Pressed)
+                else if (Settings.ButtonEmote10?.Pressed == true)
                     Send(9);
             }
 
@@ -161,8 +161,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Wheel?.TimeRateSkip.Remove("HeartGem");
         }
 
-        private PlayerDeadBody OnPlayerDie(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats) {
-            PlayerDeadBody pdb = orig(self, direction, evenIfInvincible, registerDeathInStats);
+        private PlayerDeadBody? OnPlayerDie(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats) {
+            PlayerDeadBody? pdb = orig(self, direction, evenIfInvincible, registerDeathInStats);
             if (pdb != null && Wheel != null) {
                 Wheel.TimeRateSkip.Add("PlayerDead");
                 Wheel.Shown = false;

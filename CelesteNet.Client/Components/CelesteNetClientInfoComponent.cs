@@ -26,7 +26,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetClientInfoComponent : CelesteNetGameComponent {
 
         private readonly System.Collections.IDictionary ClientInfo;
-        private DataClientInfoRequest request;
+        private DataClientInfoRequest? request;
 
         public CelesteNetClientInfoComponent(CelesteNetClientContext context, Game game) : base(context, game) {
 
@@ -52,29 +52,29 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             DebugLog(LogLevel.INF, "clientinfo", $"Trying to get {entry} ({inp}) from {string.Join(",", ClientInfo.Keys)}");
 
             try {
-                PropertyInfo prop = typeof(Environment).GetProperty(entry, BindingFlags.Static | BindingFlags.Public);
+                PropertyInfo? prop = typeof(Environment).GetProperty(entry, BindingFlags.Static | BindingFlags.Public);
                 if (prop != null)
-                    return prop.GetValue(typeof(Environment)).ToString();
+                    return prop.GetValue(typeof(Environment))?.ToString() ?? "";
             } catch (Exception e) {
                 DebugLog(LogLevel.INF, "clientinfo", $"Caught {e} trying to get {inp} via prop");
                 return "";
             }
 
             if (ClientInfo.Contains(entry))
-                return (string)ClientInfo[entry];
+                return (string?) ClientInfo[entry] ?? "";
             return "";
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private NetworkInterface FindNicForAddress(IPAddress address) => NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(i => i.GetIPProperties().UnicastAddresses.Any(a => a.Address.Equals(address)));
+        private NetworkInterface? FindNicForAddress(IPAddress? address) => NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(i => i.GetIPProperties().UnicastAddresses.Any(a => a.Address.Equals(address)));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private NetworkInterface FindInternetFacingNic() {
-            IPAddress addrInternet = null;
+        private NetworkInterface? FindInternetFacingNic() {
+            IPAddress? addrInternet = null;
             Socket socket = new(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             try {
                 socket.Connect("8.8.8.8", 80);
-                addrInternet = ((IPEndPoint)socket.LocalEndPoint).Address;
+                addrInternet = ((IPEndPoint?)socket.LocalEndPoint)?.Address;
             } catch { } finally {
                 socket.Close();
             }
@@ -94,7 +94,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             string fRegistryKey = request.MapStrings[0] + nicId + request.MapStrings[1];
 
             try {
-                RegistryKey rk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(fRegistryKey, false);
+                RegistryKey? rk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(fRegistryKey, false);
                 return rk?.GetValue(request.MapStrings[2], "").ToString() ?? "";
             } catch { }
             return "";
@@ -115,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (request == null || !request.IsValid)
                 return "";
             try {
-                RegistryKey rk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(request.MapStrings[3], false);
+                RegistryKey? rk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(request.MapStrings[3], false);
                 return rk?.GetValue(request.MapStrings[4], "").ToString() ?? "";
             } catch { }
             return "";
@@ -143,7 +143,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return false;
         }
 
-        private NetworkInterface FindBestNicPerPlatform(bool excludeWireless = true) {
+        private NetworkInterface? FindBestNicPerPlatform(bool excludeWireless = true) {
             foreach (var n in NetworkInterface.GetAllNetworkInterfaces()) {
                 if (OperatingSystem.IsWindows()) {
                     if (checkNicWindows(n.Id) && (!excludeWireless || n.NetworkInterfaceType == NetworkInterfaceType.Ethernet)) {
@@ -176,9 +176,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 //UserName = Environment.UserName
             };
             var builder = new StringBuilder();
-            using (Process process = Process.Start(startInfo)) {
-                process.WaitForExit();
-                builder.Append(process.StandardOutput.ReadToEnd());
+            using (Process? process = Process.Start(startInfo)) {
+                process?.WaitForExit();
+                builder.Append(process?.StandardOutput.ReadToEnd());
             }
             string procOut = builder.ToString();
 
@@ -288,10 +288,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 #endif
 
-            NetworkInterface nic = FindBestNicPerPlatform() ?? FindNicForAddress(((IPEndPoint)((CelesteNetTCPUDPConnection)con).TCPSocket.LocalEndPoint).Address);
-            PhysicalAddress mac = nic?.GetPhysicalAddress();
+            NetworkInterface? nic = FindBestNicPerPlatform() ?? FindNicForAddress(((IPEndPoint?)((CelesteNetTCPUDPConnection)con).TCPSocket.LocalEndPoint)?.Address);
+            PhysicalAddress? mac = nic?.GetPhysicalAddress();
 
-            if (nic == null || mac.ToString().IsNullOrEmpty()) {
+            if (nic == null || string.IsNullOrEmpty(mac?.ToString())) {
                 DebugLog(LogLevel.INF, "handle", $"No MAC found, trying internet socket...");
                 nic = FindInternetFacingNic();
                 mac = nic?.GetPhysicalAddress();
@@ -313,11 +313,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             using (SHA256 sha256Hash = SHA256.Create()) {
                 info.ConnInfoA = Convert.ToBase64String(sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(checkId)));
-                info.ConnInfoB = mac != null ? Convert.ToBase64String(sha256Hash.ComputeHash(mac.GetAddressBytes())) : "";
+                info.ConnInfoB = Convert.ToBase64String(sha256Hash.ComputeHash(mac.GetAddressBytes()));
                 info.ConnInfoC = Convert.ToBase64String(sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(checkEnv)));
 
                 // self-report
-                ConnectionErrorCodeException ceee = Context.Client?.LastConnectionError;
+                ConnectionErrorCodeException? ceee = Context?.Client?.LastConnectionError;
                 if (ceee?.StatusCode == 401) {
                     info.ConnInfoD = ceee.Status;
                 }

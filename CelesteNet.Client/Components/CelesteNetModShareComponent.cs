@@ -19,7 +19,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
         }
 
         public void Handle(CelesteNetConnection con, DataMapModInfoRequest request) {
-            string sid = request.MapSID;
+            string? sid = request.MapSID;
             if (string.IsNullOrEmpty(sid))
                 sid = (Engine.Scene as Level)?.Session?.Area.SID;
 
@@ -33,7 +33,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             if (!Everest.Content.TryGet<AssetTypeMap>($"Maps/{area.SID}", out ModAsset asset))
                 goto Error;
 
-            EverestModuleMetadata mod = asset?.Source?.Mod;
+            EverestModuleMetadata? mod = asset?.Source?.Mod;
             if (mod == null)
                 goto Error;
 
@@ -63,11 +63,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                 return;
 
             if (Engine.Scene is Level)
-                Context.Status.Set($"Main Menu > Mod Options to install {rec.ModName}", 8);
+                Context?.Status?.Set($"Main Menu > Mod Options to install {rec.ModName}", 8);
             else if (Engine.Scene is Overworld overworld && overworld.IsCurrent<OuiModOptions>())
-                Context.Status.Set($"Reopen Mod Options to install {rec.ModName}", 8);
+                Context?.Status?.Set($"Reopen Mod Options to install {rec.ModName}", 8);
             else
-                Context.Status.Set($"Go to Mod Options to install {rec.ModName}", 8);
+                Context?.Status?.Set($"Go to Mod Options to install {rec.ModName}", 8);
 
             lock (Requested) {
                 int index = Requested.FindIndex(other => other.Name == rec.ModID);

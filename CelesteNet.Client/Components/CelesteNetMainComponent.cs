@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -9,6 +10,7 @@ using Celeste.Editor;
 using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.Core;
+using Celeste.Mod.Helpers;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Mono.Cecil.Cil;
@@ -21,14 +23,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public const string LevelDebugMap = ":celestenet_debugmap:";
 
-        private static readonly FieldInfo f_MapEditor_area =
+        private static readonly FieldInfo? f_MapEditor_area =
             typeof(MapEditor)
             .GetField("area", BindingFlags.NonPublic | BindingFlags.Static);
 
-        private Player Player;
-        private Entity PlayerBody;
-        private TrailManager TrailManager;
-        private Session Session;
+        private Player? Player;
+        private Entity? PlayerBody;
+        private TrailManager? TrailManager;
+        private Session? Session;
         private AreaKey? MapEditorArea;
         private bool WasIdle;
         private bool WasInteractive;
@@ -37,15 +39,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public HashSet<string> ForceIdle = new();
         public bool StateUpdated;
 
-        public GhostNameTag PlayerNameTag;
-        public GhostEmote PlayerIdleTag;
+        public GhostNameTag? PlayerNameTag;
+        public GhostEmote? PlayerIdleTag;
         public ConcurrentDictionary<uint, Ghost> Ghosts = new();
         public ConcurrentDictionary<uint, DataPlayerFrame> LastFrames = new();
 
         public ConcurrentDictionary<string, int> SpriteAnimationIDs = new(StringComparer.OrdinalIgnoreCase);
         public HashSet<PlayerSpriteMode> UnsupportedSpriteModes = new();
 
-        public Ghost GrabbedBy;
+        public Ghost? GrabbedBy;
         public Vector2 GrabLastSpeed;
         public bool IsGrabbed = false;
         public float GrabCooldown = 0f;
@@ -55,7 +57,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private Vector2? NextRespawnPosition;
 
-        private ILHook ILHookTransitionRoutine;
+        private ILHook? ILHookTransitionRoutine;
 
         public CelesteNetMainComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -87,9 +89,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     On.Celeste.PlayerHair.GetHairTexture += OnGetHairTexture;
                     On.Celeste.TrailManager.Add_Vector2_Image_PlayerHair_Vector2_Color_int_float_bool_bool += OnDashTrailAdd;
 
-                    MethodInfo transitionRoutine =
-                        typeof(Level).GetNestedType("<TransitionRoutine>d__24", BindingFlags.NonPublic)
-                        ?.GetMethod("MoveNext");
+                    MethodInfo? transitionRoutine =
+                        typeof(Level).GetNestedType("<TransitionRoutine>d__24", BindingFlags.NonPublic)?.GetMethod("MoveNext");
                     if (transitionRoutine != null)
                         ILHookTransitionRoutine = new(transitionRoutine, ILTransitionRoutine);
                 }
@@ -158,7 +159,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerInfo player) {
-            if (Client?.Data == null)
+            if (Client?.Data == null || Client.PlayerInfo == null)
                 return;
 
             if (player.ID == Client.PlayerInfo.ID) {
@@ -167,21 +168,23 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
             }
 
-            if (!Ghosts.TryGetValue(player.ID, out Ghost ghost) ||
+            if (!Ghosts.TryGetValue(player.ID, out Ghost? ghost) ||
                 ghost == null)
                 return;
 
             if (string.IsNullOrEmpty(player.DisplayName)) {
-                ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
+                ghost.RunOnUpdate(ghost => {
+                    if (ghost.NameTag != null)
+                        ghost.NameTag.Name = "";
+                });
                 Ghosts.TryRemove(player.ID, out _);
                 LastFrames.TryRemove(player.ID, out _);
                 Client.Data.FreeOrder<DataPlayerFrame>(player.ID);
-                return;
             }
         }
 
         public void Handle(CelesteNetConnection con, DataChannelMove move) {
-            if (Client?.Data == null)
+            if (Client?.Data == null || Client.PlayerInfo == null || move.Player == null)
                 return;
 
             if (move.Player.ID == Client.PlayerInfo.ID) {
@@ -195,20 +198,23 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         continue;
 
                     foreach (DataType data in Client.Data.GetBoundRefs(other))
-                        if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
+                        if (data.TryGet(Client.Data, out MetaPlayerPrivateState? state))
                             Client.Data.FreeBoundRef(data);
                 }
 
             } else {
-                if (!Ghosts.TryGetValue(move.Player.ID, out Ghost ghost) ||
+                if (!Ghosts.TryGetValue(move.Player.ID, out Ghost? ghost) ||
                     ghost == null)
                     return;
 
-                ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
+                ghost.RunOnUpdate(ghost => {
+                    if (ghost.NameTag != null)
+                        ghost.NameTag.Name = "";
+                });
                 Ghosts.TryRemove(move.Player.ID, out _);
 
                 foreach (DataType data in Client.Data.GetBoundRefs(move.Player))
-                    if (data.TryGet(Client.Data, out MetaPlayerPrivateState state))
+                    if (data.TryGet(Client.Data, out MetaPlayerPrivateState? state))
                         Client.Data.FreeBoundRef(data);
             }
         }
@@ -222,16 +228,20 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 UpdateIdleTag(Player, ref PlayerIdleTag, state.Idle);
 
             } else {
-                if (!Ghosts.TryGetValue(id, out Ghost ghost) ||
+                if (!Ghosts.TryGetValue(id, out Ghost? ghost) ||
                     ghost == null)
                     return;
 
                 if (Settings.InGame.Interactions != state.Interactive && ghost == GrabbedBy)
                     SendReleaseMe();
 
-                Session session = Session;
+                Session? session = Session;
                 if (session != null && (state.SID != session.Area.SID || state.Mode != session.Area.Mode || state.Level == LevelDebugMap)) {
-                    ghost.RunOnUpdate(ghost => ghost.NameTag.Name = "");
+                    ghost.RunOnUpdate(ghost => {
+                            if ( ghost.NameTag != null)
+                                ghost.NameTag.Name = "";
+                            }
+                    );
                     Ghosts.TryRemove(id, out _);
                     return;
                 }
@@ -244,13 +254,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (UnsupportedSpriteModes.Contains(graphics.SpriteMode))
                 graphics.SpriteMode = PlayerSpriteMode.Madeline;
 
-            if (!Ghosts.TryGetValue(graphics.Player.ID, out Ghost ghost) || ghost?.Sprite?.Mode != graphics.SpriteMode) {
+            if (graphics.Player == null || !Ghosts.TryGetValue(graphics.Player.ID, out Ghost? ghost) || ghost?.Sprite?.Mode != graphics.SpriteMode) {
                 RemoveGhost(graphics.Player);
                 ghost = null;
             }
 
-            Level level = PlayerBody?.Scene as Level;
-            if (ghost == null && !IsGhostOutside(Session, level, graphics.Player, out _))
+            Level? level = PlayerBody?.Scene as Level;
+            if (ghost == null && level != null && graphics.Player != null && !IsGhostOutside(Session, level, graphics.Player, out _))
                 ghost = CreateGhost(level, graphics.Player, graphics);
 
             if (ghost != null) {
@@ -267,14 +277,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (frame.HairColors.Length > Ghost.MaxHairLength)
                 Array.Resize(ref frame.HairColors, Ghost.MaxHairLength);
 
-            LastFrames[frame.Player.ID] = frame;
+            if (frame.Player != null)
+                LastFrames[frame.Player.ID] = frame;
 
-            Session session = Session;
-            Level level = PlayerBody?.Scene as Level;
-            bool outside = IsGhostOutside(session, level, frame.Player, out DataPlayerState state);
+            Session? session = Session;
+            Level? level = PlayerBody?.Scene as Level;
+            bool outside = IsGhostOutside(session, level, frame.Player, out DataPlayerState? state);
 
-            if (!Ghosts.TryGetValue(frame.Player.ID, out Ghost ghost) ||
-                ghost == null ||
+            if (frame.Player == null || !Ghosts.TryGetValue(frame.Player.ID, out Ghost? ghost) ||
+                ghost == null || level == null ||
                 (ghost.Active && ghost.Scene != level) ||
                 outside) {
                 RemoveGhost(frame.Player);
@@ -284,16 +295,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (level == null || outside)
                 return;
 
-            if (ghost == null) {
-                if (!Client.Data.TryGetBoundRef<DataPlayerInfo, DataPlayerGraphics>(frame.Player, out DataPlayerGraphics graphics) || graphics == null)
+            if (ghost == null && frame.Player != null) {
+                if (!Client.Data.TryGetBoundRef<DataPlayerInfo, DataPlayerGraphics>(frame.Player, out DataPlayerGraphics? graphics) || graphics == null)
                     return;
                 ghost = CreateGhost(level, frame.Player, graphics);
             }
 
-            ghost.RunOnUpdate(ghost => {
-                if (string.IsNullOrEmpty(ghost.NameTag.Name))
+            ghost?.RunOnUpdate(ghost => {
+                if (ghost.NameTag == null || string.IsNullOrEmpty(ghost.NameTag.Name) || state == null)
                     return;
-                ghost.NameTag.Name = frame.Player.DisplayName;
+                ghost.NameTag.Name = frame.Player?.DisplayName ?? "";
                 UpdateIdleTag(ghost, ref ghost.IdleTag, state.Idle);
                 ghost.UpdateGeneric(frame.Position, frame.Scale, frame.Color, frame.Facing, frame.Speed);
                 ghost.UpdateAnimation(frame.CurrentAnimationID, frame.CurrentAnimationFrame);
@@ -313,12 +324,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if ((Settings.InGame.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0 || Engine.Scene is not Level level || level.Paused)
                 return;
 
-            Ghost ghost = null;
+            Ghost? ghost = null;
 
             if (audio.Player != null) {
-                Session session = Session;
-                if (!Client.Data.TryGetBoundRef(audio.Player, out DataPlayerState state) ||
-                    session == null ||
+                Session? session = Session;
+                if (!Client.Data.TryGetBoundRef(audio.Player, out DataPlayerState? state) ||
+                    session == null || state == null ||
                     state.SID != session.Area.SID ||
                     state.Mode != session.Area.Mode ||
                     state.Level != session.Level)
@@ -340,12 +351,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Client?.Data == null || Engine.Scene is not Level level || level.Paused)
                 return;
 
-            Ghost ghost = null;
+            Ghost? ghost = null;
 
             if (trail.Player != null) {
-                Session session = Session;
-                if (!Client.Data.TryGetBoundRef(trail.Player, out DataPlayerState state) ||
-                    session == null ||
+                Session? session = Session;
+                if (!Client.Data.TryGetBoundRef(trail.Player, out DataPlayerState? state) ||
+                    session == null || state == null ||
                     state.SID != session.Area.SID ||
                     state.Mode != session.Area.Mode ||
                     state.Level != session.Level ||
@@ -378,11 +389,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else {
                     TrailManager.Add(
                         trail.Position,
-                        ghost.Sprite,
-                        ghost.Hair,
+                        ghost?.Sprite,
+                        ghost?.Hair,
                         trail.Scale,
                         trail.Color,
-                        ghost.Depth + 1,
+                        (ghost?.Depth ?? 0) + 1,
                         1f,
                         false,
                         false
@@ -393,7 +404,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         public void Handle(CelesteNetConnection con, DataMoveTo target) {
             RunOnMainThread(() => {
-                Session session = Session;
+                Session? session = Session;
 
                 if (SaveData.Instance == null)
                     SaveData.InitializeDebugMode();
@@ -409,7 +420,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             if (string.IsNullOrEmpty(target.SID))
                                 message = Dialog.Get("postcard_celestenetclient_backtomenu");
 
-                            message = message.Replace("((player))", SaveData.Instance.Name);
+                            message = message.Replace("((player))", SaveData.Instance?.Name);
                             message = message.Replace("((sid))", target.SID);
 
                             LevelEnter.ErrorMessage = message;
@@ -431,7 +442,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     using MemoryStream ms = new();
                     serializer.Serialize(ms, session);
                     ms.Seek(0, SeekOrigin.Begin);
-                    session = (Session) serializer.Deserialize(ms);
+                    session = (Session?) serializer.Deserialize(ms);
                 }
 
                 if (!string.IsNullOrEmpty(target.Level) && session?.MapData.Get(target.Level) != null) {
@@ -442,7 +453,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (session != null) {
                     if (target.Session != null && target.Session.InSession) {
                         DataSession data = target.Session;
-                        session.Audio = data.Audio.ToState();
+                        session.Audio = data.Audio?.ToState();
                         session.RespawnPoint = data.RespawnPoint;
                         session.Inventory = data.Inventory;
                         session.Flags = data.Flags;
@@ -477,10 +488,14 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataPlayerGrabPlayer grab) {
-            if (Client?.Data == null)
+            if (Client?.Data == null || Client.PlayerInfo == null)
                 return;
 
-            Player player = Player;
+            // I guess these shouldn't ever actually be null because of the Filter on it
+            if (grab.Player == null || grab.Grabbing == null)
+                return;
+
+            Player? player = Player;
             if (player != null && !Settings.InGame.Interactions && (grab.Player.ID == Client.PlayerInfo.ID || grab.Grabbing.ID == Client.PlayerInfo.ID))
                 goto Release;
 
@@ -493,7 +508,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     goto Release;
                 }
 
-                if (!Ghosts.TryGetValue(grab.Player.ID, out Ghost ghost)) {
+                if (!Ghosts.TryGetValue(grab.Player.ID, out Ghost? ghost)) {
                     if (grab.Force == null)
                         goto Release;
                     return;
@@ -561,7 +576,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         #region Request Handlers
 
         public void Handle(CelesteNetConnection con, DataSessionRequest request) {
-            Session session = Session;
+            Session? session = Session;
 
             if (session == null) {
                 Client?.Send(new DataSession {
@@ -582,7 +597,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Strawberries = new(session.Strawberries ?? new HashSet<EntityID>()),
                     DoNotLoad = new(session.DoNotLoad ?? new HashSet<EntityID>()),
                     Keys = new(session.Keys ?? new HashSet<EntityID>()),
-                    Counters = new(Session.Counters ?? new List<Session.Counter>()),
+                    Counters = new(session.Counters ?? new List<Session.Counter>()),
                     FurthestSeenLevel = session.FurthestSeenLevel,
                     StartCheckpoint = session.StartCheckpoint,
                     ColorGrade = session.ColorGrade,
@@ -604,24 +619,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         #endregion
 
-        protected bool IsGhostOutside(Session ses, Level level, DataPlayerInfo player, out DataPlayerState state) {
+        protected bool IsGhostOutside(Session? ses, Level? level, DataPlayerInfo? player, [NotNullWhen(false)] out DataPlayerState? state) {
             state = null;
             return
                 level == null ||
                 ses == null ||
-                Client?.Data?.TryGetBoundRef(player, out state) != true ||
+                player == null ||
+                Client?.Data?.TryGetBoundRef(player, out state) != true || state == null ||
                 state.SID != ses.Area.SID ||
                 state.Mode != ses.Area.Mode ||
                 state.Level == LevelDebugMap;
         }
 
         protected Ghost CreateGhost(Level level, DataPlayerInfo player, DataPlayerGraphics graphics) {
-            Ghost ghost;
+            Ghost? ghost;
             lock (Ghosts)
                 if (!Ghosts.TryGetValue(player.ID, out ghost) || ghost == null) {
                     ghost = Ghosts[player.ID] = new(Context, player, graphics.SpriteMode);
                     ghost.Active = false;
-                    ghost.NameTag.Name = player.DisplayName;
+                    if (ghost.NameTag != null)
+                        ghost.NameTag.Name = player.DisplayName;
                     if (ghost.Sprite.Mode != graphics.SpriteMode)
                         UnsupportedSpriteModes.Add(graphics.SpriteMode);
                     RunOnMainThread(() => {
@@ -634,23 +651,30 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             return ghost;
         }
 
-        protected void RemoveGhost(DataPlayerInfo info) {
-            Ghosts.TryRemove(info.ID, out Ghost ghost);
-            ghost?.RunOnUpdate(g => g.NameTag.Name = "");
+        protected void RemoveGhost(DataPlayerInfo? info) {
+            if (info == null)
+                return;
+            Ghosts.TryRemove(info.ID, out Ghost? ghost);
+            ghost?.RunOnUpdate(g => {
+                if (g.NameTag != null)
+                    g.NameTag.Name = "";
+            });
         }
 
-        public void UpdateIdleTag(Entity target, ref GhostEmote idleTag, bool idle) {
-            if (Engine.Scene is not Level level) {
+        public void UpdateIdleTag(Entity? target, ref GhostEmote? idleTag, bool idle) {
+            Level? level = null;
+            if (Engine.Scene is Level l) {
+                level = l;
+            } else {
                 idle = false;
-                level = null;
             }
 
             if (target == null || target.Scene != level)
                 idle = false;
 
             if (idle && idleTag == null) {
-                level.Add(idleTag = new(target, "i:hover/idle") {
-                    Position = target.Position,
+                level?.Add(idleTag = new(target, "i:hover/idle") {
+                    Position = target?.Position ?? new Vector2(),
                     PopIn = true,
                     Float = true
                 });
@@ -662,7 +686,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
-        public EventInstance PlayAudio(Ghost ghost, string sound, Vector2? at, string param = null, float value = 0f) {
+        public EventInstance? PlayAudio(Ghost? ghost, string sound, Vector2? at, string? param = null, float value = 0f) {
             if ((Settings.InGame.Sounds & CelesteNetClientSettings.SyncMode.Receive) == 0)
                 return null;
 
@@ -712,9 +736,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Session = null;
                     WasIdle = false;
                     WasInteractive = false;
-                    AreaKey area = (AreaKey) f_MapEditor_area.GetValue(null);
+                    AreaKey? area = (AreaKey?) f_MapEditor_area?.GetValue(null);
 
-                    if (MapEditorArea == null || MapEditorArea.Value.SID != area.SID || MapEditorArea.Value.Mode != area.Mode) {
+                    if (area != null && (MapEditorArea == null || MapEditorArea.Value.SID != area.Value.SID || MapEditorArea.Value.Mode != area.Value.Mode)) {
                         MapEditorArea = area;
                         SendState();
                     }
@@ -756,9 +780,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.ParticlesBG.Update();
                 if (TrailManager == null || TrailManager.Scene != level)
                     TrailManager = level.Tracker.GetEntity<TrailManager>();
-                if (TrailManager != null)
-                    foreach (TrailManager.Snapshot snapshot in TrailManager.GetSnapshots())
-                        snapshot?.Update();
+                if (TrailManager != null) {
+                    var snapshots = TrailManager.GetSnapshots();
+                    if (snapshots != null)
+                        foreach (TrailManager.Snapshot snapshot in snapshots)
+                            snapshot?.Update();
+                }
             }
 
             if (Player == null || Player.Scene != level) {
@@ -811,9 +838,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             if (PlayerNameTag == null || PlayerNameTag.Tracking != Player || PlayerNameTag.Scene != level) {
                 PlayerNameTag?.RemoveSelf();
-                level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
+                if (Client?.PlayerInfo != null)
+                    level.Add(PlayerNameTag = new(Player, Client.PlayerInfo.DisplayName));
             }
-            PlayerNameTag.Alpha = Settings.InGameHUD.ShowOwnName ? 1f : 0f;
+            if (PlayerNameTag != null)
+                PlayerNameTag.Alpha = Settings.InGameHUD.ShowOwnName ? 1f : 0f;
         }
 
         public override void Tick() {
@@ -850,7 +879,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             SendState();
         }
 
-        public void OnExitLevel(Level level, LevelExit exit, LevelExit.Mode mode, Session session, HiresSnow snow) {
+        public void OnExitLevel(Level? level, LevelExit? exit, LevelExit.Mode mode, Session? session, HiresSnow? snow) {
             Session = null;
             WasIdle = false;
             WasInteractive = false;
@@ -881,12 +910,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             SendState();
             SendGraphics();
 
-            foreach (DataPlayerFrame frame in LastFrames.Values.ToArray())
-                Handle(null, frame);
+            if (Client?.Con != null)
+                foreach (DataPlayerFrame frame in LastFrames.Values.ToArray())
+                    Handle(Client.Con, frame);
         }
 
-        private PlayerDeadBody OnPlayerDie(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats) {
-            PlayerDeadBody body = orig(self, direction, evenIfInvincible, registerDeathInStats);
+        private PlayerDeadBody? OnPlayerDie(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats) {
+            PlayerDeadBody? body = orig(self, direction, evenIfInvincible, registerDeathInStats);
             PlayerBody = body ?? (Entity) self;
             return body;
         }
@@ -912,13 +942,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         private Vector2 OnGetHairScale(On.Celeste.PlayerHair.orig_GetHairScale orig, PlayerHair self, int index) {
-            if (self.Entity is Ghost ghost && ghost.PlayerGraphics.HairScales != null && 0 <= index && index < ghost.PlayerGraphics.HairScales.Length)
+            if (self.Entity is Ghost ghost && ghost.PlayerGraphics?.HairScales != null && 0 <= index && index < ghost.PlayerGraphics.HairScales.Length)
                 return ghost.PlayerGraphics.HairScales[index] * new Vector2((int) ghost.Hair.Facing, 1);
             return orig(self, index);
         }
 
         private MTexture OnGetHairTexture(On.Celeste.PlayerHair.orig_GetHairTexture orig, PlayerHair self, int index) {
-            if (self.Entity is Ghost ghost && ghost.PlayerGraphics.HairTextures != null && 0 <= index && index < ghost.PlayerGraphics.HairTextures.Length && GFX.Game.Textures.TryGetValue(ghost.PlayerGraphics.HairTextures[index], out MTexture tex))
+            if (self.Entity is Ghost ghost && ghost.PlayerGraphics?.HairTextures != null && 0 <= index && index < ghost.PlayerGraphics.HairTextures.Length && GFX.Game.Textures.TryGetValue(ghost.PlayerGraphics.HairTextures[index], out MTexture? tex))
                 return tex;
             return orig(self, index);
         }
@@ -935,7 +965,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private void ILTransitionRoutine(ILContext il) {
             ILCursor c = new(il);
 
-            if (c.TryGotoNext(i => i.MatchLdstr("Celeste"))) {
+            if (c.TryGotoNext(i => i.MatchLdstr("Celeste")) && c.Next != null) {
                 c.Next.Operand = "";
             }
 
@@ -963,12 +993,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");
-                Context.DisposeSafe();
+                Context?.DisposeSafe();
             }
         }
 
         public void SendGraphics() {
-            Player player = Player;
+            Player? player = Player;
             if (player == null || player.Sprite == null || player.Hair == null)
                 return;
 
@@ -1009,17 +1039,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 SentHairLength = hairCount;
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendGraphics:\n{e}");
-                Context.DisposeSafe();
+                Context?.DisposeSafe();
             }
         }
 
         public void SendFrame() {
-            Player player = Player;
+            Player? player = Player;
             if (player == null || player.Sprite == null || player.Hair == null)
                 return;
 
             DataPlayerFrame.Entity[] followers;
-            DataPlayerFrame.Entity holding = null;
+            DataPlayerFrame.Entity? holding = null;
 
             if ((Settings.InGame.Entities & CelesteNetClientSettings.SyncMode.Send) == 0) {
                 followers = Dummy<DataPlayerFrame.Entity>.EmptyArray;
@@ -1027,9 +1057,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Leader leader = player.Get<Leader>();
                 followers = new DataPlayerFrame.Entity[leader.Followers.Count];
                 for (int i = 0; i < followers.Length; i++) {
-                    Entity f = leader.Followers[i]?.Entity;
-                    Sprite s = f?.Get<Sprite>();
-                    if (s == null) {
+                    Entity? f = leader.Followers[i]?.Entity;
+                    Sprite? s = f?.Get<Sprite>();
+                    if (f == null || s == null) {
                         followers[i] = new() {
                             Scale = Vector2.One,
                             Color = Color.White,
@@ -1049,13 +1079,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         Depth = f.Depth,
                         SpriteRate = s.Rate,
                         SpriteJustify = s.Justify,
-                        SpriteID = s.GetID(),
+                        SpriteID = s.GetID() ?? "",
                         CurrentAnimationID = s.CurrentAnimationID,
                         CurrentAnimationFrame = s.CurrentAnimationFrame
                     };
                 }
 
-                Entity holdable = player.Holding?.Entity;
+                Entity? holdable = player.Holding?.Entity;
                 if (holdable != null) {
                     Sprite s = holdable.Get<Sprite>();
                     if (s?.GetType() == typeof(Sprite)) {
@@ -1066,7 +1096,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             Depth = holdable.Depth,
                             SpriteRate = s.Rate,
                             SpriteJustify = s.Justify,
-                            SpriteID = s.GetID(),
+                            SpriteID = s.GetID() ?? "",
                             CurrentAnimationID = s.CurrentAnimationID,
                             CurrentAnimationFrame = s.CurrentAnimationFrame
                         };
@@ -1107,11 +1137,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendFrame:\n{e}");
-                Context.DisposeSafe();
+                Context?.DisposeSafe();
             }
         }
 
-        public void SendAudioPlay(Vector2 pos, string sound, string param = null, float value = 0f) {
+        public void SendAudioPlay(Vector2 pos, string sound, string? param = null, float value = 0f) {
             if ((Settings.InGame.Sounds & CelesteNetClientSettings.SyncMode.Send) == 0)
                 return;
 
@@ -1125,7 +1155,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendAudioPlay:\n{e}");
-                Context.DisposeSafe();
+                Context?.DisposeSafe();
             }
         }
 
@@ -1152,7 +1182,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendDashTrail:\n{e}");
-                Context.DisposeSafe();
+                Context?.DisposeSafe();
             }
         }
 
@@ -1166,7 +1196,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendReleaseMe:\n{e}");
-                Context.DisposeSafe();
+                Context?.DisposeSafe();
             }
         }
 

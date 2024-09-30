@@ -3,21 +3,21 @@
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetLocationInfo {
 
-        public string SID { get; set; }
-        public AreaData Area { get; set; }
-        public string Name { get; set; }
-        public string Side { get; set; }
-        public string Level { get; set; }
-        public string Icon { get; set; }
+        public string? SID { get; set; }
+        public AreaData? Area { get; set; }
+        public string? Name { get; set; }
+        public string? Side { get; set; }
+        public string? Level { get; set; }
+        public string? Icon { get; set; }
         public string EmoteID => string.IsNullOrWhiteSpace(SID) ? "" : $"celestenet_SID_{SID}_";
 
         private bool emoteLoaded = false;
         public string Emote => LoadIconEmote() ? $":{EmoteID}:" : "";
-        public bool IsRandomizer => Name.StartsWith("randomizer/");
+        public bool IsRandomizer => Name?.StartsWith("randomizer/") ?? false;
 
         public CelesteNetLocationInfo() { }
 
-        public CelesteNetLocationInfo(string sid) {
+        public CelesteNetLocationInfo(string? sid) {
             SID = sid;
             Area = AreaData.Get(SID);
 
@@ -29,8 +29,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             if (!IsRandomizer && Area != null) {
                 Icon = Area.Icon;
 
-                string lobbySID = Area?.Meta?.Parent;
-                AreaData lobby = string.IsNullOrEmpty(lobbySID) ? null : AreaData.Get(lobbySID);
+                string? lobbySID = Area?.Meta?.Parent;
+                AreaData? lobby = string.IsNullOrEmpty(lobbySID) ? null : AreaData.Get(lobbySID);
                 if (lobby?.Icon != null)
                     Icon = lobby.Icon;
             }

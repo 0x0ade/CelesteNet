@@ -65,13 +65,13 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
         [SettingIgnore, YamlIgnore]
-        public TextMenu.OnOff EnabledEntry { get; protected set; }
+        public TextMenu.OnOff? EnabledEntry { get; protected set; }
 
         // A button that only shows when the "visible" bool below gets set, to easily allow connecting back to official server
         [SettingIgnore, YamlIgnore]
-        public TextMenu.Button ConnectDefaultButton { get; protected set; }
+        public TextMenu.Button? ConnectDefaultButton { get; protected set; }
         [SettingIgnore, YamlIgnore]
-        public TextMenuExt.EaseInSubHeaderExt ConnectDefaultButtonHint { get; protected set; }
+        public TextMenuExt.EaseInSubHeaderExt? ConnectDefaultButtonHint { get; protected set; }
 
         private bool _ConnectDefaultVisible = false;
         [SettingIgnore, YamlIgnore]
@@ -90,11 +90,11 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public bool AutoReconnect { get; set; } = true;
         [SettingIgnore, YamlIgnore]
-        public TextMenu.OnOff AutoReconnectEntry { get; protected set; }
+        public TextMenu.OnOff? AutoReconnectEntry { get; protected set; }
 
         public bool ReceivePlayerAvatars { get; set; } = true;
         [SettingIgnore, YamlIgnore]
-        public TextMenu.OnOff ReceivePlayerAvatarsEntry { get; protected set; }
+        public TextMenu.OnOff? ReceivePlayerAvatarsEntry { get; protected set; }
 
         public const string DefaultServer = "celeste.0x0a.de";
 
@@ -159,12 +159,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         private string _ServerOverride = "";
 
         [SettingIgnore, YamlIgnore]
-        public TextMenu.Button ServerEntry { get; protected set; }
+        public TextMenu.Button? ServerEntry { get; protected set; }
 
         [SettingIgnore]
-        public string[] ExtraServers { get; set; }
+        public string[] ExtraServers { get; set; } = new string[0];
         [SettingIgnore, YamlIgnore]
-        public TextMenu.Slider ExtraServersEntry { get; protected set; }
+        public TextMenu.Slider? ExtraServersEntry { get; protected set; }
 
 #if !DEBUG
         [SettingSubHeader("modoptions_celestenetclient_subheading_general")]
@@ -200,7 +200,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         public string Name { get; set; } = "Guest";
 
         [SettingIgnore, YamlIgnore]
-        public TextMenu.Button NameEntry { get; protected set; }
+        public TextMenu.Button? NameEntry { get; protected set; }
 
 
         public string Key {
@@ -226,7 +226,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         private string _Key = "";
 
         [SettingIgnore, YamlIgnore]
-        public TextMenu.Button KeyEntry { get; protected set; }
+        public TextMenu.Button? KeyEntry { get; protected set; }
 
         [SettingIgnore, YamlIgnore]
         public string NameKey => _loginMode == LoginModeType.Guest ? Name : Key;
@@ -255,10 +255,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         public ClientIDSendMode ClientIDSending { get; set; } = ClientIDSendMode.NotOnLocalhost;
 
         [SettingIgnore, YamlIgnore]
-        public TextMenu.Button ConnectLocallyButton { get; protected set; }
+        public TextMenu.Button? ConnectLocallyButton { get; protected set; }
 
         [SettingIgnore, YamlIgnore]
-        public TextMenu.Button ResetGeneralButton { get; protected set; }
+        public TextMenu.Button? ResetGeneralButton { get; protected set; }
 
         #endregion
 
@@ -349,7 +349,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
 
             [YamlIgnore]
-            private TextMenu.Slider _OffScreenNameOpacityEntry;
+            private TextMenu.Slider? _OffScreenNameOpacityEntry;
             public int OffScreenNameOpacity { get; set; } = 10;
 
             [SettingRange(0, 20)]
@@ -369,7 +369,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
 
             [YamlIgnore]
-            private TextMenu.Slider _OffScreenEmoteOpacityEntry;
+            private TextMenu.Slider? _OffScreenEmoteOpacityEntry;
             public int OffScreenEmoteOpacity { get; set; } = 10;
 
             [SettingRange(1, 12)]
@@ -447,7 +447,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         [SettingIgnore, YamlIgnore]
-        public TextMenu.Slider UISizeChatSlider { get; protected set; }
+        public TextMenu.Slider? UISizeChatSlider { get; protected set; }
 
         [SettingIgnore, YamlIgnore]
         public int _UISizePlayerList { get; private set; }
@@ -472,7 +472,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
 
         [SettingIgnore, YamlIgnore]
-        public TextMenu.Slider UISizePlayerListSlider { get; protected set; }
+        public TextMenu.Slider? UISizePlayerListSlider { get; protected set; }
 
         [SettingIgnore]
         public float UIScaleOverride { get; set; } = 0f;
@@ -725,79 +725,79 @@ namespace Celeste.Mod.CelesteNet.Client {
         #region Key Bindings
 
         [DefaultButtonBinding(Buttons.Back, Keys.Tab)]
-        public ButtonBinding ButtonPlayerList { get; set; }
+        public ButtonBinding? ButtonPlayerList { get; set; }
 
         [DefaultButtonBinding(0, Keys.T)]
-        public ButtonBinding ButtonChat { get; set; }
+        public ButtonBinding? ButtonChat { get; set; }
 
         [SettingSubHeader("modoptions_celestenetclient_binds_playerlist")]
         [DefaultButtonBinding(Buttons.LeftThumbstickUp, Keys.Up)]
-        public ButtonBinding ButtonPlayerListScrollUp { get; set; }
+        public ButtonBinding? ButtonPlayerListScrollUp { get; set; }
 
         [DefaultButtonBinding(Buttons.LeftThumbstickDown, Keys.Down)]
-        public ButtonBinding ButtonPlayerListScrollDown { get; set; }
+        public ButtonBinding? ButtonPlayerListScrollDown { get; set; }
 
         [SettingSubHeader("modoptions_celestenetclient_binds_chat")]
         [DefaultButtonBinding(0, Keys.Enter)]
-        public ButtonBinding ButtonChatSend { get; set; }
+        public ButtonBinding? ButtonChatSend { get; set; }
 
         [DefaultButtonBinding(0, Keys.Escape)]
-        public ButtonBinding ButtonChatClose { get; set; }
+        public ButtonBinding? ButtonChatClose { get; set; }
 
         [DefaultButtonBinding(Buttons.LeftThumbstickUp, Keys.PageUp)]
-        public ButtonBinding ButtonChatScrollUp { get; set; }
+        public ButtonBinding? ButtonChatScrollUp { get; set; }
 
         [DefaultButtonBinding(Buttons.LeftThumbstickDown, Keys.PageDown)]
-        public ButtonBinding ButtonChatScrollDown { get; set; }
+        public ButtonBinding? ButtonChatScrollDown { get; set; }
 
         //[DefaultButtonBinding(0, Keys.Back)]
-        //public ButtonBinding ButtonChatBackspace { get; set; }
+        //public ButtonBinding? ButtonChatBackspace { get; set; }
 
         //[DefaultButtonBinding(0, Keys.Delete)]
-        //public ButtonBinding ButtonChatDelete { get; set; }
+        //public ButtonBinding? ButtonChatDelete { get; set; }
 
         // TODO: Customize ways to open the emote wheel, which stick or maybe even on KB?
         //[DefaultButtonBinding(0, 0)]
-        //public ButtonBinding ButtonEmoteWheel { get; set; }
+        //public ButtonBinding? ButtonEmoteWheel { get; set; }
 
         [SettingSubHeader("modoptions_celestenetclient_binds_emote")]
         [DefaultButtonBinding(Buttons.RightStick, Keys.Q)]
-        public ButtonBinding ButtonEmoteWheelSend { get; set; }
+        public ButtonBinding? ButtonEmoteWheelSend { get; set; }
 
         [DefaultButtonBinding(0, Keys.D1)]
-        public ButtonBinding ButtonEmote1 { get; set; }
+        public ButtonBinding? ButtonEmote1 { get; set; }
 
         [DefaultButtonBinding(0, Keys.D2)]
-        public ButtonBinding ButtonEmote2 { get; set; }
+        public ButtonBinding? ButtonEmote2 { get; set; }
 
         [DefaultButtonBinding(0, Keys.D3)]
-        public ButtonBinding ButtonEmote3 { get; set; }
+        public ButtonBinding? ButtonEmote3 { get; set; }
 
         [DefaultButtonBinding(0, Keys.D4)]
-        public ButtonBinding ButtonEmote4 { get; set; }
+        public ButtonBinding? ButtonEmote4 { get; set; }
 
         [DefaultButtonBinding(0, Keys.D5)]
-        public ButtonBinding ButtonEmote5 { get; set; }
+        public ButtonBinding? ButtonEmote5 { get; set; }
 
         [DefaultButtonBinding(0, Keys.D6)]
-        public ButtonBinding ButtonEmote6 { get; set; }
+        public ButtonBinding? ButtonEmote6 { get; set; }
 
         [DefaultButtonBinding(0, Keys.D7)]
-        public ButtonBinding ButtonEmote7 { get; set; }
+        public ButtonBinding? ButtonEmote7 { get; set; }
 
         [DefaultButtonBinding(0, Keys.D8)]
-        public ButtonBinding ButtonEmote8 { get; set; }
+        public ButtonBinding? ButtonEmote8 { get; set; }
 
         [DefaultButtonBinding(0, Keys.D9)]
-        public ButtonBinding ButtonEmote9 { get; set; }
+        public ButtonBinding? ButtonEmote9 { get; set; }
 
         [DefaultButtonBinding(0, Keys.D0)]
-        public ButtonBinding ButtonEmote10 { get; set; }
+        public ButtonBinding? ButtonEmote10 { get; set; }
 
         #endregion
 
         [SettingIgnore]
-        public string[] Emotes { get; set; }
+        public string[] Emotes { get; set; } = new string[0];
 
         #region Helpers
 
@@ -810,7 +810,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingIgnore, YamlIgnore]
         public string Host {
             get {
-                string server = EffectiveServer?.ToLowerInvariant();
+                string server = EffectiveServer.ToLowerInvariant();
                 int indexOfPort;
                 if (!string.IsNullOrEmpty(server) &&
                     (indexOfPort = server.LastIndexOf(':')) != -1 &&
@@ -845,7 +845,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             return item;
         }
 
-        public TextMenu.Button CreateMenuButton(TextMenu menu, string dialogLabel, Func<string, string> dialogTransform, Action onPress)
+        public TextMenu.Button CreateMenuButton(TextMenu menu, string dialogLabel, Func<string, string>? dialogTransform, Action onPress)
         {
             string label = $"modoptions_celestenetclient_{dialogLabel}".DialogClean();
             TextMenu.Button item = new TextMenu.Button(dialogTransform?.Invoke(label) ?? label);
@@ -1145,12 +1145,12 @@ namespace Celeste.Mod.CelesteNet.Client {
         public bool EmoteWheel { get; set; } = true;
 
         [DefaultButtonBinding(Buttons.Back, Keys.Tab)]
-        public ButtonBinding ButtonPlayerList { get; set; }
+        public ButtonBinding? ButtonPlayerList { get; set; }
 
         [DefaultButtonBinding(0, Keys.T)]
-        public ButtonBinding ButtonChat { get; set; }
+        public ButtonBinding? ButtonChat { get; set; }
 
-        public string[] Emotes { get; set; }
+        public string[] Emotes { get; set; } = new string[0];
 
     }
 }

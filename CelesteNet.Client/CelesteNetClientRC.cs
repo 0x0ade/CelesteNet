@@ -12,8 +12,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private static readonly char[] URLArgsSeperator = new[] { '&' };
 
-        private static HttpListener Listener;
-        private static Thread ListenerThread;
+        private static HttpListener? Listener;
+        private static Thread? ListenerThread;
 
         public static void Initialize() {
             if (Listener != null)
@@ -51,7 +51,11 @@ namespace Celeste.Mod.CelesteNet.Client {
             try {
                 while (Listener?.IsListening ?? false) {
                     ThreadPool.QueueUserWorkItem(c => {
-                        HttpListenerContext context = c as HttpListenerContext;
+
+                        HttpListenerContext? context = c as HttpListenerContext;
+
+                        if (context == null)
+                            return;
 
                         if (context.Request.HttpMethod == "OPTIONS") {
                             context.Response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-Requested-With");
@@ -94,25 +98,31 @@ namespace Celeste.Mod.CelesteNet.Client {
         private static void HandleRequest(HttpListenerContext c) {
             Logger.Log(LogLevel.VVV, "rc", $"Requested: {c.Request.RawUrl}");
 
-            string url = c.Request.RawUrl;
-            int indexOfSplit = url.IndexOf('?');
-            if (indexOfSplit != -1)
-                url = url.Substring(0, indexOfSplit);
+            string? url = c.Request.RawUrl;
+            if (url != null)
+            {
+                int indexOfSplit = url.IndexOf('?');
+                if (indexOfSplit != -1)
+                    url = url.Substring(0, indexOfSplit);
+            }
 
-            RCEndPoint endpoint =
+            RCEndPoint? endpoint =
                 EndPoints.FirstOrDefault(ep => ep.Path == c.Request.RawUrl) ??
                 EndPoints.FirstOrDefault(ep => ep.Path == url) ??
                 EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == c.Request.RawUrl.ToLowerInvariant()) ??
                 EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == url.ToLowerInvariant()) ??
                 EndPoints.FirstOrDefault(ep => ep.Path == "/404");
-            endpoint.Handle(c);
+            endpoint?.Handle(c);
         }
 
 
         #region Read / Parse Helpers
 
-        public static NameValueCollection ParseQueryString(string url) {
+        public static NameValueCollection ParseQueryString(string? url) {
             NameValueCollection nvc = new();
+
+            if (url == null)
+                return nvc;
 
             int indexOfSplit = url.IndexOf('?');
             if (indexOfSplit == -1)

@@ -12,8 +12,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public static bool IsDrawingUI;
 
-        public CelesteNetClientContext Context;
-        public CelesteNetClient Client => Context?.Client;
+        public CelesteNetClientContext? Context;
+        public CelesteNetClient? Client => Context?.Client;
         public CelesteNetClientSettings ClientSettings => Context?.Client?.Settings ?? CelesteNetClientModule.Settings;
         public CelesteNetClientSettings Settings => CelesteNetClientModule.Settings;
 
@@ -50,10 +50,10 @@ namespace Celeste.Mod.CelesteNet.Client {
         public virtual void Tick() {
         }
 
-        protected virtual void Render(GameTime gameTime, bool toBuffer) {
+        protected virtual void Render(GameTime? gameTime, bool toBuffer) {
         }
 
-        protected virtual void RenderContentWrap(GameTime gameTime, bool toBuffer) {
+        protected virtual void RenderContentWrap(GameTime? gameTime, bool toBuffer) {
             MDraw.SpriteBatch.Begin(
                 SpriteSortMode.Deferred,
                 BlendState.AlphaBlend,
@@ -69,10 +69,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             MDraw.SpriteBatch.End();
         }
 
-        public override void Draw(GameTime gameTime) {
+        public override void Draw(GameTime? gameTime) {
             if (IsDrawingUI) {
                 RenderContentWrap(gameTime, true);
-            } else if (!IsDrawingUI && ((Context?.IsDisposed ?? true) || CelesteNetClientModule.Instance.UIRenderTarget == null)) {
+            } else if (((Context?.IsDisposed ?? true) || CelesteNetClientModule.Instance.UIRenderTarget == null)) {
                 RenderContentWrap(gameTime, false);
             }
             if (CelesteNetClientModule.Instance.UIRenderTarget == null)
@@ -103,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         protected void RunOnMainThread(Action action, bool wait = false)
-            => Context._RunOnMainThread(action, wait);
+            => Context?._RunOnMainThread(action, wait);
 
     }
 }

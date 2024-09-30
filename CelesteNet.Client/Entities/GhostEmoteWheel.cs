@@ -82,7 +82,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             // Update can halt in the pause menu.
 
             if (Shown) {
-                Angle = CelesteNetClientModule.Instance.JoystickEmoteWheel.Value.Angle();
+                Angle = CelesteNetClientModule.Instance.JoystickEmoteWheel?.Value.Angle() ?? 0.0f;
                 float angle = (float) ((Angle + Math.PI * 2f) % (Math.PI * 2f));
                 float start = (-0.5f / emotes.Length) * 2f * (float) Math.PI;
                 if (2f * (float) Math.PI + start < angle) {
@@ -200,7 +200,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 ) * radius;
 
                 if (GhostEmote.IsIcon(emote)) {
-                    MTexture icon = GhostEmote.GetIcon(emote, Selected == i ? selectedTime : 0f);
+                    MTexture? icon = GhostEmote.GetIcon(emote, Selected == i ? selectedTime : 0f);
                     if (icon == null)
                         continue;
 

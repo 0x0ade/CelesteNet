@@ -17,10 +17,10 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public readonly DataContext Data;
 
-        public CelesteNetConnection Con;
+        public CelesteNetConnection? Con;
         public readonly IConnectionFeature[] ConFeatures;
         public volatile bool EndOfStream = false, SafeDisposeTriggered = false, Disposed = false;
-        public ConnectionErrorCodeException LastConnectionError;
+        public ConnectionErrorCodeException? LastConnectionError;
 
         private bool _IsAlive;
         public bool IsAlive {
@@ -36,11 +36,11 @@ namespace Celeste.Mod.CelesteNet.Client {
         public bool IsReady { get; protected set; }
         private readonly ManualResetEventSlim _ReadyEvent;
 
-        public DataPlayerInfo PlayerInfo;
+        public DataPlayerInfo? PlayerInfo;
 
         private readonly object StartStopLock = new();
 
-        private System.Timers.Timer HeartbeatTimer;
+        private System.Timers.Timer? HeartbeatTimer;
 
         public CelesteNetClient()
             : this(new(), new()) {
@@ -86,7 +86,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     continue;
                 }
 
-                IConnectionFeature feature = (IConnectionFeature) Activator.CreateInstance(type);
+                IConnectionFeature? feature = (IConnectionFeature?) Activator.CreateInstance(type);
                 if (feature == null)
                     throw new Exception($"Cannot create instance of connection feature {type.FullName}");
                 Logger.Log(LogLevel.VVV, "main", $"Found connection feature: {type.FullName}");
@@ -123,7 +123,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             sockAll.Add(new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp));
                         if (Socket.OSSupportsIPv4)
                             sockAll.Add(new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp));
-                        Socket sock = null;
+                        Socket? sock = null;
                         LastConnectionError = null;
                         try {
                             uint conToken;
@@ -138,9 +138,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                                     sockTry.Dispose();
                                 }
                             })) {
-                                Exception sockEx = null;
+                                Exception? sockEx = null;
                                 IPAddress[] addresses = Dns.GetHostAddresses(Settings.Host);
-                                Tuple<uint, IConnectionFeature[], CelesteNetTCPUDPConnection.Settings> teapotRes = null;
+                                Tuple<uint, IConnectionFeature[], CelesteNetTCPUDPConnection.Settings>? teapotRes = null;
 
                                 foreach (Socket sockTry in sockAll)
                                     Logger.Log(LogLevel.DBG, "main", $"... with socket type {sockTry.AddressFamily}");
@@ -205,7 +205,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 conToken = teapotRes.Item1;
                                 conFeatures = teapotRes.Item2;
                                 settings = teapotRes.Item3;
-                                Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {conToken} conFeatures '{conFeatures.Select(f => f.GetType().FullName).Aggregate((string) null, (a, f) => (a == null) ? f : $"{a}, {f}")}'");
+                                Logger.Log(LogLevel.INF, "main", $"Teapot handshake success: token {conToken} conFeatures '{conFeatures.Select(f => f.GetType().FullName).Aggregate((string?) null, (a, f) => (a == null) ? f : $"{a}, {f}")}'");
                                 sock.ReceiveTimeout = sock.SendTimeout = (int) (settings.HeartbeatInterval * settings.MaxHeartbeatDelay);
                             }
 
@@ -219,7 +219,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             HeartbeatTimer = new(settings.HeartbeatInterval);
                             HeartbeatTimer.AutoReset = true;
                             HeartbeatTimer.Elapsed += (_, _) => {
-                                string disposeReason = con.DoHeartbeatTick();
+                                string? disposeReason = con.DoHeartbeatTick();
                                 if (disposeReason != null) {
                                     Logger.Log(LogLevel.CRI, "main", disposeReason);
                                     Dispose();
@@ -228,7 +228,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                             HeartbeatTimer.Start();
 
                             // Do the regular connection handshake
-                            Handshake.DoConnectionHandshake(Con, conFeatures, token);
+                            Handshake.DoConnectionHandshake(con, conFeatures, token);
                             Logger.Log(LogLevel.INF, "main", $"Connection handshake success");
 
                             Con = con;
@@ -305,14 +305,18 @@ namespace Celeste.Mod.CelesteNet.Client {
         }
 
         public DataType SendAndHandle(DataType data) {
-            Con?.Send(data);
-            Data.Handle(null, data);
+            if (Con != null) {
+                Con.Send(data);
+                Data.Handle(Con, data);
+            }
             return data;
         }
 
         public T SendAndHandle<T>(T data) where T : DataType<T> {
-            Con?.Send(data);
-            Data.Handle(null, data);
+            if (Con != null) {
+                Con.Send(data);
+                Data.Handle(Con, data);
+            }
             return data;
         }
 

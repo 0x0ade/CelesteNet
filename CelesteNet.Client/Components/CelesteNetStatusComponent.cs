@@ -7,8 +7,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components
     public class CelesteNetStatusComponent : CelesteNetGameComponent {
 
         private bool show;
-        private MTexture texture;
-        private string text;
+        private MTexture? texture;
+        private string? text;
         private float time;
         private float timeSpin;
         private const float timeIn = 0.3f;
@@ -20,7 +20,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
         private bool spin = false;
         private float spinSpeed = 0f;
 
-        public string Text => show ? text : null;
+        public string? Text => show ? text : null;
         public float Time => show ? timeTextMax : timeText;
         public bool Spin => spin;
         public bool IsVisible => show;
@@ -56,7 +56,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                 return;
             }
 
-            DataDisconnectReason reason = CelesteNetClientModule.Instance.lastDisconnectReason;
+            DataDisconnectReason? reason = CelesteNetClientModule.Instance.lastDisconnectReason;
 
             if (dcReason && reason != null && !reason.Text.IsNullOrEmpty()) {
                 text += $" ({reason.Text})";
@@ -106,12 +106,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                 Dispose();
         }
 
-        public override void Draw(GameTime gameTime) {
+        public override void Draw(GameTime? gameTime) {
             if (show || time != 0f)
                 base.Draw(gameTime);
         }
 
-        protected override void Render(GameTime gameTime, bool toBuffer) {
+        protected override void Render(GameTime? gameTime, bool toBuffer) {
             float a = Ease.SineInOut(show ? (time / timeIn) : (1f - (time - timeIn) / timeOut));
 
             Vector2 anchor = new(96f, UI_HEIGHT - 96f);
@@ -128,7 +128,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             }
 
             pos = anchor + new Vector2(48f, 0f);
-            string text = this.text;
+            string? text = this.text;
             if (!string.IsNullOrEmpty(text) && Dialog.Language != null && CelesteNetClientFont.Font != null) {
                 Vector2 size = CelesteNetClientFont.Measure(text);
                 CelesteNetClientFont.DrawOutline(text, pos + new Vector2(size.X * 0.5f, 0f), new(0.5f, 0.5f), Vector2.One * MathHelper.Lerp(0.8f, 1f, Ease.CubeOut(a)), Color.White * a, 2f, Color.Black * a * a * a * a);

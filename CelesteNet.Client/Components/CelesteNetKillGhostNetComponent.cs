@@ -5,8 +5,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components
 {
     public class CelesteNetKillGhostNetComponent : CelesteNetGameComponent {
 
-        public object GhostNetModule;
-        public FieldInfo m_GhostNetModule_Client;
+        public object? GhostNetModule = null;
+        public FieldInfo? m_GhostNetModule_Client;
 
         public CelesteNetKillGhostNetComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -27,7 +27,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             base.Update(gameTime);
 
             if (m_GhostNetModule_Client?.GetValue(GhostNetModule) != null) {
-                Context.Status.Set("Disconnected from CelesteNet, connected to GhostNet", 10, false);
+                Context?.Status?.Set("Disconnected from CelesteNet, connected to GhostNet", 10, false);
                 Settings.Connected = false;
             }
         }

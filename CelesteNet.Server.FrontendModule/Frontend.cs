@@ -141,7 +141,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 "sess_join", PlayerSessionToFrontend(session, frontendWS.IsAuthorized, true)
             ));
             TryBroadcastUpdate(Settings.APIPrefix + "/status");
-            //TryBroadcastUpdate(Settings.APIPrefix + "/players");
             session.OnEnd += OnSessionEnd;
         }
 
@@ -150,7 +149,6 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 "sess_leave", PlayerSessionToFrontend(session, frontendWS.IsAuthorized, true)
             ));
             TryBroadcastUpdate(Settings.APIPrefix + "/status");
-            //TryBroadcastUpdate(Settings.APIPrefix + "/players");
         }
 
         private void OnDisconnect(CelesteNetServer server, CelesteNetConnection con, CelesteNetPlayerSession? session) {
@@ -163,7 +161,9 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         private void OnChannelMove(CelesteNetPlayerSession session, Channel? from, Channel? to) {
-            BroadcastCMD(false, "chan_move",
+            BroadcastCMD(
+                from?.IsPrivate == true || to?.IsPrivate == true,
+                "chan_move",
                 new {
                     session.SessionID,
                     fromID = from?.ID,
@@ -185,7 +185,11 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         }
 
         private void OnRemoveChannel(string name, uint id, int total) {
-            BroadcastCMD(false, "chan_remove",
+            // it would've been better to also pass the `Channel` instance into this tbh
+            // but I'm not gonna change the event/delegate signature at this point...
+            BroadcastCMD(
+                name.StartsWith(Channels.PrefixPrivate),
+                "chan_remove",
                 new {
                     Name = name,
                     ID = id,

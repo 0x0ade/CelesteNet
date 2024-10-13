@@ -28,6 +28,9 @@ namespace Celeste.Mod.CelesteNet.Client {
         public override Type SettingsType => typeof(CelesteNetClientSettings);
         public static CelesteNetClientSettings Settings => (CelesteNetClientSettings) Instance._Settings;
 
+        public override Type SessionType => typeof(CelesteNetClientSession);
+        public static CelesteNetClientSession Session => (CelesteNetClientSession)Instance._Session;
+
         public CelesteNetClientContext? ContextLast;
         public CelesteNetClientContext? Context;
 

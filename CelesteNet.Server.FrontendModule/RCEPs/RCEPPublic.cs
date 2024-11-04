@@ -198,7 +198,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 string key = f.Server.UserData.Create(uid, false);
                 BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
 
-                if ((userData.global_name?.ToString() ?? userData.display_name?.ToString()) is string global_name && !global_name.IsNullOrEmpty())
+                if ((userData.global_name?.ToString() ?? userData.display_name?.ToString() ?? userData.login?.ToString()) is string global_name && !global_name.IsNullOrEmpty())
                 {
                     info.Name = global_name;
                 }

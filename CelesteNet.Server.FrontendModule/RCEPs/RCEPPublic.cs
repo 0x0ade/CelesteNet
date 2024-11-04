@@ -174,8 +174,12 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     });
                     return;
                 }
-                Logger.Log(LogLevel.CRI, "frontend-standardauth", $"UserData-pre: {userData}");
-                userData = userData?.data[0] ?? userData;
+                try
+                {
+                    userData = userData?.data[0];
+                } catch (Exception ex) {
+                    userData = userData;
+                }
                 
                 if (!(userData?.id?.ToString() is string uid) ||
                     uid.IsNullOrEmpty())

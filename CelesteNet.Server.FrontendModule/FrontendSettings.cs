@@ -24,16 +24,16 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
         // TODO: Separate Discord auth module!
         [YamlIgnore]
-        public string DiscordOAuthURL => $"https://discord.com/oauth2/authorize?client_id={DiscordOAuthClientID}&redirect_uri={Uri.EscapeDataString(DiscordOAuthRedirectURL)}&response_type=code&scope=identify";
+        public string DiscordOAuthURL => $"https://discord.com/oauth2/authorize?client_id={DiscordOAuthClientID}&redirect_uri={Uri.EscapeDataString(DiscordOAuthRedirectURL)}&response_type=code&scope=identify&state=discord";
         [YamlIgnore]
-        public string DiscordOAuthRedirectURL => $"{CanonicalAPIRoot}/discordauth";
+        public string DiscordOAuthRedirectURL => $"{CanonicalAPIRoot}/standardauth";
         public string DiscordOAuthClientID { get; set; } = "";
         public string DiscordOAuthClientSecret { get; set; } = "";
 
         [YamlIgnore]
-        public string TwitchOAuthURL => $"https://id.twitch.tv/oauth2/authorize?response_type=code&client_id={TwitchOAuthClientID}&redirect_uri={Uri.EscapeDataString(TwitchOAuthRedirectURL)}&response_type=code";
+        public string TwitchOAuthURL => $"https://id.twitch.tv/oauth2/authorize?response_type=code&client_id={TwitchOAuthClientID}&redirect_uri={Uri.EscapeDataString(TwitchOAuthRedirectURL)}&response_type=code&state=twitch";
         [YamlIgnore]
-        public string TwitchOAuthRedirectURL => $"{CanonicalAPIRoot}/twitchauth";
+        public string TwitchOAuthRedirectURL => $"{CanonicalAPIRoot}/standardauth";
         public string TwitchOAuthClientID { get; set; } = "";
         public string TwitchOAuthClientSecret { get; set; } = "";
 

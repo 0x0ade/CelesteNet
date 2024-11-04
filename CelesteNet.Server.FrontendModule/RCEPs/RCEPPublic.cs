@@ -178,7 +178,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                 {
                     userData = userData?.data[0];
                 } catch (Exception ex) {
-                    userData = userData;
+                    Logger.Log(LogLevel.DEV, "frontend-standardauth", $"No \"data\" array in userData: {ex}");
                 }
                 
                 if (!(userData?.id?.ToString() is string uid) ||

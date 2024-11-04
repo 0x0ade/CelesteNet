@@ -193,6 +193,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     return;
                 }
 
+                string pfpId = uid;
+                uid = $"{uid}-{args["state"]}";
                 string key = f.Server.UserData.Create(uid, false);
                 BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
 
@@ -221,7 +223,7 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                         try
                         {
                             using Stream s = client.GetAsync(
-                                $"https://cdn.discordapp.com/avatars/{uid}/{userData.avatar.ToString()}.png?size=64"
+                                $"https://cdn.discordapp.com/avatars/{pfpId}/{userData.avatar.ToString()}.png?size=64"
                             ).Await().Content.ReadAsStreamAsync().Await();
                             avatarOrig = Image.Load<Rgba32>(s);
                         }

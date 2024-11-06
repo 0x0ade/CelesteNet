@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Timers;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.CelesteNet.Server.Chat;
@@ -25,6 +26,8 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
         public readonly HashSet<string> CurrentSessionExecKeys = new();
 
         public readonly Dictionary<string, BasicUserInfo> TaggedUsers = new();
+
+        public readonly RSA RSAKeysOAuth = RSA.Create();
 
         private HttpServer? HTTPServer;
         private WebSocketServiceHost? WSHost;
@@ -498,6 +501,18 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     Logger.Log(LogLevel.VVV, "frontend", $"Failed broadcasting:\n{frontendWS.CurrentEndPoint}\n{e}");
                 }
             }
+        }
+
+        public static string SignString(RSA keys, string content) {
+            var signData = System.Text.Encoding.UTF8.GetBytes(content);
+            var signature = keys.SignData(signData, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
+            return Convert.ToBase64String(signature);
+        }
+
+        public static bool VerifyString(RSA keys, string content, string signature) {
+            var signData = System.Text.Encoding.UTF8.GetBytes(content);
+            var signatureData = Convert.FromBase64String(signature);
+            return keys.VerifyData(signData, signatureData, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
         }
 
         #region Read / Parse Helpers

@@ -410,7 +410,11 @@ namespace Celeste.Mod.CelesteNet {
                 try {
                     data.WriteAll(writer);
                 } catch (Exception e) {
-                    throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
+                    if (IsOtherModDataType(data.GetType())) {
+                        Logger.Log(LogLevel.CRI, "data", $"Error writing DataType '{data.GetTypeID(this)}', from source {data.GetSource(this)}");
+                        Logger.LogDetailedException(e);
+                    } else
+                        throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
                 }
 
                 return (int) (writer.BaseStream.Position - start);
@@ -432,7 +436,11 @@ namespace Celeste.Mod.CelesteNet {
             try {
                 data.WriteAll(writer);
             } catch (Exception e) {
-                throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
+                if (IsOtherModDataType(data.GetType())) {
+                    Logger.Log(LogLevel.CRI, "data", $"Error writing DataType '{data.GetTypeID(this)}', from source {data.GetSource(this)}");
+                    Logger.LogDetailedException(e);
+                } else
+                    throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
             }
 
             writer.UpdateSizeDummy();

@@ -163,7 +163,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                     TCPHeartbeat();
 
                     // Read the packet
-                    DataType packet;
+                    DataType? packet;
                     using (MemoryStream packetStream = new(packetBuffer, 2, packetSize))
                     using (CelesteNetBinaryReader packetReader = new(Data, Strings, CoreTypeMap, packetStream)) {
                         packet = Data.Read(packetReader);
@@ -172,30 +172,31 @@ namespace Celeste.Mod.CelesteNet.Client {
                     }
 
                     // Handle the packet
-                    switch (packet) {
-                        case DataLowLevelPingRequest pingReq: {
-                            TCPQueue.Enqueue(new DataLowLevelPingReply() {
-                                PingTime = pingReq.PingTime
-                            });
-                            break;
-                        }
-                        case DataLowLevelUDPInfo udpInfo: {
-                            HandleUDPInfo(udpInfo);
-                            break;
-                        }
-                        case DataLowLevelStringMap strMap: {
-                            Strings.RegisterWrite(strMap.String, strMap.ID);
-                            break;
-                        }
-                        case DataLowLevelCoreTypeMap coreTypeMap: {
-                            if (coreTypeMap.PacketType != null)
-                                CoreTypeMap.RegisterWrite(coreTypeMap.PacketType, coreTypeMap.ID);
-                            break;
-                        }
-                        default: {
-                            Receive(packet);
-                            break;
-                        }
+                    if (packet != null)
+                        switch (packet) {
+                            case DataLowLevelPingRequest pingReq: {
+                                TCPQueue.Enqueue(new DataLowLevelPingReply() {
+                                    PingTime = pingReq.PingTime
+                                });
+                                break;
+                            }
+                            case DataLowLevelUDPInfo udpInfo: {
+                                HandleUDPInfo(udpInfo);
+                                break;
+                            }
+                            case DataLowLevelStringMap strMap: {
+                                Strings.RegisterWrite(strMap.String, strMap.ID);
+                                break;
+                            }
+                            case DataLowLevelCoreTypeMap coreTypeMap: {
+                                if (coreTypeMap.PacketType != null)
+                                    CoreTypeMap.RegisterWrite(coreTypeMap.PacketType, coreTypeMap.ID);
+                                break;
+                            }
+                            default: {
+                                Receive(packet);
+                                break;
+                            }
                     }
 
                     // Promote optimizations
@@ -250,23 +251,24 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                             // Read packets until we run out data
                             while (mStream.Position < dgSize - 1) {
-                                DataType packet = Data.Read(reader);
-                                if (packet.TryGet<MetaOrderedUpdate>(Data, out MetaOrderedUpdate orderedUpdate))
+                                DataType? packet = Data.Read(reader);
+                                if (packet != null && packet.TryGet<MetaOrderedUpdate>(Data, out MetaOrderedUpdate orderedUpdate))
                                     orderedUpdate.UpdateID = containerID;
 
                                 // Handle packet
-                                switch (packet) {
-                                    case DataLowLevelPingRequest pingReq: {
-                                        UDPQueue.Enqueue(new DataLowLevelPingReply() {
-                                            PingTime = pingReq.PingTime
-                                        });
-                                        break;
+                                if (packet != null)
+                                    switch (packet) {
+                                        case DataLowLevelPingRequest pingReq: {
+                                            UDPQueue.Enqueue(new DataLowLevelPingReply() {
+                                                PingTime = pingReq.PingTime
+                                            });
+                                            break;
+                                        }
+                                        default: {
+                                            Receive(packet);
+                                            break;
+                                        }
                                     }
-                                    default: {
-                                        Receive(packet);
-                                        break;
-                                    }
-                                }
                             }
                         }
 

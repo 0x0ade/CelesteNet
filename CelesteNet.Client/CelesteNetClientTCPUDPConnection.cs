@@ -33,7 +33,12 @@ namespace Celeste.Mod.CelesteNet.Client {
             TCPReadStream = new BufferedStream(TCPNetStream);
             TCPWriteStream = new BufferedStream(TCPNetStream);
             UDPSocket = new(tcpSock.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-            UDPSocket.Connect(tcpSock.RemoteEndPoint);
+
+            if (tcpSock.RemoteEndPoint != null) {
+                UDPSocket.Connect(tcpSock.RemoteEndPoint);
+            } else {
+                UseUDP = false;
+            }
 
             OnUDPDeath += (_, _) => {
                 if (!IsAlive)

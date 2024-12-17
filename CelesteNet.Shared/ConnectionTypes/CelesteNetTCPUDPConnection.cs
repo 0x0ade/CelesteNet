@@ -123,7 +123,7 @@ namespace Celeste.Mod.CelesteNet
                 });
         }
 
-        public virtual void InitUDP(EndPoint endpoint, int conId, int maxDatagramSize) {
+        public virtual void InitUDP(EndPoint? endpoint, int conId, int maxDatagramSize) {
             lock (UDPLock) {
                 // Can't initialize two connections at once
                 if (!UseUDP || UDPEndpoint != null)

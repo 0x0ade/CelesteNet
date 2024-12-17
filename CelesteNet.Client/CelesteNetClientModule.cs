@@ -233,7 +233,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             try {
                 using Stream stream = File.OpenRead(path);
                 using StreamReader input = new StreamReader(stream);
-                YamlHelper.DeserializerUsing(settingsOld).Deserialize(input, typeof(CelesteNetClientSettingsBeforeVersion2));
+                YamlHelper.DeserializerUsing(settingsOld!).Deserialize(input, typeof(CelesteNetClientSettingsBeforeVersion2));
             } catch (Exception) {
                 Logger.LogDetailed(LogLevel.WRN, "CelesteNetModule", "Failed to load old settings at " + path + " as CelesteNetClientSettingsBeforeVersion2");
                 return false;

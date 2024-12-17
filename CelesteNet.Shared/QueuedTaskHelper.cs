@@ -91,7 +91,7 @@ namespace Celeste.Mod.CelesteNet {
 
             Delegate[] invocationList = md.GetInvocationList();
             for (int i = 0; i < invocationList.Length; i++) {
-                if (!(bool)invocationList[i].DynamicInvoke(args)) {
+                if (!(bool)(invocationList[i].DynamicInvoke(args) ?? false)) {
                     return false;
                 }
             }

@@ -10,7 +10,6 @@ using Celeste.Editor;
 using Celeste.Mod.CelesteNet.Client.Entities;
 using Celeste.Mod.CelesteNet.DataTypes;
 using Celeste.Mod.Core;
-using Celeste.Mod.Helpers;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Mono.Cecil.Cil;
@@ -254,13 +253,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (UnsupportedSpriteModes.Contains(graphics.SpriteMode))
                 graphics.SpriteMode = PlayerSpriteMode.Madeline;
 
-            if (graphics.Player == null || !Ghosts.TryGetValue(graphics.Player.ID, out Ghost? ghost) || ghost?.Sprite?.Mode != graphics.SpriteMode) {
+            if (graphics.Player == null)
+                return;
+
+            if (!Ghosts.TryGetValue(graphics.Player.ID, out Ghost? ghost) || ghost?.Sprite?.Mode != graphics.SpriteMode) {
                 RemoveGhost(graphics.Player);
                 ghost = null;
             }
 
-            Level? level = PlayerBody?.Scene as Level;
-            if (ghost == null && level != null && graphics.Player != null && !IsGhostOutside(Session, level, graphics.Player, out _))
+            if (ghost == null && PlayerBody?.Scene is Level level && !IsGhostOutside(Session, level, graphics.Player, out _))
                 ghost = CreateGhost(level, graphics.Player, graphics);
 
             if (ghost != null) {
@@ -281,22 +282,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 LastFrames[frame.Player.ID] = frame;
 
             Session? session = Session;
-            Level? level = PlayerBody?.Scene as Level;
-            bool outside = IsGhostOutside(session, level, frame.Player, out DataPlayerState? state);
 
-            if (frame.Player == null || !Ghosts.TryGetValue(frame.Player.ID, out Ghost? ghost) ||
-                ghost == null || level == null ||
-                (ghost.Active && ghost.Scene != level) ||
-                outside) {
+            //Level? level = PlayerBody?.Scene as Level;
+            //bool outside = IsGhostOutside(session, level, frame.Player, out DataPlayerState? state);
+
+            if (PlayerBody?.Scene is not Level level || IsGhostOutside(session, level, frame.Player, out DataPlayerState? state)) {
+                RemoveGhost(frame.Player);
+                return;
+            }
+
+            Ghost? ghost = null;
+            if (frame.Player != null)
+                Ghosts.TryGetValue(frame.Player.ID, out ghost);
+
+            if (ghost == null || (ghost.Active && ghost.Scene != level)) {
                 RemoveGhost(frame.Player);
                 ghost = null;
             }
 
-            if (level == null || outside)
-                return;
-
             if (ghost == null && frame.Player != null) {
-                if (!Client.Data.TryGetBoundRef<DataPlayerInfo, DataPlayerGraphics>(frame.Player, out DataPlayerGraphics? graphics) || graphics == null)
+                if (!Client.Data.TryGetBoundRef(frame.Player, out DataPlayerGraphics? graphics) || graphics == null)
                     return;
                 ghost = CreateGhost(level, frame.Player, graphics);
             }
@@ -662,15 +667,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void UpdateIdleTag(Entity? target, ref GhostEmote? idleTag, bool idle) {
-            Level? level = null;
-            if (Engine.Scene is Level l) {
-                level = l;
-            } else {
+            Level? level = Engine.Scene as Level;
+            if (level == null || target == null || target.Scene != level) {
                 idle = false;
             }
-
-            if (target == null || target.Scene != level)
-                idle = false;
 
             if (idle && idleTag == null) {
                 level?.Add(idleTag = new(target, "i:hover/idle") {
@@ -736,9 +736,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Session = null;
                     WasIdle = false;
                     WasInteractive = false;
-                    AreaKey? area = (AreaKey?) f_MapEditor_area?.GetValue(null);
 
-                    if (area != null && (MapEditorArea == null || MapEditorArea.Value.SID != area.Value.SID || MapEditorArea.Value.Mode != area.Value.Mode)) {
+                    if (f_MapEditor_area?.GetValue(null) is AreaKey area && 
+                        (MapEditorArea == null || MapEditorArea.Value.SID != area.SID || MapEditorArea.Value.Mode != area.Mode)) {
                         MapEditorArea = area;
                         SendState();
                     }
@@ -780,12 +780,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 level.ParticlesBG.Update();
                 if (TrailManager == null || TrailManager.Scene != level)
                     TrailManager = level.Tracker.GetEntity<TrailManager>();
-                if (TrailManager != null) {
-                    var snapshots = TrailManager.GetSnapshots();
-                    if (snapshots != null)
+                if (TrailManager?.GetSnapshots() is TrailManager.Snapshot[] snapshots)
                         foreach (TrailManager.Snapshot snapshot in snapshots)
                             snapshot?.Update();
-                }
             }
 
             if (Player == null || Player.Scene != level) {
@@ -998,8 +995,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void SendGraphics() {
-            Player? player = Player;
-            if (player == null || player.Sprite == null || player.Hair == null)
+            if (Player is not Player player || player.Sprite == null || player.Hair == null)
                 return;
 
             SpriteAnimationIDs.Clear();
@@ -1044,8 +1040,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void SendFrame() {
-            Player? player = Player;
-            if (player == null || player.Sprite == null || player.Hair == null)
+            if (Player is not Player player || player.Sprite == null || player.Hair == null)
                 return;
 
             DataPlayerFrame.Entity[] followers;

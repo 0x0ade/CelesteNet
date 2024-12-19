@@ -52,9 +52,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 while (Listener?.IsListening ?? false) {
                     ThreadPool.QueueUserWorkItem(c => {
 
-                        HttpListenerContext? context = c as HttpListenerContext;
-
-                        if (context == null)
+                        if (c is not HttpListenerContext context)
                             return;
 
                         if (context.Request.HttpMethod == "OPTIONS") {
@@ -99,8 +97,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             Logger.Log(LogLevel.VVV, "rc", $"Requested: {c.Request.RawUrl}");
 
             string? url = c.Request.RawUrl;
-            if (url != null)
-            {
+            if (url != null) {
                 int indexOfSplit = url.IndexOf('?');
                 if (indexOfSplit != -1)
                     url = url.Substring(0, indexOfSplit);

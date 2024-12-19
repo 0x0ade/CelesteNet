@@ -233,7 +233,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void RebuildListClassic(ref List<Blob> list, ref DataPlayerInfo[] all) {
-            DataChannelList.Channel? own = Client?.PlayerInfo == null ? null : Channels?.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+            DataChannelList.Channel? own = null;
+            if (Client?.PlayerInfo != null)
+                own = Channels?.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
             foreach (DataPlayerInfo player in all.OrderBy(GetOrderKey)) {
                 if (string.IsNullOrWhiteSpace(player.DisplayName))
@@ -249,15 +251,17 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (!string.IsNullOrEmpty(channel?.Name) && !(HideOwnChannelName && channel == own))
                     blob.Name += $" #{channel.Name}";
 
-                if (Client?.Data?.TryGetBoundRef(player, out DataPlayerState? state) == true && state != null) {
-                    if (LocationMode != LocationModes.OFF)
-                        GetState(blob, state);
+                if (Client?.Data != null) {
+                    if (Client.Data.TryGetBoundRef(player, out DataPlayerState? state) && state != null) {
+                        if (LocationMode != LocationModes.OFF)
+                            GetState(blob, state);
 
-                    blob.Idle = state.Idle;
+                        blob.Idle = state.Idle;
+                    }
+
+                    if (ShowPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo? conInfo) && conInfo != null)
+                        blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
                 }
-
-                if (ShowPing && Client?.Data?.TryGetBoundRef(player, out DataConnectionInfo? conInfo) == true && conInfo != null)
-                    blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
 
                 list.Add(blob);
             }
@@ -305,7 +309,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             int lastPossibleSplit = 0;
 
             HashSet<DataPlayerInfo> listed = new();
-            DataChannelList.Channel? own = Client?.PlayerInfo == null ? null : Channels?.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+            DataChannelList.Channel? own = null;
+            if (Client?.PlayerInfo != null)
+                own = Channels?.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
             void AddChannel(ref List<Blob> list, DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor, LocationModes locationMode) {
                 bool hideChannel = channel == own && channel.Name != "main" && HideOwnChannelName;
@@ -512,15 +518,18 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 blob.Name = player.DisplayName;
 
                 blob.LocationMode = locationMode;
-                if (Client?.Data?.TryGetBoundRef(player, out DataPlayerState? state) == true && state != null) {
-                    if (locationMode != LocationModes.OFF)
-                        GetState(blob, state);
 
-                    blob.Idle = state.Idle;
+                if (Client?.Data != null) {
+                    if (Client.Data.TryGetBoundRef(player, out DataPlayerState? state) && state != null) {
+                        if (locationMode != LocationModes.OFF)
+                            GetState(blob, state);
+
+                        blob.Idle = state.Idle;
+                    }
+
+                    if (ShowPing && withPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo? conInfo) && conInfo != null)
+                        blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
                 }
-
-                if (ShowPing && withPing && Client?.Data?.TryGetBoundRef(player, out DataConnectionInfo? conInfo) == true && conInfo != null)
-                    blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
 
                 return player;
 

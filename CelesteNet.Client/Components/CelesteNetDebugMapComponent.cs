@@ -173,9 +173,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         private void OnMapEditorRender(On.Celeste.Editor.MapEditor.orig_Render orig, MapEditor self) {
             orig(self);
 
-            AreaKey? area = LastArea;
-            string sid = area?.SID ?? "";
-            AreaMode mode = area?.Mode ?? (AreaMode) (-1);
+            string sid = "";
+            AreaMode mode = (AreaMode)(-1);
+
+            if (LastArea != null) {
+                sid = LastArea.Value.SID;
+                mode = LastArea.Value.Mode;
+            }
 
             Camera? camera = (Camera?) f_MapEditor_Camera?.GetValue(null);
 

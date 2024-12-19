@@ -65,8 +65,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Off
         }
 
-        public MTexture? InputScrollUpIcon;
-        public MTexture? InputScrollDownIcon;
+        public MTexture InputScrollUpIcon = GFX.Gui["controls/keyboard/oemquestion"];
+        public MTexture InputScrollDownIcon = GFX.Gui["controls/keyboard/oemquestion"];
         public MTexture ArrowUpIcon => GFX.Gui["controls/directions/0x-1"];
         public MTexture ArrowDownIcon => GFX.Gui["controls/directions/0x1"];
         private bool activeController = false;
@@ -285,7 +285,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             ChatClosePressed
         }
 
-        protected List<VirtualButton>? ButtonsToSuppress;
+        protected List<VirtualButton> ButtonsToSuppress = new() { };
 
         public CelesteNetChatComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
@@ -320,8 +320,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             };
         }
 
-        public void Send(string? text) {
-            text = text?.Trim();
+        public void Send(string text) {
+            text = text.Trim();
             if (string.IsNullOrEmpty(text))
                 return;
 
@@ -375,7 +375,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             CelesteNetLocationInfo location = new(state);
 
-            string? locationTitle = location.Name ?? "";
+            string locationTitle = location.Name ?? "";
             string iconEmoji = "";
 
             if ((Settings.PlayerListUI.ShowPlayerListLocations & CelesteNetPlayerListComponent.LocationModes.Icons) != 0) {
@@ -600,7 +600,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             UpdateCompletion(CompletionType.None);
                         } else {
                             // completions for commands or their first parameter
-                            if (Typing.StartsWith("/")) {
+                            if (Typing.StartsWith('/')) {
                                 int firstSpace = Typing.IndexOf(" ");
                                 CommandInfo? cmd = firstSpace == -1 ? null : CommandList.FirstOrDefault(cmd => 
                                     cmd.ID == Typing.Substring(1, firstSpace - 1)
@@ -632,7 +632,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
 
             // Prevent binds from reacting to player input after exiting chat.
-            if (_ConsumeInput > 0 && ButtonsToSuppress != null) {
+            if (_ConsumeInput > 0) {
                 foreach (VirtualButton button in ButtonsToSuppress) {
                     button.ConsumeBuffer();
                     button.ConsumePress();
@@ -695,7 +695,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     if (CompletionArgType == CompletionType.Command) {
                         string? aliased = CommandList.Where(cmd => cmd.AliasTo == accepted).Select(c => c.ID).FirstOrDefault();
-                        if (!string.IsNullOrEmpty(aliased))
+                        if (!aliased.IsNullOrEmpty())
                             accepted = aliased;
                     }
 
@@ -713,7 +713,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                         }
                     }
 
-                    if (CompletionArgType != CompletionType.Emote || !accepted.EndsWith("/")) {
+                    if (CompletionArgType != CompletionType.Emote || !accepted.EndsWith('/')) {
                         if (adjustedCursor == Typing.Length || Typing[adjustedCursor] != ' ')
                             accepted += ' ';
                         else if (Typing[adjustedCursor] == ' ')
@@ -790,17 +790,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                     break;
                 case CompletionType.Player:
-                    DataPlayerInfo[]? all = Client?.Data.GetRefs<DataPlayerInfo>();
+                    if (Client == null) break;
+                    DataPlayerInfo[] all = Client.Data.GetRefs<DataPlayerInfo>();
+                    Completion = all.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.OrdinalIgnoreCase)).ToList();
 
-                    Completion = all?.Select(p => p.FullName).Where(name => name.StartsWith(partial, StringComparison.OrdinalIgnoreCase)).ToList() ?? Completion;
                     break;
                 case CompletionType.Channel:
-                    CelesteNetPlayerListComponent? playerlist = (CelesteNetPlayerListComponent?) Context?.Components[typeof(CelesteNetPlayerListComponent)];
-                    IEnumerable<string>? channelNames = playerlist?.Channels?.List?.Select(channel => channel.Name);
+                    if (Context == null) break;
+                    CelesteNetPlayerListComponent playerlist = (CelesteNetPlayerListComponent) Context.Components[typeof(CelesteNetPlayerListComponent)];
+                    IEnumerable<string>? channelNames = playerlist.Channels?.List?.Select(channel => channel.Name);
+                    if (channelNames == null || !channelNames.Any()) break;
+
                     if (Settings.PlayerListUI.HideOwnChannelName)
                         // don't accidentally leak the channel name via tab completions
-                        channelNames = channelNames?.Where(name => name != CurrentChannelName);
-                    Completion = channelNames?.Where(name => name.StartsWith(partial, StringComparison.OrdinalIgnoreCase)).ToList() ?? Completion;
+                        channelNames = channelNames.Where(name => name != CurrentChannelName);
+                    Completion = channelNames.Where(name => name.StartsWith(partial, StringComparison.OrdinalIgnoreCase)).ToList();
 
                     break;
 
@@ -1034,10 +1038,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         protected void UpdateScrollPromptControls()
         {
-            InputScrollUpIcon = Input.GuiButton(Settings.ButtonChatScrollUp?.Button, mode: Input.PrefixMode.Latest);
-            InputScrollDownIcon = Input.GuiButton(Settings.ButtonChatScrollDown?.Button, mode: Input.PrefixMode.Latest);
-            ScrollPromptSize.X = ArrowUpIcon.Width + InputScrollUpIcon?.Width ?? 0f;
-            ScrollPromptSize.Y = Math.Max(ArrowUpIcon.Height, InputScrollUpIcon?.Height ?? 0f);
+            if (Settings.ButtonChatScrollUp != null)
+                InputScrollUpIcon = Input.GuiButton(Settings.ButtonChatScrollUp.Button, mode: Input.PrefixMode.Latest);
+            if (Settings.ButtonChatScrollDown != null)
+                InputScrollDownIcon = Input.GuiButton(Settings.ButtonChatScrollDown.Button, mode: Input.PrefixMode.Latest);
+            ScrollPromptSize.X = ArrowUpIcon.Width + InputScrollUpIcon.Width;
+            ScrollPromptSize.Y = Math.Max(ArrowUpIcon.Height, InputScrollUpIcon.Height);
             activeController = Input.GuiInputController();
         }
 
@@ -1099,16 +1105,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             float oldPosX = pos.X;
 
             // top
-            if (InputScrollUpIcon != null)
-            {
-                InputScrollUpIcon.Draw(
-                    pos,
-                    Vector2.Zero,
-                    upActive ? Color.Goldenrod : Color.White,
-                    scale
-                );
-                pos.X += InputScrollUpIcon.Width * scale;
-            }
+            InputScrollUpIcon.Draw(
+                pos,
+                Vector2.Zero,
+                upActive ? Color.Goldenrod : Color.White,
+                scale
+            );
+            pos.X += InputScrollUpIcon.Width * scale;
 
             ArrowUpIcon.Draw(
                 pos,
@@ -1121,16 +1124,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             pos.Y += ScrollPromptSize.Y * scale;
 
             // bottom
-            if (InputScrollDownIcon != null)
-            {
-                InputScrollDownIcon.Draw(
-                    pos,
-                    Vector2.Zero,
-                    downActive ? Color.Goldenrod : Color.White,
-                    scale
-                );
-                pos.X += InputScrollDownIcon.Width * scale;
-            }
+            InputScrollDownIcon.Draw(
+                pos,
+                Vector2.Zero,
+                downActive ? Color.Goldenrod : Color.White,
+                scale
+            );
+            pos.X += InputScrollDownIcon.Width * scale;
 
             ArrowDownIcon.Draw(
                 pos,

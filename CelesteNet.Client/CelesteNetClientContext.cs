@@ -65,6 +65,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                 if (comp != null) {
                     Add(comp);
+                } else {
+                    Logger.Log(LogLevel.ERR, "clientcomp", $"Failed to create instance of component: {type.FullName}");
                 }
             }
 

@@ -20,8 +20,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected float ScrolledDistance = 0f;
         protected int skippedMsgCount = 0;
 
-        public int InputScrollUpState => Settings.ButtonChatScrollUp?.Check == true ? 1 : 0;
-        public int InputScrollDownState => Settings.ButtonChatScrollDown?.Check == true ? 1 : 0;
+        public int InputScrollUpState => Settings.ButtonChatScrollUp.Check() ? 1 : 0;
+        public int InputScrollDownState => Settings.ButtonChatScrollDown.Check() ? 1 : 0;
 
         public string PromptMessage = "";
         public Color PromptMessageColor = Color.White;
@@ -492,7 +492,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 Typing = typing;
             }
 
-            if (!Active && !isOtherInputFocused && Settings.ButtonChat?.Button.Pressed == true) {
+            if (!Active && !isOtherInputFocused && Settings.ButtonChat.Pressed()) {
                 Active = true;
 
             } else if (Active) {
@@ -508,7 +508,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 LeftRightRepeatDelay.Update(Engine.RawDeltaTime);
                 DeleteRepeatDelay.Update(Engine.RawDeltaTime);
 
-                if (Settings.ButtonChatSend?.Pressed == true) {
+                if (Settings.ButtonChatSend.Pressed()) {
                     if (!string.IsNullOrWhiteSpace(Typing))
                         Repeat.Insert(1, Typing);
                     Send(Typing);
@@ -577,7 +577,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (MInput.Keyboard.Pressed(Keys.End)) {
                     CursorIndex = Typing.Length;
 
-                } else if (Settings.ButtonChatClose?.Released == true) {
+                } else if (Settings.ButtonChatClose.Released()) {
                     if (!Settings.ChatUI.ChatCloseCancelsSuggestions || Completion.Count == 0)
                         Active = false;
                     CompletionHidden = CompletionHiddenBy.ChatClosePressed;

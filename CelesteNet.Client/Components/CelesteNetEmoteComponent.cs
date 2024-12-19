@@ -103,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (!level.Paused && Settings.EmoteWheel && !Player.Dead && Engine.TimeRate > 0.05f) {
                 Wheel.Shown = CelesteNetClientModule.Instance.JoystickEmoteWheel?.Value.LengthSquared() >= 0.36f;
                 int selected = Wheel.Selected;
-                if (Wheel.Shown && selected != -1 && Settings.ButtonEmoteWheelSend?.Pressed == true) {
+                if (Wheel.Shown && selected != -1 && Settings.ButtonEmoteWheelSend.Pressed()) {
                     Send(selected);
                 }
             } else {
@@ -115,25 +115,25 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 goto End;
 
             if (!Context.Chat.Active) {
-                if (Settings.ButtonEmote1?.Pressed == true)
+                if (Settings.ButtonEmote1.Pressed())
                     Send(0);
-                else if (Settings.ButtonEmote2?.Pressed == true)
+                else if (Settings.ButtonEmote2.Pressed())
                     Send(1);
-                else if (Settings.ButtonEmote3?.Pressed == true)
+                else if (Settings.ButtonEmote3.Pressed())
                     Send(2);
-                else if (Settings.ButtonEmote4?.Pressed == true)
+                else if (Settings.ButtonEmote4.Pressed())
                     Send(3);
-                else if (Settings.ButtonEmote5?.Pressed == true)
+                else if (Settings.ButtonEmote5.Pressed())
                     Send(4);
-                else if (Settings.ButtonEmote6?.Pressed == true)
+                else if (Settings.ButtonEmote6.Pressed())
                     Send(5);
-                else if (Settings.ButtonEmote7?.Pressed == true)
+                else if (Settings.ButtonEmote7.Pressed())
                     Send(6);
-                else if (Settings.ButtonEmote8?.Pressed == true)
+                else if (Settings.ButtonEmote8.Pressed())
                     Send(7);
-                else if (Settings.ButtonEmote9?.Pressed == true)
+                else if (Settings.ButtonEmote9.Pressed())
                     Send(8);
-                else if (Settings.ButtonEmote10?.Pressed == true)
+                else if (Settings.ButtonEmote10.Pressed())
                     Send(9);
             }
 

@@ -79,5 +79,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public static TrailManager.Snapshot[]? GetSnapshots(this TrailManager self)
             => (TrailManager.Snapshot[]?) f_TrailManager_shapshots?.GetValue(self);
+
+        // easier ways to check these properties on nullable ButtonBindings without null-related issues...
+        public static bool Check(this ButtonBinding? binding) => binding?.Check == true;
+        public static bool Pressed(this ButtonBinding? binding) => binding?.Pressed == true;
+        public static bool Released(this ButtonBinding? binding) => binding?.Released == true;
+        public static bool Repeating(this ButtonBinding? binding) => binding?.Repeating == true;
+
     }
 }

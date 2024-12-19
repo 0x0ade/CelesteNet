@@ -167,8 +167,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected float ScrolledDistance = 0f;
 
         private int InputScrollState = 0;
-        public int InputScrollUpState => Settings.ButtonPlayerListScrollUp?.Check == true ? 1 : 0;
-        public int InputScrollDownState => Settings.ButtonPlayerListScrollDown?.Check == true ? 1 : 0;
+        public int InputScrollUpState => Settings.ButtonPlayerListScrollUp.Check() ? 1 : 0;
+        public int InputScrollDownState => Settings.ButtonPlayerListScrollDown.Check() ? 1 : 0;
 
         private bool hasScrolled;
 
@@ -677,13 +677,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             // shouldn't open player list on pause menu, although now with rebindable hotkey, should this still be this way?
             if (Engine.Scene?.Paused != true)
             {
-                if (Settings.ButtonPlayerList?.Pressed == true && !Active)
+                if (Settings.ButtonPlayerList.Pressed() && !Active)
                 {
                     // open right away upon Pressed instead of Released, and remember that it's potentially held down now
                     PropActive = true;
                     ButtonInitialHold = true;
                 }
-                else if (Settings.ButtonPlayerList?.Released == true)
+                else if (Settings.ButtonPlayerList.Released())
                 {
                     // if the bind is released, make sure it wasn't being held for scrolling purposes
                     // if scrolling while holding it down, we most likely don't want to close again
@@ -697,7 +697,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.HoldTab)
             {
                 // scrolling mode: just keep scrolling down while button is held, after delay period
-                if (Settings.PlayerListUI.ScrollDelay == 0 ? ButtonInitialHold : (Settings.ButtonPlayerList?.Check == true))
+                if (Settings.PlayerListUI.ScrollDelay == 0 ? ButtonInitialHold : (Settings.ButtonPlayerList.Check()))
                 {
                     // adding a slight minimum delay even to (Settings.PlayerListUI.PlayerListScrollDelay == 0) so that you don't
                     // IMMEDIATELY scroll the player count off the top of the list
@@ -714,11 +714,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 else if (ButtonHoldTime > 0f)
                     ButtonHoldTime -= Engine.RawDeltaTime * 2f;
             }
-            else if ((Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.KeybindsOnHold && Settings.ButtonPlayerList?.Check == true)
+            else if ((Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.KeybindsOnHold && Settings.ButtonPlayerList.Check())
                     || Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.Keybinds)
             {
                 // in keybinds modes, deal with up/down buttons
-                if (Settings.ButtonPlayerListScrollUp?.Check == true || Settings.ButtonPlayerListScrollDown?.Check == true)
+                if (Settings.ButtonPlayerListScrollUp.Check() || Settings.ButtonPlayerListScrollDown.Check())
                 {
                     InputScrollState = InputScrollDownState - InputScrollUpState;
                     hasScrolled = Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.KeybindsOnHold;

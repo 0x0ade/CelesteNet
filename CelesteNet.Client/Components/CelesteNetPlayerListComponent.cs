@@ -10,7 +10,7 @@ using MDraw = Monocle.Draw;
 namespace Celeste.Mod.CelesteNet.Client.Components {
     public class CelesteNetPlayerListComponent : CelesteNetGameComponent {
 
-        public static event Action<BlobPlayer, DataPlayerState> OnGetState;
+        public static event Action<BlobPlayer, DataPlayerState>? OnGetState;
 
         public float Scale => Settings.UIScalePlayerList;
         private float LastScale;
@@ -76,7 +76,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         When not in Channel Mode, only SizeAll gets used.
          */
 
-        public DataChannelList Channels;
+        public DataChannelList? Channels;
 
         // UI Constants
 
@@ -167,8 +167,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         protected float ScrolledDistance = 0f;
 
         private int InputScrollState = 0;
-        public int InputScrollUpState => Settings.ButtonPlayerListScrollUp.Check ? 1 : 0;
-        public int InputScrollDownState => Settings.ButtonPlayerListScrollDown.Check ? 1 : 0;
+        public int InputScrollUpState => Settings.ButtonPlayerListScrollUp.Check() ? 1 : 0;
+        public int InputScrollDownState => Settings.ButtonPlayerListScrollDown.Check() ? 1 : 0;
 
         private bool hasScrolled;
 
@@ -233,9 +233,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void RebuildListClassic(ref List<Blob> list, ref DataPlayerInfo[] all) {
-            DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+            DataChannelList.Channel? own = null;
+            if (Client?.PlayerInfo != null)
+                own = Channels?.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
-            foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
+            foreach (DataPlayerInfo player in all.OrderBy(GetOrderKey)) {
                 if (string.IsNullOrWhiteSpace(player.DisplayName))
                     continue;
 
@@ -245,19 +247,21 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     ScaleFactor = 0.75f
                 };
 
-                DataChannelList.Channel channel = Channels.List.FirstOrDefault(c => c.Players.Contains(player.ID));
+                DataChannelList.Channel? channel = Channels?.List.FirstOrDefault(c => c.Players.Contains(player.ID));
                 if (!string.IsNullOrEmpty(channel?.Name) && !(HideOwnChannelName && channel == own))
                     blob.Name += $" #{channel.Name}";
 
-                if (Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) == true) {
-                    if (LocationMode != LocationModes.OFF)
-                        GetState(blob, state);
+                if (Client?.Data != null) {
+                    if (Client.Data.TryGetBoundRef(player, out DataPlayerState? state) && state != null) {
+                        if (LocationMode != LocationModes.OFF)
+                            GetState(blob, state);
 
-                    blob.Idle = state.Idle;
+                        blob.Idle = state.Idle;
+                    }
+
+                    if (ShowPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo? conInfo) && conInfo != null)
+                        blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
                 }
-
-                if (ShowPing && Client?.Data?.TryGetBoundRef(player, out DataConnectionInfo conInfo) == true)
-                    blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
 
                 list.Add(blob);
             }
@@ -305,7 +309,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             int lastPossibleSplit = 0;
 
             HashSet<DataPlayerInfo> listed = new();
-            DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+            DataChannelList.Channel? own = null;
+            if (Client?.PlayerInfo != null)
+                own = Channels?.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
 
             void AddChannel(ref List<Blob> list, DataChannelList.Channel channel, Color color, float scaleFactorHeader, float scaleFactor, LocationModes locationMode) {
                 bool hideChannel = channel == own && channel.Name != "main" && HideOwnChannelName;
@@ -318,9 +324,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 if (channel != own)
                     lastPossibleSplit = list.Count - 1;
 
-                foreach (DataPlayerInfo player in channel.Players.Select(p => GetPlayerInfo(p)).OrderBy(p => GetOrderKey(p))) {
+                foreach (DataPlayerInfo? player in channel.Players.Select(GetPlayerInfo).OrderBy(GetOrderKey)) {
                     BlobPlayer blob = new() { ScaleFactor = scaleFactor };
-                    listed.Add(ListPlayerUnderChannel(blob, player, locationMode, channel == own));
+                    DataPlayerInfo? p = ListPlayerUnderChannel(blob, player, locationMode, channel == own);
+                    if (p != null)
+                        listed.Add(p);
                     list.Add(blob);
                 }
             }
@@ -335,12 +343,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             // i.e. first blob after our own channel is fully listed.
             int splitStartsAt = list.Count - 1;
 
-            foreach (DataChannelList.Channel channel in Channels.List)
-                if (channel != own)
-                    AddChannel(ref list, channel, ColorChannelHeader, 0.75f, 1f, LocationModes.OFF);
+            if (Channels != null)
+                foreach (DataChannelList.Channel channel in Channels.List)
+                    if (channel != own)
+                        AddChannel(ref list, channel, ColorChannelHeader, 0.75f, 1f, LocationModes.OFF);
 
             bool wrotePrivate = false;
-            foreach (DataPlayerInfo player in all.OrderBy(p => GetOrderKey(p))) {
+            foreach (DataPlayerInfo player in all.OrderBy(GetOrderKey)) {
                 if (listed.Contains(player) || string.IsNullOrWhiteSpace(player.DisplayName))
                     continue;
 
@@ -487,37 +496,40 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             SplitStartsAt = splitStartsAt;
         }
 
-        private string GetOrderKey(DataPlayerInfo player) {
+        private string GetOrderKey(DataPlayerInfo? player) {
             if (player == null)
                 return "9";
 
-            if (Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) == true && !string.IsNullOrEmpty(state?.SID))
+            if (Client?.Data?.TryGetBoundRef(player, out DataPlayerState? state) == true && !string.IsNullOrEmpty(state?.SID))
                 return $"0 {(state.SID.StartsWith("Celeste/") ? "0" : "1") + state.SID + (int) state.Mode} {player.FullName}";
 
             return $"8 {player.FullName}";
         }
 
-        private DataPlayerInfo GetPlayerInfo(uint id) {
-            if (Client?.Data?.TryGetRef(id, out DataPlayerInfo player) == true && !string.IsNullOrEmpty(player?.DisplayName))
+        private DataPlayerInfo? GetPlayerInfo(uint id) {
+            if (Client?.Data?.TryGetRef(id, out DataPlayerInfo? player) == true && !string.IsNullOrEmpty(player?.DisplayName))
                 return player;
             return null;
         }
 
-        private DataPlayerInfo ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo player, LocationModes locationMode, bool withPing) {
+        private DataPlayerInfo? ListPlayerUnderChannel(BlobPlayer blob, DataPlayerInfo? player, LocationModes locationMode, bool withPing) {
             if (player != null) {
                 blob.Player = player;
                 blob.Name = player.DisplayName;
 
                 blob.LocationMode = locationMode;
-                if (Client?.Data?.TryGetBoundRef(player, out DataPlayerState state) == true) {
-                    if (locationMode != LocationModes.OFF)
-                        GetState(blob, state);
 
-                    blob.Idle = state.Idle;
+                if (Client?.Data != null) {
+                    if (Client.Data.TryGetBoundRef(player, out DataPlayerState? state) && state != null) {
+                        if (locationMode != LocationModes.OFF)
+                            GetState(blob, state);
+
+                        blob.Idle = state.Idle;
+                    }
+
+                    if (ShowPing && withPing && Client.Data.TryGetBoundRef(player, out DataConnectionInfo? conInfo) && conInfo != null)
+                        blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
                 }
-
-                if (ShowPing && withPing && Client?.Data?.TryGetBoundRef(player, out DataConnectionInfo conInfo) == true)
-                    blob.PingMs = conInfo.UDPPingMs ?? conInfo.TCPPingMs;
 
                 return player;
 
@@ -536,13 +548,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 blob.Location.TitleColor = Color.Lerp(location.Area?.TitleBaseColor ?? Color.White, DefaultLevelColor, 0.5f);
                 blob.Location.AccentColor = Color.Lerp(location.Area?.TitleAccentColor ?? Color.White, DefaultLevelColor, 0.8f);
 
-                blob.Location.SID = location.SID;
-                blob.Location.Name = location.Name;
-                blob.Location.Side = location.Side;
-                blob.Location.Level = location.Level;
+                blob.Location.SID = location.SID ?? "";
+                blob.Location.Name = location.Name ?? "";
+                blob.Location.Side = location.Side ?? "";
+                blob.Location.Level = location.Level ?? "";
 
                 blob.Location.IsRandomizer = location.IsRandomizer;
-                blob.Location.Icon = location.Icon;
+                blob.Location.Icon = location.Icon ?? "";
 
                 ShortenRandomizerLocation(ref blob.Location);
             }
@@ -590,7 +602,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 // Don't rebuild the entire list
                 // Try to find the player's blob
-                BlobPlayer playerBlob = (BlobPlayer) List?.FirstOrDefault(b => b is BlobPlayer pb && pb.Player == state.Player);
+                BlobPlayer? playerBlob = (BlobPlayer?) List?.FirstOrDefault(b => b is BlobPlayer pb && pb.Player == state.Player);
                 if (playerBlob == null || playerBlob.Location.SID.IsNullOrEmpty() || playerBlob.Location.SID != state.SID || playerBlob.Location.Level.Length < state.Level.Length - 1) {
                     RebuildList();
                     return;
@@ -616,11 +628,11 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
                 // Don't rebuild the entire list
                 // Try to find the player's blob
-                BlobPlayer playerBlob = (BlobPlayer) List?.FirstOrDefault(b => b is BlobPlayer pb && pb.Player == info.Player);
+                BlobPlayer? playerBlob = (BlobPlayer?) List?.FirstOrDefault(b => b is BlobPlayer pb && pb.Player == info.Player);
                 if (playerBlob == null)
                     return;
 
-                DataChannelList.Channel own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
+                DataChannelList.Channel? own = Channels.List.FirstOrDefault(c => c.Players.Contains(Client.PlayerInfo.ID));
                 if (own == null)
                     return;
 
@@ -674,13 +686,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             // shouldn't open player list on pause menu, although now with rebindable hotkey, should this still be this way?
             if (Engine.Scene?.Paused != true)
             {
-                if (Settings.ButtonPlayerList.Pressed && !Active)
+                if (Settings.ButtonPlayerList.Pressed() && !Active)
                 {
                     // open right away upon Pressed instead of Released, and remember that it's potentially held down now
                     PropActive = true;
                     ButtonInitialHold = true;
                 }
-                else if (Settings.ButtonPlayerList.Released)
+                else if (Settings.ButtonPlayerList.Released())
                 {
                     // if the bind is released, make sure it wasn't being held for scrolling purposes
                     // if scrolling while holding it down, we most likely don't want to close again
@@ -694,7 +706,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             if (Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.HoldTab)
             {
                 // scrolling mode: just keep scrolling down while button is held, after delay period
-                if (Settings.PlayerListUI.ScrollDelay == 0 ? ButtonInitialHold : Settings.ButtonPlayerList.Check)
+                if (Settings.PlayerListUI.ScrollDelay == 0 ? ButtonInitialHold : (Settings.ButtonPlayerList.Check()))
                 {
                     // adding a slight minimum delay even to (Settings.PlayerListUI.PlayerListScrollDelay == 0) so that you don't
                     // IMMEDIATELY scroll the player count off the top of the list
@@ -711,16 +723,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 else if (ButtonHoldTime > 0f)
                     ButtonHoldTime -= Engine.RawDeltaTime * 2f;
             }
-            else if ((Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.KeybindsOnHold && Settings.ButtonPlayerList.Check)
+            else if ((Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.KeybindsOnHold && Settings.ButtonPlayerList.Check())
                     || Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.Keybinds)
             {
                 // in keybinds modes, deal with up/down buttons
-                if (Settings.ButtonPlayerListScrollUp.Check || Settings.ButtonPlayerListScrollDown.Check)
+                if (Settings.ButtonPlayerListScrollUp.Check() || Settings.ButtonPlayerListScrollDown.Check())
                 {
                     InputScrollState = InputScrollDownState - InputScrollUpState;
                     hasScrolled = Settings.PlayerListUI.PlayerListScrollMode == ScrollModes.KeybindsOnHold;
-                    Settings.ButtonPlayerListScrollDown.ConsumePress();
-                    Settings.ButtonPlayerListScrollUp.ConsumePress();
+                    Settings.ButtonPlayerListScrollDown?.ConsumePress();
+                    Settings.ButtonPlayerListScrollUp?.ConsumePress();
                 }
             }
 
@@ -736,7 +748,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             InputScrollState = 0;
         }
 
-        public override void Draw(GameTime gameTime) {
+        public override void Draw(GameTime? gameTime) {
             if (Active)
                 base.Draw(gameTime);
         }
@@ -746,7 +758,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             y = Margin * scale;
             sizeAll = SizeAll;
 
-            SpeedrunTimerDisplay timer = Engine.Scene?.Entities.FindFirst<SpeedrunTimerDisplay>();
+            SpeedrunTimerDisplay? timer = Engine.Scene?.Entities.FindFirst<SpeedrunTimerDisplay>();
             if (timer != null) {
                 switch (global::Celeste.Settings.Instance?.SpeedrunClock ?? SpeedrunType.Off) {
                     case SpeedrunType.Off:
@@ -765,7 +777,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             }
         }
 
-        protected override void Render(GameTime gameTime, bool toBuffer) {
+        protected override void Render(GameTime? gameTime, bool toBuffer) {
             PrepareRenderLayout(out float scale, out float y, out Vector2 sizeAll);
 
             float x = Margin * scale;
@@ -866,10 +878,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private void SplitRectAbsolute(float x, float y, float width, float height, float splitAtY, Color colorA, Color colorB) {
             if (splitAtY > y + height) {
-                Context.RenderHelper.Rect(x, y, width, height, colorA);
+                Context?.RenderHelper?.Rect(x, y, width, height, colorA);
             }
             else if (splitAtY < y) {
-                Context.RenderHelper.Rect(x, y, width, height, colorB);
+                Context?.RenderHelper?.Rect(x, y, width, height, colorB);
             }
             else {
                 SplitRect(x, y, width, height, splitAtY - y, colorA, colorB);
@@ -878,12 +890,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private void SplitRect(float x, float y, float width, float height, float splitheight, Color colorA, Color colorB) {
             if (splitheight >= height) {
-                Context.RenderHelper.Rect(x, y, width, height, colorA);
+                Context?.RenderHelper?.Rect(x, y, width, height, colorA);
                 return;
             }
 
-            Context.RenderHelper.Rect(x, y, width, splitheight, colorA);
-            Context.RenderHelper.Rect(x, y + splitheight, width, height - splitheight, colorB);
+            Context?.RenderHelper?.Rect(x, y, width, splitheight, colorA);
+            Context?.RenderHelper?.Rect(x, y + splitheight, width, height - splitheight, colorB);
         }
 
         public class Blob {
@@ -936,7 +948,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             public const string NoPingData = "???";
 
-            public DataPlayerInfo Player;
+            public DataPlayerInfo? Player;
             public BlobLocation Location = new();
 
             public int? PingMs = null;
@@ -1005,8 +1017,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         public class BlobRightToLeft : Blob {
 
             protected class TextPart {
-                public string Text;
-                public Color Color;
+                public string Text = "";
+                public Color Color = Color.White;
                 public float widthScaled;
             }
 
@@ -1061,7 +1073,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             public const string LocationSeparator = ":";
 
-            protected MTexture GuiIconCached;
+            protected MTexture? GuiIconCached;
 
             public float IconSize => GuiIconCached != null ? 64f : 0f;
             public Vector2 IconOrigSize => GuiIconCached != null ? new Vector2(GuiIconCached.Width, GuiIconCached.Height) : new();

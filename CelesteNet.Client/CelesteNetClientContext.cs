@@ -10,12 +10,12 @@ using Microsoft.Xna.Framework;
 namespace Celeste.Mod.CelesteNet.Client {
     public class CelesteNetClientContext : DrawableGameComponent {
 
-        public CelesteNetClient Client;
+        public CelesteNetClient? Client;
 
-        public CelesteNetMainComponent Main;
-        public CelesteNetRenderHelperComponent RenderHelper;
-        public CelesteNetStatusComponent Status;
-        public CelesteNetChatComponent Chat;
+        public CelesteNetMainComponent? Main;
+        public CelesteNetRenderHelperComponent? RenderHelper;
+        public CelesteNetStatusComponent? Status;
+        public CelesteNetChatComponent? Chat;
 
         public Dictionary<Type, CelesteNetGameComponent> Components = new();
         public List<CelesteNetGameComponent> DrawableComponents;
@@ -29,7 +29,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public readonly bool IsReconnect;
 
-        public static event Action<CelesteNetClientContext> OnCreate;
+        public static event Action<CelesteNetClientContext>? OnCreate;
 
         public bool IsDisposed { get; private set; }
 
@@ -37,7 +37,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         private bool CoreDisposed;
         private bool SafeDisposeTriggered, SafeDisposeForceDispose;
 
-        public CelesteNetClientContext(Game game, CelesteNetClientContext oldCtx = null)
+        public CelesteNetClientContext(Game game, CelesteNetClientContext? oldCtx = null)
             : base(game) {
 
             UpdateOrder = -10000;
@@ -61,7 +61,13 @@ namespace Celeste.Mod.CelesteNet.Client {
                 if (type.IsAbstract || !typeof(CelesteNetGameComponent).IsAssignableFrom(type) || Components.ContainsKey(type))
                     continue;
 
-                Add((CelesteNetGameComponent) Activator.CreateInstance(type, this, game));
+                CelesteNetGameComponent? comp = (CelesteNetGameComponent?) Activator.CreateInstance(type, this, game);
+
+                if (comp != null) {
+                    Add(comp);
+                } else {
+                    Logger.Log(LogLevel.ERR, "clientcomp", $"Failed to create instance of component: {type.FullName}");
+                }
             }
 
             Main = Get<CelesteNetMainComponent>();
@@ -79,10 +85,10 @@ namespace Celeste.Mod.CelesteNet.Client {
             Game.Components.Add(component);
         }
 
-        public T Get<T>() where T : CelesteNetGameComponent
-            => Components.TryGetValue(typeof(T), out CelesteNetGameComponent component) ? (T) component : null;
+        public T? Get<T>() where T : CelesteNetGameComponent
+            => Components.TryGetValue(typeof(T), out CelesteNetGameComponent? component) ? (T) component : null;
 
-        public static event Action<CelesteNetClientContext> OnInit;
+        public static event Action<CelesteNetClientContext>? OnInit;
 
         public void Init(CelesteNetClientSettings settings) {
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Init: Creating client");
@@ -96,7 +102,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             OnInit?.Invoke(this);
         }
 
-        public static event Action<CelesteNetClientContext> OnStart;
+        public static event Action<CelesteNetClientContext>? OnStart;
 
         public void Start(CancellationToken token) {
             Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Start: ");
@@ -141,12 +147,12 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             // This must happen at the very end, as XNA / FNA won't update their internal lists, causing "dead" components to update.
 
-            DataDisconnectReason reason = CelesteNetClientModule.Instance.lastDisconnectReason;
+            DataDisconnectReason? reason = CelesteNetClientModule.Instance.lastDisconnectReason;
 
             if (reason != null) {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext Draw: Disposing because Client's lastDisconnectReason != null");
 
-                if (!Status.IsVisible)
+                if (Status != null && !Status.IsVisible)
                     Status.Set(reason.Text, 8f, spin: false, dcReason: false);
 
                 if (!IsDisposed)
@@ -171,7 +177,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                         Reconnecting = true;
                         Failed = false;
                         // FIXME: Make sure that nothing tries to make use of the dead connection until the restart.
-                        if (Status.Spin)
+                        if (Status != null && Status.Spin)
                             Status.Set("Disconnected", 3f, false);
                         QueuedTaskHelper.Do(new Tuple<object, string>(this, "CelesteNetAutoReconnect"), 1D, () => {
                             if (CelesteNetClientModule.Instance.Context == this) {
@@ -195,14 +201,14 @@ namespace Celeste.Mod.CelesteNet.Client {
                 return;
             }
 
-            using ManualResetEvent waiter = wait ? new ManualResetEvent(false) : null;
+            using ManualResetEvent? waiter = wait ? new ManualResetEvent(false) : null;
             if (wait) {
                 Action real = action;
                 action = () => {
                     try {
                         real();
                     } finally {
-                        waiter.Set();
+                        waiter?.Set();
                     }
                 };
             }
@@ -211,7 +217,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 MainThreadQueue.Add(action);
 
             if (wait)
-                WaitHandle.WaitAny(new WaitHandle[] { waiter });
+                WaitHandle.WaitAny(new WaitHandle[] { waiter! });
         }
         
         protected void DisposeCore() {
@@ -222,7 +228,7 @@ namespace Celeste.Mod.CelesteNet.Client {
                 Logger.Log(LogLevel.DEV, "lifecycle", $"CelesteNetClientContext DisposeCore called");
 
                 if (CelesteNetClientModule.Instance.Context == this) {
-                    Status.Set("Disconnected", 3f, false);
+                    Status?.Set("Disconnected", 3f, false);
                     CelesteNetClientModule.Instance.Context = null;
                     CelesteNetClientModule.Settings.Connected = false;
                 }
@@ -245,7 +251,7 @@ namespace Celeste.Mod.CelesteNet.Client {
             }
         }
 
-        public static event Action<CelesteNetClientContext> OnDispose;
+        public static event Action<CelesteNetClientContext>? OnDispose;
 
         protected override void Dispose(bool disposing) {
             lock (DisposeLock) {

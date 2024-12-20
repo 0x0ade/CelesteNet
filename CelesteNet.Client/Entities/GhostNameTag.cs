@@ -4,10 +4,8 @@ using Monocle;
 namespace Celeste.Mod.CelesteNet.Client.Entities {
     public class GhostNameTag : Entity {
 
-        public Entity Tracking;
-        public string Name;
-
-        protected Camera Camera;
+        public Entity? Tracking;
+        public string? Name;
 
         public float Alpha = 1f;
 

@@ -39,21 +39,23 @@ namespace Celeste.Mod.CelesteNet.Client
             orig(self, xml, overridePath);
         }
 
-        public static void SetID(this Sprite self, string value)
+        public static void SetID(this Sprite self, string? value)
             => SpriteExts.GetOrCreateValue(self).ID = value;
 
-        public static string GetID(this Sprite self)
-            => SpriteExts.TryGetValue(self, out SpriteExt ext) ? ext.ID : null;
+        public static string? GetID(this Sprite self)
+            => SpriteExts.TryGetValue(self, out SpriteExt? ext) ? ext.ID : null;
 
-        public static SpriteMeta GetMeta(this Sprite self) {
-            string id = self.GetID();
-            if (SpriteMetas.TryGetValue(id, out SpriteMeta meta))
+        public static SpriteMeta? GetMeta(this Sprite self) {
+            string? id = self.GetID();
+            if (id == null)
+                return null;
+            if (SpriteMetas.TryGetValue(id, out SpriteMeta? meta))
                 return meta;
             return SpriteMetas[id] = new();
         }
 
         private class SpriteExt {
-            public string ID;
+            public string? ID;
         }
 
         public class SpriteMeta {

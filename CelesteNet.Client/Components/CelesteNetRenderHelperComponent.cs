@@ -28,12 +28,12 @@ namespace Celeste.Mod.CelesteNet.Client.Components
         public int BlurLowWidth => UI_WIDTH / BlurLowScale;
         public int BlurLowHeight => UI_HEIGHT / BlurLowScale;
 
-        public RenderTarget2D FakeRT;
+        public RenderTarget2D? FakeRT;
 
-        public RenderTarget2D BlurXRT;
-        public RenderTarget2D BlurYRT;
-        public RenderTarget2D BlurLowRT;
-        public RenderTarget2D BlurRT;
+        public RenderTarget2D? BlurXRT;
+        public RenderTarget2D? BlurYRT;
+        public RenderTarget2D? BlurLowRT;
+        public RenderTarget2D? BlurRT;
 
         private bool _disconnected = false;
 
@@ -126,7 +126,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             }
         }
 
-        private RenderTarget2D GetFakeRT(RenderTarget2D realRT) {
+        private RenderTarget2D? GetFakeRT(RenderTarget2D realRT) {
             if (realRT != null)
                 return realRT;
 
@@ -175,7 +175,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             c.GotoNext(i => i.MatchCallOrCallvirt(typeof(GraphicsDevice), "SetRenderTarget"));
             c.Emit(OpCodes.Dup);
             c.Emit(OpCodes.Stloc, vd_tmpRealRT);
-            c.EmitDelegate<Func<RenderTarget2D, RenderTarget2D>>(GetFakeRT);
+            c.EmitDelegate<Func<RenderTarget2D, RenderTarget2D?>>(GetFakeRT);
 
             c.GotoNext(i => i.MatchRet());
             c.Emit(OpCodes.Ldloc, vd_tmpRealVP);
@@ -312,14 +312,15 @@ namespace Celeste.Mod.CelesteNet.Client.Components
 
                     MDraw.SpriteBatch.End();
 
-                    List<CelesteNetGameComponent> uiDC = Context?.DrawableComponents;
-                    VirtualRenderTarget uiRT = uiDC == null ? null : CelesteNetClientModule.Instance.UIRenderTarget;
+                    List<CelesteNetGameComponent>? uiDC = Context?.DrawableComponents;
+                    VirtualRenderTarget? uiRT = uiDC == null ? null : CelesteNetClientModule.Instance.UIRenderTarget;
                     if (uiRT != null) {
                         GraphicsDevice.SetRenderTarget(uiRT);
                         GraphicsDevice.Clear(Color.Transparent);
                         IsDrawingUI = true;
-                        foreach (CelesteNetGameComponent component in uiDC)
-                            component.Draw(null);
+                        if (uiDC != null)
+                            foreach (CelesteNetGameComponent component in uiDC)
+                                component.Draw(null);
                         IsDrawingUI = false;
                     }
 
@@ -364,7 +365,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             ILCursor c = new(il);
 
             while (c.TryGotoNext(i => i.MatchCallOrCallvirt(typeof(GraphicsDevice), "SetRenderTarget"))) {
-                c.EmitDelegate<Func<RenderTarget2D, RenderTarget2D>>(GetFakeRT);
+                c.EmitDelegate<Func<RenderTarget2D, RenderTarget2D?>>(GetFakeRT);
                 c.Index++;
             }
         }

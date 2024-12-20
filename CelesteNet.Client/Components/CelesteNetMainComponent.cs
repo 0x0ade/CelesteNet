@@ -283,9 +283,6 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             Session? session = Session;
 
-            //Level? level = PlayerBody?.Scene as Level;
-            //bool outside = IsGhostOutside(session, level, frame.Player, out DataPlayerState? state);
-
             if (PlayerBody?.Scene is not Level level || IsGhostOutside(session, level, frame.Player, out DataPlayerState? state)) {
                 RemoveGhost(frame.Player);
                 return;

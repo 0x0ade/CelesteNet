@@ -266,7 +266,7 @@ namespace Celeste.Mod.CelesteNet.Server {
                                         }
 
                                         // Read the packet
-                                        DataType packet;
+                                        DataType? packet;
                                         using (MemoryStream mStream = new(TCPRecvBuffer, 2, packetLen))
                                         using (CelesteNetBinaryReader reader = new(Server.Data, Strings, CoreTypeMap, mStream)) {
                                             packet = Server.Data.Read(reader);
@@ -279,24 +279,25 @@ namespace Celeste.Mod.CelesteNet.Server {
                                         }
 
                                         // Handle the packet
-                                        switch (packet) {
-                                            case DataLowLevelPingReply pingReply: {
-                                                _TCPPingMs = (int) (Server.ThreadPool.RuntimeWatch.ElapsedMilliseconds - pingReply.PingTime);
-                                            } break;
-                                            case DataLowLevelUDPInfo udpInfo: {
-                                                HandleUDPInfo(udpInfo);
-                                            } break;
-                                            case DataLowLevelStringMap strMap: {
-                                                Strings.RegisterWrite(strMap.String, strMap.ID);
-                                            } break;
-                                            case DataLowLevelCoreTypeMap coreTypeMap: {
-                                                if (coreTypeMap.PacketType != null)
-                                                    CoreTypeMap.RegisterWrite(coreTypeMap.PacketType, coreTypeMap.ID);
-                                            } break;
-                                            default: {
-                                                Receive(packet);
-                                            } break;
-                                        }
+                                        if (packet != null)
+                                            switch (packet) {
+                                                case DataLowLevelPingReply pingReply: {
+                                                    _TCPPingMs = (int) (Server.ThreadPool.RuntimeWatch.ElapsedMilliseconds - pingReply.PingTime);
+                                                } break;
+                                                case DataLowLevelUDPInfo udpInfo: {
+                                                    HandleUDPInfo(udpInfo);
+                                                } break;
+                                                case DataLowLevelStringMap strMap: {
+                                                    Strings.RegisterWrite(strMap.String, strMap.ID);
+                                                } break;
+                                                case DataLowLevelCoreTypeMap coreTypeMap: {
+                                                    if (coreTypeMap.PacketType != null)
+                                                        CoreTypeMap.RegisterWrite(coreTypeMap.PacketType, coreTypeMap.ID);
+                                                } break;
+                                                default: {
+                                                    Receive(packet);
+                                                } break;
+                                            }
 
                                         // Remove the packet data from the buffer
                                         TCPRecvBufferOff -= 2 + packetLen;
@@ -453,7 +454,7 @@ namespace Celeste.Mod.CelesteNet.Server {
 
                         // Read packets until we run out data
                         while (mStream.Position < dgSize-1) {
-                            DataType packet = Server.Data.Read(reader);
+                            DataType? packet = Server.Data.Read(reader);
 
                             // Update metrics
                             UDPRecvRate.UpdateMetric(0, 1);
@@ -464,17 +465,18 @@ namespace Celeste.Mod.CelesteNet.Server {
                             }
 
                             // Handle the packet
-                            if (packet.TryGet<MetaOrderedUpdate>(Server.Data, out MetaOrderedUpdate? orderedUpdate))
+                            if (packet != null && packet.TryGet<MetaOrderedUpdate>(Server.Data, out MetaOrderedUpdate? orderedUpdate))
                                 orderedUpdate.UpdateID = containerID;
 
-                            switch (packet) {
-                                case DataLowLevelPingReply pingReply: {
-                                    _UDPPingMs = (int) (Server.ThreadPool.RuntimeWatch.ElapsedMilliseconds - pingReply.PingTime);
-                                } break;
-                                default: {
-                                    Receive(packet);
-                                } break;
-                            }
+                            if (packet != null)
+                                switch (packet) {
+                                    case DataLowLevelPingReply pingReply: {
+                                        _UDPPingMs = (int) (Server.ThreadPool.RuntimeWatch.ElapsedMilliseconds - pingReply.PingTime);
+                                    } break;
+                                    default: {
+                                        Receive(packet);
+                                    } break;
+                                }
                         }
                     }
 

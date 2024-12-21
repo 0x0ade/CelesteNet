@@ -62,21 +62,21 @@ namespace Celeste.Mod.CelesteNet {
                     }
 
                     if (id.IsNullOrEmpty()) {
-                        Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but no DataID");
+                        Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but no DataID, from {source} ({type.Assembly.FullName})");
                         continue;
                     }
 
                     if (source.IsNullOrEmpty()) {
-                        Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but no DataSource");
+                        Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but no DataSource, from {source} ({type.Assembly.FullName})");
                         continue;
                     }
 
                     if (IDToDataType.ContainsKey(id)) {
-                        Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but conflicting ID {id}");
+                        Logger.Log(LogLevel.WRN, "data", $"Found data type {type.FullName} but conflicting ID {id}, from {source} ({type.Assembly.FullName})");
                         continue;
                     }
 
-                    Logger.Log(LogLevel.INF, "data", $"Found data type {type.FullName} with ID {id}");
+                    Logger.Log(LogLevel.INF, "data", $"Found data type {type.FullName} with ID {id}, from {source} ({type.Assembly.FullName})");
                     IDToDataType[id] = type;
                     DataTypeToID[type] = id;
                     DataTypeToSource[type] = source;
@@ -278,30 +278,28 @@ namespace Celeste.Mod.CelesteNet {
             }
         }
 
-        public DataType Read(CelesteNetBinaryReader reader) {
+        protected static bool IsOtherModDataType(Type type) {
+            if (type.Assembly.FullName == null)
+                return false;
+            return !type.Assembly.FullName.StartsWith("CelesteNet.");
+        }
+
+        public DataType? Read(CelesteNetBinaryReader reader) {
             if (!reader.BaseStream.CanSeek)
                 throw new ArgumentException("Base stream isn't seekable");
 
-            DataFlags flags = (DataFlags) reader.ReadUInt16();
+            DataFlags flags = (DataFlags)reader.ReadUInt16();
             if ((flags & DataFlags.InteralSlimIndicator) != 0) {
                 if (reader.CoreTypeMap == null)
                     throw new InvalidDataException("Trying to read a slim packet header without a slim map!");
 
-                int slimID = (int) (flags & ~(DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID));
+                int slimID = (int)(flags & ~(DataFlags.InteralSlimIndicator | DataFlags.InteralSlimBigID));
                 if ((flags & DataFlags.InteralSlimBigID) != 0)
                     slimID |= (reader.Read7BitEncodedInt() << 14);
 
                 Type slimType = reader.CoreTypeMap.Get(slimID);
-                if (Activator.CreateInstance(slimType) is not DataType slimData)
-                    throw new InvalidDataException($"Cannot create instance of data type {slimType.FullName}");
 
-                try {
-                    slimData.ReadAll(reader);
-                } catch (Exception e) {
-                    throw new Exception($"Error reading DataType '{slimData.GetTypeID(this)}'", e);
-                }
-
-                return slimData;
+                return ReadInner(slimType, reader);
             }
             flags &= ~DataFlags.RESERVED;
 
@@ -311,33 +309,59 @@ namespace Celeste.Mod.CelesteNet {
             long start = reader.BaseStream.Position;
 
             DataType? data;
-            if (!IDToDataType.TryGetValue(id, out Type? type))
+            if (!IDToDataType.TryGetValue(id, out Type? type)) {
                 data = new DataUnparsed {
                     InnerID = id,
                     InnerSource = source,
                     InnerFlags = flags,
                     InnerLength = length
                 };
-            else {
-                data = Activator.CreateInstance(type) as DataType;
-                if (data == null)
-                    throw new InvalidOperationException($"Cannot create instance of DataType '{type.FullName}'");
-            }
-
-            try {
-                data.ReadAll(reader);
-            } catch (Exception e) {
-                throw new Exception($"Error reading DataType '{data.GetTypeID(this)}'", e);
+                try {
+                    data.ReadAll(reader);
+                } catch (Exception e) {
+                    Logger.Log(LogLevel.CRI, "data", $"Error reading DataUnparsed from source {source}!");
+                    Logger.LogDetailedException(e);
+                }
+            } else {
+                data = ReadInner(type, reader);
             }
 
             long lengthReal = reader.BaseStream.Position - start;
-            if (lengthReal != length)
-                throw new InvalidDataException($"Length mismatch for DataType '{id}' {flags} {source} {length} - got {lengthReal}");
+            if (lengthReal != length) {
+                if (type != null && IsOtherModDataType(type))
+                    Logger.LogDetailed(LogLevel.CRI, "data", $"Length mismatch for DataType '{id}' {flags} {source} {length} - got {lengthReal}");
+                else
+                    throw new InvalidDataException($"Length mismatch for DataType '{id}' {flags} {source} {length} - got {lengthReal}");
+            }
 
             if (type != null && (flags & DataFlags.CoreType) != 0)
                 reader.CoreTypeMap?.CountRead(type);
 
             return data;
+        }
+
+        public DataType? ReadInner(Type type, CelesteNetBinaryReader reader) {
+            DataType? data = Activator.CreateInstance(type) as DataType;
+            if (data == null) {
+                if (IsOtherModDataType(type))
+                    Logger.LogDetailed(LogLevel.CRI, "data", $"Cannot create instance of DataType '{type.FullName}' ({type.Assembly.FullName})");
+                else
+                    throw new InvalidOperationException($"Cannot create instance of DataType '{type.FullName}'");
+                return null;
+            }
+
+            try {
+                data.ReadAll(reader);
+                return data;
+            } catch (Exception e) {
+                if (IsOtherModDataType(type)) {
+                    Logger.Log(LogLevel.CRI, "data", $"Error reading DataType '{data.GetTypeID(this)}', from source {data.GetSource(this)}");
+                    Logger.LogDetailedException(e);
+                } else {
+                    throw new Exception($"Error reading DataType '{data.GetTypeID(this)}'", e);
+                }
+                return null;
+            }
         }
 
         public MetaType ReadMeta(CelesteNetBinaryReader reader) {
@@ -386,7 +410,11 @@ namespace Celeste.Mod.CelesteNet {
                 try {
                     data.WriteAll(writer);
                 } catch (Exception e) {
-                    throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
+                    if (IsOtherModDataType(data.GetType())) {
+                        Logger.Log(LogLevel.CRI, "data", $"Error writing DataType '{data.GetTypeID(this)}', from source {data.GetSource(this)}");
+                        Logger.LogDetailedException(e);
+                    } else
+                        throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
                 }
 
                 return (int) (writer.BaseStream.Position - start);
@@ -408,7 +436,11 @@ namespace Celeste.Mod.CelesteNet {
             try {
                 data.WriteAll(writer);
             } catch (Exception e) {
-                throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
+                if (IsOtherModDataType(data.GetType())) {
+                    Logger.Log(LogLevel.CRI, "data", $"Error writing DataType '{data.GetTypeID(this)}', from source {data.GetSource(this)}");
+                    Logger.LogDetailedException(e);
+                } else
+                    throw new Exception($"Error writing DataType {data} [{data.GetTypeID(this)}]", e);
             }
 
             writer.UpdateSizeDummy();

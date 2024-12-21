@@ -1,5 +1,6 @@
 # publishing byproducts
 PubClient/
+PubServer/
 CelesteNet.Client.zip
 
 # celeste reference libraries, in case someone really doesn't

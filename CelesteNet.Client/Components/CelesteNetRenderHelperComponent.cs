@@ -167,7 +167,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components
 
             c.EmitDelegate<Func<Viewport>>(() => {
                 Viewport tmpRealVP = Engine.Viewport;
-                Engine.SetViewport(new(0, 0, Engine.ViewWidth, Engine.ViewHeight));
+                GraphicsDevice.Viewport = new(0, 0, Engine.ViewWidth, Engine.ViewHeight);
                 return tmpRealVP;
             });
             c.Emit(OpCodes.Stloc, vd_tmpRealVP);
@@ -176,6 +176,13 @@ namespace Celeste.Mod.CelesteNet.Client.Components
             c.Emit(OpCodes.Dup);
             c.Emit(OpCodes.Stloc, vd_tmpRealRT);
             c.EmitDelegate<Func<RenderTarget2D, RenderTarget2D?>>(GetFakeRT);
+
+            c.GotoNext(MoveType.After, i => i.MatchCallOrCallvirt(typeof(GraphicsDevice), "Clear"));
+            c.Emit(OpCodes.Ldloc, vd_tmpRealVP);
+            c.EmitDelegate<Action<Viewport>>((tmpRealVP) => {
+                Engine.SetViewport(tmpRealVP);
+                GraphicsDevice.Viewport = new(0, 0, Engine.ViewWidth, Engine.ViewHeight);
+            });
 
             c.GotoNext(i => i.MatchRet());
             c.Emit(OpCodes.Ldloc, vd_tmpRealVP);
@@ -325,7 +332,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components
                     }
 
                     GraphicsDevice.SetRenderTarget(tmpRealRT);
-                    GraphicsDevice.Viewport = Engine.Viewport;
+                    GraphicsDevice.Viewport = tmpRealVP;
+                    Engine.SetViewport(tmpRealVP);
                     GraphicsDevice.Clear(Engine.ClearColor);
 
                     MDraw.SpriteBatch.Begin(
@@ -364,9 +372,26 @@ namespace Celeste.Mod.CelesteNet.Client.Components
         private void ILRenderLevel(ILContext il) {
             ILCursor c = new(il);
 
+            VariableDefinition vd_tmpRealRT = new(il.Import(typeof(RenderTarget2D)));
+            il.Body.Variables.Add(vd_tmpRealRT);
+
             while (c.TryGotoNext(i => i.MatchCallOrCallvirt(typeof(GraphicsDevice), "SetRenderTarget"))) {
+                c.Emit(OpCodes.Dup);
+                c.Emit(OpCodes.Stloc, vd_tmpRealRT);
                 c.EmitDelegate<Func<RenderTarget2D, RenderTarget2D?>>(GetFakeRT);
-                c.Index++;
+
+                int tmpCIndex = c.Index;
+
+                if (c.TryGotoNext(MoveType.After, i => i.MatchCallOrCallvirt(typeof(GraphicsDevice), "set_Viewport"))) {
+                    c.Emit(OpCodes.Ldloc, vd_tmpRealRT);
+                    c.EmitDelegate<Action<RenderTarget2D>>((tmpRealRT) => {
+                        if (tmpRealRT == null) {
+                            GraphicsDevice.Viewport = new(0, 0, Engine.ViewWidth, Engine.ViewHeight);
+                        }
+                    });
+                }
+
+                c.Index = tmpCIndex + 1;
             }
         }
 

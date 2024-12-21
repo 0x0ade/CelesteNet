@@ -5,11 +5,11 @@ namespace Celeste.Mod.CelesteNet.Client.Entities
 {
     public class GhostEntity : Entity {
 
-        public Ghost Ghost;
+        public Ghost? Ghost;
 
-        public string SpriteID;
-        public Sprite Sprite;
-        public CelesteNetClientSpriteDB.SpriteMeta SpriteMeta;
+        public string SpriteID = "";
+        public Sprite? Sprite;
+        public CelesteNetClientSpriteDB.SpriteMeta? SpriteMeta;
 
         public GhostEntity(Ghost ghost)
             : base(Vector2.Zero) {
@@ -21,7 +21,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities
         }
 
         public override void Update() {
-            if (Ghost == null || string.IsNullOrEmpty(Ghost.NameTag.Name) || Ghost.Scene != Scene) {
+            if (Ghost == null || string.IsNullOrEmpty(Ghost.NameTag?.Name) || Ghost.Scene != Scene) {
                 RemoveSelf();
                 return;
             }
@@ -45,11 +45,15 @@ namespace Celeste.Mod.CelesteNet.Client.Entities
                 Add(Sprite);
             }
 
+            if (Sprite == null)
+                return;
+
             Sprite.Scale = scale;
 
             Depth = depth;
 
-            Sprite.Color = color * Ghost.Alpha;
+            float a = Ghost?.Alpha ?? 1f;
+            Sprite.Color = color * a;
 
             Sprite.Rate = rate;
             Sprite.Justify = justify;
@@ -67,7 +71,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities
         }
 
         public override void Render() {
-            Sprite s = Sprite;
+            Sprite? s = Sprite;
             if (s != null && (SpriteMeta?.ForceOutline ?? false)) {
                 Vector2 pos = s.Position;
                 Color color = s.Color;

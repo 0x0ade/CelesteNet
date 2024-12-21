@@ -32,8 +32,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     TickDelay = MinTickDelay;
 
                 // Tick components
-                foreach (ITickReceiver receiver in Context.Components.Values)
-                    receiver.Tick();
+                if (Context != null)
+                    foreach (ITickReceiver receiver in Context.Components.Values)
+                        receiver.Tick();
 
                 if (Engine.Scene?.Tracker != null) {
                     // Tick all tracked entities and components which implement the interface
@@ -61,7 +62,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
             Logger.Log(LogLevel.INF, "client-ticker", $"Changed tick rate to {rate.TickRate} TpS");
         }
 
-        public event Action OnTick;
+        public event Action? OnTick;
 
     }
 }

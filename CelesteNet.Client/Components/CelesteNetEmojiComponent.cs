@@ -103,7 +103,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
             lock (Pending) {
                 // Get the emoji asset
-                if (!Pending.TryGetValue(netemoji.ID, out NetEmojiAsset asset))
+                if (!Pending.TryGetValue(netemoji.ID, out NetEmojiAsset? asset))
                     Pending.Add(netemoji.ID, asset = new(Content, netemoji.ID));
 
                 // Handle the fragment
@@ -131,7 +131,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                             // find the corresponding DataPlayerInfo (perhaps DataNetEmoji should hold a Ref)
                             string[] splitID = netemoji.ID.Split('_');
                             if (splitID.Length > 2 && uint.TryParse(splitID[2], out uint ID)
-                            && Client?.Data != null && Client.Data.TryGetRef(ID, out DataPlayerInfo player) && player != null) {
+                            && Client?.Data != null && Client.Data.TryGetRef(ID, out DataPlayerInfo? player) && player != null) {
                                 // restore the avatar in case it has been set to AvatarMissing by the Filter below
                                 player.DisplayName = $":{netemoji.ID}: {player.FullName}";
                             }

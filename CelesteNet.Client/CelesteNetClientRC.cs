@@ -12,8 +12,8 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         private static readonly char[] URLArgsSeperator = new[] { '&' };
 
-        private static HttpListener Listener;
-        private static Thread ListenerThread;
+        private static HttpListener? Listener;
+        private static Thread? ListenerThread;
 
         public static void Initialize() {
             if (Listener != null)
@@ -51,7 +51,9 @@ namespace Celeste.Mod.CelesteNet.Client {
             try {
                 while (Listener?.IsListening ?? false) {
                     ThreadPool.QueueUserWorkItem(c => {
-                        HttpListenerContext context = c as HttpListenerContext;
+
+                        if (c is not HttpListenerContext context)
+                            return;
 
                         if (context.Request.HttpMethod == "OPTIONS") {
                             context.Response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-Requested-With");
@@ -94,25 +96,30 @@ namespace Celeste.Mod.CelesteNet.Client {
         private static void HandleRequest(HttpListenerContext c) {
             Logger.Log(LogLevel.VVV, "rc", $"Requested: {c.Request.RawUrl}");
 
-            string url = c.Request.RawUrl;
-            int indexOfSplit = url.IndexOf('?');
-            if (indexOfSplit != -1)
-                url = url.Substring(0, indexOfSplit);
+            string? url = c.Request.RawUrl;
+            if (url != null) {
+                int indexOfSplit = url.IndexOf('?');
+                if (indexOfSplit != -1)
+                    url = url.Substring(0, indexOfSplit);
+            }
 
-            RCEndPoint endpoint =
+            RCEndPoint? endpoint =
                 EndPoints.FirstOrDefault(ep => ep.Path == c.Request.RawUrl) ??
                 EndPoints.FirstOrDefault(ep => ep.Path == url) ??
-                EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == c.Request.RawUrl.ToLowerInvariant()) ??
-                EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == url.ToLowerInvariant()) ??
+                EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == c.Request.RawUrl?.ToLowerInvariant()) ??
+                EndPoints.FirstOrDefault(ep => ep.Path.ToLowerInvariant() == url?.ToLowerInvariant()) ??
                 EndPoints.FirstOrDefault(ep => ep.Path == "/404");
-            endpoint.Handle(c);
+            endpoint?.Handle(c);
         }
 
 
         #region Read / Parse Helpers
 
-        public static NameValueCollection ParseQueryString(string url) {
+        public static NameValueCollection ParseQueryString(string? url) {
             NameValueCollection nvc = new();
+
+            if (url == null)
+                return nvc;
 
             int indexOfSplit = url.IndexOf('?');
             if (indexOfSplit == -1)
@@ -212,13 +219,14 @@ header {
 
         #region Default RCEndPoint Handlers
 
-        public static List<RCEndPoint> EndPoints = new() {
+#pragma warning disable S1104 // Fields should not have public accessibility
+        public static readonly List<RCEndPoint> EndPoints = new() {
 
                 new RCEndPoint {
                     Path = "/",
                     Name = "Info",
                     InfoHTML = "Basic CelesteNet ClientRC info.",
-                    Handle = c => {
+                    Handle = static c => {
                         StringBuilder builder = new();
 
                         WriteHTMLStart(c, builder);
@@ -234,15 +242,17 @@ header {
 </ul>"
                         );
 
-                        builder.AppendLine(@"<ul id=""endpoints"">");
-                        builder.AppendLine(@"<h2>Endpoints</h2>");
-                        foreach (RCEndPoint ep in EndPoints) {
-                            builder.AppendLine(@"<li>");
-                            builder.AppendLine($@"<h3>{ep.Name}</h3>");
-                            builder.AppendLine($@"<p><a href=""{ep.PathExample ?? ep.Path}""><code>{ep.PathHelp ?? ep.Path}</code></a><br>{ep.InfoHTML}</p>");
-                            builder.AppendLine(@"</li>");
+                        if (EndPoints != null) {
+                            builder.AppendLine(@"<ul id=""endpoints"">");
+                            builder.AppendLine(@"<h2>Endpoints</h2>");
+                            foreach (RCEndPoint ep in EndPoints) {
+                                builder.AppendLine(@"<li>");
+                                builder.AppendLine($@"<h3>{ep.Name}</h3>");
+                                builder.AppendLine($@"<p><a href=""{ep.PathExample ?? ep.Path}""><code>{ep.PathHelp ?? ep.Path}</code></a><br>{ep.InfoHTML}</p>");
+                                builder.AppendLine(@"</li>");
+                            }
+                            builder.AppendLine(@"</ul>");
                         }
-                        builder.AppendLine(@"</ul>");
 
                         WriteHTMLEnd(c, builder);
 
@@ -254,7 +264,7 @@ header {
                     Path = "/404",
                     Name = "404",
                     InfoHTML = "Basic 404.",
-                    Handle = c => {
+                    Handle = static c => {
                         c.Response.StatusCode = (int) HttpStatusCode.NotFound;
                         Write(c, "ERROR: Endpoint not found.");
                     }
@@ -266,10 +276,10 @@ header {
                     PathExample = "/setkey?value=Guest",
                     Name = "Set Key",
                     InfoHTML = "Set the key as the client name for the next connection.",
-                    Handle = c => {
+                    Handle = static c => {
                         NameValueCollection data = ParseQueryString(c.Request.RawUrl);
 
-                        string name = data["value"].Trim();
+                        string? name = data["value"]?.Trim();
                         if (string.IsNullOrEmpty(name)) {
                             c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
                             Write(c, $"ERROR: No value given.");
@@ -284,6 +294,7 @@ header {
                 },
 
             };
+#pragma warning restore S1104 // Fields should not have public accessibility
 
         #endregion
 

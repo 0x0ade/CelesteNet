@@ -98,6 +98,9 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
         }
 
         public void Handle(CelesteNetConnection con, DataNetEmoji netemoji) {
+            if (Client?.Options?.AvatarsDisabled == true)
+                return;
+
             lock (Pending) {
                 // Get the emoji asset
                 if (!Pending.TryGetValue(netemoji.ID, out NetEmojiAsset? asset))

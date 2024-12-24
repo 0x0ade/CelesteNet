@@ -168,16 +168,27 @@ namespace Celeste.Mod.CelesteNet.Client {
                     TCPHeartbeat();
 
                     // Read the packet
-                    DataType? packet;
+                    DataType? packet = null;
+                    bool otherModException = false;
                     using (MemoryStream packetStream = new(packetBuffer, 2, packetSize))
                     using (CelesteNetBinaryReader packetReader = new(Data, Strings, CoreTypeMap, packetStream)) {
-                        packet = Data.Read(packetReader);
-                        if (packetStream.Position != packetSize)
+                        try {
+                            packet = Data.Read(packetReader);
+                        } catch (DataContextException e) {
+                            if (e.OtherMod) {
+                                Logger.LogDetailedException(e?.InnerException ?? e, "client-data-ex");
+                                otherModException = true;
+                            } else if (e.InnerException != null)
+                                throw e.InnerException;
+                            else
+                                throw;
+                        }
+                        if (!otherModException && packetStream.Position != packetSize)
                             throw new InvalidDataException($"Didn't read all data in TCP vdgram ({packetStream.Position} read, {packetSize} total)!");
                     }
 
                     // Handle the packet
-                    if (packet != null)
+                    if (packet != null) {
                         switch (packet) {
                             case DataLowLevelPingRequest pingReq: {
                                 TCPQueue.Enqueue(new DataLowLevelPingReply() {
@@ -202,6 +213,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                                 Receive(packet);
                                 break;
                             }
+                        }
+                    } else {
+                        Logger.Log(LogLevel.WRN, "tcprecv", $"Read null DataType in TCPRecvThreadFunc");
                     }
 
                     // Promote optimizations
@@ -256,12 +270,22 @@ namespace Celeste.Mod.CelesteNet.Client {
 
                             // Read packets until we run out data
                             while (mStream.Position < dgSize - 1) {
-                                DataType? packet = Data.Read(reader);
+                                DataType? packet = null;
+                                try {
+                                    packet = Data.Read(reader);
+                                } catch (DataContextException e) {
+                                    if (e.OtherMod)
+                                        Logger.LogDetailedException(e?.InnerException ?? e, "client-data-ex");
+                                    else if (e.InnerException != null)
+                                        throw e.InnerException;
+                                    else
+                                        throw;
+                                }
                                 if (packet != null && packet.TryGet<MetaOrderedUpdate>(Data, out MetaOrderedUpdate? orderedUpdate))
                                     orderedUpdate.UpdateID = containerID;
 
                                 // Handle packet
-                                if (packet != null)
+                                if (packet != null) {
                                     switch (packet) {
                                         case DataLowLevelPingRequest pingReq: {
                                             UDPQueue.Enqueue(new DataLowLevelPingReply() {
@@ -274,6 +298,9 @@ namespace Celeste.Mod.CelesteNet.Client {
                                             break;
                                         }
                                     }
+                                } else {
+                                    Logger.Log(LogLevel.WRN, "udprecv", $"Read null DataType in UDPRecvThreadFunc");
+                                }
                             }
                         }
 

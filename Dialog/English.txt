@@ -61,6 +61,8 @@
 	MODOPTIONS_CELESTENETCLIENT_INTERACTIONSHINT=		This only affects your ability to interact with others.
 	MODOPTIONS_CELESTENETCLIENT_ENTITIESHINT=			Entities are keys, berries, Theo, jellyfish and other things.
 
+	MODOPTIONS_CELESTENETCLIENT_VELOCITYPREDICTIONHINT= Whether to predict other players' movement.
+
 	MODOPTIONS_CELESTENETCLIENT_OTHERPLAYEROPACITY= 		Other Players' Opacity
 	MODOPTIONS_CELESTENETCLIENT_SOUNDVOLUME=			Sound Volume
 

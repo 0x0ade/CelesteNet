@@ -115,7 +115,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnPlayer(Player player) {
-            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.InGame.Interactions || Context?.Main?.GrabbedBy == this)
+            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Session.UseInteractions || Context?.Main.GrabbedBy == this)
                 return;
 
             if (player.StateMachine.State == Player.StNormal &&
@@ -137,7 +137,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnCarry(Vector2 position) {
-            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.InGame.Interactions || IdleTag != null)
+            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Session.UseInteractions || IdleTag != null)
                 return;
 
             Position = position;
@@ -159,7 +159,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void OnRelease(Vector2 force) {
             Collidable = true;
 
-            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Settings.InGame.Interactions || IdleTag != null)
+            if (!Interactive || GrabCooldown > 0f || !CelesteNetClientModule.Session.UseInteractions || IdleTag != null)
                 return;
 
             CelesteNetClient? client = Context?.Client;
@@ -189,7 +189,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
             }
 
-            bool holdable = Interactive && GrabCooldown <= 0f && CelesteNetClientModule.Settings.InGame.Interactions && IdleTag == null;
+            bool holdable = Interactive && GrabCooldown <= 0f && CelesteNetClientModule.Session.UseInteractions && IdleTag == null;
 
             GrabCooldown -= Engine.RawDeltaTime;
             if (GrabCooldown < 0f)

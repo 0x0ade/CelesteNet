@@ -58,6 +58,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
 
         private ILHook? ILHookTransitionRoutine;
 
+        private bool Interactions_Safe => CelesteNetClientModule.Session?.UseInteractions ?? Settings?.InGame?.Interactions ?? true;
+
         public CelesteNetMainComponent(CelesteNetClientContext context, Game game)
             : base(context, game) {
 
@@ -231,7 +233,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     ghost == null)
                     return;
 
-                if (Settings.InGame.Interactions != state.Interactive && ghost == GrabbedBy)
+                if (Interactions_Safe != state.Interactive && ghost == GrabbedBy)
                     SendReleaseMe();
 
                 Session? session = Session;
@@ -498,10 +500,10 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 return;
 
             Player? player = Player;
-            if (player != null && !Settings.InGame.Interactions && (grab.Player.ID == Client.PlayerInfo.ID || grab.Grabbing.ID == Client.PlayerInfo.ID))
+            if (player != null && !Interactions_Safe && (grab.Player.ID == Client.PlayerInfo.ID || grab.Grabbing.ID == Client.PlayerInfo.ID))
                 goto Release;
 
-            if (Engine.Scene is not Level level || level.Paused || player == null || !Settings.InGame.Interactions)
+            if (Engine.Scene is not Level level || level.Paused || player == null || !Interactions_Safe)
                 return;
 
             if (grab.Player.ID != Client.PlayerInfo.ID && grab.Grabbing.ID == Client.PlayerInfo.ID) {
@@ -803,8 +805,8 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 StateUpdated |= true;
             }
 
-            if (WasInteractive != Settings.InGame.Interactions) {
-                WasInteractive = Settings.InGame.Interactions;
+            if (WasInteractive != Interactions_Safe) {
+                WasInteractive = Interactions_Safe;
                 StateUpdated |= true;
             }
 
@@ -983,7 +985,7 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                     Mode = Session?.Area.Mode ?? MapEditorArea?.Mode ?? AreaMode.Normal,
                     Level = Session?.Level ?? (MapEditorArea != null ? LevelDebugMap : ""),
                     Idle = ForceIdle.Count != 0 || (Player?.Scene is Level level && (level.FrozenOrPaused || level.Overlay != null)),
-                    Interactive = Settings.InGame.Interactions
+                    Interactive = Interactions_Safe
                 });
             } catch (Exception e) {
                 Logger.Log(LogLevel.INF, "client-main", $"Error in SendState:\n{e}");

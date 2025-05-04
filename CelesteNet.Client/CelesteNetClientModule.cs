@@ -9,6 +9,7 @@ using Celeste.Mod.CelesteNet.Client.Components;
 using Celeste.Mod.CelesteNet.DataTypes;
 using FMOD.Studio;
 using Monocle;
+using MonoMod.ModInterop;
 using MonoMod.Utils;
 
 namespace Celeste.Mod.CelesteNet.Client {
@@ -27,6 +28,9 @@ namespace Celeste.Mod.CelesteNet.Client {
 
         public override Type SettingsType => typeof(CelesteNetClientSettings);
         public static CelesteNetClientSettings Settings => (CelesteNetClientSettings) Instance._Settings;
+
+        public override Type SessionType => typeof(CelesteNetClientSession);
+        public static CelesteNetClientSession Session => (CelesteNetClientSession)Instance._Session;
 
         public CelesteNetClientContext? ContextLast;
         public CelesteNetClientContext? Context;
@@ -105,6 +109,8 @@ namespace Celeste.Mod.CelesteNet.Client {
             Everest.Events.Celeste.OnShutdown += CelesteNetClientRC.Shutdown;
 
             CelesteNetClientSpriteDB.Load();
+
+            typeof(Interop).ModInterop();
         }
 
         public override void LoadContent(bool firstLoad) {

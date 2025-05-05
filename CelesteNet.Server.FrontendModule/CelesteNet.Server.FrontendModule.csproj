@@ -17,7 +17,7 @@
 
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
 
-      <PackageReference Include="SixLabors.ImageSharp" GeneratePathProperty="true" Version="3.1.4" />
+      <PackageReference Include="SixLabors.ImageSharp" GeneratePathProperty="true" Version="3.1.7" />
 
 
     <PackageReference Include="SixLabors.ImageSharp.Drawing" GeneratePathProperty="true" Version="2.1.3" />

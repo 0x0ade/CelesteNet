@@ -5,7 +5,7 @@ namespace Celeste.Mod.CelesteNet
 {
     public class RWLock : IDisposable {
 
-        public readonly ReaderWriterLockSlim Inner = new(LockRecursionPolicy.SupportsRecursion);
+        private readonly ReaderWriterLockSlim Inner = new(LockRecursionPolicy.SupportsRecursion);
         private readonly RLock _R;
         private readonly RULock _RU;
         private readonly WLock _W;
@@ -25,7 +25,7 @@ namespace Celeste.Mod.CelesteNet
         }
 
         public class RLock : IDisposable {
-            public readonly ReaderWriterLockSlim Inner;
+            private readonly ReaderWriterLockSlim Inner;
 
             public RLock(ReaderWriterLockSlim inner) {
                 Inner = inner;
@@ -42,7 +42,7 @@ namespace Celeste.Mod.CelesteNet
         }
 
         public class RULock : IDisposable {
-            public readonly ReaderWriterLockSlim Inner;
+            private readonly ReaderWriterLockSlim Inner;
 
             public RULock(ReaderWriterLockSlim inner) {
                 Inner = inner;
@@ -59,7 +59,7 @@ namespace Celeste.Mod.CelesteNet
         }
 
         public class WLock : IDisposable {
-            public readonly ReaderWriterLockSlim Inner;
+            private readonly ReaderWriterLockSlim Inner;
 
             public WLock(ReaderWriterLockSlim inner) {
                 Inner = inner;

@@ -27,6 +27,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         private bool HoldableAdded;
 
         public bool MutualInteractable => CelesteNetClientModule.Session.UseInteractions && Interactive;
+        public bool Grabable => IdleTag == null && MutualInteractable;
 
         public GhostNameTag? NameTag;
         public GhostEmote? IdleTag;
@@ -82,7 +83,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 OnRelease = OnRelease
             };
 
-            Collidable = MutualInteractable && IdleTag == null;
+            Collidable = Grabable;
             Collider = new Hitbox(8f, 11f, -4f, -11f);
             Add(new PlayerCollider(OnPlayer));
 
@@ -139,7 +140,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         }
 
         public void OnCarry(Vector2 position) {
-            if (!MutualInteractable || GrabCooldown > 0f || IdleTag != null)
+            if (!Grabable || GrabCooldown > 0f)
                 return;
 
             Position = position;
@@ -161,7 +162,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
         public void OnRelease(Vector2 force) {
             Collidable = true;
 
-            if (!MutualInteractable || GrabCooldown > 0f || IdleTag != null)
+            if (!Grabable || GrabCooldown > 0f)
                 return;
 
             CelesteNetClient? client = Context?.Client;
@@ -191,8 +192,8 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
             }
 
-            bool holdable = MutualInteractable && GrabCooldown <= 0f && IdleTag == null;
-            Collidable = MutualInteractable && Holdable.Holder == null && IdleTag == null; //Not sure it is save or not
+            bool holdable = Grabable && GrabCooldown <= 0f;
+            Collidable = Holdable.Holder == null && Grabable; //Not sure it is save or not
 
             GrabCooldown -= Engine.RawDeltaTime;
             if (GrabCooldown < 0f)

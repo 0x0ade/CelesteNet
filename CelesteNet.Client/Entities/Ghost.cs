@@ -83,7 +83,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 OnRelease = OnRelease
             };
 
-            Collidable = Grabable;
+            Collidable = MutualInteractable;
             Collider = new Hitbox(8f, 11f, -4f, -11f);
             Add(new PlayerCollider(OnPlayer));
 
@@ -193,7 +193,7 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
             }
 
             bool holdable = Grabable && GrabCooldown <= 0f;
-            Collidable = Holdable.Holder == null && Grabable; //Not sure it is save or not
+            Collidable = Holdable.Holder == null && MutualInteractable; //Not sure it is save or not
 
             GrabCooldown -= Engine.RawDeltaTime;
             if (GrabCooldown < 0f)

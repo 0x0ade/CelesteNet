@@ -356,7 +356,10 @@ namespace Celeste.Mod.CelesteNet.Client.Entities {
                 return;
 
             if (colors.Length <= 0)
-                colors = new[] { Color.White };
+                colors = new[] { Player.NormalHairColor };
+            else
+                Hair.Color = colors[0];
+                
             if (PlayerGraphics.HairCount < colors.Length)
                 Array.Resize(ref colors, PlayerGraphics.HairCount);
 

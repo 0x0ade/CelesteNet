@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>CelesteNet.Server.FrontendModule</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Server.Control</RootNamespace>
   </PropertyGroup>
@@ -15,17 +15,17 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 
-    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.3.0" />
 
-      <PackageReference Include="SixLabors.ImageSharp" GeneratePathProperty="true" Version="3.1.4" />
+      <PackageReference Include="SixLabors.ImageSharp" GeneratePathProperty="true" Version="3.1.11" />
 
 
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" GeneratePathProperty="true" Version="2.1.3" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" GeneratePathProperty="true" Version="2.1.7" />
 
       
-    <PackageReference Include="Microsoft.CodeAnalysis.Compilers" Version="4.8.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Compilers" Version="4.14.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.14.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
 
     <!--
       this is a build of [websocket-sharp with custom headers](https://github.com/felixhao28/websocket-sharp)

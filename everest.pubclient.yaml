@@ -3,4 +3,4 @@
   DLL: CelesteNet.Client.dll
   Dependencies:
     - Name: EverestCore
-      Version: 1.4465.0
+      Version: 1.5577.0

@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <LangVersion>11</LangVersion>
+    <LangVersion>12</LangVersion>
     <Nullable Condition="'$(Nullable)' == ''">enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
@@ -37,8 +37,8 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.0.2" PrivateAssets="all" ExcludeAssets="runtime" />
-    <PackageReference Include="MonoMod.Utils" Version="25.0.3" />
+    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.3.0" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="MonoMod.Utils" Version="25.0.8" />
     <PackageReference Include="YamlDotNet" Version="15.1.2" />
   </ItemGroup>
 

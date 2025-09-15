@@ -3,8 +3,10 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using Celeste.Mod.CelesteNet.Server.Chat;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -17,16 +19,35 @@ using WebSocketSharp.Server;
 namespace Celeste.Mod.CelesteNet.Server.Control {
     public static partial class RCEndpoints {
 
-        [RCEndpoint(false, "/discordauth", "", "", "Discord OAuth2", "User auth using Discord.")]
-        public static void DiscordOAuth(Frontend f, HttpRequestEventArgs c) {
+        [RCEndpoint(false, "/oauth", "", "", "OAuth2", "User auth using provider.")]
+        public static void OAuth(Frontend f, HttpRequestEventArgs c) {
             NameValueCollection args = f.ParseQueryString(c.Request.RawUrl);
 
+            string? provider = args["provider"];
+            FrontendSettings.OAuthProvider? oauthProvider = null;
+            if (!provider.IsNullOrEmpty())
+                f.Settings.OAuthProviders.TryGetValue(provider, out oauthProvider);
+
             if (args.Count == 0) {
-                // c.Response.Redirect(f.Settings.OAuthURL);
-                c.Response.StatusCode = (int) HttpStatusCode.Redirect;
-                c.Response.Headers.Set("Location", f.Settings.DiscordOAuthURL);
+                c.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 f.RespondJSON(c, new {
-                    Info = $"Redirecting to {f.Settings.DiscordOAuthURL}"
+                    Error = "No OAuth provider specified."
+                });
+                return;
+            } else if (args.Count == 1 && oauthProvider != null) {
+                string newCSRFToken = "testinglol";
+
+                string newState = $"{provider}.{newCSRFToken}.{Frontend.SignString(f.RSAKeysOAuth, newCSRFToken)}";
+
+                string redirectOAuth = oauthProvider.OAuthURL(f.Settings.OAuthRedirectURL, newState);
+
+                Logger.Log(LogLevel.CRI, "frontend-oauth", $"Generated state token: {newState}");
+                Logger.Log(LogLevel.CRI, "frontend-oauth", $"redirect URI: {redirectOAuth}");
+
+                c.Response.StatusCode = (int) HttpStatusCode.Redirect;
+                c.Response.Headers.Set("Location", redirectOAuth);
+                f.RespondJSON(c, new {
+                    Info = $"Redirecting to {redirectOAuth}"
                 });
                 return;
             }
@@ -43,37 +64,55 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             }
 
             string? code = args["code"];
-            if (code.IsNullOrEmpty()) {
+            string? state = args["state"];
+            if (code.IsNullOrEmpty() || state.IsNullOrEmpty()) {
                 c.Response.StatusCode = (int) HttpStatusCode.BadRequest;
                 f.RespondJSON(c, new {
-                    Error = "No code specified."
+                    Error = "OAuth2 code or state parameter missing."
+                });
+                return;
+            }
+
+            state = System.Uri.UnescapeDataString(state);
+            string[] splitState = state.Split(".");
+
+            Logger.Log(LogLevel.CRI, "frontend-oauth", $"State: {state}");
+            Logger.Log(LogLevel.CRI, "frontend-oauth", $"State split: {splitState}");
+
+            if (splitState.Length != 3 || !f.Settings.OAuthProviders.TryGetValue(splitState[0], out oauthProvider) || !Frontend.VerifyString(f.RSAKeysOAuth, splitState[1], splitState[2])) {
+                c.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                f.RespondJSON(c, new {
+                    Error = $"OAuth2 CSRF state {System.Uri.EscapeDataString(state)} could not be verified!"
                 });
                 return;
             }
 
             dynamic? tokenData;
-            dynamic? userData;
+            JObject? userData;
 
             using (HttpClient client = new()) {
+                Logger.Log(LogLevel.CRI, "frontend-oauth", $"requesting: {oauthProvider.OAuthPathToken} with code {code}");
 #pragma warning disable CS8714 // new FormUrlEncodedContent expects nullable.
-                using (Stream s = client.PostAsync("https://discord.com/api/oauth2/token", new FormUrlEncodedContent(new Dictionary<string?, string?>() {
+                using (Stream s = client.PostAsync(oauthProvider.OAuthPathToken, new FormUrlEncodedContent(new Dictionary<string?, string?>() {
 #pragma warning restore CS8714
-                    { "client_id", f.Settings.DiscordOAuthClientID },
-                    { "client_secret", f.Settings.DiscordOAuthClientSecret },
+                    { "client_id", oauthProvider.OAuthClientID },
+                    { "client_secret", oauthProvider.OAuthClientSecret },
                     { "grant_type", "authorization_code" },
                     { "code", code },
-                    { "redirect_uri", f.Settings.DiscordOAuthRedirectURL },
-                    { "scope", "identity" }
+                    { "redirect_uri", f.Settings.OAuthRedirectURL },
+                    { "scope", oauthProvider.OAuthScope }
                 })).Await().Content.ReadAsStreamAsync().Await())
                 using (StreamReader sr = new(s))
                 using (JsonTextReader jtr = new(sr))
                     tokenData = f.Serializer.Deserialize<dynamic>(jtr);
 
+                Logger.Log(LogLevel.CRI, "frontend-oauth", $"tokenData: {tokenData}");
+
                 if (tokenData?.access_token?.ToString() is not string token ||
                     tokenData?.token_type?.ToString() is not string tokenType ||
                     token.IsNullOrEmpty() ||
                     tokenType.IsNullOrEmpty()) {
-                    Logger.Log(LogLevel.CRI, "frontend-discordauth", $"Failed to obtain token: {tokenData}");
+                    Logger.Log(LogLevel.CRI, "frontend-oauth", $"Failed to obtain token: {tokenData}");
                     c.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                     f.RespondJSON(c, new {
                         Error = "Couldn't obtain access token from Discord."
@@ -81,25 +120,26 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
                     return;
                 }
 
+                if (tokenType == "bearer")
+                    tokenType = "Bearer";
 
                 using (Stream s = client.SendAsync(new HttpRequestMessage {
-                    RequestUri = new("https://discord.com/api/users/@me"),
+                    RequestUri = new(oauthProvider.ServiceUserAPI),
                     Method = HttpMethod.Get,
                     Headers = {
                         { "Authorization", $"{tokenType} {token}" }
                     }
                 }).Await().Content.ReadAsStreamAsync().Await())
                 using (StreamReader sr = new(s))
-                using (JsonTextReader jtr = new(sr))
-                    userData = f.Serializer.Deserialize<dynamic>(jtr);
+                    userData = JObject.Parse(sr.ReadToEnd());
             }
 
-            if (!(userData?.id?.ToString() is string uid) ||
+            if (!((string?)userData?.SelectTokens(oauthProvider.ServiceUserJsonPathUid).FirstOrDefault() is string uid) ||
                 uid.IsNullOrEmpty()) {
-                Logger.Log(LogLevel.CRI, "frontend-discordauth", $"Failed to obtain ID: {userData}");
+                Logger.Log(LogLevel.CRI, "frontend-oauth", $"Failed to obtain ID: {userData}");
                 c.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                 f.RespondJSON(c, new {
-                    Error = "Couldn't obtain user ID from Discord."
+                    Error = $"Couldn't obtain user ID from OAuth provider {provider}."
                 });
                 return;
             }
@@ -107,28 +147,28 @@ namespace Celeste.Mod.CelesteNet.Server.Control {
             string key = f.Server.UserData.Create(uid, false);
             BasicUserInfo info = f.Server.UserData.Load<BasicUserInfo>(uid);
 
-            if (userData.global_name?.ToString() is string global_name && !global_name.IsNullOrEmpty()) {
+            if ((string?)userData?.SelectTokens(oauthProvider.ServiceUserJsonPathName).FirstOrDefault() is string global_name && !global_name.IsNullOrEmpty()) {
                 info.Name = global_name;
             } else {
-                info.Name = userData.username.ToString();
+                info.Name = "";
             }
             if (info.Name.Length > 32) {
                 info.Name = info.Name.Substring(0, 32);
             }
-            info.Discrim = userData.discriminator.ToString();
+            info.Discrim = "";
             f.Server.UserData.Save(uid, info);
+
+            string? pfpFragment = (string?)userData?.SelectTokens(oauthProvider.ServiceUserJsonPathPfp).FirstOrDefault();
 
             Image avatarOrig;
             using (HttpClient client = new()) {
+                string avatarURL = string.Format(oauthProvider.ServiceUserAvatarURL, new object[] { uid, pfpFragment ?? "" });
                 try {
-                    using Stream s = client.GetAsync(
-                        $"https://cdn.discordapp.com/avatars/{uid}/{userData.avatar.ToString()}.png?size=64"
-                    ).Await().Content.ReadAsStreamAsync().Await();
+                    using Stream s = client.GetAsync(avatarURL).Await().Content.ReadAsStreamAsync().Await();
                     avatarOrig = Image.Load<Rgba32>(s);
                 } catch {
-                    using Stream s = client.GetAsync(
-                        $"https://cdn.discordapp.com/embed/avatars/{((int) userData.discriminator) % 6}.png"
-                    ).Await().Content.ReadAsStreamAsync().Await();
+                    avatarURL = oauthProvider.ServiceUserAvatarDefaultURL;
+                    using Stream s = client.GetAsync(avatarURL).Await().Content.ReadAsStreamAsync().Await();
                     avatarOrig = Image.Load(s);
                 }
             }

@@ -52,7 +52,7 @@ public class CmdLocate : ChatCmd {
 
         // the DataChat above was constructed with self so that the spam check in PrepareAndLog doesn't break,
         // and we do need to PrepareAndLog because we need a valid msg ID...
-        chat = Chat.PrepareAndLog(null, chat);
+        chat = Chat.PrepareAndLog(null, chat, false);
 
         if (chat != null) {
             chat.Player = OtherPlayer;

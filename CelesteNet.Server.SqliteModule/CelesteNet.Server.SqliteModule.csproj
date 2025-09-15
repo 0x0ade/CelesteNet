@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>CelesteNet.Server.SqliteModule</AssemblyName>
     <RootNamespace>Celeste.Mod.CelesteNet.Server.Sqlite</RootNamespace>
   </PropertyGroup>
@@ -10,8 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.2" />
-    <PackageReference Include="MessagePack" Version="2.5.140" />
-    <PackageReference Include="MessagePackAnalyzer" Version="2.5.140">
+    <PackageReference Include="MessagePack" Version="2.5.198" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.5.198">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

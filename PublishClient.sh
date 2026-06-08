@@ -1,4 +1,4 @@
-﻿#!/bin/sh
+#!/bin/sh
 dotnet build CelesteNet.Client -c Release
 rm -rf PubClient CelesteNet.Client.zip
 mkdir PubClient

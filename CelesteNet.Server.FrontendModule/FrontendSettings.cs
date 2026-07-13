@@ -22,6 +22,51 @@ namespace Celeste.Mod.CelesteNet.Server.Control
 
         public float NetPlusStatsUpdateRate { get; set; } = 1000;
 
+        public class OAuthProvider {
+            public string OAuthPathAuthorize { get; set; } = "";
+            public string OAuthPathToken { get; set; } = "";
+            public string OAuthScope { get; set; } = "identify";
+            public string OAuthClientID { get; set; } = "";
+            public string OAuthClientSecret { get; set; } = "";
+
+            public string ServiceUserAPI { get; set; } = "";
+
+            public string ServiceUserJsonPathUid { get; set; } = "$.id";
+
+            public string ServiceUserJsonPathName { get; set; } = "$.username";
+
+            public string ServiceUserJsonPathPfp { get; set; } = "$.avatar";
+
+            // will be put through string.Format with {0} = uid (ServiceUserJsonPathUid) and {1} = pfpFragment (ServiceUserJsonPathPfp)
+            public string ServiceUserAvatarURL { get; set; } = "";
+
+            public string ServiceUserAvatarDefaultURL { get; set; } = "";
+
+            public string OAuthURL(string redirectURL, string state) {
+                return $"{OAuthPathAuthorize}?client_id={OAuthClientID}&redirect_uri={Uri.EscapeDataString(redirectURL)}&response_type=code&scope={OAuthScope}&state={Uri.EscapeDataString(state)}";
+            }
+        }
+
+        public Dictionary<string,OAuthProvider> OAuthProviders { get; set; } = 
+            new Dictionary<string, OAuthProvider>() {
+                { "discord",
+                  new OAuthProvider()
+                  {
+                      OAuthPathAuthorize = "https://discord.com/oauth2/authorize",
+                      OAuthPathToken = "https://discord.com/api/oauth2/token",
+                      ServiceUserAPI = "https://discord.com/api/users/@me",
+                      ServiceUserJsonPathUid = "$.id",
+                      ServiceUserJsonPathName = "$.['global_name', 'username']",
+                      ServiceUserJsonPathPfp = "$.avatar",
+                      ServiceUserAvatarURL = "https://cdn.discordapp.com/avatars/{0}/{1}.png?size=64",
+                      ServiceUserAvatarDefaultURL = "https://cdn.discordapp.com/embed/avatars/0.png"
+                  }
+                }
+            };
+
+        [YamlIgnore]
+        public string OAuthRedirectURL => $"{CanonicalAPIRoot}/oauth";
+
         // TODO: Separate Discord auth module!
         [YamlIgnore]
         public string DiscordOAuthURL => $"https://discord.com/oauth2/authorize?client_id={DiscordOAuthClientID}&redirect_uri={Uri.EscapeDataString(DiscordOAuthRedirectURL)}&response_type=code&scope=identify";

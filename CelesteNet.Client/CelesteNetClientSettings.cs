@@ -289,6 +289,7 @@ namespace Celeste.Mod.CelesteNet.Client {
         [SettingSubMenu]
         public class InGameMenu {
 
+            // NOTE: CelesteNetClientSession.UseInteractions should be used to check if Interactions are on, since there can be overrides
             [SettingSubText("modoptions_celestenetclient_interactionshint")]
             public bool Interactions { get; set; } = true;
 

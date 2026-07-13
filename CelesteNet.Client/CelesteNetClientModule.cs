@@ -110,7 +110,7 @@ namespace Celeste.Mod.CelesteNet.Client {
 
             CelesteNetClientSpriteDB.Load();
 
-            typeof(Interop).ModInterop();
+            Interop.Load();
         }
 
         public override void LoadContent(bool firstLoad) {

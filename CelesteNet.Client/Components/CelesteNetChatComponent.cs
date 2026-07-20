@@ -577,6 +577,16 @@ namespace Celeste.Mod.CelesteNet.Client.Components {
                 } else if (MInput.Keyboard.Pressed(Keys.End)) {
                     CursorIndex = Typing.Length;
 
+                } else if (_ControlHeld && MInput.Keyboard.Pressed(Keys.V)) {
+                    string clipboardValue = TextInput.GetClipboardText();
+
+                    if (CursorIndex == Typing.Length) {
+                        Typing += clipboardValue;
+                    } else {
+                        // insert into string if cursor is not at the end
+                        Typing = Typing.Insert(_CursorIndex, clipboardValue);
+                    }
+                    CursorIndex += clipboardValue.Length;
                 } else if (Settings.ButtonChatClose.Released()) {
                     if (!Settings.ChatUI.ChatCloseCancelsSuggestions || Completion.Count == 0)
                         Active = false;
